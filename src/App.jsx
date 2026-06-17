@@ -17,9 +17,10 @@ import { createClient } from '@supabase/supabase-js';
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 
 /* ── YOUR SUPABASE CREDENTIALS (replace these) ─────────── */
+
 const SUPABASE_URL      = 'https://pvyrfjgrfmuvivdflcgg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZUv';
-/* ─────────────────────────────────────────────────────────── */
+─────────────────────────────────────────────────────────── */
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -156,6 +157,45 @@ const lTot   = (i) => (Number(i.qty)||0)*(Number(i.rate)||0);
 
 const readFileAsBase64 = (f) => new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readFileAsText   = (f) => new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
+
+/* read image file as base64 data URL for logo preview */
+const readImageAsDataURL = (f) => new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+
+/* generate and open a printable PDF budget — includes brand panel + recon section */
+const downloadBudgetPDF = (project,items,advances=[],reconEntries=[],brand={}) => {
+  const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+  const rows=DEPTS.map(dept=>{
+    const di=items.filter(i=>i.dept===dept);if(!di.length)return'';
+    const dTot=di.reduce((s,i)=>s+lTot(i),0);
+    return`<tr style="background:#1A0835"><td colspan="4" style="padding:8px 14px;font-weight:700;color:#FEED61;font-size:13px">${dept}</td><td style="padding:8px 14px;text-align:right;font-family:monospace;color:#FEED61">${sym(di[0].currency)}${fmt(dTot)}</td></tr>${di.map(item=>`<tr style="border-bottom:1px solid #eee"><td style="padding:6px 14px 6px 28px;font-size:13px">${item.description||''}</td><td style="padding:6px 14px;text-align:center;font-size:13px">${item.qty}</td><td style="padding:6px 14px;text-align:center;font-size:13px">${item.unit}</td><td style="padding:6px 14px;text-align:right;font-family:monospace;font-size:13px">${sym(item.currency)}${fmt(item.rate)}</td><td style="padding:6px 14px;text-align:right;font-family:monospace;font-size:13px;font-weight:600">${sym(item.currency)}${fmt(lTot(item))}</td></tr>`).join('')}`;
+  }).join('');
+  const totalStr=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)} ${c}`).join('&nbsp;&nbsp;|&nbsp;&nbsp;');
+  const logoSrc=brand.logo||project.logo_url;
+  const logoHtml=logoSrc?`<img src="${logoSrc}" style="height:52px;margin-bottom:12px;display:block;object-fit:contain"/>`:'';
+  const companyName=brand.companyName||'';
+  const prodTitle=brand.productionTitle||project.name;
+  const reconRows=advances.map(adv=>{
+    const es=reconEntries.filter(e=>e.advance_id===adv.id);
+    const spent=es.reduce((s,e)=>s+e.amount,0);
+    const bal=adv.amount-spent;
+    const sc=adv.status==='reconciled'?'#52B07A':bal<0?'#E06B52':'#D0A830';
+    const sl=adv.status==='reconciled'?'Reconciled':bal<0?'Overspent':bal===0?'Balanced':'Open';
+    return`<tr style="border-bottom:1px solid #eee"><td style="padding:8px 14px;font-size:13px">${adv.recipient}</td><td style="padding:8px 14px;font-size:13px">${adv.dept||'—'}</td><td style="padding:8px 14px;font-family:monospace;font-size:13px;text-align:right">${sym(adv.currency)}${fmt(adv.amount)}</td><td style="padding:8px 14px;font-family:monospace;font-size:13px;text-align:right">${sym(adv.currency)}${fmt(spent)}</td><td style="padding:8px 14px;font-family:monospace;font-size:13px;text-align:right;color:${bal<0?'#E06B52':'inherit'}">${sym(adv.currency)}${fmt(bal)}</td><td style="padding:8px 14px;font-size:12px;font-weight:700;color:${sc}">${sl}</td></tr>`;
+  }).join('');
+  const reconSection=advances.length===0?'':`<div style="padding:0 40px 20px"><h3 style="font-size:14px;text-transform:uppercase;letter-spacing:0.1em;color:#555;margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid #FEED61">Cash Advance Reconciliation</h3><table><thead><tr><th>Recipient</th><th>Dept</th><th style="text-align:right">Issued</th><th style="text-align:right">Spent</th><th style="text-align:right">Balance</th><th>Status</th></tr></thead><tbody>${reconRows}</tbody></table></div>`;
+  const html=`<!DOCTYPE html><html><head><title>NKO Budget — ${prodTitle}</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:0;color:#222}.hdr{background:#0F0120;padding:30px 40px}.hdr h1{color:#FEED61;font-size:30px;margin:0;letter-spacing:0.06em}.hdr .co{color:#8C852E;font-size:13px;margin:4px 0 0;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}.hdr p{color:#9A9080;margin:4px 0 0;font-size:14px}.meta{padding:14px 40px;background:#f5f5f5;border-bottom:2px solid #FEED61;font-size:13px;color:#555}table{width:100%;border-collapse:collapse}th{background:#0F0120;color:#FEED61;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em}.tot{padding:20px 40px;background:#0F0120}.tot p{color:#8C852E;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px}.tot h2{color:#FEED61;font-size:26px;margin:0;font-family:monospace}.ftr{padding:14px 40px;font-size:11px;color:#999;text-align:center;border-top:1px solid #eee}@media print{.no-print{display:none}}</style></head><body><div class="hdr">${logoHtml}${companyName?`<div class="co">${companyName}</div>`:''}<h1>NKO</h1><p>Production Budget — ${prodTitle}</p></div><div class="meta"><strong>Production:</strong> ${prodTitle}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Type:</strong> ${project.type}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Currency:</strong> ${project.base_currency}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Date:</strong> ${new Date().toLocaleDateString()}</div><div style="padding:0 40px"><table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table></div>${reconSection}<div class="tot"><p>Total Budget</p><h2>${totalStr}</h2></div><div class="ftr">Generated by NKO — The African Production Ledger | nko-nko.vercel.app</div><div class="no-print" style="text-align:center;padding:20px"><button onclick="window.print()" style="background:#FEED61;border:none;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div></body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+};
+
+
+/* generate and open a printable PDF receipt in a new tab */
+const downloadReceiptPDF = (payment,payee,project) => {
+  const allPaid=(payee.payments||[]).reduce((s,p)=>s+p.amount,0);
+  const bal=payee.agreed_fee-allPaid;
+  const logoHtml=project.logo_url?`<img src="${project.logo_url}" style="height:48px;margin-bottom:12px;display:block;object-fit:contain"/>`:'' ;
+  const html=`<!DOCTYPE html><html><head><title>NKO Receipt — ${payee.name}</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:0;color:#222}.hdr{background:#0F0120;padding:30px 40px}.hdr h1{color:#FEED61;font-size:30px;margin:0;letter-spacing:0.06em}.hdr p{color:#9A9080;margin:6px 0 0;font-size:14px}.body{padding:30px 40px}.row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #eee;font-size:14px}.label{color:#666;font-weight:600}.value{font-family:monospace;font-weight:700}.total{background:#0F0120;padding:20px 40px;margin-top:20px}.total p{color:#8C852E;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px}.total h2{color:#FEED61;font-size:26px;margin:0;font-family:monospace}.ftr{padding:14px 40px;font-size:11px;color:#999;text-align:center;border-top:1px solid #eee}@media print{.no-print{display:none}}</style></head><body><div class="hdr">${logoHtml}<h1>NKO</h1><p>Payment Receipt — ${project.name}</p></div><div class="body"><div class="row"><span class="label">Production</span><span class="value">${project.name}</span></div><div class="row"><span class="label">Date</span><span class="value">${payment.date}</span></div><div class="row"><span class="label">Payee</span><span class="value">${payee.name}</span></div><div class="row"><span class="label">Role</span><span class="value">${payee.role}</span></div><div class="row"><span class="label">Agreed Fee</span><span class="value">${sym(payee.currency)}${fmt(payee.agreed_fee)}</span></div><div class="row"><span class="label">Amount Paid</span><span class="value">${sym(payee.currency)}${fmt(payment.amount)}</span></div><div class="row"><span class="label">Payment Method</span><span class="value">${payment.method}</span></div><div class="row"><span class="label">Balance Outstanding</span><span class="value" style="color:${bal>0?'#E06B52':'#52B07A'}">${sym(payee.currency)}${fmt(bal)}</span></div></div><div class="total"><p>Amount Paid This Transaction</p><h2>${sym(payee.currency)}${fmt(payment.amount)}</h2></div><div class="ftr">Issued via NKO — The African Production Ledger | nko-nko.vercel.app</div><div class="no-print" style="text-align:center;padding:20px"><button onclick="window.print()" style="background:#FEED61;border:none;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div></body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+};
 
 const whatsappReceipt = (payment,payee,project) => [
   `*NKO PAYMENT RECEIPT*`,`━━━━━━━━━━━━━━━━━━━━`,
@@ -349,6 +389,8 @@ function MobileNav({view,setView}){
 ═══════════════════════════════════════════════════════ */
 function NewProjectModal({onClose,onCreate}){
   const [name,setName]=useState(""); const [type,setType]=useState(PROJ_TYPES[0]); const [cur,setCur]=useState("NGN"); const [loading,setLoading]=useState(false);
+  const [logo,setLogo]=useState(null); const logoRef=useRef();
+  const pickLogo=async(e)=>{const f=e.target.files[0];if(f){const url=await readImageAsDataURL(f);setLogo(url);}};
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(15,1,32,.88)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:100}}>
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:26,width:"100%",maxWidth:400}}>
@@ -357,8 +399,14 @@ function NewProjectModal({onClose,onCreate}){
           <Inp placeholder="Production name" value={name} onChange={e=>setName(e.target.value)}/>
           <Sel value={type} onChange={e=>setType(e.target.value)} style={{width:"100%"}}>{PROJ_TYPES.map(t=><option key={t}>{t}</option>)}</Sel>
           <Sel value={cur} onChange={e=>setCur(e.target.value)} style={{width:"100%"}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}</Sel>
+          {/* Production logo upload */}
+          <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:14,textAlign:"center",cursor:"pointer",background:T.hi}} onClick={()=>logoRef.current.click()}>
+            <input ref={logoRef} type="file" accept="image/*" style={{display:"none"}} onChange={pickLogo}/>
+            {logo ? <img src={logo} style={{height:48,objectFit:"contain",display:"block",margin:"0 auto 6px"}}/> : <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>📷 Upload production logo (optional)</div>}
+            {logo && <div style={{fontSize:10,color:T.goldDim,fontFamily:"Manrope,sans-serif"}}>Tap to change</div>}
+          </div>
           <div style={{display:"flex",gap:8,marginTop:4}}>
-            <Btn onClick={async()=>{if(!name.trim())return;setLoading(true);await onCreate({name:name.trim(),type,base_currency:cur});setLoading(false);}} style={{opacity:loading?.6:1}}>{loading?"Creating…":"Create"}</Btn>
+            <Btn onClick={async()=>{if(!name.trim())return;setLoading(true);await onCreate({name:name.trim(),type,base_currency:cur,logo_url:logo||null});setLoading(false);}} style={{opacity:loading?.6:1}}>{loading?"Creating…":"Create"}</Btn>
             <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
           </div>
         </div>
@@ -535,13 +583,80 @@ function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
     </div>
   );
 }
-function BudgetsView({project,items,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript}){
+
+/* ── Brand Panel ── */
+function BrandPanel({project,onSave}){
+  const [open,setOpen]=useState(false);
+  const [companyName,setCompanyName]=useState('');
+  const [productionTitle,setProductionTitle]=useState('');
+  const [logo,setLogo]=useState(null);
+  const [saved,setSaved]=useState(false);
+  const logoRef=useRef();
+
+  /* Load from localStorage keyed to project */
+  useEffect(()=>{
+    if(!project)return;
+    try{
+      const stored=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+      setCompanyName(stored.companyName||'');
+      setProductionTitle(stored.productionTitle||project.name||'');
+      setLogo(stored.logo||project.logo_url||null);
+      setSaved(!!(stored.companyName||stored.productionTitle||stored.logo));
+    }catch{}
+  },[project?.id]);
+
+  const pickLogo=async(e)=>{const f=e.target.files[0];if(f){const url=await readImageAsDataURL(f);setLogo(url);}};
+  const save=()=>{
+    const brand={companyName,productionTitle,logo};
+    localStorage.setItem(`nko_brand_${project.id}`,JSON.stringify(brand));
+    setSaved(true);setOpen(false);
+    onSave&&onSave(brand);
+  };
+  const brand={companyName,productionTitle,logo};
+  const isSet=!!(companyName||productionTitle||logo);
+
+  return(
+    <div style={{background:T.panel,border:`1px solid ${isSet?T.sage:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          {logo&&<img src={logo} style={{height:28,objectFit:'contain',borderRadius:3}}/>}
+          <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Brand Panel</span>
+          <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Logo · Company · Title</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {saved&&isSet&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Brand set ✓</span>}
+          <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+        </div>
+      </button>
+      {open&&(
+        <div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
+          {/* Logo upload */}
+          <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>logoRef.current.click()}>
+            <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickLogo}/>
+            {logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto 6px'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload company logo</div>}
+            {logo&&<div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif'}}>Tap to change</div>}
+          </div>
+          <Inp placeholder="Company name (e.g. Zestyn Media)" value={companyName} onChange={e=>setCompanyName(e.target.value)}/>
+          <Inp placeholder="Production title (e.g. My Wicked Mother in Law)" value={productionTitle} onChange={e=>setProductionTitle(e.target.value)}/>
+          <div style={{display:'flex',gap:8}}>
+            <Btn onClick={save} variant="sage">Save brand ✓</Btn>
+            <Btn variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript}){
   const [showPicker,setShowPicker]=useState(false);
+  const [brand,setBrand]=useState({});
   if(!project)return <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:"center"}}><div style={{color:T.dim,fontFamily:"Manrope,sans-serif"}}>Select a production first.</div></div>;
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:"Fraunces,serif",fontSize:26,color:T.cream}}>{project.name}</div><div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}><Pill>{project.type}</Pill><Pill color={T.goldDim}>{project.base_currency}</Pill></div><div style={{marginTop:14}}><FS/></div></div>
+      <BrandPanel project={project} onSave={b=>setBrand(b)}/>
       <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
       <button onClick={()=>setShowPicker(!showPicker)} style={{color:T.goldDim,fontSize:12,fontWeight:700,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif",marginBottom:12}}>{showPicker?"▼ Hide templates":"▶ Browse manual templates"}</button>
       {showPicker&&(
@@ -555,8 +670,13 @@ function BudgetsView({project,items,onAdd,onUpdate,onRemove,onApplyTemplate,onAp
       {DEPTS.map(d=><DeptSection key={d} dept={d} items={items.filter(i=>i.dept===d)} baseCurrency={project.base_currency} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove}/>)}
       {Object.keys(totals).length>0&&(
         <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:20,marginTop:16}}>
-          <div style={{fontSize:10,color:T.goldDim,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:12,fontFamily:"Manrope,sans-serif"}}>Total budget</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:24}}>{Object.entries(totals).map(([c,a])=><div key={c}><div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:28,color:T.cream,fontWeight:500}}>{sym(c)}{fmt(a)}</div><div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{c}</div></div>)}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+            <div>
+              <div style={{fontSize:10,color:T.goldDim,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:12,fontFamily:"Manrope,sans-serif"}}>Total budget</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:24}}>{Object.entries(totals).map(([c,a])=><div key={c}><div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:28,color:T.cream,fontWeight:500}}>{sym(c)}{fmt(a)}</div><div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{c}</div></div>)}</div>
+            </div>
+            <Btn variant="outline" size="sm" onClick={()=>downloadBudgetPDF(project,items,advances||[],reconEntries||[],brand)}>📄 Export budget PDF</Btn>
+          </div>
         </div>
       )}
     </div>
@@ -641,8 +761,13 @@ function ReceiptModal({payee,payment,project,onClose}){
   return <div style={{position:"fixed",inset:0,background:"rgba(15,1,32,.92)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:100}}>
     <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:24,width:"100%",maxWidth:400}}>
       <div style={{fontFamily:"Fraunces,serif",fontSize:18,color:T.cream,marginBottom:16}}>Payment Receipt</div>
+      {project.logo_url&&<img src={project.logo_url} style={{height:36,objectFit:"contain",marginBottom:12,display:"block"}}/>}
       <pre style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:8,padding:16,fontSize:12,color:T.cream,fontFamily:"IBM Plex Mono,monospace",whiteSpace:"pre-wrap",marginBottom:16,lineHeight:1.7}}>{text}</pre>
-      <div style={{display:"flex",gap:8}}><Btn variant="wa" onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank")}>📱 Send via WhatsApp</Btn><Btn variant="ghost" onClick={onClose}>Close</Btn></div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <Btn variant="wa" onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,"_blank")}>📱 WhatsApp</Btn>
+        <Btn variant="outline" onClick={()=>downloadReceiptPDF(payment,payee,project)}>📄 PDF</Btn>
+        <Btn variant="ghost" onClick={onClose}>Close</Btn>
+      </div>
     </div>
   </div>;
 }
@@ -860,7 +985,7 @@ function MainApp(){
         <TopBar projects={projects} currentId={currentId} onSelect={id=>setCurrentId(id||null)} onNew={()=>setView("dashboard")} onSignOut={signOut}/>
         <main style={{flex:1,overflowY:"auto",padding:"24px 20px 100px"}}>
           {view==="dashboard"&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView("budgets");}} onCreate={createProject}/>}
-          {view==="budgets"&&<BudgetsView project={project} items={pBudget} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
+          {view==="budgets"&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==="recon"&&<ReconView project={project} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
           {view==="payments"&&<PaymentsView project={project} payees={payees} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==="ai"&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
