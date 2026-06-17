@@ -17,10 +17,9 @@ import { createClient } from '@supabase/supabase-js';
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 
 /* ── YOUR SUPABASE CREDENTIALS (replace these) ─────────── */
-
 const SUPABASE_URL      = 'https://pvyrfjgrfmuvivdflcgg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZUv';
-─────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────── */
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
