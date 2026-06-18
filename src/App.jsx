@@ -219,10 +219,10 @@ async function callClaude(messages, system) {
   return data.content?.find(b=>b.type==="text")?.text||"";
 }
 const CHAT_SYS = `You are a production finance co-pilot for African film and TV — Nollywood, Ghallywood, Kenyan, South African productions. You understand cash-based crew payments, imprest/advance reconciliation, negotiated day rates (no union scale), all major African currencies. Give practical advice grounded in African production realities.`;
-const SCRIPT_SYS = `You are a script breakdown and budget AI for African film productions. Return ONLY valid JSON — no markdown, no explanation. Use departments: "Cast & Talent","Crew","Locations & Transport","Equipment","Post-Production","Marketing","Contingency". Units: "day","week","flat","person","item".`;
-const SCRIPT_PROMPT = (cur) => `Analyze this script and return ONLY this JSON:
-{"analysis":{"title":"","genre":"","totalScenes":0,"estimatedShootDays":0,"uniqueLocations":0,"locationList":[],"totalSpeakingRoles":0,"extras":0,"hasNightShoots":false,"hasActionSequences":false,"hasVFX":false,"productionScale":"micro|low|mid|high","notes":""},"budget":[{"dept":"","description":"","qty":1,"unit":"flat","rate":0}]}
-Base currency: ${cur}. Scale rates to match the production complexity inferred from the script. Be thorough.`;
+const SCRIPT_SYS = `You are a script breakdown and budget AI for African film productions. You MUST return ONLY a valid JSON object. No markdown. No code fences. No explanation. No quotes inside string values — replace any apostrophes or quotes in text with spaces. Use only these departments: "Cast & Talent","Crew","Locations & Transport","Equipment","Post-Production","Marketing","Contingency". Units must be one of: "day","week","flat","person","item". Every string value must be simple with no special characters.`;
+const SCRIPT_PROMPT = (cur) => `Read this script carefully. Count the scenes, locations, and characters. Then return ONLY this JSON structure with no other text, no markdown, no code fences:
+{"analysis":{"title":"Script Title","genre":"Genre","totalScenes":0,"estimatedShootDays":0,"uniqueLocations":0,"locationList":["Location 1","Location 2"],"totalSpeakingRoles":0,"extras":0,"hasNightShoots":false,"hasActionSequences":false,"hasVFX":false,"productionScale":"low","notes":"Key notes here"},"budget":[{"dept":"Cast and Talent","description":"Lead actor","qty":1,"unit":"flat","rate":0},{"dept":"Crew","description":"Director","qty":1,"unit":"flat","rate":0}]}
+Rules: All rates in ${cur}. Use realistic Nigerian Naira rates. Keep all string values short and simple. No apostrophes or special characters in any string. Return ONLY the JSON nothing else.`;
 
 /* ═══════════════════════════════════════════════════════
    AUTH CONTEXT
@@ -528,7 +528,17 @@ function ScriptUploader({project,onApplyBudget}){
       else{const txt=await readFileAsText(file);userContent=[{type:"text",text:`Script:\n\n${txt}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];}
       setState("analyzing");
       const raw=await callClaude([{role:"user",content:userContent}],SCRIPT_SYS);
-      const parsed=JSON.parse(raw.replace(/```json|```/g,"").trim());
+      // Clean the response aggressively before parsing
+      let clean=raw
+        .replace(/```json/gi,'').replace(/```/g,'')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'') // remove control chars
+        .trim();
+      // Find the JSON object boundaries
+      const start=clean.indexOf('{');
+      const end=clean.lastIndexOf('}');
+      if(start===-1||end===-1) throw new Error("No JSON found in response");
+      clean=clean.slice(start,end+1);
+      const parsed=JSON.parse(clean);
       setResult(parsed);setState("done");
     }catch(e){setErr(`Analysis failed: ${e.message}`);setState("error");}
   };
