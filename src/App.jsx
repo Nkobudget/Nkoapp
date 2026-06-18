@@ -211,10 +211,17 @@ const whatsappReceipt = (payment,payee,project) => [
    CLAUDE API
 ═══════════════════════════════════════════════════════ */
 async function callClaude(messages, system) {
-  const res = await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:2000,system,messages}),
-  });
+ const res = await fetch("/api/claude", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    messages: [...]
+  })
+});
   const data = await res.json();
   return data.content?.find(b=>b.type==="text")?.text||"";
 }
