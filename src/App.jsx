@@ -277,6 +277,21 @@ function Spinner(){return <div style={{display:"flex",justifyContent:"center",pa
 </div>;}
 
 /* ═══════════════════════════════════════════════════════
+   MOBILE AWARENESS HOOK
+   Shared across DeptSection, BrandPanel, MarketView, etc.
+   so every component reflows consistently at one breakpoint.
+═══════════════════════════════════════════════════════ */
+function useIsMobile(breakpoint=640){
+  const [isMobile,setIsMobile]=useState(typeof window!=="undefined"?window.innerWidth<breakpoint:false);
+  useEffect(()=>{
+    const h=()=>setIsMobile(window.innerWidth<breakpoint);
+    window.addEventListener("resize",h);
+    return()=>window.removeEventListener("resize",h);
+  },[breakpoint]);
+  return isMobile;
+}
+
+/* ═══════════════════════════════════════════════════════
    AUTH SCREENS
 ═══════════════════════════════════════════════════════ */
 function AuthScreen(){
@@ -606,8 +621,56 @@ function ScriptUploader({project,onApplyBudget}){
 /* ═══════════════════════════════════════════════════════
    BUDGETS
 ═══════════════════════════════════════════════════════ */
+function BudgetLineRow({item,onUpdate,onRemove}){
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,alignItems:"center",padding:"4px 0",borderTop:`1px solid ${T.line}`}}>
+      <Inp value={item.description||""} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
+      <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})}/>
+      <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:"100%",fontSize:12}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
+      <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12}}/>
+      <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:"100%",fontSize:11}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+      <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12,color:T.cream,textAlign:"right"}}>{sym(item.currency)}{fmt(lTot(item))}</div>
+      <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:"pointer",background:"none",border:"none",lineHeight:1}}>×</button>
+    </div>
+  );
+}
+function BudgetLineCard({item,onUpdate,onRemove}){
+  return(
+    <div style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:8,padding:"12px 12px 10px",marginTop:8}}>
+      <Inp value={item.description||""} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{marginBottom:8,fontSize:14}}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+        <div>
+          <div style={{fontSize:9,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Qty</div>
+          <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})}/>
+        </div>
+        <div>
+          <div style={{fontSize:9,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Unit</div>
+          <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:"100%"}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+        <div>
+          <div style={{fontSize:9,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Rate</div>
+          <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:"IBM Plex Mono,monospace"}}/>
+        </div>
+        <div>
+          <div style={{fontSize:9,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Currency</div>
+          <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:"100%"}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+        </div>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,borderTop:`1px solid ${T.line}`}}>
+        <div>
+          <span style={{fontSize:9,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",marginRight:8}}>Total</span>
+          <span style={{fontFamily:"IBM Plex Mono,monospace",fontSize:15,color:T.gold,fontWeight:600}}>{sym(item.currency)}{fmt(lTot(item))}</span>
+        </div>
+        <button onClick={()=>onRemove(item.id)} style={{color:T.coral,fontSize:12,fontWeight:700,cursor:"pointer",background:"rgba(224,107,82,0.1)",border:`1px solid ${T.coral}`,borderRadius:6,padding:"5px 12px",fontFamily:"Manrope,sans-serif"}}>Remove</button>
+      </div>
+    </div>
+  );
+}
 function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
   const [open,setOpen]=useState(items.length>0||dept===DEPTS[0]);
+  const isMobile=useIsMobile();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const ts=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(" · ")||"—";
   return(
@@ -617,20 +680,15 @@ function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
         <span style={{fontFamily:"IBM Plex Mono,monospace",fontSize:13,color:T.gold}}>{ts}</span>
       </button>
       {open&&(
-        <div style={{borderTop:`1px solid ${T.line}`,padding:"4px 16px 14px"}}>
-          {items.length>0&&<div style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,padding:"8px 0 4px",fontSize:10,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase"}}><span>Description</span><span>Qty</span><span>Unit</span><span>Rate</span><span>Cur</span><span style={{textAlign:"right"}}>Total</span><span/></div>}
-          {items.map(item=>(
-            <div key={item.id} style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,alignItems:"center",padding:"4px 0",borderTop:`1px solid ${T.line}`}}>
-              <Inp value={item.description||""} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
-              <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})}/>
-              <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:"100%",fontSize:12}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
-              <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12}}/>
-              <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:"100%",fontSize:11}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
-              <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12,color:T.cream,textAlign:"right"}}>{sym(item.currency)}{fmt(lTot(item))}</div>
-              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:"pointer",background:"none",border:"none",lineHeight:1}}>×</button>
-            </div>
-          ))}
-          <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif"}}>+ Add line</button>
+        <div style={{borderTop:`1px solid ${T.line}`,padding:isMobile?"10px 12px 14px":"4px 16px 14px"}}>
+          {!isMobile&&(
+            <>
+              {items.length>0&&<div style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,padding:"8px 0 4px",fontSize:10,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase"}}><span>Description</span><span>Qty</span><span>Unit</span><span>Rate</span><span>Cur</span><span style={{textAlign:"right"}}>Total</span><span/></div>}
+              {items.map(item=><BudgetLineRow key={item.id} item={item} onUpdate={onUpdate} onRemove={onRemove}/>)}
+            </>
+          )}
+          {isMobile&&items.map(item=><BudgetLineCard key={item.id} item={item} onUpdate={onUpdate} onRemove={onRemove}/>)}
+          <button onClick={()=>onAdd(dept)} style={{marginTop:isMobile?14:10,color:T.gold,fontSize:isMobile?13:12,fontWeight:700,cursor:"pointer",background:isMobile?T.goldGlow:"none",border:isMobile?`1px solid ${T.goldDim}`:"none",borderRadius:isMobile?6:0,padding:isMobile?"8px 14px":0,width:isMobile?"100%":"auto",fontFamily:"Manrope,sans-serif"}}>+ Add line</button>
         </div>
       )}
     </div>
@@ -644,6 +702,7 @@ function BrandPanel({project,onSave}){
   const [logo,setLogo]=useState(null);
   const [saved,setSaved]=useState(false);
   const logoRef=useRef();
+  const isMobile=useIsMobile();
   useEffect(()=>{
     if(!project)return;
     try{
@@ -664,29 +723,29 @@ function BrandPanel({project,onSave}){
   const isSet=!!(companyName||productionTitle||logo);
   return(
     <div style={{background:T.panel,border:`1px solid ${isSet?T.sage:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
-      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          {logo&&<img src={logo} style={{height:28,objectFit:'contain',borderRadius:3}}/>}
-          <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Brand Panel</span>
-          <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Logo · Company · Title</span>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:isMobile?'12px 14px':'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:isMobile?'wrap':'nowrap'}}>
+        <div style={{display:'flex',alignItems:'center',gap:isMobile?8:10,minWidth:0}}>
+          {logo&&<img src={logo} style={{height:isMobile?24:28,objectFit:'contain',borderRadius:3,flexShrink:0}}/>}
+          <span style={{fontFamily:'Fraunces,serif',fontSize:isMobile?14:15,color:T.cream,whiteSpace:'nowrap'}}>Brand Panel</span>
+          {!isMobile&&<span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Logo · Company · Title</span>}
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          {saved&&isSet&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Brand set ✓</span>}
+        <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+          {saved&&isSet&&<span style={{fontSize:isMobile?10:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,whiteSpace:'nowrap'}}>Brand set ✓</span>}
           <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
         </div>
       </button>
       {open&&(
-        <div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
-          <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>logoRef.current.click()}>
+        <div style={{borderTop:`1px solid ${T.line}`,padding:isMobile?14:16,display:'flex',flexDirection:'column',gap:10}}>
+          <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:isMobile?16:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>logoRef.current.click()}>
             <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickLogo}/>
-            {logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto 6px'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload company logo</div>}
+            {logo?<img src={logo} style={{height:isMobile?52:44,objectFit:'contain',display:'block',margin:'0 auto 6px'}}/>:<div style={{fontSize:isMobile?12:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload company logo</div>}
             {logo&&<div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif'}}>Tap to change</div>}
           </div>
-          <Inp placeholder="Company name (e.g. Zestyn Media)" value={companyName} onChange={e=>setCompanyName(e.target.value)}/>
-          <Inp placeholder="Production title (e.g. My Wicked Mother in Law)" value={productionTitle} onChange={e=>setProductionTitle(e.target.value)}/>
-          <div style={{display:'flex',gap:8}}>
-            <Btn onClick={save} variant="sage">Save brand ✓</Btn>
-            <Btn variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn>
+          <Inp placeholder="Company name (e.g. Zestyn Media)" value={companyName} onChange={e=>setCompanyName(e.target.value)} style={isMobile?{fontSize:14,padding:"10px 12px"}:{}}/>
+          <Inp placeholder="Production title (e.g. My Wicked Mother in Law)" value={productionTitle} onChange={e=>setProductionTitle(e.target.value)} style={isMobile?{fontSize:14,padding:"10px 12px"}:{}}/>
+          <div style={{display:'flex',gap:8,flexDirection:isMobile?'column':'row'}}>
+            <Btn onClick={save} variant="sage" style={isMobile?{width:'100%',padding:'10px 16px'}:{}}>Save brand ✓</Btn>
+            <Btn variant="ghost" onClick={()=>setOpen(false)} style={isMobile?{width:'100%',padding:'10px 16px'}:{}}>Cancel</Btn>
           </div>
         </div>
       )}
@@ -939,31 +998,33 @@ function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,on
   const [topTab,setTopTab]=useState("discover");
   const [category,setCategory]=useState("all");
   const [showSave,setShowSave]=useState(false);
+  const isMobile=useIsMobile();
 
   const topTabs=[{id:"discover",l:"Discover"},{id:"builtin",l:"Templates"},{id:"mine",l:"My Templates"},{id:"public",l:"Community"}];
   const categories=[{id:"all",e:"🎬",l:"All"},{id:"Feature Film",e:"🎞️",l:"Feature Film"},{id:"Vertical Series / Microdrama",e:"📱",l:"Vertical Series"},{id:"Short Film",e:"🎥",l:"Short Film"},{id:"Music Video",e:"🎵",l:"Music Video"},{id:"Documentary",e:"📹",l:"Documentary"},{id:"Branded Content",e:"📣",l:"Branded / Podcast"}];
 
   const filteredBuiltIns=category==="all"?builtIns:builtIns.filter(t=>t.type===category);
   const featured=builtIns[0];
+  const gridCols=isMobile?"1fr":"repeat(auto-fill,minmax(220px,1fr))";
 
   return(
     <div>
-      {/* Header — Notion-style title row */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18,flexWrap:"wrap",gap:10}}>
+      {/* Header — Notion-style title row, stacks on mobile */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"flex-start",flexDirection:isMobile?"column":"row",marginBottom:18,gap:isMobile?14:10}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:20}}>🏪</span>
-            <div style={{fontFamily:"Fraunces,serif",fontSize:26,color:T.cream}}>Marketplace</div>
+            <span style={{fontSize:isMobile?18:20}}>🏪</span>
+            <div style={{fontFamily:"Fraunces,serif",fontSize:isMobile?22:26,color:T.cream}}>Marketplace</div>
           </div>
-          <div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:"Manrope,sans-serif"}}>Browse budget templates built for African productions, or share your own.</div>
+          <div style={{fontSize:isMobile?13:14,color:T.dim,marginTop:4,fontFamily:"Manrope,sans-serif"}}>Browse budget templates built for African productions, or share your own.</div>
         </div>
-        {project&&budgetItems.length>0&&<Btn size="sm" onClick={()=>setShowSave(true)}>+ Save current budget as template</Btn>}
+        {project&&budgetItems.length>0&&<Btn size="sm" onClick={()=>setShowSave(true)} style={isMobile?{width:"100%",padding:"10px 14px"}:{}}>+ Save current budget as template</Btn>}
       </div>
 
-      {/* Top nav tabs — Discover / Templates / My Templates / Community */}
-      <div style={{display:"flex",gap:24,borderBottom:`1px solid ${T.line}`,marginBottom:20}}>
+      {/* Top nav tabs — horizontally scrollable on mobile instead of wrapping */}
+      <div style={{display:"flex",gap:isMobile?16:24,borderBottom:`1px solid ${T.line}`,marginBottom:20,overflowX:isMobile?"auto":"visible",WebkitOverflowScrolling:"touch"}}>
         {topTabs.map(t=>(
-          <button key={t.id} onClick={()=>setTopTab(t.id)} style={{background:"none",border:"none",cursor:"pointer",padding:"0 0 12px",fontFamily:"Fraunces,serif",fontSize:17,fontWeight:topTab===t.id?700:500,color:topTab===t.id?T.gold:T.dim,borderBottom:`2px solid ${topTab===t.id?T.gold:"transparent"}`,marginBottom:-1}}>
+          <button key={t.id} onClick={()=>setTopTab(t.id)} style={{background:"none",border:"none",cursor:"pointer",padding:"0 0 12px",fontFamily:"Fraunces,serif",fontSize:isMobile?15:17,fontWeight:topTab===t.id?700:500,color:topTab===t.id?T.gold:T.dim,borderBottom:`2px solid ${topTab===t.id?T.gold:"transparent"}`,marginBottom:-1,whiteSpace:"nowrap",flexShrink:0}}>
             {t.l}
           </button>
         ))}
@@ -972,10 +1033,10 @@ function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,on
       {/* DISCOVER TAB */}
       {topTab==="discover"&&(
         <>
-          {/* Category pills */}
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:22}}>
+          {/* Category pills — horizontally scrollable strip on mobile */}
+          <div style={{display:"flex",gap:8,flexWrap:isMobile?"nowrap":"wrap",overflowX:isMobile?"auto":"visible",WebkitOverflowScrolling:"touch",marginBottom:22,paddingBottom:isMobile?4:0}}>
             {categories.map(c=>(
-              <button key={c.id} onClick={()=>setCategory(c.id)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:24,border:`1px solid ${category===c.id?T.gold:T.line}`,background:category===c.id?T.goldGlow:T.panel,color:category===c.id?T.gold:T.cream,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"Manrope,sans-serif"}}>
+              <button key={c.id} onClick={()=>setCategory(c.id)} style={{display:"flex",alignItems:"center",gap:6,padding:isMobile?"7px 14px":"8px 16px",borderRadius:24,border:`1px solid ${category===c.id?T.gold:T.line}`,background:category===c.id?T.goldGlow:T.panel,color:category===c.id?T.gold:T.cream,fontSize:isMobile?12:13,fontWeight:600,cursor:"pointer",fontFamily:"Manrope,sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
                 <span>{c.e}</span>{c.l}
               </button>
             ))}
@@ -983,19 +1044,19 @@ function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,on
 
           {/* Featured hero card */}
           {featured&&(
-            <div style={{background:`linear-gradient(135deg, ${T.hi} 0%, ${T.panel} 100%)`,border:`1px solid ${T.gold}`,borderRadius:14,padding:"28px 30px",marginBottom:24,position:"relative",overflow:"hidden"}}>
+            <div style={{background:`linear-gradient(135deg, ${T.hi} 0%, ${T.panel} 100%)`,border:`1px solid ${T.gold}`,borderRadius:14,padding:isMobile?"22px 20px":"28px 30px",marginBottom:24,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,right:0,width:160,height:160,background:T.goldGlow,borderRadius:"50%",transform:"translate(40%,-40%)"}}/>
               <Pill color={T.sapphire}>Featured Template</Pill>
-              <div style={{fontFamily:"Fraunces,serif",fontSize:28,color:T.cream,marginTop:12,marginBottom:6,position:"relative"}}>{featured.label}</div>
-              <div style={{fontSize:14,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:18,maxWidth:480,position:"relative"}}>{featured.sub}</div>
-              <Btn onClick={()=>onApplyTemplate(featured)} style={{position:"relative"}}>Use this template</Btn>
+              <div style={{fontFamily:"Fraunces,serif",fontSize:isMobile?22:28,color:T.cream,marginTop:12,marginBottom:6,position:"relative"}}>{featured.label}</div>
+              <div style={{fontSize:isMobile?13:14,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:18,maxWidth:480,position:"relative"}}>{featured.sub}</div>
+              <Btn onClick={()=>onApplyTemplate(featured)} style={{position:"relative",width:isMobile?"100%":"auto"}}>Use this template</Btn>
             </div>
           )}
 
           {/* Grid of built-in templates by category */}
-          <div style={{fontFamily:"Fraunces,serif",fontSize:18,color:T.cream,marginBottom:12}}>{category==="all"?"All templates":categories.find(c=>c.id===category)?.l}</div>
+          <div style={{fontFamily:"Fraunces,serif",fontSize:isMobile?16:18,color:T.cream,marginBottom:12}}>{category==="all"?"All templates":categories.find(c=>c.id===category)?.l}</div>
           {!project&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:16}}><div style={{color:T.dim,fontSize:12,fontFamily:"Manrope,sans-serif"}}>Select a production from the Dashboard to apply a template to it.</div></div>}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:gridCols,gap:12}}>
             {filteredBuiltIns.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
           </div>
         </>
@@ -1003,7 +1064,7 @@ function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,on
 
       {/* TEMPLATES TAB (all built-ins, no categories) */}
       {topTab==="builtin"&&(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:gridCols,gap:12}}>
           {builtIns.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
         </div>
       )}
@@ -1012,7 +1073,7 @@ function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,on
       {topTab==="mine"&&(
         myTemplates.length===0
           ?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:"center"}}><div style={{color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>No saved templates yet. Build a budget, then save it as a template.</div></div>
-          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          :<div style={{display:"grid",gridTemplateColumns:gridCols,gap:12}}>
               {myTemplates.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={true} onApply={onApplyTemplate} onDelete={onDeleteTemplate}/>)}
             </div>
       )}
@@ -1021,7 +1082,7 @@ function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,on
       {topTab==="public"&&(
         publicTemplates.length===0
           ?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:"center"}}><div style={{color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>No community templates shared yet. Be the first to share one!</div></div>
-          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          :<div style={{display:"grid",gridTemplateColumns:gridCols,gap:12}}>
               {publicTemplates.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
             </div>
       )}
