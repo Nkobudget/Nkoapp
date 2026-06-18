@@ -881,6 +881,157 @@ function PayeeCard({payee,project,onAddPayment,onRemovePayment}){
 }
 
 /* ═══════════════════════════════════════════════════════
+   MARKETPLACE
+═══════════════════════════════════════════════════════ */
+function SaveTemplateModal({budgetItems,onClose,onSave}){
+  const [label,setLabel]=useState("");
+  const [sub,setSub]=useState("");
+  const [isPublic,setIsPublic]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const totalLines=budgetItems.length;
+  const go=async()=>{
+    if(!label.trim()||saving)return;
+    setSaving(true);
+    const items=budgetItems.map(i=>({dept:i.dept,description:i.description,qty:i.qty,unit:i.unit,rate:i.rate}));
+    await onSave({label:label.trim(),sub:sub.trim(),items,is_public:isPublic});
+    setSaving(false);
+    onClose();
+  };
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(15,1,32,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:200}}>
+      <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:26,width:"100%",maxWidth:420}}>
+        <div style={{fontFamily:"Fraunces,serif",fontSize:20,color:T.cream,marginBottom:6}}>Save as template</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:16}}>Saves the current {totalLines} budget line{totalLines===1?"":"s"} as a reusable template in your Marketplace.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <Inp placeholder="Template name (e.g. Lagos Courtroom Drama)" value={label} onChange={e=>setLabel(e.target.value)}/>
+          <Inp placeholder="Short description (optional)" value={sub} onChange={e=>setSub(e.target.value)}/>
+          <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",cursor:"pointer"}}>
+            <input type="checkbox" checked={isPublic} onChange={e=>setIsPublic(e.target.checked)}/>
+            Share publicly in the Marketplace for other producers
+          </label>
+        </div>
+        <div style={{display:"flex",gap:8,marginTop:16}}>
+          <Btn onClick={go} style={{opacity:label.trim()&&!saving?1:0.5}}>{saving?"Saving…":"Save template"}</Btn>
+          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+function TemplateCard({tpl,mine,onApply,onDelete}){
+  const total=(tpl.items||[]).reduce((s,i)=>s+lTot(i),0);
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,position:"relative"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+        <div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.gold}}>{tpl.label}</div>
+        {tpl.is_public&&<Pill color={T.sapphire}>Public</Pill>}
+      </div>
+      {tpl.sub&&<div style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:10}}>{tpl.sub}</div>}
+      <div style={{fontSize:11,color:T.faint,fontFamily:"Manrope,sans-serif",marginBottom:12}}>{(tpl.items||[]).length} line items · ~{fmt(total)} est.</div>
+      <div style={{display:"flex",gap:8}}>
+        <Btn size="sm" onClick={()=>onApply(tpl)}>Use template</Btn>
+        {mine&&<Btn size="sm" variant="danger" onClick={()=>onDelete(tpl.id)}>Delete</Btn>}
+      </div>
+    </div>
+  );
+}
+function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,onApplyTemplate,onSaveTemplate,onDeleteTemplate}){
+  const [topTab,setTopTab]=useState("discover");
+  const [category,setCategory]=useState("all");
+  const [showSave,setShowSave]=useState(false);
+
+  const topTabs=[{id:"discover",l:"Discover"},{id:"builtin",l:"Templates"},{id:"mine",l:"My Templates"},{id:"public",l:"Community"}];
+  const categories=[{id:"all",e:"🎬",l:"All"},{id:"Feature Film",e:"🎞️",l:"Feature Film"},{id:"Vertical Series / Microdrama",e:"📱",l:"Vertical Series"},{id:"Short Film",e:"🎥",l:"Short Film"},{id:"Music Video",e:"🎵",l:"Music Video"},{id:"Documentary",e:"📹",l:"Documentary"},{id:"Branded Content",e:"📣",l:"Branded / Podcast"}];
+
+  const filteredBuiltIns=category==="all"?builtIns:builtIns.filter(t=>t.type===category);
+  const featured=builtIns[0];
+
+  return(
+    <div>
+      {/* Header — Notion-style title row */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18,flexWrap:"wrap",gap:10}}>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:20}}>🏪</span>
+            <div style={{fontFamily:"Fraunces,serif",fontSize:26,color:T.cream}}>Marketplace</div>
+          </div>
+          <div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:"Manrope,sans-serif"}}>Browse budget templates built for African productions, or share your own.</div>
+        </div>
+        {project&&budgetItems.length>0&&<Btn size="sm" onClick={()=>setShowSave(true)}>+ Save current budget as template</Btn>}
+      </div>
+
+      {/* Top nav tabs — Discover / Templates / My Templates / Community */}
+      <div style={{display:"flex",gap:24,borderBottom:`1px solid ${T.line}`,marginBottom:20}}>
+        {topTabs.map(t=>(
+          <button key={t.id} onClick={()=>setTopTab(t.id)} style={{background:"none",border:"none",cursor:"pointer",padding:"0 0 12px",fontFamily:"Fraunces,serif",fontSize:17,fontWeight:topTab===t.id?700:500,color:topTab===t.id?T.gold:T.dim,borderBottom:`2px solid ${topTab===t.id?T.gold:"transparent"}`,marginBottom:-1}}>
+            {t.l}
+          </button>
+        ))}
+      </div>
+
+      {/* DISCOVER TAB */}
+      {topTab==="discover"&&(
+        <>
+          {/* Category pills */}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:22}}>
+            {categories.map(c=>(
+              <button key={c.id} onClick={()=>setCategory(c.id)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:24,border:`1px solid ${category===c.id?T.gold:T.line}`,background:category===c.id?T.goldGlow:T.panel,color:category===c.id?T.gold:T.cream,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"Manrope,sans-serif"}}>
+                <span>{c.e}</span>{c.l}
+              </button>
+            ))}
+          </div>
+
+          {/* Featured hero card */}
+          {featured&&(
+            <div style={{background:`linear-gradient(135deg, ${T.hi} 0%, ${T.panel} 100%)`,border:`1px solid ${T.gold}`,borderRadius:14,padding:"28px 30px",marginBottom:24,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,right:0,width:160,height:160,background:T.goldGlow,borderRadius:"50%",transform:"translate(40%,-40%)"}}/>
+              <Pill color={T.sapphire}>Featured Template</Pill>
+              <div style={{fontFamily:"Fraunces,serif",fontSize:28,color:T.cream,marginTop:12,marginBottom:6,position:"relative"}}>{featured.label}</div>
+              <div style={{fontSize:14,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:18,maxWidth:480,position:"relative"}}>{featured.sub}</div>
+              <Btn onClick={()=>onApplyTemplate(featured)} style={{position:"relative"}}>Use this template</Btn>
+            </div>
+          )}
+
+          {/* Grid of built-in templates by category */}
+          <div style={{fontFamily:"Fraunces,serif",fontSize:18,color:T.cream,marginBottom:12}}>{category==="all"?"All templates":categories.find(c=>c.id===category)?.l}</div>
+          {!project&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:16}}><div style={{color:T.dim,fontSize:12,fontFamily:"Manrope,sans-serif"}}>Select a production from the Dashboard to apply a template to it.</div></div>}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+            {filteredBuiltIns.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
+          </div>
+        </>
+      )}
+
+      {/* TEMPLATES TAB (all built-ins, no categories) */}
+      {topTab==="builtin"&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          {builtIns.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
+        </div>
+      )}
+
+      {/* MY TEMPLATES TAB */}
+      {topTab==="mine"&&(
+        myTemplates.length===0
+          ?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:"center"}}><div style={{color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>No saved templates yet. Build a budget, then save it as a template.</div></div>
+          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+              {myTemplates.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={true} onApply={onApplyTemplate} onDelete={onDeleteTemplate}/>)}
+            </div>
+      )}
+
+      {/* COMMUNITY TAB */}
+      {topTab==="public"&&(
+        publicTemplates.length===0
+          ?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:"center"}}><div style={{color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>No community templates shared yet. Be the first to share one!</div></div>
+          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+              {publicTemplates.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
+            </div>
+      )}
+
+      {showSave&&<SaveTemplateModal budgetItems={budgetItems} onClose={()=>setShowSave(false)} onSave={onSaveTemplate}/>}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    AI BUILDER
 ═══════════════════════════════════════════════════════ */
 const QUICK=["What's a fair day rate for a DoP in Lagos?","Help me estimate a 1-day music video budget in Naira","How should I structure cash advances for crew?","What contingency % is realistic for Nollywood?","Typical post costs for a 5-episode vertical?","How do I handle mobile money payments in Kenya?"];
@@ -926,6 +1077,7 @@ function MainApp(){
   const [advances,setAdvances]=useState([]);
   const [reconEntries,setReconEntries]=useState([]);
   const [payees,setPayees]=useState([]);
+  const [marketTemplates,setMarketTemplates]=useState([]);
   const [loadingData,setLoadingData]=useState(true);
   const [mobile,setMobile]=useState(window.innerWidth<700);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
@@ -933,13 +1085,14 @@ function MainApp(){
   useEffect(()=>{if(user)loadAll();},[user]);
   const loadAll=async()=>{
     setLoadingData(true);
-    const [p,b,a,r,py,pm]=await Promise.all([
+    const [p,b,a,r,py,pm,mt]=await Promise.all([
       supabase.from("projects").select("*").order("created_at",{ascending:false}),
       supabase.from("budget_items").select("*"),
       supabase.from("advances").select("*").order("created_at",{ascending:false}),
       supabase.from("recon_entries").select("*"),
       supabase.from("payees").select("*"),
       supabase.from("payments").select("*"),
+      supabase.from("marketplace_templates").select("*").order("created_at",{ascending:false}),
     ]);
     setProjects(p.data||[]);
     setBudgetItems(b.data||[]);
@@ -948,6 +1101,7 @@ function MainApp(){
     const pyData=py.data||[];
     const pmData=pm.data||[];
     setPayees(pyData.map(p=>({...p,payments:pmData.filter(x=>x.payee_id===p.id)})));
+    setMarketTemplates(mt.data||[]);
     setLoadingData(false);
   };
 
@@ -994,6 +1148,22 @@ function MainApp(){
     const rows=lines.map(l=>({...l,project_id:currentId,user_id:user.id,currency:project.base_currency}));
     const {data:d}=await supabase.from("budget_items").insert(rows).select();
     if(d)setBudgetItems(prev=>[...prev,...d]);
+  };
+
+  /* ── Marketplace templates ── */
+  const applyMarketTemplate=async(tpl)=>{
+    if(!currentId||!project)return;
+    const rows=(tpl.items||[]).map(t=>({dept:t.dept,description:t.description,qty:t.qty,unit:t.unit,rate:t.rate,project_id:currentId,user_id:user.id,currency:project.base_currency}));
+    const {data:d}=await supabase.from("budget_items").insert(rows).select();
+    if(d)setBudgetItems(prev=>[...prev,...d]);
+  };
+  const saveMarketTemplate=async({label,sub,items,is_public})=>{
+    const {data:d,error}=await supabase.from("marketplace_templates").insert({user_id:user.id,label,sub,items,is_public}).select().single();
+    if(!error)setMarketTemplates(prev=>[d,...prev]);
+  };
+  const deleteMarketTemplate=async(id)=>{
+    setMarketTemplates(prev=>prev.filter(t=>t.id!==id));
+    await supabase.from("marketplace_templates").delete().eq("id",id);
   };
 
   /* ── Advances ── */
@@ -1043,6 +1213,7 @@ function MainApp(){
           {view==="budgets"&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==="recon"&&<ReconView project={project} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
           {view==="payments"&&<PaymentsView project={project} payees={payees} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
+          {view==="market"&&<MarketView project={project} budgetItems={pBudget} builtIns={TEMPLATES} myTemplates={marketTemplates.filter(t=>t.user_id===user.id)} publicTemplates={marketTemplates.filter(t=>t.user_id!==user.id&&t.is_public)} onApplyTemplate={tpl=>tpl.id&&TEMPLATES.some(b=>b.id===tpl.id)?applyTemplate(tpl):applyMarketTemplate(tpl)} onSaveTemplate={saveMarketTemplate} onDeleteTemplate={deleteMarketTemplate}/>}
           {view==="ai"&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
         </main>
       </div>
