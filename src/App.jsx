@@ -205,19 +205,20 @@ const whatsappReceipt = (payment,payee,project) => [
 /* ═══════════════════════════════════════════════════════
    CLAUDE API
 ═══════════════════════════════════════════════════════ */
-async function callClaude(messages, system) {
+async function callClaude(messages, system, maxTokens=2000) {
   const res = await fetch("/api/claude",{
     method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:2000,system,messages}),
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:maxTokens,system,messages}),
   });
   const data = await res.json();
   return data.content?.find(b=>b.type==="text")?.text||"";
 }
+const SCRIPT_MAX_TOKENS = 8000; // long/multi-episode scripts need more room than a chat reply
 const CHAT_SYS = `You are a production finance co-pilot for African film and TV — Nollywood, Ghallywood, Kenyan, South African productions. You understand cash-based crew payments, imprest/advance reconciliation, negotiated day rates (no union scale), all major African currencies. Give practical advice grounded in African production realities.`;
-const SCRIPT_SYS = `You are a script breakdown and budget AI for African film productions. You MUST return ONLY a valid JSON object. No markdown. No code fences. No explanation. No quotes inside string values — replace any apostrophes or quotes in text with spaces. Use only these departments: "Cast & Talent","Crew","Locations & Transport","Equipment","Post-Production","Marketing","Contingency". Units must be one of: "day","week","flat","person","item". Every string value must be simple with no special characters.`;
-const SCRIPT_PROMPT = (cur) => `Read this script carefully. Count the scenes, locations, and characters. Then return ONLY this JSON structure with no other text, no markdown, no code fences:
-{"analysis":{"title":"Script Title","genre":"Genre","totalScenes":0,"estimatedShootDays":0,"uniqueLocations":0,"locationList":["Location 1","Location 2"],"totalSpeakingRoles":0,"extras":0,"hasNightShoots":false,"hasActionSequences":false,"hasVFX":false,"productionScale":"low","notes":"Key notes here"},"budget":[{"dept":"Cast and Talent","description":"Lead actor","qty":1,"unit":"flat","rate":0},{"dept":"Crew","description":"Director","qty":1,"unit":"flat","rate":0}]}
-Rules: All rates in ${cur}. Use realistic Nigerian Naira rates. Keep all string values short and simple. No apostrophes or special characters in any string. Return ONLY the JSON nothing else.`;
+const SCRIPT_SYS = `You are a script breakdown and budget AI for African film productions. You MUST return ONLY a valid JSON object. No markdown. No code fences. No explanation. No quotes inside string values — replace any apostrophes or quotes in text with spaces. Use only these departments: "Cast & Talent","Crew","Locations & Transport","Equipment","Post-Production","Marketing","Contingency". Units must be one of: "day","week","flat","person","item". Every string value must be simple with no special characters. CRITICAL — for multi-episode or multi-part scripts (vertical series, soap operas, anthologies), NEVER list budget lines per individual episode. Always consolidate: combine repeating roles, locations and post-production tasks across all episodes into single aggregated line items (e.g. one line "Episode edits" with qty equal to the episode count, not one line per episode). The budget array must stay compact and proportional regardless of how many episodes or scenes the script contains, so the response always fits within the token limit.`;
+const SCRIPT_PROMPT = (cur) => `Read this script carefully. Count the scenes, locations, and characters. If this is a multi-episode or multi-part script, count the total number of episodes/parts too. Then return ONLY this JSON structure with no other text, no markdown, no code fences:
+{"analysis":{"title":"Script Title","genre":"Genre","totalScenes":0,"estimatedShootDays":0,"uniqueLocations":0,"locationList":["Location 1","Location 2"],"totalSpeakingRoles":0,"extras":0,"hasNightShoots":false,"hasActionSequences":false,"hasVFX":false,"productionScale":"low","notes":"Key notes here, including episode count if applicable"},"budget":[{"dept":"Cast and Talent","description":"Lead actor","qty":1,"unit":"flat","rate":0},{"dept":"Crew","description":"Director","qty":1,"unit":"flat","rate":0}]}
+Rules: All rates in ${cur}. Use realistic Nigerian Naira rates. Keep all string values short and simple. No apostrophes or special characters in any string. For multi-episode scripts, CONSOLIDATE budget lines across episodes instead of repeating one line per episode — use qty to represent the episode count where relevant (e.g. "Episode edits" qty 40, not 40 separate lines). Keep the total budget array compact — aim for no more than 25-30 line items regardless of script length. Return ONLY the JSON nothing else.`;
 
 /* ═══════════════════════════════════════════════════════
    AUTH CONTEXT
@@ -588,7 +589,7 @@ function ScriptUploader({project,onApplyBudget}){
       if(isPDF){const b64=await readFileAsBase64(file);userContent=[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:SCRIPT_PROMPT(project.base_currency)}];}
       else{const txt=await readFileAsText(file);userContent=[{type:"text",text:`Script:\n\n${txt}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];}
       setState("analyzing");
-      const raw=await callClaude([{role:"user",content:userContent}],SCRIPT_SYS);
+      const raw=await callClaude([{role:"user",content:userContent}],SCRIPT_SYS,SCRIPT_MAX_TOKENS);
       let clean=raw
         .replace(/```json/gi,'').replace(/```/g,'')
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'')
@@ -597,7 +598,17 @@ function ScriptUploader({project,onApplyBudget}){
       const end=clean.lastIndexOf('}');
       if(start===-1||end===-1) throw new Error("No JSON found in response");
       clean=clean.slice(start,end+1);
-      const parsed=JSON.parse(clean);
+      let parsed;
+      try{
+        parsed=JSON.parse(clean);
+      }catch(parseErr){
+        const opens=(clean.match(/\{/g)||[]).length;
+        const closes=(clean.match(/\}/g)||[]).length;
+        if(opens!==closes){
+          throw new Error("Script may be too long — the AI's response got cut off before finishing. Try a shorter excerpt, or split the script into parts.");
+        }
+        throw parseErr;
+      }
       setResult(parsed);setState("done");
     }catch(e){setErr(`Analysis failed: ${e.message}`);setState("error");}
   };
