@@ -638,10 +638,16 @@ function NewProjectModal({onClose,onCreate}){
     </div>
   );
 }
-function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate}){
+function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete}){
   const [modal,setModal]=useState(false);
+  const [selected,setSelected]=useState(new Set());
+  const [confirmDelete,setConfirmDelete]=useState(null); // single project to delete
+  const [confirmMulti,setConfirmMulti]=useState(false); // multi-delete confirm
   const openAdv=advances.filter(a=>a.status!=="reconciled").length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
+  const toggleSelect=(id)=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
+  const selectAll=()=>setSelected(new Set(projects.map(p=>p.id)));
+  const clearSel=()=>setSelected(new Set());
   return(
     <div>
       <div style={{marginBottom:22}}>
@@ -655,6 +661,41 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
         <StatCard label="Open advances" value={openAdv} sub="pending" accent={openAdv>0?T.coral:T.sage}/>
         <StatCard label="Unpaid" value={unpaid} sub="cast & crew" accent={unpaid>0?T.coral:T.sage}/>
       </div>
+
+      {/* Confirm single delete */}
+      {confirmDelete&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,1,32,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:100}}>
+          <div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,width:"100%",maxWidth:380,textAlign:"center"}}>
+            <div style={{fontSize:28,marginBottom:12}}>🗑️</div>
+            <div style={{fontFamily:"Fraunces,serif",fontSize:18,color:T.cream,marginBottom:8}}>Delete production?</div>
+            <div style={{fontSize:13,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:20,lineHeight:1.6}}>
+              <strong style={{color:T.cream}}>{confirmDelete.name}</strong> and all its budget lines, advances and payments will be permanently deleted.
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+              <Btn variant="danger" onClick={async()=>{await onDelete([confirmDelete.id]);setConfirmDelete(null);}}>Yes, delete</Btn>
+              <Btn variant="ghost" onClick={()=>setConfirmDelete(null)}>Cancel</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm multi delete */}
+      {confirmMulti&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,1,32,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:100}}>
+          <div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,width:"100%",maxWidth:380,textAlign:"center"}}>
+            <div style={{fontSize:28,marginBottom:12}}>🗑️</div>
+            <div style={{fontFamily:"Fraunces,serif",fontSize:18,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div>
+            <div style={{fontSize:13,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:20,lineHeight:1.6}}>
+              This will permanently delete all selected productions and their data.
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+              <Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Yes, delete all</Btn>
+              <Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>Cancel</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
       {projects.length===0?(
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:44,textAlign:"center"}}>
           <div style={{fontSize:42,marginBottom:12}}>🎬</div>
@@ -664,9 +705,19 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
         </div>
       ):(
         <>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
             <div style={{fontFamily:"Fraunces,serif",fontSize:19,color:T.cream}}>Productions</div>
-            <Btn onClick={()=>setModal(true)}>+ New</Btn>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              {selected.size>0&&(
+                <>
+                  <span style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{selected.size} selected</span>
+                  <Btn size="sm" variant="ghost" onClick={clearSel}>Clear</Btn>
+                  <Btn size="sm" variant="danger" onClick={()=>setConfirmMulti(true)}>🗑️ Delete selected</Btn>
+                </>
+              )}
+              {selected.size===0&&projects.length>1&&<Btn size="sm" variant="ghost" onClick={selectAll}>Select all</Btn>}
+              <Btn onClick={()=>setModal(true)}>+ New</Btn>
+            </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:12}}>
             {projects.map(p=>{
@@ -674,14 +725,26 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
               const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
               const open=advances.filter(a=>a.project_id===p.id&&a.status!=="reconciled").length;
               const active=p.id===currentId;
-              return <button key={p.id} onClick={()=>onSelect(p.id)} style={{background:active?T.hi:T.panel,border:`1px solid ${active?T.gold:T.line}`,borderRadius:10,padding:18,textAlign:"left",cursor:"pointer"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                  <div><div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:10,color:T.goldDim,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>{p.type}</div></div>
-                  <Pill>{p.base_currency}</Pill>
+              const isSelected=selected.has(p.id);
+              return(
+                <div key={p.id} style={{background:isSelected?'rgba(224,107,82,0.08)':active?T.hi:T.panel,border:`1px solid ${isSelected?T.coral:active?T.gold:T.line}`,borderRadius:10,padding:18,position:"relative"}}>
+                  {/* Checkbox */}
+                  <button onClick={(e)=>{e.stopPropagation();toggleSelect(p.id);}} style={{position:"absolute",top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSelected?T.coral:T.faint}`,background:isSelected?T.coral:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {isSelected&&<span style={{color:T.ink,fontSize:11,fontWeight:700,lineHeight:1}}>✓</span>}
+                  </button>
+                  {/* Card content — click to select project */}
+                  <button onClick={()=>onSelect(p.id)} style={{background:"none",border:"none",cursor:"pointer",textAlign:"left",width:"100%",paddingRight:28}}>
+                    <div style={{marginBottom:10}}>
+                      <div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.cream}}>{p.name}</div>
+                      <div style={{fontSize:10,color:T.goldDim,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>{p.type}</div>
+                    </div>
+                    <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
+                    <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{pi.length} lines · {open} open advances</div>
+                  </button>
+                  {/* Delete button */}
+                  <button onClick={(e)=>{e.stopPropagation();setConfirmDelete(p);}} style={{position:"absolute",bottom:12,right:12,background:"none",border:"none",cursor:"pointer",color:T.faint,fontSize:14}} title="Delete production">🗑️</button>
                 </div>
-                <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
-                <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{pi.length} lines · {open} open advances</div>
-              </button>;
+              );
             })}
           </div>
         </>
@@ -1121,33 +1184,38 @@ const BREAKDOWN_CATS = [
   {key:"notes",       label:"Notes",             icon:"📝"},
 ];
 
-const BREAKDOWN_SYS = `You are a professional script breakdown AI for African film productions. Extract scenes from the script and return ONLY a valid JSON array. No markdown. No code fences. No special characters or apostrophes in any string value. Keep all text simple and clean.`;
+const BREAKDOWN_SYS = `You are a professional script breakdown AI for African film productions. Extract scenes from the script and return ONLY a valid JSON array. No markdown. No code fences. No special characters or apostrophes in any string value. Keep all text simple and clean. Be concise — short values only.`;
 
-const BREAKDOWN_PROMPT = (episodeMode) => `${episodeMode
-  ? "This is a multi-episode script. Create ONE breakdown entry per episode, not per scene. Consolidate all scene elements within each episode."
-  : "Extract every scene from this script. Create one breakdown entry per scene."}
+const BREAKDOWN_PROMPT = (episodeMode, maxEntries) => `${episodeMode
+  ? `This is a multi-episode script. Create EXACTLY ONE breakdown entry per episode. Do NOT break down individual scenes. Consolidate ALL elements from ALL scenes within each episode into one entry. Maximum ${maxEntries} entries total.`
+  : `Extract every scene from this script. Maximum ${maxEntries} entries total.`}
 
-Return ONLY this JSON array with no other text:
+Return ONLY this JSON array — no other text, no markdown:
 [{
-  "sceneNumber": "1",
-  "heading": "INT. LOCATION NAME - DAY",
+  "sceneNumber": "${episodeMode?'Ep 1':'1'}",
+  "heading": "${episodeMode?'EPISODE 1 — TITLE':'INT. LOCATION - DAY'}",
   "intExt": "INT",
   "dayNight": "DAY",
-  "synopsis": "Brief 1-2 sentence description of what happens",
-  "pageCount": 1.0,
-  "cast": ["Character Name 1", "Character Name 2"],
-  "extras": "Description of background talent needed",
-  "location": "Specific location name",
-  "props": ["Prop 1", "Prop 2", "Prop 3"],
-  "vehicles": ["Vehicle description"],
-  "wardrobe": ["Costume or wardrobe item"],
-  "hairMakeup": "Hair and makeup requirements",
-  "specialEquip": ["Special equipment or camera requirement"],
-  "vfxSfx": "Any VFX or practical effects needed",
-  "sound": "Music cues or sound design notes",
-  "notes": "Any special requirements or production notes"
+  "synopsis": "One sentence description",
+  "pageCount": ${episodeMode?'22':'1.5'},
+  "cast": ["Name1","Name2","Name3"],
+  "extras": "Brief extras description",
+  "location": "${episodeMode?'All locations this episode':'Specific location'}",
+  "props": ["Prop1","Prop2","Prop3"],
+  "vehicles": ["Vehicle1"],
+  "wardrobe": ["Item1","Item2"],
+  "hairMakeup": "Brief hair and makeup notes",
+  "specialEquip": ["Equipment1"],
+  "vfxSfx": "None or brief description",
+  "sound": "Brief sound notes",
+  "notes": "Key production notes"
 }]
-Rules: Keep all strings short and simple. No apostrophes. No special characters. Return ONLY the JSON array.`;
+STRICT RULES:
+- Maximum 5 items per array field
+- Maximum 10 words per string value
+- No apostrophes anywhere
+- No special characters
+- Return ONLY the JSON array`;
 
 /* PDF export for breakdown sheets */
 const downloadBreakdownPDF = (scenes, project, brand={}) => {
@@ -1305,19 +1373,36 @@ function BreakdownUploader({project,onApply}){
     setState('reading');setErr('');
     try{
       const fileSizeKB=file.size/1024;
-      const episodeMode=fileSizeKB>100; // use episode mode for large scripts
+      // Episode mode for large scripts — keeps output small enough to parse
+      // PDF: >200KB likely multi-episode | TXT: >50KB likely multi-episode
+      const episodeMode=isPDF?(fileSizeKB>200):(fileSizeKB>50);
+      // Cap entries to keep response within token limits
+      const maxEntries=episodeMode?40:30;
       let userContent;
-      if(isPDF){const b64=await readFileAsBase64(file);userContent=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:BREAKDOWN_PROMPT(episodeMode)}];}
-      else{const txt=await readFileAsText(file);userContent=[{type:'text',text:`Script:\n\n${txt}\n\n${BREAKDOWN_PROMPT(episodeMode)}`}];}
+      if(isPDF){const b64=await readFileAsBase64(file);userContent=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:BREAKDOWN_PROMPT(episodeMode,maxEntries)}];}
+      else{const txt=await readFileAsText(file);userContent=[{type:'text',text:`Script:\n\n${txt}\n\n${BREAKDOWN_PROMPT(episodeMode,maxEntries)}`}];}
       setState('analyzing');
       const raw=await callClaude([{role:'user',content:userContent}],BREAKDOWN_SYS);
       let clean=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
       const start=clean.indexOf('[');const end=clean.lastIndexOf(']');
       if(start===-1||end===-1)throw new Error('No scene data found in script');
       clean=clean.slice(start,end+1);
-      const scenes=JSON.parse(clean);
-      onApply(scenes);
-      setState('done');
+      // Fix any truncated JSON by finding last complete object
+      try{
+        const scenes=JSON.parse(clean);
+        onApply(scenes);
+        setState('done');
+      }catch{
+        // Try to recover partial JSON by finding last complete scene object
+        const lastComplete=clean.lastIndexOf('},');
+        if(lastComplete===-1)throw new Error('Could not parse breakdown — try a shorter script or TXT format');
+        const recovered=clean.slice(0,lastComplete+1)+']';
+        const scenes=JSON.parse(recovered);
+        if(scenes.length===0)throw new Error('No complete scenes could be parsed');
+        onApply(scenes);
+        setState('done');
+        setErr(`Note: ${scenes.length} scenes recovered. Script may be too large for a complete breakdown in one pass.`);
+      }
     }catch(e){setErr(`Breakdown failed: ${e.message}`);setState('error');}
   };
   const onPick=e=>{const f=e.target.files[0];if(f)process(f);};
@@ -1326,8 +1411,8 @@ function BreakdownUploader({project,onApply}){
       <input ref={fileRef} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={onPick}/>
       {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📋</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>AI Script Breakdown</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Upload your script — NKO extracts every scene with cast, props, location, vehicles and more</div><Btn variant="script" size="sm">Choose script</Btn></>}
       {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
-      {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing scenes…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Extracting cast, props, locations, vehicles per scene</div></>}
-      {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage,marginBottom:4}}>Breakdown complete</div><button onClick={e=>{e.stopPropagation();setState('idle');}} style={{color:T.gold,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another script →</button></>}
+      {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing scenes…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Large scripts run in episode mode — one breakdown card per episode</div></>}
+      {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage,marginBottom:4}}>Breakdown complete</div>{err&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:6,maxWidth:400,margin:'0 auto 6px'}}>{err}</div>}<button onClick={e=>{e.stopPropagation();setState('idle');setErr('');}} style={{color:T.gold,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another script →</button></>}
       {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
     </div>
   );
@@ -1426,6 +1511,18 @@ function MainApp(){
     if(!error){setProjects(prev=>[d,...prev]);setCurrentId(d.id);setView("budgets");}
   };
 
+  const deleteProjects=async(ids)=>{
+    for(const id of ids){
+      await supabase.from("projects").delete().eq("id",id);
+    }
+    setProjects(prev=>prev.filter(p=>!ids.includes(p.id)));
+    setBudgetItems(prev=>prev.filter(i=>!ids.includes(i.project_id)));
+    setAdvances(prev=>prev.filter(a=>!ids.includes(a.project_id)));
+    setPayees(prev=>prev.filter(p=>!ids.includes(p.project_id)));
+    setScenes(prev=>prev.filter(s=>!ids.includes(s.project_id)));
+    if(ids.includes(currentId)){setCurrentId(null);setView("dashboard");}
+  };
+
   /* ── Budget items ── */
   const addBudgetItem=async(dept)=>{
     const {data:d,error}=await supabase.from("budget_items").insert({project_id:currentId,user_id:user.id,dept,description:"",qty:1,unit:"flat",rate:0,currency:project.base_currency}).select().single();
@@ -1493,7 +1590,7 @@ function MainApp(){
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
         <TopBar projects={projects} currentId={currentId} onSelect={id=>setCurrentId(id||null)} onNew={()=>setView("dashboard")} onSignOut={signOut}/>
         <main style={{flex:1,overflowY:"auto",padding:"24px 20px 100px"}}>
-          {view==="dashboard"&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView("budgets");}} onCreate={createProject}/>}
+          {view==="dashboard"&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView("budgets");}} onCreate={createProject} onDelete={deleteProjects}/>}
           {view==="budgets"&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==="breakdown"&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>{const newSc={...sc,id:Math.random().toString(36).slice(2,9)};setScenes(prev=>[...prev,newSc]);}} onDeleteScene={id=>setScenes(prev=>prev.filter(s=>s.id!==id))}/>}
           {view==="recon"&&<ReconView project={project} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
