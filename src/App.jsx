@@ -17,8 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 
 /* ── YOUR SUPABASE CREDENTIALS (replace these) ─────────── */
-const SUPABASE_URL      = 'https://pvyrfjgrfmuvivdflcgg.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZUv';
+const SUPABASE_URL = 'https://pvyrfjgrfmuvivdflcgg.supabase.co'; const SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZUv';
 /* ─────────────────────────────────────────────────────────── */
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -61,88 +60,246 @@ const PROJ_TYPES = ["Feature Film","Vertical Series / Microdrama","Short Film","
 const PAY_METHODS = ["Cash","Bank Transfer","OPay / PalmPay","M-Pesa","MTN Mobile Money","Airtel Money","Cheque","Other"];
 
 const TEMPLATES = [
-  {id:"feature",label:"Feature Film",type:"Feature Film",sub:"12-day indie shoot · negotiated rates",items:[
-    {dept:"Cast & Talent",description:"Lead actor",qty:1,unit:"flat",rate:800000},
+  {id:"feature",label:"Feature Film",type:"Feature Film",sub:"12-day Nollywood indie · full crew",items:[
+    // Cast & Talent
+    {dept:"Cast & Talent",description:"Lead actor — negotiated flat",qty:1,unit:"flat",rate:800000},
     {dept:"Cast & Talent",description:"Supporting cast",qty:4,unit:"person",rate:150000},
-    {dept:"Cast & Talent",description:"Extras pool",qty:1,unit:"flat",rate:100000},
+    {dept:"Cast & Talent",description:"Day players / minor roles",qty:6,unit:"person",rate:30000},
+    {dept:"Cast & Talent",description:"Extras / background artists",qty:1,unit:"flat",rate:100000},
+    // Crew
     {dept:"Crew",description:"Director",qty:1,unit:"flat",rate:400000},
     {dept:"Crew",description:"Director of Photography",qty:1,unit:"flat",rate:300000},
-    {dept:"Crew",description:"Sound recordist",qty:12,unit:"day",rate:15000},
-    {dept:"Crew",description:"Production assistants",qty:3,unit:"person",rate:50000},
-    {dept:"Locations & Transport",description:"Location fees",qty:12,unit:"day",rate:20000},
-    {dept:"Locations & Transport",description:"Transport & logistics",qty:1,unit:"flat",rate:150000},
-    {dept:"Locations & Transport",description:"Feeding on set",qty:12,unit:"day",rate:25000},
-    {dept:"Equipment",description:"Camera & lighting package",qty:12,unit:"day",rate:40000},
-    {dept:"Equipment",description:"Props, wardrobe & art dept",qty:1,unit:"flat",rate:100000},
-    {dept:"Post-Production",description:"Editing",qty:1,unit:"flat",rate:250000},
-    {dept:"Post-Production",description:"Colour grade & sound mix",qty:1,unit:"flat",rate:150000},
-    {dept:"Post-Production",description:"Music / score",qty:1,unit:"flat",rate:80000},
-    {dept:"Marketing",description:"Poster & trailer cut",qty:1,unit:"flat",rate:100000},
-    {dept:"Contingency",description:"Contingency reserve",qty:1,unit:"flat",rate:200000},
+    {dept:"Crew",description:"Camera operator (2nd)",qty:12,unit:"day",rate:20000},
+    {dept:"Crew",description:"Sound recordist",qty:12,unit:"day",rate:18000},
+    {dept:"Crew",description:"Boom operator",qty:12,unit:"day",rate:12000},
+    {dept:"Crew",description:"Gaffer / chief lighting",qty:12,unit:"day",rate:15000},
+    {dept:"Crew",description:"Art director / production designer",qty:1,unit:"flat",rate:120000},
+    {dept:"Crew",description:"Wardrobe / stylist",qty:12,unit:"day",rate:12000},
+    {dept:"Crew",description:"Hair & make-up artist",qty:12,unit:"day",rate:12000},
+    {dept:"Crew",description:"Unit manager",qty:1,unit:"flat",rate:80000},
+    {dept:"Crew",description:"Production assistant x3",qty:3,unit:"person",rate:50000},
+    {dept:"Crew",description:"Script supervisor / continuity",qty:12,unit:"day",rate:10000},
+    // Locations & Transport
+    {dept:"Locations & Transport",description:"Location fees / permits",qty:12,unit:"day",rate:25000},
+    {dept:"Locations & Transport",description:"Transport — cast & crew buses",qty:12,unit:"day",rate:40000},
+    {dept:"Locations & Transport",description:"Generator fuel & logistics",qty:12,unit:"day",rate:20000},
+    {dept:"Locations & Transport",description:"Feeding on set (breakfast & lunch)",qty:12,unit:"day",rate:35000},
+    {dept:"Locations & Transport",description:"Accommodation (if away from base)",qty:1,unit:"flat",rate:150000},
+    // Equipment
+    {dept:"Equipment",description:"Camera package (body + lenses)",qty:12,unit:"day",rate:35000},
+    {dept:"Equipment",description:"Lighting package",qty:12,unit:"day",rate:25000},
+    {dept:"Equipment",description:"Sound kit (mixer, mics, booms)",qty:12,unit:"day",rate:10000},
+    {dept:"Equipment",description:"Generator hire",qty:12,unit:"day",rate:15000},
+    {dept:"Equipment",description:"Grip / dolly / stabiliser rental",qty:1,unit:"flat",rate:80000},
+    {dept:"Equipment",description:"Props purchase & rentals",qty:1,unit:"flat",rate:80000},
+    {dept:"Equipment",description:"Wardrobe & costumes",qty:1,unit:"flat",rate:60000},
+    {dept:"Equipment",description:"Set dressing & art materials",qty:1,unit:"flat",rate:50000},
+    // Post
+    {dept:"Post-Production",description:"Offline edit",qty:1,unit:"flat",rate:200000},
+    {dept:"Post-Production",description:"Colour grade",qty:1,unit:"flat",rate:100000},
+    {dept:"Post-Production",description:"Sound mix & design",qty:1,unit:"flat",rate:80000},
+    {dept:"Post-Production",description:"Original score / music licensing",qty:1,unit:"flat",rate:80000},
+    {dept:"Post-Production",description:"VFX / titles / graphics",qty:1,unit:"flat",rate:50000},
+    // Marketing
+    {dept:"Marketing",description:"Poster design & print",qty:1,unit:"flat",rate:50000},
+    {dept:"Marketing",description:"Trailer / teaser cut",qty:1,unit:"flat",rate:60000},
+    {dept:"Marketing",description:"BTS photography & video",qty:1,unit:"flat",rate:30000},
+    // Contingency
+    {dept:"Contingency",description:"Contingency reserve (10%)",qty:1,unit:"flat",rate:300000},
   ]},
-  {id:"vertical",label:"Vertical Series",type:"Vertical Series / Microdrama",sub:"7-day microdrama block · episodic post",items:[
+
+  {id:"vertical",label:"Vertical Series",type:"Vertical Series / Microdrama",sub:"7-day block shoot · 5–10 episodes · full crew",items:[
+    // Cast & Talent
     {dept:"Cast & Talent",description:"Lead actors",qty:3,unit:"person",rate:100000},
     {dept:"Cast & Talent",description:"Supporting cast",qty:5,unit:"person",rate:40000},
+    {dept:"Cast & Talent",description:"Day players",qty:4,unit:"person",rate:15000},
+    {dept:"Cast & Talent",description:"Extras",qty:1,unit:"flat",rate:30000},
+    // Crew
     {dept:"Crew",description:"Director",qty:1,unit:"flat",rate:150000},
-    {dept:"Crew",description:"Camera operator",qty:1,unit:"flat",rate:120000},
-    {dept:"Crew",description:"Sound & lighting assist",qty:7,unit:"day",rate:20000},
+    {dept:"Crew",description:"Director of Photography / Camera operator",qty:1,unit:"flat",rate:120000},
+    {dept:"Crew",description:"2nd camera operator",qty:7,unit:"day",rate:15000},
+    {dept:"Crew",description:"Sound recordist",qty:7,unit:"day",rate:15000},
+    {dept:"Crew",description:"Boom operator",qty:7,unit:"day",rate:10000},
+    {dept:"Crew",description:"Gaffer / lighting technician",qty:7,unit:"day",rate:12000},
+    {dept:"Crew",description:"Hair & make-up artist",qty:7,unit:"day",rate:10000},
+    {dept:"Crew",description:"Wardrobe / costume assistant",qty:7,unit:"day",rate:8000},
+    {dept:"Crew",description:"Art director / set decorator",qty:1,unit:"flat",rate:60000},
+    {dept:"Crew",description:"Unit manager",qty:1,unit:"flat",rate:50000},
     {dept:"Crew",description:"Production assistants",qty:2,unit:"person",rate:30000},
-    {dept:"Locations & Transport",description:"Location fees",qty:7,unit:"day",rate:15000},
-    {dept:"Locations & Transport",description:"Transport",qty:1,unit:"flat",rate:60000},
-    {dept:"Locations & Transport",description:"Set feeding",qty:7,unit:"day",rate:15000},
-    {dept:"Equipment",description:"Camera, gimbal & lighting kit",qty:7,unit:"day",rate:25000},
-    {dept:"Equipment",description:"Wardrobe & props",qty:1,unit:"flat",rate:40000},
-    {dept:"Post-Production",description:"Episode edits",qty:5,unit:"item",rate:15000},
-    {dept:"Post-Production",description:"Sound design pass",qty:1,unit:"flat",rate:30000},
-    {dept:"Marketing",description:"Thumbnail & teaser assets",qty:1,unit:"flat",rate:25000},
-    {dept:"Contingency",description:"Contingency reserve",qty:1,unit:"flat",rate:50000},
+    {dept:"Crew",description:"Script supervisor",qty:7,unit:"day",rate:8000},
+    // Locations & Transport
+    {dept:"Locations & Transport",description:"Location fees / permits",qty:7,unit:"day",rate:15000},
+    {dept:"Locations & Transport",description:"Transport — cast & crew",qty:7,unit:"day",rate:25000},
+    {dept:"Locations & Transport",description:"Feeding on set (x2 meals per day)",qty:7,unit:"day",rate:20000},
+    {dept:"Locations & Transport",description:"Generator fuel & logistics",qty:7,unit:"day",rate:12000},
+    // Equipment
+    {dept:"Equipment",description:"Camera & gimbal package",qty:7,unit:"day",rate:25000},
+    {dept:"Equipment",description:"Lighting kit",qty:7,unit:"day",rate:15000},
+    {dept:"Equipment",description:"Sound kit",qty:7,unit:"day",rate:8000},
+    {dept:"Equipment",description:"Generator hire",qty:7,unit:"day",rate:10000},
+    {dept:"Equipment",description:"Props purchase & rentals",qty:1,unit:"flat",rate:40000},
+    {dept:"Equipment",description:"Wardrobe & costumes",qty:1,unit:"flat",rate:35000},
+    {dept:"Equipment",description:"Set dressing & art materials",qty:1,unit:"flat",rate:25000},
+    // Post
+    {dept:"Post-Production",description:"Episode edits",qty:8,unit:"item",rate:15000},
+    {dept:"Post-Production",description:"Colour grade (all episodes)",qty:1,unit:"flat",rate:50000},
+    {dept:"Post-Production",description:"Sound design & mix",qty:1,unit:"flat",rate:30000},
+    {dept:"Post-Production",description:"Subtitles / captions",qty:8,unit:"item",rate:3000},
+    {dept:"Post-Production",description:"Music licensing / score",qty:1,unit:"flat",rate:30000},
+    // Marketing
+    {dept:"Marketing",description:"Thumbnails & key art",qty:1,unit:"flat",rate:20000},
+    {dept:"Marketing",description:"Teaser / trailer cut",qty:1,unit:"flat",rate:20000},
+    {dept:"Marketing",description:"Social media cutdowns",qty:5,unit:"item",rate:5000},
+    // Contingency
+    {dept:"Contingency",description:"Contingency reserve (10%)",qty:1,unit:"flat",rate:100000},
   ]},
-  {id:"shortfilm",label:"Short Film",type:"Short Film",sub:"2-day shoot · lean indie",items:[
+
+  {id:"shortfilm",label:"Short Film",type:"Short Film",sub:"2-day lean shoot · festival or student entry",items:[
+    // Cast & Talent
     {dept:"Cast & Talent",description:"Lead actor",qty:1,unit:"flat",rate:80000},
     {dept:"Cast & Talent",description:"Supporting cast",qty:2,unit:"person",rate:30000},
+    {dept:"Cast & Talent",description:"Extras",qty:1,unit:"flat",rate:15000},
+    // Crew
     {dept:"Crew",description:"Director",qty:1,unit:"flat",rate:80000},
-    {dept:"Crew",description:"Camera / DOP",qty:1,unit:"flat",rate:60000},
+    {dept:"Crew",description:"DOP / camera operator",qty:1,unit:"flat",rate:60000},
     {dept:"Crew",description:"Sound recordist",qty:2,unit:"day",rate:12000},
-    {dept:"Locations & Transport",description:"Location fees",qty:2,unit:"day",rate:10000},
-    {dept:"Locations & Transport",description:"Transport",qty:1,unit:"flat",rate:25000},
-    {dept:"Equipment",description:"Camera & lighting kit",qty:2,unit:"day",rate:20000},
-    {dept:"Post-Production",description:"Edit & grade",qty:1,unit:"flat",rate:60000},
-    {dept:"Contingency",description:"Contingency reserve",qty:1,unit:"flat",rate:20000},
+    {dept:"Crew",description:"Boom operator",qty:2,unit:"day",rate:8000},
+    {dept:"Crew",description:"Gaffer / lighting",qty:2,unit:"day",rate:10000},
+    {dept:"Crew",description:"Hair & make-up",qty:2,unit:"day",rate:8000},
+    {dept:"Crew",description:"Wardrobe",qty:2,unit:"day",rate:6000},
+    {dept:"Crew",description:"Art director",qty:1,unit:"flat",rate:30000},
+    {dept:"Crew",description:"Production assistant",qty:2,unit:"person",rate:15000},
+    // Locations & Transport
+    {dept:"Locations & Transport",description:"Location fees / permits",qty:2,unit:"day",rate:10000},
+    {dept:"Locations & Transport",description:"Transport — cast & crew",qty:2,unit:"day",rate:15000},
+    {dept:"Locations & Transport",description:"Feeding on set",qty:2,unit:"day",rate:12000},
+    {dept:"Locations & Transport",description:"Generator fuel & logistics",qty:2,unit:"day",rate:8000},
+    // Equipment
+    {dept:"Equipment",description:"Camera package",qty:2,unit:"day",rate:20000},
+    {dept:"Equipment",description:"Lighting kit",qty:2,unit:"day",rate:12000},
+    {dept:"Equipment",description:"Sound kit",qty:2,unit:"day",rate:6000},
+    {dept:"Equipment",description:"Generator hire",qty:2,unit:"day",rate:8000},
+    {dept:"Equipment",description:"Props & set dressing",qty:1,unit:"flat",rate:20000},
+    {dept:"Equipment",description:"Wardrobe & costumes",qty:1,unit:"flat",rate:15000},
+    // Post
+    {dept:"Post-Production",description:"Offline edit",qty:1,unit:"flat",rate:60000},
+    {dept:"Post-Production",description:"Colour grade",qty:1,unit:"flat",rate:30000},
+    {dept:"Post-Production",description:"Sound mix",qty:1,unit:"flat",rate:20000},
+    {dept:"Post-Production",description:"Music / score",qty:1,unit:"flat",rate:15000},
+    // Marketing
+    {dept:"Marketing",description:"Poster & stills",qty:1,unit:"flat",rate:15000},
+    {dept:"Marketing",description:"Festival submission fees",qty:3,unit:"item",rate:10000},
+    // Contingency
+    {dept:"Contingency",description:"Contingency reserve (10%)",qty:1,unit:"flat",rate:50000},
   ]},
-  {id:"musicvideo",label:"Music Video",type:"Music Video",sub:"1-day shoot · artist & small crew",items:[
+
+  {id:"musicvideo",label:"Music Video",type:"Music Video",sub:"1-day shoot · artist, director & full crew",items:[
+    // Cast & Talent
     {dept:"Cast & Talent",description:"Artist / main performer",qty:1,unit:"flat",rate:200000},
     {dept:"Cast & Talent",description:"Background talent / dancers",qty:6,unit:"person",rate:15000},
+    {dept:"Cast & Talent",description:"Featured artists / cameos",qty:1,unit:"flat",rate:50000},
+    // Crew
     {dept:"Crew",description:"Director",qty:1,unit:"flat",rate:150000},
     {dept:"Crew",description:"Director of Photography",qty:1,unit:"flat",rate:100000},
+    {dept:"Crew",description:"Camera operator (2nd)",qty:1,unit:"day",rate:35000},
+    {dept:"Crew",description:"Gaffer / chief lighting",qty:1,unit:"day",rate:25000},
+    {dept:"Crew",description:"Sound recordist (playback)",qty:1,unit:"day",rate:20000},
     {dept:"Crew",description:"Stylist / wardrobe",qty:1,unit:"day",rate:35000},
-    {dept:"Crew",description:"Make-up artist",qty:1,unit:"day",rate:25000},
+    {dept:"Crew",description:"Hair & make-up artist",qty:1,unit:"day",rate:30000},
+    {dept:"Crew",description:"Art director",qty:1,unit:"flat",rate:60000},
+    {dept:"Crew",description:"Production assistant",qty:2,unit:"person",rate:15000},
+    // Locations & Transport
     {dept:"Locations & Transport",description:"Location / studio hire",qty:1,unit:"flat",rate:80000},
-    {dept:"Equipment",description:"Camera package (incl. gimbal)",qty:1,unit:"day",rate:60000},
+    {dept:"Locations & Transport",description:"Transport — artist, crew & equipment",qty:1,unit:"flat",rate:50000},
+    {dept:"Locations & Transport",description:"Feeding & catering",qty:1,unit:"flat",rate:30000},
+    {dept:"Locations & Transport",description:"Generator fuel & logistics",qty:1,unit:"day",rate:15000},
+    // Equipment
+    {dept:"Equipment",description:"Camera package + lenses",qty:1,unit:"day",rate:60000},
+    {dept:"Equipment",description:"Gimbal / stabiliser rental",qty:1,unit:"day",rate:20000},
     {dept:"Equipment",description:"Lighting & grip package",qty:1,unit:"day",rate:40000},
+    {dept:"Equipment",description:"Generator hire",qty:1,unit:"day",rate:15000},
+    {dept:"Equipment",description:"Props & set dressing rentals",qty:1,unit:"flat",rate:40000},
+    {dept:"Equipment",description:"Wardrobe & costumes",qty:1,unit:"flat",rate:30000},
+    // Post
     {dept:"Post-Production",description:"Edit & colour grade",qty:1,unit:"flat",rate:120000},
+    {dept:"Post-Production",description:"VFX / motion graphics",qty:1,unit:"flat",rate:50000},
+    {dept:"Post-Production",description:"Audio mix / mastering",qty:1,unit:"flat",rate:30000},
+    // Marketing
     {dept:"Marketing",description:"BTS content cut",qty:1,unit:"flat",rate:20000},
-    {dept:"Contingency",description:"Contingency reserve",qty:1,unit:"flat",rate:60000},
+    {dept:"Marketing",description:"Social media stills",qty:1,unit:"flat",rate:10000},
+    // Contingency
+    {dept:"Contingency",description:"Contingency reserve (10%)",qty:1,unit:"flat",rate:100000},
   ]},
-  {id:"documentary",label:"Documentary",type:"Documentary",sub:"5-day field shoot",items:[
+
+  {id:"documentary",label:"Documentary",type:"Documentary",sub:"5-day field shoot · interview & observational",items:[
+    // Cast & Talent
+    {dept:"Cast & Talent",description:"Subject / participant honoraria",qty:3,unit:"person",rate:20000},
+    {dept:"Cast & Talent",description:"Presenter / narrator fee",qty:1,unit:"flat",rate:80000},
+    // Crew
     {dept:"Crew",description:"Director / producer",qty:1,unit:"flat",rate:200000},
     {dept:"Crew",description:"Camera operator",qty:1,unit:"flat",rate:120000},
+    {dept:"Crew",description:"2nd camera (B-roll)",qty:3,unit:"day",rate:20000},
     {dept:"Crew",description:"Sound recordist",qty:5,unit:"day",rate:15000},
-    {dept:"Crew",description:"Fixer / researcher",qty:5,unit:"day",rate:15000},
+    {dept:"Crew",description:"Boom operator",qty:5,unit:"day",rate:10000},
+    {dept:"Crew",description:"Fixer / researcher / translator",qty:5,unit:"day",rate:15000},
+    {dept:"Crew",description:"Production assistant",qty:1,unit:"person",rate:30000},
+    // Locations & Transport
     {dept:"Locations & Transport",description:"Travel & accommodation",qty:1,unit:"flat",rate:200000},
+    {dept:"Locations & Transport",description:"Local transport & fuel",qty:5,unit:"day",rate:20000},
+    {dept:"Locations & Transport",description:"Feeding — crew & subjects",qty:5,unit:"day",rate:15000},
+    {dept:"Locations & Transport",description:"Location fees / access permits",qty:1,unit:"flat",rate:50000},
+    // Equipment
     {dept:"Equipment",description:"Camera & audio kit",qty:5,unit:"day",rate:30000},
     {dept:"Equipment",description:"Drone hire (with pilot)",qty:2,unit:"day",rate:50000},
-    {dept:"Post-Production",description:"Full edit & grade",qty:1,unit:"flat",rate:300000},
-    {dept:"Contingency",description:"Contingency reserve",qty:1,unit:"flat",rate:100000},
+    {dept:"Equipment",description:"Lighting kit (interview setup)",qty:5,unit:"day",rate:15000},
+    {dept:"Equipment",description:"Generator hire",qty:5,unit:"day",rate:10000},
+    // Post
+    {dept:"Post-Production",description:"Assembly & offline edit",qty:1,unit:"flat",rate:200000},
+    {dept:"Post-Production",description:"Colour grade",qty:1,unit:"flat",rate:60000},
+    {dept:"Post-Production",description:"Sound mix & design",qty:1,unit:"flat",rate:50000},
+    {dept:"Post-Production",description:"Archival / stock footage licensing",qty:1,unit:"flat",rate:50000},
+    {dept:"Post-Production",description:"Motion graphics & titles",qty:1,unit:"flat",rate:40000},
+    {dept:"Post-Production",description:"Music licensing / score",qty:1,unit:"flat",rate:40000},
+    // Marketing
+    {dept:"Marketing",description:"Festival submission fees",qty:5,unit:"item",rate:15000},
+    {dept:"Marketing",description:"Trailer / teaser cut",qty:1,unit:"flat",rate:30000},
+    // Contingency
+    {dept:"Contingency",description:"Contingency reserve (10%)",qty:1,unit:"flat",rate:120000},
   ]},
-  {id:"branded",label:"Branded / Podcast",type:"Branded Content",sub:"Sponsored episode or podcast shoot",items:[
+
+  {id:"branded",label:"Branded / Podcast",type:"Branded Content",sub:"Sponsored episode or branded content shoot",items:[
+    // Cast & Talent
     {dept:"Cast & Talent",description:"Host / presenter",qty:1,unit:"flat",rate:100000},
-    {dept:"Cast & Talent",description:"Guest honorarium",qty:1,unit:"flat",rate:30000},
+    {dept:"Cast & Talent",description:"Guest honorarium",qty:2,unit:"person",rate:30000},
+    {dept:"Cast & Talent",description:"Voiceover artist",qty:1,unit:"flat",rate:20000},
+    // Crew
     {dept:"Crew",description:"Director / producer",qty:1,unit:"flat",rate:100000},
-    {dept:"Crew",description:"Camera operators",qty:2,unit:"day",rate:40000},
-    {dept:"Equipment",description:"Camera & audio kit",qty:2,unit:"day",rate:30000},
+    {dept:"Crew",description:"Camera operator",qty:2,unit:"day",rate:35000},
+    {dept:"Crew",description:"Sound recordist",qty:2,unit:"day",rate:20000},
+    {dept:"Crew",description:"Boom operator",qty:2,unit:"day",rate:12000},
+    {dept:"Crew",description:"Gaffer / lighting",qty:2,unit:"day",rate:15000},
+    {dept:"Crew",description:"Hair & make-up",qty:2,unit:"day",rate:12000},
+    {dept:"Crew",description:"Production assistant",qty:1,unit:"person",rate:20000},
+    // Locations & Transport
+    {dept:"Locations & Transport",description:"Location / studio hire",qty:2,unit:"day",rate:40000},
+    {dept:"Locations & Transport",description:"Transport — crew & equipment",qty:2,unit:"day",rate:20000},
+    {dept:"Locations & Transport",description:"Feeding & catering",qty:2,unit:"day",rate:15000},
+    {dept:"Locations & Transport",description:"Generator fuel & logistics",qty:2,unit:"day",rate:10000},
+    // Equipment
+    {dept:"Equipment",description:"Camera & lens package",qty:2,unit:"day",rate:30000},
+    {dept:"Equipment",description:"Lighting kit",qty:2,unit:"day",rate:15000},
+    {dept:"Equipment",description:"Audio / podcast kit",qty:2,unit:"day",rate:12000},
+    {dept:"Equipment",description:"Teleprompter rental",qty:2,unit:"day",rate:8000},
+    // Post
     {dept:"Post-Production",description:"Edit & colour",qty:1,unit:"flat",rate:80000},
-    {dept:"Marketing",description:"Social cutdowns",qty:3,unit:"item",rate:10000},
-    {dept:"Contingency",description:"Contingency reserve",qty:1,unit:"flat",rate:30000},
+    {dept:"Post-Production",description:"Sound mix",qty:1,unit:"flat",rate:25000},
+    {dept:"Post-Production",description:"Captions & subtitles",qty:1,unit:"flat",rate:15000},
+    {dept:"Post-Production",description:"Graphics / lower thirds",qty:1,unit:"flat",rate:20000},
+    // Marketing
+    {dept:"Marketing",description:"Social media cutdowns",qty:3,unit:"item",rate:10000},
+    {dept:"Marketing",description:"Thumbnail design",qty:1,unit:"flat",rate:10000},
+    // Contingency
+    {dept:"Contingency",description:"Contingency reserve (10%)",qty:1,unit:"flat",rate:60000},
   ]},
 ];
 
@@ -156,8 +313,11 @@ const lTot   = (i) => (Number(i.qty)||0)*(Number(i.rate)||0);
 
 const readFileAsBase64 = (f) => new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readFileAsText   = (f) => new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
+
+/* read image file as base64 data URL for logo preview */
 const readImageAsDataURL = (f) => new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
 
+/* generate and open a printable PDF budget — includes brand panel + recon section */
 const downloadBudgetPDF = (project,items,advances=[],reconEntries=[],brand={}) => {
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const rows=DEPTS.map(dept=>{
@@ -179,10 +339,12 @@ const downloadBudgetPDF = (project,items,advances=[],reconEntries=[],brand={}) =
     return`<tr style="border-bottom:1px solid #eee"><td style="padding:8px 14px;font-size:13px">${adv.recipient}</td><td style="padding:8px 14px;font-size:13px">${adv.dept||'—'}</td><td style="padding:8px 14px;font-family:monospace;font-size:13px;text-align:right">${sym(adv.currency)}${fmt(adv.amount)}</td><td style="padding:8px 14px;font-family:monospace;font-size:13px;text-align:right">${sym(adv.currency)}${fmt(spent)}</td><td style="padding:8px 14px;font-family:monospace;font-size:13px;text-align:right;color:${bal<0?'#E06B52':'inherit'}">${sym(adv.currency)}${fmt(bal)}</td><td style="padding:8px 14px;font-size:12px;font-weight:700;color:${sc}">${sl}</td></tr>`;
   }).join('');
   const reconSection=advances.length===0?'':`<div style="padding:0 40px 20px"><h3 style="font-size:14px;text-transform:uppercase;letter-spacing:0.1em;color:#555;margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid #FEED61">Cash Advance Reconciliation</h3><table><thead><tr><th>Recipient</th><th>Dept</th><th style="text-align:right">Issued</th><th style="text-align:right">Spent</th><th style="text-align:right">Balance</th><th>Status</th></tr></thead><tbody>${reconRows}</tbody></table></div>`;
-  const html=`<!DOCTYPE html><html><head><title>NKO Budget — ${prodTitle}</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:0;color:#222}.hdr{background:#0F0120;padding:30px 40px}.hdr h1{color:#FEED61;font-size:30px;margin:0;letter-spacing:0.06em}.hdr .co{color:#8C852E;font-size:13px;margin:4px 0 0;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}.hdr p{color:#9A9080;margin:4px 0 0;font-size:14px}.meta{padding:14px 40px;background:#f5f5f5;border-bottom:2px solid #FEED61;font-size:13px;color:#555}table{width:100%;border-collapse:collapse}th{background:#0F0120;color:#FEED61;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em}.tot{padding:20px 40px;background:#0F0120}.tot p{color:#8C852E;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px}.tot h2{color:#FEED61;font-size:26px;margin:0;font-family:monospace}.ftr{padding:14px 40px;font-size:11px;color:#999;text-align:center;border-top:1px solid #eee}@media print{-webkit-print-color-adjust:exact;print-color-adjust:exact;.no-print{display:none}}</style></head><body><div class="hdr">${logoHtml}${companyName?`<div class="co">${companyName}</div>`:''}<h1>NKO</h1><p>Production Budget — ${prodTitle}</p></div><div class="meta"><strong>Production:</strong> ${prodTitle}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Type:</strong> ${project.type}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Currency:</strong> ${project.base_currency}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Date:</strong> ${new Date().toLocaleDateString()}</div><div style="padding:0 40px"><table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table></div>${reconSection}<div class="tot"><p>Total Budget</p><h2>${totalStr}</h2></div><div class="ftr">Generated by NKO — The African Production Ledger | nko-nko.vercel.app</div><div class="no-print" style="text-align:center;padding:20px"><button onclick="window.print()" style="background:#FEED61;border:none;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div></body></html>`;
+  const html=`<!DOCTYPE html><html><head><title>NKO Budget — ${prodTitle}</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:0;color:#222}.hdr{background:#0F0120;padding:30px 40px}.hdr h1{color:#FEED61;font-size:30px;margin:0;letter-spacing:0.06em}.hdr .co{color:#8C852E;font-size:13px;margin:4px 0 0;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}.hdr p{color:#9A9080;margin:4px 0 0;font-size:14px}.meta{padding:14px 40px;background:#f5f5f5;border-bottom:2px solid #FEED61;font-size:13px;color:#555}table{width:100%;border-collapse:collapse}th{background:#0F0120;color:#FEED61;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.08em}.tot{padding:20px 40px;background:#0F0120}.tot p{color:#8C852E;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 6px}.tot h2{color:#FEED61;font-size:26px;margin:0;font-family:monospace}.ftr{padding:14px 40px;font-size:11px;color:#999;text-align:center;border-top:1px solid #eee}@media print{.no-print{display:none}}</style></head><body><div class="hdr">${logoHtml}${companyName?`<div class="co">${companyName}</div>`:''}<h1>NKO</h1><p>Production Budget — ${prodTitle}</p></div><div class="meta"><strong>Production:</strong> ${prodTitle}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Type:</strong> ${project.type}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Currency:</strong> ${project.base_currency}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Date:</strong> ${new Date().toLocaleDateString()}</div><div style="padding:0 40px"><table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th style="text-align:right">Rate</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table></div>${reconSection}<div class="tot"><p>Total Budget</p><h2>${totalStr}</h2></div><div class="ftr">Generated by NKO — The African Production Ledger | nko-nko.vercel.app</div><div class="no-print" style="text-align:center;padding:20px"><button onclick="window.print()" style="background:#FEED61;border:none;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div></body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 
+
+/* generate and open a printable PDF receipt in a new tab */
 const downloadReceiptPDF = (payment,payee,project) => {
   const allPaid=(payee.payments||[]).reduce((s,p)=>s+p.amount,0);
   const bal=payee.agreed_fee-allPaid;
@@ -208,12 +370,80 @@ const whatsappReceipt = (payment,payee,project) => [
 async function callClaude(messages, system) {
   const res = await fetch("/api/claude",{
     method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:2000,system,messages}),
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:8000,system,messages}),
   });
   const data = await res.json();
   return data.content?.find(b=>b.type==="text")?.text||"";
 }
-const CHAT_SYS = `You are a production finance co-pilot for African film and TV — Nollywood, Ghallywood, Kenyan, South African productions. You understand cash-based crew payments, imprest/advance reconciliation, negotiated day rates (no union scale), all major African currencies. Give practical advice grounded in African production realities.`;
+const CHAT_SYS = `You are a production finance co-pilot for African film and TV — Nollywood, Ghallywood, Kenyan, South African and pan-African productions.
+
+RATE BENCHMARKS (Nigerian Naira — current market 2025/2026):
+
+CREW DAY RATES (Lagos market):
+- Director (short/vertical): ₦80k–₦200k flat
+- Director (feature): ₦300k–₦600k flat
+- DOP/Cinematographer: ₦50k–₦150k flat or ₦15k–₦40k/day
+- Camera operator: ₦10k–₦25k/day
+- Sound recordist: ₦10k–₦20k/day
+- Boom operator: ₦8k–₦15k/day
+- Gaffer/lighting: ₦8k–₦18k/day
+- Hair & make-up: ₦8k–₦15k/day
+- Wardrobe/stylist: ₦8k–₦15k/day
+- Art director: ₦40k–₦100k flat
+- Production assistant: ₦20k–₦50k flat per project
+- Unit manager: ₦40k–₦80k flat
+- Script supervisor: ₦8k–₦12k/day
+
+CAST RATES:
+- A-list Nollywood actor: ₦500k–₦2M+ flat
+- Mid-tier actor: ₦100k–₦400k flat
+- Supporting cast: ₦30k–₦80k flat
+- Day players: ₦10k–₦25k/day
+- Extras: ₦5k–₦10k/day
+
+EQUIPMENT RENTALS (Lagos, per day):
+- Camera package (mirrorless/cinema): ₦20k–₦60k/day
+- Lighting package: ₦15k–₦35k/day
+- Sound kit: ₦8k–₦15k/day
+- Generator hire: ₦8k–₦20k/day
+- Gimbal/stabiliser: ₦10k–₦20k/day
+- Drone with pilot: ₦50k–₦100k/day
+
+LOCATIONS & LOGISTICS:
+- Location fee (residential): ₦15k–₦40k/day
+- Location fee (commercial/studio): ₦30k–₦100k/day
+- Set feeding (per person per day): ₦3k–₦8k
+- Transport (minibus hire): ₦20k–₦40k/day
+- Generator fuel: ₦5k–₦15k/day
+
+POST-PRODUCTION:
+- Edit (short/vertical ep): ₦15k–₦30k per episode
+- Edit (feature): ₦150k–₦300k flat
+- Colour grade: ₦30k–₦100k depending on length
+- Sound mix: ₦20k–₦80k
+- VFX/motion graphics: ₦30k–₦200k
+
+PRODUCTION SCALE TIERS:
+- Micro (vertical/social): ₦500k–₦2M total
+- Low (short film/branded): ₦2M–₦8M total
+- Mid (indie feature/docu-series): ₦8M–₦30M total
+- High (mainstream Nollywood feature): ₦30M+ total
+
+OTHER AFRICAN MARKETS:
+- Ghana: multiply NGN rates by ~0.3 for GHS equivalents
+- Kenya: KSh rates roughly 2–3x the NGN figure
+- South Africa: ZAR rates are significantly higher due to formal labour agreements
+
+CONTINGENCY: 10% is standard for experienced producers; 15–20% for first-time producers or complex shoots.
+
+IMPORTANT CONTEXT:
+- No union fringe rates apply — all fees are negotiated directly
+- Cash advances (imprest) are the standard payment method for crew departments
+- Mobile money (OPay, PalmPay, MTN MoMo) is widely used for crew payments
+- Receipts should always be issued for payments above ₦10,000
+
+Give practical, grounded advice. When asked for rate estimates always give a range and specify the tier it applies to.`;
+
 const SCRIPT_SYS = `You are a script breakdown and budget AI for African film productions. You MUST return ONLY a valid JSON object. No markdown. No code fences. No explanation. No quotes inside string values — replace any apostrophes or quotes in text with spaces. Use only these departments: "Cast & Talent","Crew","Locations & Transport","Equipment","Post-Production","Marketing","Contingency". Units must be one of: "day","week","flat","person","item". Every string value must be simple with no special characters.`;
 const SCRIPT_PROMPT = (cur) => `Read this script carefully. Count the scenes, locations, and characters. Then return ONLY this JSON structure with no other text, no markdown, no code fences:
 {"analysis":{"title":"Script Title","genre":"Genre","totalScenes":0,"estimatedShootDays":0,"uniqueLocations":0,"locationList":["Location 1","Location 2"],"totalSpeakingRoles":0,"extras":0,"hasNightShoots":false,"hasActionSequences":false,"hasVFX":false,"productionScale":"low","notes":"Key notes here"},"budget":[{"dept":"Cast and Talent","description":"Lead actor","qty":1,"unit":"flat","rate":0},{"dept":"Crew","description":"Director","qty":1,"unit":"flat","rate":0}]}
@@ -339,7 +569,7 @@ function AuthScreen(){
 /* ═══════════════════════════════════════════════════════
    NAV
 ═══════════════════════════════════════════════════════ */
-const NAV=[{id:"dashboard",e:"🎬",l:"Dashboard"},{id:"budgets",e:"📊",l:"Budgets"},{id:"recon",e:"🧾",l:"Recon"},{id:"payments",e:"💳",l:"Payments"},{id:"market",e:"🏪",l:"Marketplace"},{id:"ai",e:"✦",l:"AI Builder"}];
+const NAV=[{id:"dashboard",e:"🎬",l:"Dashboard"},{id:"budgets",e:"📊",l:"Budgets"},{id:"breakdown",e:"📋",l:"Breakdown"},{id:"recon",e:"🧾",l:"Recon"},{id:"payments",e:"💳",l:"Payments"},{id:"market",e:"🏪",l:"Marketplace"},{id:"ai",e:"✦",l:"AI Builder"}];
 function Sidebar({view,setView,onSignOut,userEmail}){
   return(
     <div style={{width:210,minHeight:"100vh",background:T.panel,flexShrink:0,borderRight:`1px solid ${T.line}`,display:"flex",flexDirection:"column"}}>
@@ -379,45 +609,6 @@ function MobileNav({view,setView}){
 }
 
 /* ═══════════════════════════════════════════════════════
-   DELETE PROJECT MODAL
-═══════════════════════════════════════════════════════ */
-function DeleteProjectModal({project,onClose,onConfirm}){
-  const [confirmText,setConfirmText]=useState("");
-  const [deleting,setDeleting]=useState(false);
-  const match=confirmText.trim()===project.name.trim();
-  const go=async()=>{if(!match||deleting)return;setDeleting(true);await onConfirm(project.id);setDeleting(false);onClose();};
-  useEffect(()=>{const h=(e)=>{if(e.key==="Escape")onClose();};document.addEventListener("keydown",h);return()=>document.removeEventListener("keydown",h);},[]);
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(15,1,32,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:200}}>
-      <div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,width:"100%",maxWidth:420}}>
-        <div style={{fontFamily:"Fraunces,serif",fontSize:20,color:T.cream,marginBottom:6}}>Delete production?</div>
-        <div style={{fontSize:13,color:T.dim,fontFamily:"Manrope,sans-serif",lineHeight:1.6,marginBottom:16}}>
-          <strong style={{color:T.cream}}>{project.name}</strong> and all its budget lines, advances, and payments will be permanently deleted. This cannot be undone.
-        </div>
-        <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:6,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em"}}>
-          Type the production name to confirm:
-          <span style={{display:"block",fontFamily:"IBM Plex Mono,monospace",color:T.gold,fontSize:12,marginTop:3,textTransform:"none",letterSpacing:0}}>{project.name}</span>
-        </div>
-        <Inp
-          placeholder={project.name}
-          value={confirmText}
-          onChange={e=>setConfirmText(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&go()}
-          autoFocus
-          style={{marginBottom:16,borderColor:confirmText.length>0?(match?"#52B07A":T.goldDim):T.line}}
-        />
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={go} disabled={!match||deleting} style={{padding:"8px 18px",fontSize:13,fontWeight:700,fontFamily:"Manrope,sans-serif",borderRadius:6,border:"none",cursor:match&&!deleting?"pointer":"not-allowed",background:T.coral,color:"#fff",opacity:match&&!deleting?1:0.4}}>
-            {deleting?"Deleting…":"Delete production"}
-          </button>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
    DASHBOARD
 ═══════════════════════════════════════════════════════ */
 function NewProjectModal({onClose,onCreate}){
@@ -432,6 +623,7 @@ function NewProjectModal({onClose,onCreate}){
           <Inp placeholder="Production name" value={name} onChange={e=>setName(e.target.value)}/>
           <Sel value={type} onChange={e=>setType(e.target.value)} style={{width:"100%"}}>{PROJ_TYPES.map(t=><option key={t}>{t}</option>)}</Sel>
           <Sel value={cur} onChange={e=>setCur(e.target.value)} style={{width:"100%"}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}</Sel>
+          {/* Production logo upload */}
           <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:14,textAlign:"center",cursor:"pointer",background:T.hi}} onClick={()=>logoRef.current.click()}>
             <input ref={logoRef} type="file" accept="image/*" style={{display:"none"}} onChange={pickLogo}/>
             {logo ? <img src={logo} style={{height:48,objectFit:"contain",display:"block",margin:"0 auto 6px"}}/> : <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>📷 Upload production logo (optional)</div>}
@@ -446,9 +638,8 @@ function NewProjectModal({onClose,onCreate}){
     </div>
   );
 }
-function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete}){
+function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate}){
   const [modal,setModal]=useState(false);
-  const [deleteTarget,setDeleteTarget]=useState(null);
   const openAdv=advances.filter(a=>a.status!=="reconciled").length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
   return(
@@ -483,31 +674,19 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
               const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
               const open=advances.filter(a=>a.project_id===p.id&&a.status!=="reconciled").length;
               const active=p.id===currentId;
-              return(
-                <div key={p.id} style={{background:active?T.hi:T.panel,border:`1px solid ${active?T.gold:T.line}`,borderRadius:10,padding:18,position:"relative"}}>
-                  <button onClick={()=>onSelect(p.id)} style={{background:"none",border:"none",cursor:"pointer",textAlign:"left",width:"100%",padding:0}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                      <div><div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:10,color:T.goldDim,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>{p.type}</div></div>
-                      <Pill>{p.base_currency}</Pill>
-                    </div>
-                    <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
-                    <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{pi.length} lines · {open} open advances</div>
-                  </button>
-                  <button
-                    onClick={e=>{e.stopPropagation();setDeleteTarget(p);}}
-                    title="Delete production"
-                    style={{position:"absolute",top:10,right:10,background:"none",border:"none",color:T.faint,fontSize:15,cursor:"pointer",fontFamily:"Manrope,sans-serif",fontWeight:700,padding:"2px 6px",borderRadius:4,lineHeight:1}}
-                    onMouseEnter={e=>e.currentTarget.style.color=T.coral}
-                    onMouseLeave={e=>e.currentTarget.style.color=T.faint}
-                  >✕</button>
+              return <button key={p.id} onClick={()=>onSelect(p.id)} style={{background:active?T.hi:T.panel,border:`1px solid ${active?T.gold:T.line}`,borderRadius:10,padding:18,textAlign:"left",cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div><div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:10,color:T.goldDim,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>{p.type}</div></div>
+                  <Pill>{p.base_currency}</Pill>
                 </div>
-              );
+                <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
+                <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{pi.length} lines · {open} open advances</div>
+              </button>;
             })}
           </div>
         </>
       )}
       {modal&&<NewProjectModal onClose={()=>setModal(false)} onCreate={async(d)=>{await onCreate(d);setModal(false);}}/>}
-      {deleteTarget&&<DeleteProjectModal project={deleteTarget} onClose={()=>setDeleteTarget(null)} onConfirm={async(id)=>{await onDelete(id);setDeleteTarget(null);}}/>}
     </div>
   );
 }
@@ -567,7 +746,6 @@ function ScriptUploader({project,onApplyBudget}){
     const isPDF=file.type==="application/pdf";
     const isTxt=file.type==="text/plain"||file.name.endsWith(".txt")||file.name.endsWith(".fdx");
     if(!isPDF&&!isTxt){setErr("Upload a PDF, TXT or FDX script file.");setState("error");return;}
-    if(file.size>3*1024*1024){setErr("This script is too large to analyze (max 3MB). Compress it free at smallpdf.com or ilovepdf.com, then re-upload.");setState("error");return;}
     setState("reading");setErr("");
     try{
       let userContent;
@@ -575,10 +753,12 @@ function ScriptUploader({project,onApplyBudget}){
       else{const txt=await readFileAsText(file);userContent=[{type:"text",text:`Script:\n\n${txt}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];}
       setState("analyzing");
       const raw=await callClaude([{role:"user",content:userContent}],SCRIPT_SYS);
+      // Clean the response aggressively before parsing
       let clean=raw
         .replace(/```json/gi,'').replace(/```/g,'')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'') // remove control chars
         .trim();
+      // Find the JSON object boundaries
       const start=clean.indexOf('{');
       const end=clean.lastIndexOf('}');
       if(start===-1||end===-1) throw new Error("No JSON found in response");
@@ -608,7 +788,7 @@ function ScriptUploader({project,onApplyBudget}){
    BUDGETS
 ═══════════════════════════════════════════════════════ */
 function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
-  const [open,setOpen]=useState(items.length>0||dept===DEPTS[0]);
+  const [open,setOpen]=useState(true); // always open by default so Add line is always accessible
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const ts=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(" · ")||"—";
   return(
@@ -638,6 +818,7 @@ function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
   );
 }
 
+/* ── Brand Panel ── */
 function BrandPanel({project,onSave}){
   const [open,setOpen]=useState(false);
   const [companyName,setCompanyName]=useState('');
@@ -645,6 +826,8 @@ function BrandPanel({project,onSave}){
   const [logo,setLogo]=useState(null);
   const [saved,setSaved]=useState(false);
   const logoRef=useRef();
+
+  /* Load from localStorage keyed to project */
   useEffect(()=>{
     if(!project)return;
     try{
@@ -655,6 +838,7 @@ function BrandPanel({project,onSave}){
       setSaved(!!(stored.companyName||stored.productionTitle||stored.logo));
     }catch{}
   },[project?.id]);
+
   const pickLogo=async(e)=>{const f=e.target.files[0];if(f){const url=await readImageAsDataURL(f);setLogo(url);}};
   const save=()=>{
     const brand={companyName,productionTitle,logo};
@@ -662,7 +846,9 @@ function BrandPanel({project,onSave}){
     setSaved(true);setOpen(false);
     onSave&&onSave(brand);
   };
+  const brand={companyName,productionTitle,logo};
   const isSet=!!(companyName||productionTitle||logo);
+
   return(
     <div style={{background:T.panel,border:`1px solid ${isSet?T.sage:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -678,6 +864,7 @@ function BrandPanel({project,onSave}){
       </button>
       {open&&(
         <div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
+          {/* Logo upload */}
           <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>logoRef.current.click()}>
             <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickLogo}/>
             {logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto 6px'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload company logo</div>}
@@ -882,157 +1069,6 @@ function PayeeCard({payee,project,onAddPayment,onRemovePayment}){
 }
 
 /* ═══════════════════════════════════════════════════════
-   MARKETPLACE
-═══════════════════════════════════════════════════════ */
-function SaveTemplateModal({budgetItems,onClose,onSave}){
-  const [label,setLabel]=useState("");
-  const [sub,setSub]=useState("");
-  const [isPublic,setIsPublic]=useState(false);
-  const [saving,setSaving]=useState(false);
-  const totalLines=budgetItems.length;
-  const go=async()=>{
-    if(!label.trim()||saving)return;
-    setSaving(true);
-    const items=budgetItems.map(i=>({dept:i.dept,description:i.description,qty:i.qty,unit:i.unit,rate:i.rate}));
-    await onSave({label:label.trim(),sub:sub.trim(),items,is_public:isPublic});
-    setSaving(false);
-    onClose();
-  };
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(15,1,32,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:20,zIndex:200}}>
-      <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:26,width:"100%",maxWidth:420}}>
-        <div style={{fontFamily:"Fraunces,serif",fontSize:20,color:T.cream,marginBottom:6}}>Save as template</div>
-        <div style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:16}}>Saves the current {totalLines} budget line{totalLines===1?"":"s"} as a reusable template in your Marketplace.</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <Inp placeholder="Template name (e.g. Lagos Courtroom Drama)" value={label} onChange={e=>setLabel(e.target.value)}/>
-          <Inp placeholder="Short description (optional)" value={sub} onChange={e=>setSub(e.target.value)}/>
-          <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",cursor:"pointer"}}>
-            <input type="checkbox" checked={isPublic} onChange={e=>setIsPublic(e.target.checked)}/>
-            Share publicly in the Marketplace for other producers
-          </label>
-        </div>
-        <div style={{display:"flex",gap:8,marginTop:16}}>
-          <Btn onClick={go} style={{opacity:label.trim()&&!saving?1:0.5}}>{saving?"Saving…":"Save template"}</Btn>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-function TemplateCard({tpl,mine,onApply,onDelete}){
-  const total=(tpl.items||[]).reduce((s,i)=>s+lTot(i),0);
-  return(
-    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,position:"relative"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-        <div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.gold}}>{tpl.label}</div>
-        {tpl.is_public&&<Pill color={T.sapphire}>Public</Pill>}
-      </div>
-      {tpl.sub&&<div style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:10}}>{tpl.sub}</div>}
-      <div style={{fontSize:11,color:T.faint,fontFamily:"Manrope,sans-serif",marginBottom:12}}>{(tpl.items||[]).length} line items · ~{fmt(total)} est.</div>
-      <div style={{display:"flex",gap:8}}>
-        <Btn size="sm" onClick={()=>onApply(tpl)}>Use template</Btn>
-        {mine&&<Btn size="sm" variant="danger" onClick={()=>onDelete(tpl.id)}>Delete</Btn>}
-      </div>
-    </div>
-  );
-}
-function MarketView({project,budgetItems,builtIns,myTemplates,publicTemplates,onApplyTemplate,onSaveTemplate,onDeleteTemplate}){
-  const [topTab,setTopTab]=useState("discover");
-  const [category,setCategory]=useState("all");
-  const [showSave,setShowSave]=useState(false);
-
-  const topTabs=[{id:"discover",l:"Discover"},{id:"builtin",l:"Templates"},{id:"mine",l:"My Templates"},{id:"public",l:"Community"}];
-  const categories=[{id:"all",e:"🎬",l:"All"},{id:"Feature Film",e:"🎞️",l:"Feature Film"},{id:"Vertical Series / Microdrama",e:"📱",l:"Vertical Series"},{id:"Short Film",e:"🎥",l:"Short Film"},{id:"Music Video",e:"🎵",l:"Music Video"},{id:"Documentary",e:"📹",l:"Documentary"},{id:"Branded Content",e:"📣",l:"Branded / Podcast"}];
-
-  const filteredBuiltIns=category==="all"?builtIns:builtIns.filter(t=>t.type===category);
-  const featured=builtIns[0];
-
-  return(
-    <div>
-      {/* Header — Notion-style title row */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18,flexWrap:"wrap",gap:10}}>
-        <div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:20}}>🏪</span>
-            <div style={{fontFamily:"Fraunces,serif",fontSize:26,color:T.cream}}>Marketplace</div>
-          </div>
-          <div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:"Manrope,sans-serif"}}>Browse budget templates built for African productions, or share your own.</div>
-        </div>
-        {project&&budgetItems.length>0&&<Btn size="sm" onClick={()=>setShowSave(true)}>+ Save current budget as template</Btn>}
-      </div>
-
-      {/* Top nav tabs — Discover / Templates / My Templates / Community */}
-      <div style={{display:"flex",gap:24,borderBottom:`1px solid ${T.line}`,marginBottom:20}}>
-        {topTabs.map(t=>(
-          <button key={t.id} onClick={()=>setTopTab(t.id)} style={{background:"none",border:"none",cursor:"pointer",padding:"0 0 12px",fontFamily:"Fraunces,serif",fontSize:17,fontWeight:topTab===t.id?700:500,color:topTab===t.id?T.gold:T.dim,borderBottom:`2px solid ${topTab===t.id?T.gold:"transparent"}`,marginBottom:-1}}>
-            {t.l}
-          </button>
-        ))}
-      </div>
-
-      {/* DISCOVER TAB */}
-      {topTab==="discover"&&(
-        <>
-          {/* Category pills */}
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:22}}>
-            {categories.map(c=>(
-              <button key={c.id} onClick={()=>setCategory(c.id)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:24,border:`1px solid ${category===c.id?T.gold:T.line}`,background:category===c.id?T.goldGlow:T.panel,color:category===c.id?T.gold:T.cream,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"Manrope,sans-serif"}}>
-                <span>{c.e}</span>{c.l}
-              </button>
-            ))}
-          </div>
-
-          {/* Featured hero card */}
-          {featured&&(
-            <div style={{background:`linear-gradient(135deg, ${T.hi} 0%, ${T.panel} 100%)`,border:`1px solid ${T.gold}`,borderRadius:14,padding:"28px 30px",marginBottom:24,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:0,right:0,width:160,height:160,background:T.goldGlow,borderRadius:"50%",transform:"translate(40%,-40%)"}}/>
-              <Pill color={T.sapphire}>Featured Template</Pill>
-              <div style={{fontFamily:"Fraunces,serif",fontSize:28,color:T.cream,marginTop:12,marginBottom:6,position:"relative"}}>{featured.label}</div>
-              <div style={{fontSize:14,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:18,maxWidth:480,position:"relative"}}>{featured.sub}</div>
-              <Btn onClick={()=>onApplyTemplate(featured)} style={{position:"relative"}}>Use this template</Btn>
-            </div>
-          )}
-
-          {/* Grid of built-in templates by category */}
-          <div style={{fontFamily:"Fraunces,serif",fontSize:18,color:T.cream,marginBottom:12}}>{category==="all"?"All templates":categories.find(c=>c.id===category)?.l}</div>
-          {!project&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:16}}><div style={{color:T.dim,fontSize:12,fontFamily:"Manrope,sans-serif"}}>Select a production from the Dashboard to apply a template to it.</div></div>}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
-            {filteredBuiltIns.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
-          </div>
-        </>
-      )}
-
-      {/* TEMPLATES TAB (all built-ins, no categories) */}
-      {topTab==="builtin"&&(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
-          {builtIns.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
-        </div>
-      )}
-
-      {/* MY TEMPLATES TAB */}
-      {topTab==="mine"&&(
-        myTemplates.length===0
-          ?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:"center"}}><div style={{color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>No saved templates yet. Build a budget, then save it as a template.</div></div>
-          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
-              {myTemplates.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={true} onApply={onApplyTemplate} onDelete={onDeleteTemplate}/>)}
-            </div>
-      )}
-
-      {/* COMMUNITY TAB */}
-      {topTab==="public"&&(
-        publicTemplates.length===0
-          ?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:"center"}}><div style={{color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>No community templates shared yet. Be the first to share one!</div></div>
-          :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
-              {publicTemplates.map(tpl=><TemplateCard key={tpl.id} tpl={tpl} mine={false} onApply={onApplyTemplate}/>)}
-            </div>
-      )}
-
-      {showSave&&<SaveTemplateModal budgetItems={budgetItems} onClose={()=>setShowSave(false)} onSave={onSaveTemplate}/>}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
    AI BUILDER
 ═══════════════════════════════════════════════════════ */
 const QUICK=["What's a fair day rate for a DoP in Lagos?","Help me estimate a 1-day music video budget in Naira","How should I structure cash advances for crew?","What contingency % is realistic for Nollywood?","Typical post costs for a 5-episode vertical?","How do I handle mobile money payments in Kenya?"];
@@ -1067,6 +1103,280 @@ function AIView({project,budgetItems,advances}){
 }
 
 /* ═══════════════════════════════════════════════════════
+   SCRIPT BREAKDOWN
+═══════════════════════════════════════════════════════ */
+
+/* Breakdown categories shown on each scene card */
+const BREAKDOWN_CATS = [
+  {key:"cast",        label:"Cast",             icon:"👤"},
+  {key:"extras",      label:"Background/Extras", icon:"👥"},
+  {key:"location",    label:"Location",          icon:"📍"},
+  {key:"props",       label:"Props",             icon:"🎭"},
+  {key:"vehicles",    label:"Vehicles",          icon:"🚗"},
+  {key:"wardrobe",    label:"Wardrobe",          icon:"👗"},
+  {key:"hairMakeup",  label:"Hair & Make-up",    icon:"💄"},
+  {key:"specialEquip",label:"Special Equipment", icon:"🎥"},
+  {key:"vfxSfx",      label:"VFX / SFX",         icon:"✨"},
+  {key:"sound",       label:"Sound / Music",     icon:"🎵"},
+  {key:"notes",       label:"Notes",             icon:"📝"},
+];
+
+const BREAKDOWN_SYS = `You are a professional script breakdown AI for African film productions. Extract scenes from the script and return ONLY a valid JSON array. No markdown. No code fences. No special characters or apostrophes in any string value. Keep all text simple and clean.`;
+
+const BREAKDOWN_PROMPT = (episodeMode) => `${episodeMode
+  ? "This is a multi-episode script. Create ONE breakdown entry per episode, not per scene. Consolidate all scene elements within each episode."
+  : "Extract every scene from this script. Create one breakdown entry per scene."}
+
+Return ONLY this JSON array with no other text:
+[{
+  "sceneNumber": "1",
+  "heading": "INT. LOCATION NAME - DAY",
+  "intExt": "INT",
+  "dayNight": "DAY",
+  "synopsis": "Brief 1-2 sentence description of what happens",
+  "pageCount": 1.0,
+  "cast": ["Character Name 1", "Character Name 2"],
+  "extras": "Description of background talent needed",
+  "location": "Specific location name",
+  "props": ["Prop 1", "Prop 2", "Prop 3"],
+  "vehicles": ["Vehicle description"],
+  "wardrobe": ["Costume or wardrobe item"],
+  "hairMakeup": "Hair and makeup requirements",
+  "specialEquip": ["Special equipment or camera requirement"],
+  "vfxSfx": "Any VFX or practical effects needed",
+  "sound": "Music cues or sound design notes",
+  "notes": "Any special requirements or production notes"
+}]
+Rules: Keep all strings short and simple. No apostrophes. No special characters. Return ONLY the JSON array.`;
+
+/* PDF export for breakdown sheets */
+const downloadBreakdownPDF = (scenes, project, brand={}) => {
+  const logoSrc=brand.logo||project.logo_url;
+  const logoHtml=logoSrc?`<img src="${logoSrc}" style="height:40px;object-fit:contain;margin-bottom:8px;display:block"/>`:'' ;
+  const companyName=brand.companyName||'';
+  const sheets=scenes.map(sc=>`
+    <div style="page-break-after:always;padding:20px 30px;font-family:Arial,sans-serif">
+      <div style="background:#0F0120;color:#FEED61;padding:14px 20px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#8C852E;margin-bottom:2px">${companyName||'NKO'} · ${project.name}</div>
+          <div style="font-size:18px;font-weight:700">Scene ${sc.sceneNumber||'—'}</div>
+          <div style="font-size:13px;color:#9A9080;margin-top:2px">${sc.heading||''}</div>
+        </div>
+        <div style="text-align:right">
+          ${logoHtml}
+          <div style="font-size:11px;color:#8C852E">${sc.intExt||''} · ${sc.dayNight||''}</div>
+          <div style="font-size:11px;color:#8C852E">Pages: ${sc.pageCount||0}</div>
+        </div>
+      </div>
+      ${sc.synopsis?`<div style="background:#f9f9f9;border:1px solid #eee;border-top:none;padding:10px 20px;font-size:13px;color:#444;font-style:italic">${sc.synopsis}</div>`:''}
+      <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
+        ${BREAKDOWN_CATS.map(cat=>{
+          const val=sc[cat.key];
+          if(!val||(Array.isArray(val)&&val.length===0)) return '';
+          const display=Array.isArray(val)?val.join(', '):val;
+          return `<tr style="border-bottom:1px solid #eee">
+            <td style="padding:8px 14px;background:#1A0835;color:#FEED61;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;width:160px;white-space:nowrap">${cat.icon} ${cat.label}</td>
+            <td style="padding:8px 14px;font-size:13px;color:#222">${display}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>
+  `).join('');
+  const html=`<!DOCTYPE html><html><head><title>Breakdown — ${project.name}</title><style>*{box-sizing:border-box}body{margin:0;padding:0}@media print{.no-print{display:none}}</style></head><body>
+    <div class="no-print" style="background:#0F0120;padding:14px 20px;text-align:center">
+      <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-size:14px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button>
+      <span style="color:#9A9080;font-size:12px;margin-left:12px">${scenes.length} scene${scenes.length!==1?'s':''} · ${project.name}</span>
+    </div>
+    ${sheets}
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+};
+
+/* Single scene card */
+function SceneCard({scene,onEdit,onDelete}){
+  const [open,setOpen]=useState(false);
+  const intColor=scene.intExt==='INT'?T.sapphire:T.sage;
+  const dnColor=scene.dayNight==='DAY'?T.gold:T.goldDim;
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden',marginBottom:10}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',gap:12,textAlign:'left'}}>
+        <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.gold,fontWeight:700,minWidth:48}}>
+          {scene.sceneNumber||'?'}
+        </div>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>{scene.heading||'No heading'}</div>
+          {scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{scene.synopsis.slice(0,80)}{scene.synopsis.length>80?'…':''}</div>}
+        </div>
+        <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
+          <span style={{fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:4,background:intColor,color:T.ink}}>{scene.intExt||'INT'}</span>
+          <span style={{fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:4,background:dnColor,color:T.ink}}>{scene.dayNight||'DAY'}</span>
+          <span style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{scene.pageCount||0}p</span>
+          <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+        </div>
+      </button>
+      {open&&(
+        <div style={{borderTop:`1px solid ${T.line}`}}>
+          {BREAKDOWN_CATS.map(cat=>{
+            const val=scene[cat.key];
+            if(!val||(Array.isArray(val)&&val.length===0)) return null;
+            const display=Array.isArray(val)?val.join(' · '):val;
+            return(
+              <div key={cat.key} style={{display:'flex',borderBottom:`1px solid ${T.line}`,minHeight:36}}>
+                <div style={{width:160,flexShrink:0,background:T.hi,padding:'8px 14px',fontSize:11,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',gap:6}}>
+                  <span>{cat.icon}</span>{cat.label}
+                </div>
+                <div style={{flex:1,padding:'8px 14px',fontSize:13,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center'}}>
+                  {Array.isArray(val)?(
+                    <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                      {val.map((v,i)=><span key={i} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:4,padding:'2px 8px',fontSize:11}}>{v}</span>)}
+                    </div>
+                  ):display}
+                </div>
+              </div>
+            );
+          })}
+          <div style={{padding:'8px 16px',display:'flex',gap:10}}>
+            <button onClick={()=>onDelete(scene.id)} style={{color:T.coral,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete scene</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Add scene manually */
+function AddSceneForm({onSave,onCancel}){
+  const [f,setF]=useState({sceneNumber:'',heading:'',intExt:'INT',dayNight:'DAY',synopsis:'',pageCount:'1',cast:'',extras:'',location:'',props:'',vehicles:'',wardrobe:'',hairMakeup:'',specialEquip:'',vfxSfx:'',sound:'',notes:''});
+  const s=(k,v)=>setF(p=>({...p,[k]:v}));
+  const save=()=>{
+    const scene={
+      ...f,pageCount:Number(f.pageCount)||1,
+      cast:f.cast.split(',').map(x=>x.trim()).filter(Boolean),
+      props:f.props.split(',').map(x=>x.trim()).filter(Boolean),
+      vehicles:f.vehicles.split(',').map(x=>x.trim()).filter(Boolean),
+      wardrobe:f.wardrobe.split(',').map(x=>x.trim()).filter(Boolean),
+      specialEquip:f.specialEquip.split(',').map(x=>x.trim()).filter(Boolean),
+    };
+    onSave(scene);
+  };
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:20,marginBottom:16}}>
+      <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,marginBottom:14}}>Add scene breakdown</div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        <Inp placeholder="Scene number (e.g. 12)" value={f.sceneNumber} onChange={e=>s('sceneNumber',e.target.value)}/>
+        <Inp placeholder="Page count (e.g. 1.5)" type="number" value={f.pageCount} onChange={e=>s('pageCount',e.target.value)}/>
+        <Sel value={f.intExt} onChange={e=>s('intExt',e.target.value)} style={{width:'100%'}}>
+          <option value="INT">INT</option><option value="EXT">EXT</option><option value="INT/EXT">INT/EXT</option>
+        </Sel>
+        <Sel value={f.dayNight} onChange={e=>s('dayNight',e.target.value)} style={{width:'100%'}}>
+          <option value="DAY">DAY</option><option value="NIGHT">NIGHT</option><option value="DUSK">DUSK</option><option value="DAWN">DAWN</option>
+        </Sel>
+        <Inp placeholder="Scene heading (e.g. INT. MARKET - DAY)" value={f.heading} onChange={e=>s('heading',e.target.value)} style={{gridColumn:'span 2'}}/>
+        <Inp placeholder="Synopsis — what happens in this scene" value={f.synopsis} onChange={e=>s('synopsis',e.target.value)} style={{gridColumn:'span 2'}}/>
+        <Inp placeholder="Location (specific place)" value={f.location} onChange={e=>s('location',e.target.value)} style={{gridColumn:'span 2'}}/>
+        <Inp placeholder="Cast (comma separated: Ada, Emeka, Vendor)" value={f.cast} onChange={e=>s('cast',e.target.value)} style={{gridColumn:'span 2'}}/>
+        <Inp placeholder="Extras / background talent" value={f.extras} onChange={e=>s('extras',e.target.value)} style={{gridColumn:'span 2'}}/>
+        <Inp placeholder="Props (comma separated: basket, phone, money)" value={f.props} onChange={e=>s('props',e.target.value)} style={{gridColumn:'span 2'}}/>
+        <Inp placeholder="Vehicles (comma separated: okada, Hilux, bus)" value={f.vehicles} onChange={e=>s('vehicles',e.target.value)}/>
+        <Inp placeholder="Wardrobe (comma separated)" value={f.wardrobe} onChange={e=>s('wardrobe',e.target.value)}/>
+        <Inp placeholder="Hair & make-up notes" value={f.hairMakeup} onChange={e=>s('hairMakeup',e.target.value)}/>
+        <Inp placeholder="Special equipment (comma separated)" value={f.specialEquip} onChange={e=>s('specialEquip',e.target.value)}/>
+        <Inp placeholder="VFX / SFX requirements" value={f.vfxSfx} onChange={e=>s('vfxSfx',e.target.value)}/>
+        <Inp placeholder="Sound / music cues" value={f.sound} onChange={e=>s('sound',e.target.value)}/>
+        <Inp placeholder="Notes / special requirements" value={f.notes} onChange={e=>s('notes',e.target.value)} style={{gridColumn:'span 2'}}/>
+      </div>
+      <div style={{display:'flex',gap:8,marginTop:12}}>
+        <Btn onClick={save}>Save scene</Btn>
+        <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
+      </div>
+    </div>
+  );
+}
+
+/* AI script breakdown uploader */
+function BreakdownUploader({project,onApply}){
+  const [state,setState]=useState('idle');
+  const [err,setErr]=useState('');
+  const fileRef=useRef();
+  const process=async(file)=>{
+    const isPDF=file.type==='application/pdf';
+    const isTxt=file.type==='text/plain'||file.name.endsWith('.txt')||file.name.endsWith('.fdx');
+    if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX script file.');setState('error');return;}
+    setState('reading');setErr('');
+    try{
+      const fileSizeKB=file.size/1024;
+      const episodeMode=fileSizeKB>100; // use episode mode for large scripts
+      let userContent;
+      if(isPDF){const b64=await readFileAsBase64(file);userContent=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:BREAKDOWN_PROMPT(episodeMode)}];}
+      else{const txt=await readFileAsText(file);userContent=[{type:'text',text:`Script:\n\n${txt}\n\n${BREAKDOWN_PROMPT(episodeMode)}`}];}
+      setState('analyzing');
+      const raw=await callClaude([{role:'user',content:userContent}],BREAKDOWN_SYS);
+      let clean=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
+      const start=clean.indexOf('[');const end=clean.lastIndexOf(']');
+      if(start===-1||end===-1)throw new Error('No scene data found in script');
+      clean=clean.slice(start,end+1);
+      const scenes=JSON.parse(clean);
+      onApply(scenes);
+      setState('done');
+    }catch(e){setErr(`Breakdown failed: ${e.message}`);setState('error');}
+  };
+  const onPick=e=>{const f=e.target.files[0];if(f)process(f);};
+  return(
+    <div style={{background:T.hi,border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:'20px',textAlign:'center',marginBottom:18,cursor:(state==='idle'||state==='error')?"pointer":"default"}} onClick={()=>(state==='idle'||state==='error')&&fileRef.current.click()}>
+      <input ref={fileRef} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={onPick}/>
+      {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📋</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>AI Script Breakdown</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Upload your script — NKO extracts every scene with cast, props, location, vehicles and more</div><Btn variant="script" size="sm">Choose script</Btn></>}
+      {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
+      {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing scenes…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Extracting cast, props, locations, vehicles per scene</div></>}
+      {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage,marginBottom:4}}>Breakdown complete</div><button onClick={e=>{e.stopPropagation();setState('idle');}} style={{color:T.gold,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another script →</button></>}
+      {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
+    </div>
+  );
+}
+
+/* Main Breakdown View */
+function BreakdownView({project,scenes,onAddScene,onDeleteScene}){
+  const [showForm,setShowForm]=useState(false);
+  const [filter,setFilter]=useState('ALL');
+  const [search,setSearch]=useState('');
+  if(!project)return <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const pScenes=scenes.filter(s=>s.project_id===project.id);
+  const filtered=pScenes.filter(s=>{
+    const matchFilter=filter==='ALL'||(filter==='INT'&&s.intExt==='INT')||(filter==='EXT'&&s.intExt==='EXT')||(filter==='DAY'&&s.dayNight==='DAY')||(filter==='NIGHT'&&s.dayNight==='NIGHT');
+    const matchSearch=!search||s.heading?.toLowerCase().includes(search.toLowerCase())||s.synopsis?.toLowerCase().includes(search.toLowerCase())||s.location?.toLowerCase().includes(search.toLowerCase());
+    return matchFilter&&matchSearch;
+  });
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  return(
+    <div>
+      <div style={{marginBottom:20}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Breakdown — {project.name}</div>
+        <div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene breakdown: cast, props, location, vehicles, wardrobe and more.</div>
+        <div style={{marginTop:14}}><FS/></div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:10,marginBottom:20}}>
+        <StatCard label="Total scenes" value={pScenes.length} sub="in breakdown"/>
+        <StatCard label="INT scenes" value={pScenes.filter(s=>s.intExt==='INT').length} sub="interior"/>
+        <StatCard label="EXT scenes" value={pScenes.filter(s=>s.intExt==='EXT').length} sub="exterior"/>
+        <StatCard label="Night scenes" value={pScenes.filter(s=>s.dayNight==='NIGHT').length} sub="night shoot" accent={pScenes.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
+      </div>
+      <BreakdownUploader project={project} onApply={newScenes=>{newScenes.forEach(sc=>onAddScene({...sc,project_id:project.id}));}}/>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'4px 10px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer'}}>{f}</button>)}
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:160,fontSize:12}}/>
+          {pScenes.length>0&&<Btn size="sm" variant="outline" onClick={()=>downloadBreakdownPDF(filtered,project,brand)}>📄 Export PDF</Btn>}
+          <Btn size="sm" onClick={()=>setShowForm(!showForm)}>+ Add scene</Btn>
+        </div>
+      </div>
+      {showForm&&<AddSceneForm onSave={sc=>{onAddScene({...sc,project_id:project.id});setShowForm(false);}} onCancel={()=>setShowForm(false)}/>}
+      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontSize:14,fontFamily:'Manrope,sans-serif'}}>{pScenes.length===0?'No scenes yet. Upload your script or add scenes manually.':'No scenes match your filter.'}</div></div>:filtered.map(sc=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene}/>)}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    MAIN APP (authenticated)
 ═══════════════════════════════════════════════════════ */
 function MainApp(){
@@ -1078,31 +1388,31 @@ function MainApp(){
   const [advances,setAdvances]=useState([]);
   const [reconEntries,setReconEntries]=useState([]);
   const [payees,setPayees]=useState([]);
-  const [marketTemplates,setMarketTemplates]=useState([]);
+  const [scenes,setScenes]=useState([]);
   const [loadingData,setLoadingData]=useState(true);
   const [mobile,setMobile]=useState(window.innerWidth<700);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
 
+  /* ── Load all data on mount ── */
   useEffect(()=>{if(user)loadAll();},[user]);
   const loadAll=async()=>{
     setLoadingData(true);
-    const [p,b,a,r,py,pm,mt]=await Promise.all([
+    const [p,b,a,r,py,pm]=await Promise.all([
       supabase.from("projects").select("*").order("created_at",{ascending:false}),
       supabase.from("budget_items").select("*"),
       supabase.from("advances").select("*").order("created_at",{ascending:false}),
       supabase.from("recon_entries").select("*"),
       supabase.from("payees").select("*"),
       supabase.from("payments").select("*"),
-      supabase.from("marketplace_templates").select("*").order("created_at",{ascending:false}),
     ]);
     setProjects(p.data||[]);
     setBudgetItems(b.data||[]);
     setAdvances(a.data||[]);
     setReconEntries(r.data||[]);
+    // Attach payments to payees
     const pyData=py.data||[];
     const pmData=pm.data||[];
     setPayees(pyData.map(p=>({...p,payments:pmData.filter(x=>x.payee_id===p.id)})));
-    setMarketTemplates(mt.data||[]);
     setLoadingData(false);
   };
 
@@ -1114,17 +1424,6 @@ function MainApp(){
   const createProject=async(data)=>{
     const {data:d,error}=await supabase.from("projects").insert({...data,user_id:user.id}).select().single();
     if(!error){setProjects(prev=>[d,...prev]);setCurrentId(d.id);setView("budgets");}
-  };
-  const deleteProject=async(id)=>{
-    await supabase.from("budget_items").delete().eq("project_id",id);
-    await supabase.from("advances").delete().eq("project_id",id);
-    await supabase.from("payees").delete().eq("project_id",id);
-    await supabase.from("projects").delete().eq("id",id);
-    setProjects(prev=>prev.filter(p=>p.id!==id));
-    setBudgetItems(prev=>prev.filter(i=>i.project_id!==id));
-    setAdvances(prev=>prev.filter(a=>a.project_id!==id));
-    setPayees(prev=>prev.filter(p=>p.project_id!==id));
-    if(currentId===id){setCurrentId(null);}
   };
 
   /* ── Budget items ── */
@@ -1149,22 +1448,6 @@ function MainApp(){
     const rows=lines.map(l=>({...l,project_id:currentId,user_id:user.id,currency:project.base_currency}));
     const {data:d}=await supabase.from("budget_items").insert(rows).select();
     if(d)setBudgetItems(prev=>[...prev,...d]);
-  };
-
-  /* ── Marketplace templates ── */
-  const applyMarketTemplate=async(tpl)=>{
-    if(!currentId||!project)return;
-    const rows=(tpl.items||[]).map(t=>({dept:t.dept,description:t.description,qty:t.qty,unit:t.unit,rate:t.rate,project_id:currentId,user_id:user.id,currency:project.base_currency}));
-    const {data:d}=await supabase.from("budget_items").insert(rows).select();
-    if(d)setBudgetItems(prev=>[...prev,...d]);
-  };
-  const saveMarketTemplate=async({label,sub,items,is_public})=>{
-    const {data:d,error}=await supabase.from("marketplace_templates").insert({user_id:user.id,label,sub,items,is_public}).select().single();
-    if(!error)setMarketTemplates(prev=>[d,...prev]);
-  };
-  const deleteMarketTemplate=async(id)=>{
-    setMarketTemplates(prev=>prev.filter(t=>t.id!==id));
-    await supabase.from("marketplace_templates").delete().eq("id",id);
   };
 
   /* ── Advances ── */
@@ -1210,11 +1493,11 @@ function MainApp(){
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,overflow:"hidden"}}>
         <TopBar projects={projects} currentId={currentId} onSelect={id=>setCurrentId(id||null)} onNew={()=>setView("dashboard")} onSignOut={signOut}/>
         <main style={{flex:1,overflowY:"auto",padding:"24px 20px 100px"}}>
-          {view==="dashboard"&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView("budgets");}} onCreate={createProject} onDelete={deleteProject}/>}
+          {view==="dashboard"&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView("budgets");}} onCreate={createProject}/>}
           {view==="budgets"&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
+          {view==="breakdown"&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>{const newSc={...sc,id:Math.random().toString(36).slice(2,9)};setScenes(prev=>[...prev,newSc]);}} onDeleteScene={id=>setScenes(prev=>prev.filter(s=>s.id!==id))}/>}
           {view==="recon"&&<ReconView project={project} advances={pAdvances} reconEntries={reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
           {view==="payments"&&<PaymentsView project={project} payees={payees} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
-          {view==="market"&&<MarketView project={project} budgetItems={pBudget} builtIns={TEMPLATES} myTemplates={marketTemplates.filter(t=>t.user_id===user.id)} publicTemplates={marketTemplates.filter(t=>t.user_id!==user.id&&t.is_public)} onApplyTemplate={tpl=>tpl.id&&TEMPLATES.some(b=>b.id===tpl.id)?applyTemplate(tpl):applyMarketTemplate(tpl)} onSaveTemplate={saveMarketTemplate} onDeleteTemplate={deleteMarketTemplate}/>}
           {view==="ai"&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
         </main>
       </div>
