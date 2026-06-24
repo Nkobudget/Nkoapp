@@ -1370,17 +1370,6 @@ function BrandPanel({project,onSave}){
   );
 }
 
-/* Animated number component for budget totals */
-function AnimatedAmount({amount,currency}){
-  const v=useCountUp(amount,900,[amount]);
-  return(
-    <div>
-      <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:28,color:T.cream,fontWeight:500}}>{sym(currency)}{fmt(v)}</div>
-      <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{currency}</div>
-    </div>
-  );
-}
-
 function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript}){
   const [showPicker,setShowPicker]=useState(false);
   const [brand,setBrand]=useState({});
@@ -1406,7 +1395,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
             <div>
               <div style={{fontSize:10,color:T.goldDim,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:12,fontFamily:"Manrope,sans-serif"}}>Total budget</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:24}}>{Object.entries(totals).map(([c,a])=><AnimatedAmount key={c} amount={a} currency={c}/>)}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:24}}>{Object.entries(totals).map(([c,a])=><div key={c}><div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:28,color:T.cream,fontWeight:500}}>{sym(c)}{fmt(a)}</div><div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif"}}>{c}</div></div>)}</div>
             </div>
             <Btn variant="outline" size="sm" onClick={()=>downloadBudgetPDF(project,items,advances||[],reconEntries||[],brand)}>📄 Export budget PDF</Btn>
           </div>
