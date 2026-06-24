@@ -804,11 +804,23 @@ function ScriptResultModal({result,currency,onApply,onClose}){
 }
 function ScriptUploader({project,onApplyBudget}){
   const [state,setState]=useState("idle"); const [err,setErr]=useState(""); const [result,setResult]=useState(null); const [dragOver,setDragOver]=useState(false);
+  const [notifPerm,setNotifPerm]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');
+  const resultRef=useRef(null);
   const fileRef=useRef();
+
+  const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotifPerm(p);};
+  const sendNotif=(msg)=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKO Budget Ready',{body:msg});}catch{}};
+
+  useEffect(()=>{
+    const h=()=>{if(document.visibilityState==='visible'&&resultRef.current){setResult(resultRef.current);resultRef.current=null;setState('done');}};
+    document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);
+  },[]);
+
   const processFile=async(file)=>{
     const isPDF=file.type==="application/pdf";
     const isTxt=file.type==="text/plain"||file.name.endsWith(".txt")||file.name.endsWith(".fdx");
     if(!isPDF&&!isTxt){setErr("Upload a PDF, TXT or FDX script file.");setState("error");return;}
+    await askNotif();
     setState("reading");setErr("");
     try{
       let userContent;
@@ -816,29 +828,26 @@ function ScriptUploader({project,onApplyBudget}){
       else{const txt=await readFileAsText(file);userContent=[{type:"text",text:`Script:\n\n${txt}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];}
       setState("analyzing");
       const raw=await callClaude([{role:"user",content:userContent}],SCRIPT_SYS);
-      // Clean the response aggressively before parsing
-      let clean=raw
-        .replace(/```json/gi,'').replace(/```/g,'')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'') // remove control chars
-        .trim();
-      // Find the JSON object boundaries
-      const start=clean.indexOf('{');
-      const end=clean.lastIndexOf('}');
-      if(start===-1||end===-1) throw new Error("No JSON found in response");
+      let clean=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
+      const start=clean.indexOf('{');const end=clean.lastIndexOf('}');
+      if(start===-1||end===-1)throw new Error("No JSON found in response");
       clean=clean.slice(start,end+1);
       const parsed=JSON.parse(clean);
-      setResult(parsed);setState("done");
+      sendNotif(`Budget generated for ${project.name} — tap to view`);
+      if(document.visibilityState==='hidden'){resultRef.current=parsed;}
+      else{setResult(parsed);setState("done");}
     }catch(e){setErr(`Analysis failed: ${e.message}`);setState("error");}
   };
   const onDrop=useCallback(e=>{e.preventDefault();setDragOver(false);const f=e.dataTransfer.files[0];if(f)processFile(f);},[project]);
   const onPick=e=>{const f=e.target.files[0];if(f)processFile(f);};
+  const hasNotif=typeof Notification!=='undefined'&&notifPerm!=='unsupported';
   return(
     <>
       <div onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={onDrop} onClick={()=>(state==="idle"||state==="error")&&fileRef.current.click()} style={{border:`2px dashed ${dragOver?T.sapphire:state==="analyzing"?T.goldMid:T.line}`,borderRadius:10,padding:"24px 20px",textAlign:"center",background:dragOver?`rgba(74,144,217,0.06)`:T.hi,cursor:(state==="idle"||state==="error")?"pointer":"default",marginBottom:18}}>
         <input ref={fileRef} type="file" accept=".pdf,.txt,.fdx" style={{display:"none"}} onChange={onPick}/>
-        {state==="idle"&&<><div style={{fontSize:28,marginBottom:8}}>📄</div><div style={{fontFamily:"Fraunces,serif",fontSize:16,color:T.cream,marginBottom:4}}>Upload your script</div><div style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:12}}>Drop a PDF, TXT or FDX — NKO reads it and auto-builds your budget</div><Btn variant="script" size="sm">Choose script file</Btn></>}
+        {state==="idle"&&<><div style={{fontSize:28,marginBottom:8}}>📄</div><div style={{fontFamily:"Fraunces,serif",fontSize:16,color:T.cream,marginBottom:4}}>Upload your script</div><div style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif",marginBottom:8}}>Drop a PDF, TXT or FDX — NKO reads it and auto-builds your budget</div>{hasNotif&&notifPerm==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:"Manrope,sans-serif",marginBottom:8}}>🔔 Notifications on — safe to switch apps</div>}{hasNotif&&notifPerm==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:"Manrope,sans-serif",marginBottom:8}}>💡 Allow notifications to switch apps during analysis</div>}<Btn variant="script" size="sm">Choose script file</Btn></>}
         {state==="reading"&&<><div style={{fontSize:28,marginBottom:8}}>📖</div><div style={{fontFamily:"Manrope,sans-serif",fontSize:14,color:T.cream}}>Reading script…</div></>}
-        {state==="analyzing"&&<><div style={{fontSize:28,marginBottom:8}}>🤖</div><div style={{fontFamily:"Fraunces,serif",fontSize:16,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.dim,fontFamily:"Manrope,sans-serif"}}>Breaking down scenes, cast, locations and generating budget lines</div></>}
+        {state==="analyzing"&&<><div style={{fontSize:28,marginBottom:8}}>🤖</div><div style={{fontFamily:"Fraunces,serif",fontSize:16,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:notifPerm==='granted'?T.sage:T.coral,fontFamily:"Manrope,sans-serif"}}>{notifPerm==='granted'?'🔔 You will be notified when done — safe to switch apps':'⚠️ Keep this screen open during analysis'}</div></>}
         {state==="done"&&<><div style={{fontSize:28,marginBottom:8}}>✅</div><div style={{fontFamily:"Fraunces,serif",fontSize:16,color:T.sage,marginBottom:4}}>Script analyzed</div><button onClick={e=>{e.stopPropagation();setState("idle");setResult(null);}} style={{color:T.gold,fontSize:12,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif",fontWeight:700}}>Analyze another →</button></>}
         {state==="error"&&<><div style={{fontSize:28,marginBottom:8}}>⚠️</div><div style={{fontSize:13,color:T.coral,fontFamily:"Manrope,sans-serif",marginBottom:10}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState("idle");setErr("");}}>Try again</Btn></>}
       </div>
@@ -934,16 +943,21 @@ function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
   );
 }
 
-/* ── Brand Panel ── */
+/* Brand Panel */
+const ACCENT_COLORS=[
+  {name:'Gold',value:'#FEED61'},{name:'Coral',value:'#E06B52'},{name:'Sage',value:'#52B07A'},
+  {name:'Sapphire',value:'#4A90D9'},{name:'Lavender',value:'#9B7FD4'},{name:'Amber',value:'#F5A623'},
+  {name:'Teal',value:'#2ABFBF'},{name:'Rose',value:'#E8527A'},
+];
 function BrandPanel({project,onSave}){
   const [open,setOpen]=useState(false);
   const [companyName,setCompanyName]=useState('');
   const [productionTitle,setProductionTitle]=useState('');
   const [logo,setLogo]=useState(null);
+  const [accentColor,setAccentColor]=useState('#FEED61');
   const [saved,setSaved]=useState(false);
   const logoRef=useRef();
 
-  /* Load from localStorage keyed to project */
   useEffect(()=>{
     if(!project)return;
     try{
@@ -951,27 +965,28 @@ function BrandPanel({project,onSave}){
       setCompanyName(stored.companyName||'');
       setProductionTitle(stored.productionTitle||project.name||'');
       setLogo(stored.logo||project.logo_url||null);
+      setAccentColor(stored.accentColor||'#FEED61');
       setSaved(!!(stored.companyName||stored.productionTitle||stored.logo));
     }catch{}
   },[project?.id]);
 
   const pickLogo=async(e)=>{const f=e.target.files[0];if(f){const url=await readImageAsDataURL(f);setLogo(url);}};
   const save=()=>{
-    const brand={companyName,productionTitle,logo};
+    const brand={companyName,productionTitle,logo,accentColor};
     localStorage.setItem(`nko_brand_${project.id}`,JSON.stringify(brand));
     setSaved(true);setOpen(false);
     onSave&&onSave(brand);
   };
-  const brand={companyName,productionTitle,logo};
   const isSet=!!(companyName||productionTitle||logo);
 
   return(
-    <div style={{background:T.panel,border:`1px solid ${isSet?T.sage:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
+    <div style={{background:T.panel,border:`1px solid ${isSet?accentColor:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           {logo&&<img src={logo} style={{height:28,objectFit:'contain',borderRadius:3}}/>}
+          <div style={{width:10,height:10,borderRadius:'50%',background:accentColor,flexShrink:0}}/>
           <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Brand Panel</span>
-          <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Logo · Company · Title</span>
+          <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Logo · Company · Title · Colour</span>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           {saved&&isSet&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Brand set ✓</span>}
@@ -980,7 +995,6 @@ function BrandPanel({project,onSave}){
       </button>
       {open&&(
         <div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
-          {/* Logo upload */}
           <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>logoRef.current.click()}>
             <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickLogo}/>
             {logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto 6px'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload company logo</div>}
@@ -988,7 +1002,16 @@ function BrandPanel({project,onSave}){
           </div>
           <Inp placeholder="Company name (e.g. Zestyn Media)" value={companyName} onChange={e=>setCompanyName(e.target.value)}/>
           <Inp placeholder="Production title (e.g. My Wicked Mother in Law)" value={productionTitle} onChange={e=>setProductionTitle(e.target.value)}/>
-          <div style={{display:'flex',gap:8}}>
+          {/* Accent colour picker */}
+          <div>
+            <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:8,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em'}}>Accent colour</div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              {ACCENT_COLORS.map(c=>(
+                <button key={c.value} onClick={()=>setAccentColor(c.value)} title={c.name} style={{width:28,height:28,borderRadius:'50%',background:c.value,border:`3px solid ${accentColor===c.value?T.cream:'transparent'}`,cursor:'pointer',boxShadow:accentColor===c.value?`0 0 0 2px ${c.value}`:'none'}}/>
+              ))}
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:4}}>
             <Btn onClick={save} variant="sage">Save brand ✓</Btn>
             <Btn variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn>
           </div>
@@ -1080,25 +1103,104 @@ function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,o
 function AdvanceGroup({label,advances,reconEntries,onUpdateAdvance,onAddEntry,onRemoveEntry}){
   return <div style={{marginBottom:16}}><div style={{fontSize:10,color:T.dim,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:700,marginBottom:10,fontFamily:"Manrope,sans-serif"}}>{label}</div>{advances.map(adv=><AdvanceCard key={adv.id} advance={adv} entries={reconEntries.filter(e=>e.advance_id===adv.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry}/>)}</div>;
 }
+const EXPENSE_CATS=['Feeding','Transport','Fuel','Location fee','Props & materials','Equipment hire','Accommodation','Communication','Labour','Miscellaneous'];
+
 function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry}){
   const [showEntry,setShowEntry]=useState(false);
   const [eDesc,setEDesc]=useState(""); const [eAmt,setEAmt]=useState(""); const [eDate,setEDate]=useState(today());
+  const [eCat,setECat]=useState("Miscellaneous"); const [eRef,setERef]=useState("");
+  const isMobile=useIsMobile();
   const spent=entries.reduce((s,e)=>s+(Number(e.amount)||0),0);
   const balance=advance.amount-spent;
   const pct=advance.amount>0?Math.min(100,(spent/advance.amount)*100):0;
   const sc=advance.status==="reconciled"?T.sage:balance<0?T.coral:balance===0?T.sage:T.gold;
   const sl=advance.status==="reconciled"?"Reconciled":balance<0?"Overspent":balance===0?"Balanced":"Open";
-  const saveEntry=()=>{if(eDesc&&eAmt){onAddEntry({advance_id:advance.id,description:eDesc,amount:Number(eAmt),date:eDate});setEDesc("");setEAmt("");}setShowEntry(false);};
+  const saveEntry=()=>{
+    if(eDesc&&eAmt){
+      onAddEntry({advance_id:advance.id,description:`[${eCat}] ${eDesc}${eRef?` · Ref: ${eRef}`:''}`,amount:Number(eAmt),date:eDate});
+      setEDesc("");setEAmt("");setERef("");setECat("Miscellaneous");
+    }
+    setShowEntry(false);
+  };
   return(
-    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:"hidden",marginBottom:12}}>
-      <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-        <div><div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.cream}}>{advance.recipient}{advance.dept&&<span style={{color:T.dim,fontFamily:"Manrope,sans-serif",fontSize:13,fontWeight:400}}> · {advance.dept}</span>}</div><div style={{fontSize:11,color:T.dim,marginTop:2,fontFamily:"Manrope,sans-serif"}}>{advance.purpose||"No purpose"} · {advance.date_issued}</div></div>
-        <div style={{textAlign:"right"}}><div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div><Pill color={sc}>{sl}</Pill></div>
+    <div style={{background:T.panel,border:`1px solid ${balance<0?T.coral:T.line}`,borderRadius:10,overflow:"hidden",marginBottom:12}}>
+      <div style={{padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,flexWrap:isMobile?"wrap":"nowrap"}}>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:"Fraunces,serif",fontSize:15,color:T.cream}}>{advance.recipient}{advance.dept&&<span style={{color:T.dim,fontFamily:"Manrope,sans-serif",fontSize:13,fontWeight:400}}> · {advance.dept}</span>}</div>
+          <div style={{fontSize:11,color:T.dim,marginTop:2,fontFamily:"Manrope,sans-serif"}}>{advance.purpose||"No purpose"} · {advance.date_issued}</div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div>
+          <Pill color={sc}>{sl}</Pill>
+        </div>
       </div>
-      <div style={{padding:"0 16px 8px"}}><div style={{height:4,borderRadius:2,background:T.ink,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:balance<0?T.coral:T.goldMid}}/></div><div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.dim,marginTop:4,fontFamily:"Manrope,sans-serif"}}><span>Spent {sym(advance.currency)}{fmt(spent)}</span><span>{balance<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(balance))}`:`Balance ${sym(advance.currency)}${fmt(balance)}`}</span></div></div>
-      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:"6px 16px"}}>{entries.map(en=><div key={en.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${T.line}`,fontSize:13}}><div><span style={{color:T.cream,fontFamily:"Manrope,sans-serif"}}>{en.description}</span>{en.date&&<span style={{color:T.dim,fontSize:11,marginLeft:8}}>{en.date}</span>}</div><div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontFamily:"IBM Plex Mono,monospace",color:T.cream,fontSize:13}}>{sym(advance.currency)}{fmt(en.amount)}</span><button onClick={()=>onRemoveEntry(en.id)} style={{color:T.faint,fontSize:18,cursor:"pointer",background:"none",border:"none"}}>×</button></div></div>)}</div>}
-      {showEntry&&<div style={{padding:"10px 16px",borderTop:`1px solid ${T.line}`,display:"flex",gap:6,flexWrap:"wrap"}}><Inp placeholder="What was spent on?" value={eDesc} onChange={e=>setEDesc(e.target.value)} style={{flex:"1 1 160px"}}/><Inp type="number" placeholder="Amount" value={eAmt} onChange={e=>setEAmt(e.target.value)} style={{flex:"1 1 90px"}}/><Inp type="date" value={eDate} onChange={e=>setEDate(e.target.value)} style={{flex:"1 1 130px"}}/><Btn size="sm" onClick={saveEntry}>Add</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowEntry(false)}>Cancel</Btn></div>}
-      {advance.status!=="reconciled"&&<div style={{padding:"8px 16px 12px",display:"flex",gap:14}}><button onClick={()=>setShowEntry(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif"}}>+ Log expense</button>{balance>=0&&<button onClick={()=>onUpdate(advance.id,{status:"reconciled"})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif"}}>✓ Mark reconciled</button>}</div>}
+      <div style={{padding:"0 16px 8px"}}>
+        <div style={{height:6,borderRadius:3,background:T.ink,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:balance<0?T.coral:pct>80?T.gold:T.goldMid,transition:"width 0.3s"}}/></div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.dim,marginTop:4,fontFamily:"Manrope,sans-serif"}}>
+          <span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span>
+          <span style={{color:balance<0?T.coral:balance===0?T.sage:T.dim}}>{balance<0?`⚠️ Over by ${sym(advance.currency)}${fmt(Math.abs(balance))}`:`Balance ${sym(advance.currency)}${fmt(balance)}`}</span>
+        </div>
+      </div>
+
+      {/* Expense entries — audit trail */}
+      {entries.length>0&&(
+        <div style={{borderTop:`1px solid ${T.line}`,padding:"6px 16px"}}>
+          <div style={{fontSize:10,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",padding:"6px 0 4px"}}>Expense log</div>
+          {entries.map(en=>{
+            const parts=en.description||"";
+            const catMatch=parts.match(/^\[([^\]]+)\]/);
+            const cat=catMatch?catMatch[1]:'';
+            const desc=parts.replace(/^\[[^\]]+\]\s*/,'');
+            return(
+              <div key={en.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"7px 0",borderBottom:`1px solid ${T.line}`,gap:8}}>
+                <div style={{flex:1,minWidth:0}}>
+                  {cat&&<span style={{fontSize:10,background:T.hi,color:T.gold,borderRadius:4,padding:"1px 6px",fontFamily:"Manrope,sans-serif",fontWeight:700,marginRight:6}}>{cat}</span>}
+                  <span style={{color:T.cream,fontFamily:"Manrope,sans-serif",fontSize:13}}>{desc}</span>
+                  {en.date&&<div style={{color:T.dim,fontSize:11,marginTop:2}}>{en.date}</div>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                  <span style={{fontFamily:"IBM Plex Mono,monospace",color:T.cream,fontSize:13}}>{sym(advance.currency)}{fmt(en.amount)}</span>
+                  <button onClick={()=>onRemoveEntry(en.id)} style={{color:T.faint,fontSize:18,cursor:"pointer",background:"none",border:"none"}}>×</button>
+                </div>
+              </div>
+            );
+          })}
+          {/* Summary */}
+          <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",fontSize:12,fontFamily:"Manrope,sans-serif"}}>
+            <span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span>
+            <span style={{fontFamily:"IBM Plex Mono,monospace",color:balance<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)} spent</span>
+          </div>
+        </div>
+      )}
+
+      {/* Log expense form */}
+      {showEntry&&(
+        <div style={{padding:"12px 16px",borderTop:`1px solid ${T.line}`,background:T.hi}}>
+          <div style={{fontSize:11,color:T.dim,fontFamily:"Manrope,sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Log expense</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <Sel value={eCat} onChange={e=>setECat(e.target.value)} style={{width:"100%"}}>
+              {EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}
+            </Sel>
+            <Inp placeholder="Description — what was this for?" value={eDesc} onChange={e=>setEDesc(e.target.value)}/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <Inp type="number" placeholder="Amount" value={eAmt} onChange={e=>setEAmt(e.target.value)}/>
+              <Inp type="date" value={eDate} onChange={e=>setEDate(e.target.value)}/>
+            </div>
+            <Inp placeholder="Receipt ref / voucher number (optional)" value={eRef} onChange={e=>setERef(e.target.value)}/>
+            <div style={{display:"flex",gap:8}}>
+              <Btn size="sm" onClick={saveEntry}>Save expense</Btn>
+              <Btn size="sm" variant="ghost" onClick={()=>setShowEntry(false)}>Cancel</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {advance.status!=="reconciled"&&!showEntry&&(
+        <div style={{padding:"8px 16px 12px",display:"flex",gap:14}}>
+          <button onClick={()=>setShowEntry(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif"}}>+ Log expense</button>
+          {balance>=0&&<button onClick={()=>onUpdate(advance.id,{status:"reconciled"})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif"}}>✓ Mark reconciled</button>}
+        </div>
+      )}
     </div>
   );
 }
@@ -1192,24 +1294,50 @@ function AIView({project,budgetItems,advances}){
   const [messages,setMessages]=useState([]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
+  const [notifPerm,setNotifPerm]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');
+  const pendingRef=useRef(null);
   const bottomRef=useRef(null);
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
+
+  const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotifPerm(p);};
+  const sendNotif=()=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKO AI Builder',{body:'Your question has been answered — tap to view'});}catch{}};
+
+  useEffect(()=>{
+    const h=()=>{if(document.visibilityState==='visible'&&pendingRef.current){setMessages(prev=>[...prev,pendingRef.current]);pendingRef.current=null;setLoading(false);}};
+    document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);
+  },[]);
+
   const ctx=project?`Project: "${project.name}" (${project.type}, ${project.base_currency}). Budget lines: ${budgetItems.length}. Total: ${fmt(budgetItems.reduce((s,i)=>s+lTot(i),0))} ${project.base_currency}.`:"No project.";
   const send=async(text)=>{
     const msg=(text||input).trim();if(!msg||loading)return;
+    await askNotif();
     setInput("");setMessages(prev=>[...prev,{role:"user",content:msg}]);setLoading(true);
-    try{const history=messages.map(m=>({role:m.role,content:m.content}));const reply=await callClaude([...history,{role:"user",content:`[${ctx}]\n\n${msg}`}],CHAT_SYS);setMessages(prev=>[...prev,{role:"assistant",content:reply}]);}
-    catch{setMessages(prev=>[...prev,{role:"assistant",content:"Connection error — try again."}]);}
-    setLoading(false);
+    try{
+      const history=messages.map(m=>({role:m.role,content:m.content}));
+      const reply=await callClaude([...history,{role:"user",content:`[${ctx}]\n\n${msg}`}],CHAT_SYS);
+      const assistantMsg={role:"assistant",content:reply};
+      sendNotif();
+      if(document.visibilityState==='hidden'){pendingRef.current=assistantMsg;}
+      else{setMessages(prev=>[...prev,assistantMsg]);setLoading(false);}
+    }
+    catch{setMessages(prev=>[...prev,{role:"assistant",content:"Connection error — try again."}]);setLoading(false);}
   };
   return(
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)"}}>
-      <div style={{marginBottom:18}}><div style={{fontFamily:"Fraunces,serif",fontSize:26,color:T.cream}}>AI Builder</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:"Manrope,sans-serif"}}>Your production finance co-pilot — calibrated for African context.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:18}}>
+        <div style={{fontFamily:"Fraunces,serif",fontSize:26,color:T.cream}}>AI Builder</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,marginTop:4}}>
+          <div style={{fontSize:14,color:T.dim,fontFamily:"Manrope,sans-serif"}}>Your production finance co-pilot — calibrated for African context.</div>
+          {notifPerm==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:"Manrope,sans-serif"}}>🔔 Notifications on</div>}
+          {notifPerm==='default'&&<button onClick={askNotif} style={{fontSize:11,color:T.goldDim,fontFamily:"Manrope,sans-serif",background:"none",border:`1px solid ${T.line}`,borderRadius:20,padding:"3px 10px",cursor:"pointer"}}>💡 Allow notifications</button>}
+        </div>
+        <div style={{marginTop:14}}><FS/></div>
+      </div>
       <div style={{flex:1,overflowY:"auto",marginBottom:12}}>
         {messages.length===0&&<div style={{marginBottom:22}}><div style={{fontSize:10,color:T.dim,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:12,fontFamily:"Manrope,sans-serif"}}>Quick prompts</div><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{QUICK.map(q=><button key={q} onClick={()=>send(q)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:"6px 14px",fontSize:12,color:T.cream,cursor:"pointer",fontFamily:"Manrope,sans-serif"}} onMouseEnter={e=>e.currentTarget.style.borderColor=T.gold} onMouseLeave={e=>e.currentTarget.style.borderColor=T.line}>{q}</button>)}</div></div>}
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {messages.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"82%",padding:"10px 14px",borderRadius:10,fontSize:14,lineHeight:1.65,background:m.role==="user"?T.goldGlow:T.panel,border:`1px solid ${m.role==="user"?T.goldDim:T.line}`,color:T.cream,fontFamily:"Manrope,sans-serif",whiteSpace:"pre-wrap"}}>{m.content}</div></div>)}
-          {loading&&<div style={{display:"flex",justifyContent:"flex-start"}}><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:"10px 16px",color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>Thinking…</div></div>}
+          {loading&&<div style={{display:"flex",justifyContent:"flex-start"}}><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:"10px 16px",color:T.dim,fontSize:14,fontFamily:"Manrope,sans-serif"}}>{notifPerm==='granted'?'Thinking… 🔔 You will be notified when done':'Thinking…'}</div></div>}
         </div>
         <div ref={bottomRef}/>
       </div>
