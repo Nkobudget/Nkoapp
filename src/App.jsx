@@ -850,8 +850,39 @@ function ScriptUploader({project,onApplyBudget}){
 /* ═══════════════════════════════════════════════════════
    BUDGETS
 ═══════════════════════════════════════════════════════ */
+/* Mobile detection hook */
+function useIsMobile(bp=640){
+  const [mob,setMob]=useState(()=>window.innerWidth<bp);
+  useEffect(()=>{const h=()=>setMob(window.innerWidth<bp);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[bp]);
+  return mob;
+}
+
+/* Robust JSON scene recovery — handles truncated responses */
+function recoverScenes(raw){
+  // Clean the string first
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
+  // Find the array boundaries
+  const arrStart=s.indexOf('[');
+  if(arrStart===-1)return [];
+  s=s.slice(arrStart);
+  // Strategy 1: direct parse
+  try{const r=JSON.parse(s);if(Array.isArray(r)&&r.length)return r;}catch{}
+  // Strategy 2: scan for complete JSON objects individually
+  const scenes=[];let depth=0;let start=-1;
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(c==='{'){if(depth===0)start=i;depth++;}
+    else if(c==='}'){depth--;if(depth===0&&start!==-1){
+      try{const obj=JSON.parse(s.slice(start,i+1));if(obj.sceneNumber||obj.heading)scenes.push(obj);}catch{}
+      start=-1;
+    }}
+  }
+  return scenes;
+}
+
 function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
-  const [open,setOpen]=useState(true); // always open by default so Add line is always accessible
+  const [open,setOpen]=useState(true);
+  const isMobile=useIsMobile();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const ts=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(" · ")||"—";
   return(
@@ -861,19 +892,41 @@ function DeptSection({dept,items,baseCurrency,onAdd,onUpdate,onRemove}){
         <span style={{fontFamily:"IBM Plex Mono,monospace",fontSize:13,color:T.gold}}>{ts}</span>
       </button>
       {open&&(
-        <div style={{borderTop:`1px solid ${T.line}`,padding:"4px 16px 14px"}}>
-          {items.length>0&&<div style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,padding:"8px 0 4px",fontSize:10,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase"}}><span>Description</span><span>Qty</span><span>Unit</span><span>Rate</span><span>Cur</span><span style={{textAlign:"right"}}>Total</span><span/></div>}
-          {items.map(item=>(
-            <div key={item.id} style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,alignItems:"center",padding:"4px 0",borderTop:`1px solid ${T.line}`}}>
-              <Inp value={item.description||""} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
-              <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})}/>
-              <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:"100%",fontSize:12}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
-              <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12}}/>
-              <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:"100%",fontSize:11}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
-              <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12,color:T.cream,textAlign:"right"}}>{sym(item.currency)}{fmt(lTot(item))}</div>
-              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:"pointer",background:"none",border:"none",lineHeight:1}}>×</button>
-            </div>
-          ))}
+        <div style={{borderTop:`1px solid ${T.line}`,padding:"4px 12px 14px"}}>
+          {isMobile?(
+            /* ── Mobile layout: stacked fields ── */
+            <>
+              {items.map(item=>(
+                <div key={item.id} style={{borderTop:`1px solid ${T.line}`,padding:"8px 0"}}>
+                  <Inp value={item.description||""} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{marginBottom:6}}/>
+                  <div style={{display:"grid",gridTemplateColumns:"52px 1fr 80px 52px 20px",gap:4,alignItems:"center"}}>
+                    <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:12}}/>
+                    <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:"100%",fontSize:12}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
+                    <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12}}/>
+                    <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:"100%",fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+                    <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:"pointer",background:"none",border:"none",lineHeight:1}}>×</button>
+                  </div>
+                  <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12,color:T.gold,textAlign:"right",marginTop:4}}>{sym(item.currency)}{fmt(lTot(item))}</div>
+                </div>
+              ))}
+            </>
+          ):(
+            /* ── Desktop layout: grid ── */
+            <>
+              {items.length>0&&<div style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,padding:"8px 0 4px",fontSize:10,color:T.faint,fontFamily:"Manrope,sans-serif",fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase"}}><span>Description</span><span>Qty</span><span>Unit</span><span>Rate</span><span>Cur</span><span style={{textAlign:"right"}}>Total</span><span/></div>}
+              {items.map(item=>(
+                <div key={item.id} style={{display:"grid",gridTemplateColumns:"2fr 52px 76px 100px 56px 88px 20px",gap:6,alignItems:"center",padding:"4px 0",borderTop:`1px solid ${T.line}`}}>
+                  <Inp value={item.description||""} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
+                  <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})}/>
+                  <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:"100%",fontSize:12}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
+                  <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12}}/>
+                  <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:"100%",fontSize:11}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+                  <div style={{fontFamily:"IBM Plex Mono,monospace",fontSize:12,color:T.cream,textAlign:"right"}}>{sym(item.currency)}{fmt(lTot(item))}</div>
+                  <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:"pointer",background:"none",border:"none",lineHeight:1}}>×</button>
+                </div>
+              ))}
+            </>
+          )}
           <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:"pointer",background:"none",border:"none",fontFamily:"Manrope,sans-serif"}}>+ Add line</button>
         </div>
       )}
@@ -1261,24 +1314,24 @@ const downloadBreakdownPDF = (scenes, project, brand={}) => {
 };
 
 /* Single scene card */
-function SceneCard({scene,onEdit,onDelete}){
+function SceneCard({scene,onDelete,isMobile}){
   const [open,setOpen]=useState(false);
   const intColor=scene.intExt==='INT'?T.sapphire:T.sage;
-  const dnColor=scene.dayNight==='DAY'?T.gold:T.goldDim;
+  const dnColor=scene.dayNight==='DAY'?T.gold:scene.dayNight==='NIGHT'?'#7B68EE':T.goldDim;
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden',marginBottom:10}}>
-      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',gap:12,textAlign:'left'}}>
-        <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.gold,fontWeight:700,minWidth:48}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10,textAlign:'left'}}>
+        <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:isMobile?16:18,color:T.gold,fontWeight:700,minWidth:36,flexShrink:0,paddingTop:2}}>
           {scene.sceneNumber||'?'}
         </div>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>{scene.heading||'No heading'}</div>
-          {scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{scene.synopsis.slice(0,80)}{scene.synopsis.length>80?'…':''}</div>}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:isMobile?13:14,color:T.cream,wordBreak:'break-word'}}>{scene.heading||'No heading'}</div>
+          {scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2,lineHeight:1.4}}>{scene.synopsis.slice(0,isMobile?60:80)}{scene.synopsis.length>(isMobile?60:80)?'…':''}</div>}
         </div>
-        <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
-          <span style={{fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:4,background:intColor,color:T.ink}}>{scene.intExt||'INT'}</span>
-          <span style={{fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:4,background:dnColor,color:T.ink}}>{scene.dayNight||'DAY'}</span>
-          <span style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{scene.pageCount||0}p</span>
+        <div style={{display:'flex',gap:4,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end',maxWidth:isMobile?90:120}}>
+          <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:intColor,color:T.ink}}>{scene.intExt||'INT'}</span>
+          <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:dnColor,color:T.ink}}>{scene.dayNight||'DAY'}</span>
+          {!isMobile&&<span style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{scene.pageCount||0}p</span>}
           <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
         </div>
       </button>
@@ -1289,11 +1342,11 @@ function SceneCard({scene,onEdit,onDelete}){
             if(!val||(Array.isArray(val)&&val.length===0)) return null;
             const display=Array.isArray(val)?val.join(' · '):val;
             return(
-              <div key={cat.key} style={{display:'flex',borderBottom:`1px solid ${T.line}`,minHeight:36}}>
-                <div style={{width:160,flexShrink:0,background:T.hi,padding:'8px 14px',fontSize:11,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',gap:6}}>
+              <div key={cat.key} style={{display:'flex',borderBottom:`1px solid ${T.line}`,minHeight:36,flexDirection:isMobile?'column':'row'}}>
+                <div style={{width:isMobile?'100%':160,flexShrink:0,background:T.hi,padding:isMobile?'6px 14px 2px':'8px 14px',fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',gap:6}}>
                   <span>{cat.icon}</span>{cat.label}
                 </div>
-                <div style={{flex:1,padding:'8px 14px',fontSize:13,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center'}}>
+                <div style={{flex:1,padding:'8px 14px',fontSize:isMobile?12:13,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',flexWrap:'wrap'}}>
                   {Array.isArray(val)?(
                     <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                       {val.map((v,i)=><span key={i} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:4,padding:'2px 8px',fontSize:11}}>{v}</span>)}
@@ -1365,53 +1418,84 @@ function AddSceneForm({onSave,onCancel}){
 function BreakdownUploader({project,onApply}){
   const [state,setState]=useState('idle');
   const [err,setErr]=useState('');
+  const [progress,setProgress]=useState('');
+  const resultRef=useRef(null); // hold result even if screen goes off
   const fileRef=useRef();
+  const wakeLockRef=useRef(null);
+
+  // Request wake lock to prevent screen sleep during analysis
+  const requestWakeLock=async()=>{
+    try{
+      if('wakeLock' in navigator){
+        wakeLockRef.current=await navigator.wakeLock.request('screen');
+      }
+    }catch{}
+  };
+  const releaseWakeLock=()=>{
+    try{if(wakeLockRef.current){wakeLockRef.current.release();wakeLockRef.current=null;}}catch{}
+  };
+
+  // Re-acquire wake lock if page becomes visible again mid-analysis
+  useEffect(()=>{
+    const handleVisibility=()=>{
+      if(document.visibilityState==='visible'&&state==='analyzing'){
+        requestWakeLock();
+        // If result arrived while screen was off, apply it now
+        if(resultRef.current){
+          onApply(resultRef.current);
+          resultRef.current=null;
+          setState('done');
+          releaseWakeLock();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange',handleVisibility);
+    return()=>document.removeEventListener('visibilitychange',handleVisibility);
+  },[state]);
+
   const process=async(file)=>{
     const isPDF=file.type==='application/pdf';
     const isTxt=file.type==='text/plain'||file.name.endsWith('.txt')||file.name.endsWith('.fdx');
     if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX script file.');setState('error');return;}
-    setState('reading');setErr('');
+    setState('reading');setErr('');setProgress('Reading script file…');
+    await requestWakeLock();
     try{
       const fileSizeKB=file.size/1024;
-      // Episode mode for large scripts — keeps output small enough to parse
-      // PDF: >200KB likely multi-episode | TXT: >50KB likely multi-episode
       const episodeMode=isPDF?(fileSizeKB>200):(fileSizeKB>50);
-      // Cap entries to keep response within token limits
       const maxEntries=episodeMode?40:30;
+      setProgress(episodeMode?`Large script detected — running episode mode (up to ${maxEntries} episodes)`:'Extracting scenes…');
       let userContent;
       if(isPDF){const b64=await readFileAsBase64(file);userContent=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:BREAKDOWN_PROMPT(episodeMode,maxEntries)}];}
       else{const txt=await readFileAsText(file);userContent=[{type:'text',text:`Script:\n\n${txt}\n\n${BREAKDOWN_PROMPT(episodeMode,maxEntries)}`}];}
       setState('analyzing');
+      setProgress('Analyzing… you can switch apps — NKO will keep working');
       const raw=await callClaude([{role:'user',content:userContent}],BREAKDOWN_SYS);
-      let clean=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
-      const start=clean.indexOf('[');const end=clean.lastIndexOf(']');
-      if(start===-1||end===-1)throw new Error('No scene data found in script');
-      clean=clean.slice(start,end+1);
-      // Fix any truncated JSON by finding last complete object
-      try{
-        const scenes=JSON.parse(clean);
+      const scenes=recoverScenes(raw);
+      if(scenes.length===0)throw new Error('No scenes found — try converting script to TXT format');
+      const isPartial=raw.includes('"sceneNumber"')&&scenes.length<maxEntries*0.5;
+      if(isPartial)setErr(`${scenes.length} scenes recovered. For complete breakdown upload as TXT.`);
+      // If screen is off, save result for when user returns
+      if(document.visibilityState==='hidden'){
+        resultRef.current=scenes;
+        setProgress('Analysis complete — results ready when you return');
+      } else {
         onApply(scenes);
         setState('done');
-      }catch{
-        // Try to recover partial JSON by finding last complete scene object
-        const lastComplete=clean.lastIndexOf('},');
-        if(lastComplete===-1)throw new Error('Could not parse breakdown — try a shorter script or TXT format');
-        const recovered=clean.slice(0,lastComplete+1)+']';
-        const scenes=JSON.parse(recovered);
-        if(scenes.length===0)throw new Error('No complete scenes could be parsed');
-        onApply(scenes);
-        setState('done');
-        setErr(`Note: ${scenes.length} scenes recovered. Script may be too large for a complete breakdown in one pass.`);
       }
-    }catch(e){setErr(`Breakdown failed: ${e.message}`);setState('error');}
+    }catch(e){
+      setErr(`Breakdown failed: ${e.message}`);
+      setState('error');
+    }finally{
+      releaseWakeLock();
+    }
   };
   const onPick=e=>{const f=e.target.files[0];if(f)process(f);};
   return(
     <div style={{background:T.hi,border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:'20px',textAlign:'center',marginBottom:18,cursor:(state==='idle'||state==='error')?"pointer":"default"}} onClick={()=>(state==='idle'||state==='error')&&fileRef.current.click()}>
       <input ref={fileRef} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={onPick}/>
       {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📋</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>AI Script Breakdown</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Upload your script — NKO extracts every scene with cast, props, location, vehicles and more</div><Btn variant="script" size="sm">Choose script</Btn></>}
-      {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
-      {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing scenes…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Large scripts run in episode mode — one breakdown card per episode</div></>}
+      {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Reading script…</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{progress}</div></>}
+      {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif',marginBottom:4}}>{progress}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Safe to switch apps or lock your screen — results will be ready when you return</div></>}
       {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage,marginBottom:4}}>Breakdown complete</div>{err&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:6,maxWidth:400,margin:'0 auto 6px'}}>{err}</div>}<button onClick={e=>{e.stopPropagation();setState('idle');setErr('');}} style={{color:T.gold,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another script →</button></>}
       {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
     </div>
@@ -1423,6 +1507,7 @@ function BreakdownView({project,scenes,onAddScene,onDeleteScene}){
   const [showForm,setShowForm]=useState(false);
   const [filter,setFilter]=useState('ALL');
   const [search,setSearch]=useState('');
+  const isMobile=useIsMobile();
   if(!project)return <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pScenes=scenes.filter(s=>s.project_id===project.id);
   const filtered=pScenes.filter(s=>{
@@ -1434,29 +1519,36 @@ function BreakdownView({project,scenes,onAddScene,onDeleteScene}){
   return(
     <div>
       <div style={{marginBottom:20}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Breakdown — {project.name}</div>
-        <div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene breakdown: cast, props, location, vehicles, wardrobe and more.</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:isMobile?22:26,color:T.cream}}>Breakdown — {project.name}</div>
+        <div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div>
         <div style={{marginTop:14}}><FS/></div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:10,marginBottom:20}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Total scenes" value={pScenes.length} sub="in breakdown"/>
         <StatCard label="INT scenes" value={pScenes.filter(s=>s.intExt==='INT').length} sub="interior"/>
         <StatCard label="EXT scenes" value={pScenes.filter(s=>s.intExt==='EXT').length} sub="exterior"/>
         <StatCard label="Night scenes" value={pScenes.filter(s=>s.dayNight==='NIGHT').length} sub="night shoot" accent={pScenes.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
       </div>
       <BreakdownUploader project={project} onApply={newScenes=>{newScenes.forEach(sc=>onAddScene({...sc,project_id:project.id}));}}/>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
-        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-          {['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'4px 10px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer'}}>{f}</button>)}
-        </div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:160,fontSize:12}}/>
-          {pScenes.length>0&&<Btn size="sm" variant="outline" onClick={()=>downloadBreakdownPDF(filtered,project,brand)}>📄 Export PDF</Btn>}
-          <Btn size="sm" onClick={()=>setShowForm(!showForm)}>+ Add scene</Btn>
+
+      {/* Filter bar — horizontally scrollable on mobile */}
+      <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',marginBottom:12}}>
+        <div style={{display:'flex',gap:6,paddingBottom:4,minWidth:'max-content'}}>
+          {['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}
         </div>
       </div>
+
+      {/* Action buttons — stack on mobile */}
+      <div style={{display:'flex',flexDirection:isMobile?'column':'row',gap:8,marginBottom:14}}>
+        <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,fontSize:12}}/>
+        <div style={{display:'flex',gap:8}}>
+          {pScenes.length>0&&<Btn size="sm" variant="outline" onClick={()=>downloadBreakdownPDF(filtered,project,brand)} style={{flex:isMobile?1:undefined}}>📄 Export PDF</Btn>}
+          <Btn size="sm" onClick={()=>setShowForm(!showForm)} style={{flex:isMobile?1:undefined}}>+ Add scene</Btn>
+        </div>
+      </div>
+
       {showForm&&<AddSceneForm onSave={sc=>{onAddScene({...sc,project_id:project.id});setShowForm(false);}} onCancel={()=>setShowForm(false)}/>}
-      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontSize:14,fontFamily:'Manrope,sans-serif'}}>{pScenes.length===0?'No scenes yet. Upload your script or add scenes manually.':'No scenes match your filter.'}</div></div>:filtered.map(sc=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene}/>)}
+      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontSize:14,fontFamily:'Manrope,sans-serif'}}>{pScenes.length===0?'No scenes yet. Upload your script or add scenes manually.':'No scenes match your filter.'}</div></div>:filtered.map(sc=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} isMobile={isMobile}/>)}
     </div>
   );
 }
