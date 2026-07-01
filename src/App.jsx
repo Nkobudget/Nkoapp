@@ -339,7 +339,7 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate}){
         <option value="">Select production…</option>
         {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
       </Sel>
-      {view==='dashboard'&&<Btn onClick={onCreate} size="sm">+ New</Btn>}
+      <Btn onClick={onCreate} size="sm">+ New</Btn>
     </div>
   );
 }
@@ -371,8 +371,8 @@ function NewProjectModal({onClose,onCreate}){
 }
 
 /* ── Dashboard ── */
-function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete}){
-  const[modal,setModal]=useState(false);const[selected,setSelected]=useState(new Set());const[confirmDel,setConfirmDel]=useState(null);const[confirmMulti,setConfirmMulti]=useState(false);
+function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal}){
+  const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
@@ -394,7 +394,6 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             {selected.size>0&&<><span style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{selected.size} selected</span><Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set())}>Clear</Btn><Btn size="sm" variant="danger" onClick={()=>setConfirmMulti(true)}>🗑️ Delete</Btn></>}
             {selected.size===0&&projects.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set(projects.map(p=>p.id)))}>Select all</Btn>}
-            <Btn onClick={()=>setModal(true)}>+ New</Btn>
           </div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
@@ -412,7 +411,7 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
         </div>
       </>
       )}
-      {modal&&<NewProjectModal onClose={()=>setModal(false)} onCreate={async(d)=>{await onCreate(d);setModal(false);}}/>}
+      {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{await onCreate(d);setShowModal(false);}}/>}
     </div>
   );
 }
@@ -797,7 +796,7 @@ function MainApp(){
   const{user,signOut}=useAuth();
   const[view,setView]=useState('dashboard');
   const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);
-  const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);
+  const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
 
   useEffect(()=>{if(!user)return;
@@ -837,9 +836,9 @@ function MainApp(){
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',color:T.cream}}>
       {!mobile&&<Sidebar view={view} setView={setView} onSignOut={signOut} userEmail={user?.email}/>}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
-        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>setView('dashboard')}/>
+        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setView('dashboard');setShowNewModal(true);}}/>
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
-          {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects}/>}
+          {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
@@ -855,4 +854,11 @@ function MainApp(){
 
 /* ── Root ── */
 function AuthGate(){const{user}=useAuth();return user?<MainApp/>:<AuthScreen/>;}
-export default function App(){return<AuthProvider><AuthGate/></AuthProvider>;}
+export default function App(){
+  useEffect(()=>{
+    document.body.style.background='#0F0120';
+    document.body.style.margin='0';
+    document.body.style.padding='0';
+  },[]);
+  return<AuthProvider><AuthGate/></AuthProvider>;
+}
