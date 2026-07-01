@@ -228,7 +228,7 @@ const COMMUNITY_TEMPLATES=[
 const MKTCAT=['All','Feature Film','Vertical Series / Microdrama','Music Video','Documentary','Short Film','Branded Content','Animation / Cartoon'];
 
 /* ── AI Prompts ── */
-const CHAT_SYS=`You are a production finance co-pilot for African film and TV productions. You know Lagos, Accra, Nairobi and Johannesburg market rates. Give practical, specific advice in Naira, Cedis, Shillings or Rand as appropriate. Keep responses concise and actionable.`;
+const CHAT_SYS=`You are a production finance co-pilot for African film and TV productions. You know Lagos, Accra, Nairobi and Johannesburg market rates. Give practical, specific advice in Naira, Cedis, Shillings or Rand as appropriate. Keep responses concise and actionable. IMPORTANT: Do not use any Markdown formatting. No asterisks for bold, no # for headers, no | for tables, no bullet points with *. Write in plain conversational text only. Use line breaks to separate points.`;
 const SCRIPT_SYS=`You are a script budget AI for African film productions. Return ONLY valid JSON. No markdown. No code fences. Use departments: Cast & Talent, Crew, Locations & Transport, Equipment, Post-Production, Marketing, Contingency. Units: day, week, flat, person, item. No apostrophes in strings.`;
 const SCRIPT_PROMPT=(cur)=>`Analyze this script and return a production budget as JSON: {"title":"string","budget":[{"dept":"string","description":"string","qty":number,"unit":"string","rate":number,"currency":"${cur}"}],"summary":"string"}`;
 const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions. Return ONLY valid JSON array. No markdown. No apostrophes. Keep values short and clean.`;
@@ -627,24 +627,72 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
 
 /* ── AI Builder ── */
 function AIView({project,budgetItems,advances}){
-  const[msgs,setMsgs]=useState([]);const[input,setInput]=useState('');const[loading,setLoading]=useState(false);const botRef=useRef();
+  const[msgs,setMsgs]=useState([]);const[input,setInput]=useState('');const[loading,setLoading]=useState(false);const[editIdx,setEditIdx]=useState(null);const[editText,setEditText]=useState('');const[imgPreview,setImgPreview]=useState(null);const[imgB64,setImgB64]=useState(null);
+  const botRef=useRef();const imgRef=useRef();
   useEffect(()=>{botRef.current?.scrollIntoView({behavior:'smooth'});},[msgs]);
   const ctx=project?`Project: "${project.name}" (${project.type}, ${project.base_currency}). Budget: ${budgetItems.length} lines.`:'No project selected.';
-  const send=async txt=>{const msg=(txt||input).trim();if(!msg||loading)return;setInput('');setMsgs(p=>[...p,{role:'user',content:msg}]);setLoading(true);
-    try{const h=msgs.map(m=>({role:m.role,content:m.content}));const r=await callClaude([...h,{role:'user',content:`[${ctx}]\n\n${msg}`}],CHAT_SYS);setMsgs(p=>[...p,{role:'assistant',content:r}]);}
-    catch{setMsgs(p=>[...p,{role:'assistant',content:'Connection error. Try again.'}]);}setLoading(false);};
+
+  const pickImage=async e=>{const f=e.target.files[0];if(!f)return;const b64=await readB64(f);setImgB64(b64);setImgPreview(URL.createObjectURL(f));};
+  const clearImage=()=>{setImgB64(null);setImgPreview(null);if(imgRef.current)imgRef.current.value='';};
+
+  const buildContent=(text,b64)=>{if(b64)return[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},{type:'text',text:`[${ctx}]\n\n${text}`}];return`[${ctx}]\n\n${text}`;};
+
+  const send=async txt=>{
+    const msg=(txt||input).trim();if(!msg||loading)return;
+    setInput('');const b64=imgB64;setImgB64(null);setImgPreview(null);if(imgRef.current)imgRef.current.value='';
+    const userMsg={role:'user',content:msg,image:b64?imgPreview:null};
+    setMsgs(p=>[...p,userMsg]);setLoading(true);
+    try{
+      const h=msgs.map(m=>({role:m.role,content:m.role==='user'?`[${ctx}]\n\n${m.content}`:m.content}));
+      const r=await callClaude([...h,{role:'user',content:buildContent(msg,b64)}],CHAT_SYS);
+      setMsgs(p=>[...p,{role:'assistant',content:r}]);
+    }catch{setMsgs(p=>[...p,{role:'assistant',content:'Connection error. Try again.'}]);}
+    setLoading(false);
+  };
+
+  const saveEdit=async()=>{
+    if(editIdx===null)return;
+    const newMsgs=msgs.slice(0,editIdx);
+    setMsgs(newMsgs);setEditIdx(null);
+    await send(editText);setEditText('');
+  };
+
   return(
     <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 130px)'}}>
       <div style={{marginBottom:18}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>AI Builder</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Production finance co-pilot — calibrated for African markets.</div><div style={{marginTop:14}}><FS/></div></div>
       <div style={{flex:1,overflowY:'auto',marginBottom:12}}>
         {msgs.length===0&&<div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>Quick prompts</div><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{QUICK.map(q=><button key={q} onClick={()=>send(q)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'6px 14px',fontSize:12,color:T.cream,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{q}</button>)}</div></div>}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          {msgs.map((m,i)=><div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}><div style={{maxWidth:'82%',padding:'10px 14px',borderRadius:10,fontSize:14,lineHeight:1.65,background:m.role==='user'?T.goldGlow:T.panel,border:`1px solid ${m.role==='user'?T.goldDim:T.line}`,color:T.cream,fontFamily:'Manrope,sans-serif',whiteSpace:'pre-wrap'}}>{m.content}</div></div>)}
+          {msgs.map((m,i)=>(
+            <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
+              <div style={{maxWidth:'82%',position:'relative'}}>
+                {m.image&&<img src={m.image} style={{maxWidth:'100%',borderRadius:8,marginBottom:4,display:'block'}}/>}
+                <div style={{padding:'10px 14px',borderRadius:10,fontSize:14,lineHeight:1.65,background:m.role==='user'?T.goldGlow:T.panel,border:`1px solid ${m.role==='user'?T.goldDim:T.line}`,color:T.cream,fontFamily:'Manrope,sans-serif',whiteSpace:'pre-wrap'}}>{m.content}</div>
+                {m.role==='user'&&editIdx!==i&&<button onClick={()=>{setEditIdx(i);setEditText(m.content);}} style={{position:'absolute',top:-8,right:-8,background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'2px 8px',fontSize:10,color:T.goldDim,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>edit</button>}
+                {editIdx===i&&<div style={{marginTop:6,display:'flex',gap:6}}>
+                  <Inp value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&saveEdit()} style={{flex:1,fontSize:12}}/>
+                  <Btn size="sm" onClick={saveEdit}>Send</Btn>
+                  <Btn size="sm" variant="ghost" onClick={()=>{setEditIdx(null);setEditText('');}}>✕</Btn>
+                </div>}
+              </div>
+            </div>
+          ))}
           {loading&&<div style={{display:'flex',justifyContent:'flex-start'}}><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 16px',color:T.dim,fontSize:14,fontFamily:'Manrope,sans-serif'}}>Thinking…</div></div>}
         </div>
         <div ref={botRef}/>
       </div>
-      <div style={{display:'flex',gap:8}}><Inp placeholder="Ask about rates, budgets, recon…" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} style={{flex:1}}/><Btn onClick={()=>send()} style={{flexShrink:0,opacity:loading?.5:1}}>Send</Btn></div>
+      {/* Image preview */}
+      {imgPreview&&<div style={{marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
+        <img src={imgPreview} style={{height:60,borderRadius:6,objectFit:'cover',border:`1px solid ${T.line}`}}/>
+        <button onClick={clearImage} style={{color:T.coral,fontSize:11,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Remove</button>
+      </div>}
+      {/* Input row */}
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <input ref={imgRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickImage}/>
+        <button onClick={()=>imgRef.current.click()} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 10px',cursor:'pointer',color:T.goldDim,fontSize:16,flexShrink:0}} title="Attach image">📎</button>
+        <Inp placeholder="Ask about rates, budgets, recon… or attach an image" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} style={{flex:1}}/>
+        <Btn onClick={()=>send()} style={{flexShrink:0,opacity:loading?.5:1}}>Send</Btn>
+      </div>
     </div>
   );
 }
