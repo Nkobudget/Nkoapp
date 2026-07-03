@@ -868,8 +868,37 @@ function MainApp(){
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(!error&&data)setBudgetItems(p=>[...p,data]);};
   const updateBudgetItem=async(id,upd)=>{setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));await sb.from('budget_items').update(upd).eq('id',id);};
   const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));await sb.from('budget_items').delete().eq('id',id);};
-  const applyTemplate=async tpl=>{const rows=tpl.items.map(t=>({...t,project_id:currentId,user_id:user.id,currency:project.base_currency,id:undefined}));const{data}=await sb.from('budget_items').insert(rows).select();if(data)setBudgetItems(p=>[...p,...data]);if(tpl.scenes?.length){const sc=tpl.scenes.map(s=>({...s,project_id:currentId,id:Math.random().toString(36).slice(2,10)}));setScenes(p=>[...p,...sc]);}};
-  const applyScriptBudget=async lines=>{const rows=lines.map(l=>({...l,project_id:currentId,user_id:user.id,currency:project.base_currency,id:undefined}));const{data}=await sb.from('budget_items').insert(rows).select();if(data)setBudgetItems(p=>[...p,...data]);};
+  const applyTemplate=async tpl=>{
+    const rows=tpl.items.map(t=>({
+      project_id:currentId,
+      user_id:user.id,
+      dept:t.dept,
+      description:t.description,
+      qty:Number(t.qty)||1,
+      unit:t.unit,
+      rate:Number(t.rate)||0,
+      currency:project.base_currency,
+    }));
+    const{data,error}=await sb.from('budget_items').insert(rows).select();
+    if(error){alert(`Could not apply template: ${error.message}`);return;}
+    if(data)setBudgetItems(p=>[...p,...data]);
+    if(tpl.scenes?.length){const sc=tpl.scenes.map(s=>({...s,project_id:currentId,id:Math.random().toString(36).slice(2,10)}));setScenes(p=>[...p,...sc]);}
+  };
+  const applyScriptBudget=async lines=>{
+    const rows=lines.map(l=>({
+      project_id:currentId,
+      user_id:user.id,
+      dept:DEPTS.includes(l.dept)?l.dept:'Crew',
+      description:String(l.description||'').slice(0,200),
+      qty:Number(l.qty)||1,
+      unit:UNITS.includes(l.unit)?l.unit:'flat',
+      rate:Number(l.rate)||0,
+      currency:project.base_currency,
+    }));
+    const{data,error}=await sb.from('budget_items').insert(rows).select();
+    if(error){alert(`Could not apply budget: ${error.message}`);return;}
+    if(data)setBudgetItems(p=>[...p,...data]);
+  };
   const addAdvance=async a=>{const{data}=await sb.from('advances').insert({...a,user_id:user.id}).select().single();if(data)setAdvances(p=>[...p,data]);};
   const updateAdvance=async(id,upd)=>{setAdvances(p=>p.map(a=>a.id===id?{...a,...upd}:a));await sb.from('advances').update(upd).eq('id',id);};
   const addReconEntry=async e=>{const{data}=await sb.from('recon_entries').insert({...e,user_id:user.id}).select().single();if(data)setReconEntries(p=>[...p,data]);};
