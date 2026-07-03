@@ -699,11 +699,23 @@ function AIView({project,budgetItems,advances}){
 
 /* ── Breakdown ── */
 const BKCAT=[{key:'cast',label:'Cast',icon:'👤'},{key:'extras',label:'Extras',icon:'👥'},{key:'location',label:'Location',icon:'📍'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'VFX / SFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'notes',label:'Notes',icon:'📝'}];
-function SceneCard({scene,onDelete,index}){
-  const[open,setOpen]=useState(false);const mob=useIsMobile();
+function SceneCard({scene,onDelete,onUpdate,index}){
+  const[open,setOpen]=useState(false);const[editing,setEditing]=useState(false);const[draft,setDraft]=useState(null);const mob=useIsMobile();
+  const startEdit=()=>{setDraft({...scene,cast:(scene.cast||[]).join(', '),props:(scene.props||[]).join(', '),vehicles:(scene.vehicles||[]).join(', '),wardrobe:(scene.wardrobe||[]).join(', '),specialEquip:(scene.specialEquip||[]).join(', ')});setEditing(true);setOpen(true);};
+  const saveEdit=()=>{
+    const upd={...draft,
+      cast:String(draft.cast||'').split(',').map(x=>x.trim()).filter(Boolean),
+      props:String(draft.props||'').split(',').map(x=>x.trim()).filter(Boolean),
+      vehicles:String(draft.vehicles||'').split(',').map(x=>x.trim()).filter(Boolean),
+      wardrobe:String(draft.wardrobe||'').split(',').map(x=>x.trim()).filter(Boolean),
+      specialEquip:String(draft.specialEquip||'').split(',').map(x=>x.trim()).filter(Boolean),
+    };
+    onUpdate(scene.id,upd);setEditing(false);setDraft(null);
+  };
+  const d=(k,v)=>setDraft(p=>({...p,[k]:v}));
   return(
-    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden',marginBottom:10}}>
-      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10,textAlign:'left'}}>
+    <div style={{background:T.panel,border:`1px solid ${editing?T.gold:T.line}`,borderRadius:10,overflow:'hidden',marginBottom:10}}>
+      <button onClick={()=>!editing&&setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10,textAlign:'left'}}>
         <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?14:18,color:T.gold,fontWeight:700,minWidth:36,flexShrink:0}}>{scene.sceneNumber||'?'}</div>
         <div style={{flex:1,minWidth:0}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?13:14,color:T.cream,wordBreak:'break-word'}}>{scene.heading||'No heading'}</div>{scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{scene.synopsis.slice(0,70)}{scene.synopsis.length>70?'…':''}</div>}</div>
         <div style={{display:'flex',gap:4,flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
@@ -712,17 +724,78 @@ function SceneCard({scene,onDelete,index}){
           <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
         </div>
       </button>
-      {open&&<div style={{borderTop:`1px solid ${T.line}`}}>
+      {open&&!editing&&<div style={{borderTop:`1px solid ${T.line}`}}>
         {BKCAT.map(cat=>{const val=scene[cat.key];if(!val||(Array.isArray(val)&&!val.length))return null;return(
           <div key={cat.key} style={{display:'flex',borderBottom:`1px solid ${T.line}`,flexDirection:mob?'column':'row'}}>
             <div style={{width:mob?'100%':150,flexShrink:0,background:T.hi,padding:mob?'5px 14px 2px':'8px 14px',fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',gap:5}}><span>{cat.icon}</span>{cat.label}</div>
             <div style={{flex:1,padding:'8px 14px',fontSize:mob?12:13,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',flexWrap:'wrap'}}>{Array.isArray(val)?<div style={{display:'flex',flexWrap:'wrap',gap:4}}>{val.map((v,i)=><span key={i} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:4,padding:'2px 7px',fontSize:11}}>{v}</span>)}</div>:val}</div>
           </div>);})}
-        <div style={{padding:'8px 16px'}}><button onClick={()=>onDelete(scene.id)} style={{color:T.coral,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete scene</button></div>
+        <div style={{padding:'8px 16px',display:'flex',gap:14}}>
+          <button onClick={startEdit} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>✏️ Edit scene</button>
+          <button onClick={()=>onDelete(scene.id)} style={{color:T.coral,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete scene</button>
+        </div>
+      </div>}
+      {open&&editing&&draft&&<div style={{borderTop:`1px solid ${T.line}`,padding:14,display:'flex',flexDirection:'column',gap:8,background:T.hi}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <Inp placeholder="Scene number" value={draft.sceneNumber||''} onChange={e=>d('sceneNumber',e.target.value)}/>
+          <div style={{display:'flex',gap:6}}>
+            <Sel value={draft.intExt||'INT'} onChange={e=>d('intExt',e.target.value)} style={{flex:1}}><option>INT</option><option>EXT</option><option>INT/EXT</option></Sel>
+            <Sel value={draft.dayNight||'DAY'} onChange={e=>d('dayNight',e.target.value)} style={{flex:1}}><option>DAY</option><option>NIGHT</option><option>DUSK</option><option>DAWN</option></Sel>
+          </div>
+        </div>
+        <Inp placeholder="Heading e.g. INT. MARKET - DAY" value={draft.heading||''} onChange={e=>d('heading',e.target.value)}/>
+        <Inp placeholder="Synopsis" value={draft.synopsis||''} onChange={e=>d('synopsis',e.target.value)}/>
+        <Inp placeholder="Location" value={draft.location||''} onChange={e=>d('location',e.target.value)}/>
+        <Inp placeholder="Cast — comma separated" value={draft.cast||''} onChange={e=>d('cast',e.target.value)}/>
+        <Inp placeholder="Extras" value={draft.extras||''} onChange={e=>d('extras',e.target.value)}/>
+        <Inp placeholder="Props — comma separated" value={draft.props||''} onChange={e=>d('props',e.target.value)}/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <Inp placeholder="Vehicles — comma separated" value={draft.vehicles||''} onChange={e=>d('vehicles',e.target.value)}/>
+          <Inp placeholder="Wardrobe — comma separated" value={draft.wardrobe||''} onChange={e=>d('wardrobe',e.target.value)}/>
+          <Inp placeholder="Hair & make-up" value={draft.hairMakeup||''} onChange={e=>d('hairMakeup',e.target.value)}/>
+          <Inp placeholder="Special equipment" value={draft.specialEquip||''} onChange={e=>d('specialEquip',e.target.value)}/>
+          <Inp placeholder="VFX / SFX" value={draft.vfxSfx||''} onChange={e=>d('vfxSfx',e.target.value)}/>
+          <Inp placeholder="Sound" value={draft.sound||''} onChange={e=>d('sound',e.target.value)}/>
+        </div>
+        <Inp placeholder="Notes" value={draft.notes||''} onChange={e=>d('notes',e.target.value)}/>
+        <div style={{display:'flex',gap:8}}>
+          <Btn size="sm" variant="sage" onClick={saveEdit}>Save changes</Btn>
+          <Btn size="sm" variant="ghost" onClick={()=>{setEditing(false);setDraft(null);}}>Cancel</Btn>
+        </div>
       </div>}
     </div>
   );
 }
+
+/* Breakdown share / PDF export */
+const shareBreakdown=(scenes,project)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:38px;object-fit:contain;display:block;margin-bottom:6px"/>`:'';
+  const sheets=scenes.map(sc=>{
+    const rows=BKCAT.map(cat=>{
+      const val=sc[cat.key];
+      if(!val||(Array.isArray(val)&&!val.length))return'';
+      const display=Array.isArray(val)?val.join(', '):val;
+      return`<tr><td style="padding:7px 12px;background:#1A0835;color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;width:150px;white-space:nowrap;font-family:Arial">${cat.icon} ${cat.label}</td><td style="padding:7px 12px;font-size:12px;color:#222;font-family:Arial">${display}</td></tr>`;
+    }).join('');
+    return`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+      <div style="background:#0F0120;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+        <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKO'} · ${project.name}</div>
+        <div style="font-size:17px;font-weight:700">Scene ${sc.sceneNumber||'—'}</div>
+        <div style="font-size:12px;color:#9A9080;margin-top:2px">${sc.heading||''}</div></div>
+        <div style="text-align:right">${logoHtml}<div style="font-size:10px;color:#8C852E">${sc.intExt||''} · ${sc.dayNight||''}</div></div>
+      </div>
+      ${sc.synopsis?`<div style="background:#f7f7f7;border:1px solid #eee;border-top:none;padding:9px 18px;font-size:12px;color:#444;font-style:italic">${sc.synopsis}</div>`:''}
+      <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">${rows}</table>
+    </div>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html><head><title>Breakdown — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0}</style></head><body>
+    <div class="np" style="background:#0F0120;padding:12px 18px;text-align:center;font-family:Arial">
+      <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button>
+      <span style="color:#9A9080;font-size:11px;margin-left:10px">${scenes.length} scene${scenes.length!==1?'s':''} · ${project.name}</span>
+    </div>${sheets}</body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+};
 function BreakdownUploader({project,onApply}){
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
   const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
@@ -758,7 +831,7 @@ function BreakdownUploader({project,onApply}){
     </div>
   );
 }
-function BreakdownView({project,scenes,onAddScene,onDeleteScene}){
+function BreakdownView({project,scenes,onAddScene,onDeleteScene,onUpdateScene}){
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const ps=scenes.filter(s=>s.project_id===project.id);
@@ -771,8 +844,11 @@ function BreakdownView({project,scenes,onAddScene,onDeleteScene}){
       </div>
       <BreakdownUploader project={project} onApply={ns=>ns.forEach(sc=>onAddScene({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)}))}/>
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
-      <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}><Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/></div>
-      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} index={i}/>)}
+      <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
+        <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
+        {ps.length>0&&<Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project)} style={{flexShrink:0}}>📄 Share / Export PDF</Btn>}
+      </div>
+      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
   );
 }
@@ -917,7 +993,7 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))} onUpdateScene={(id,upd)=>setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s))}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(currentId)await applyTemplate(tpl);else{setView('dashboard');}}}/>}
