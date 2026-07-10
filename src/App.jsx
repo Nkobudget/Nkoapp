@@ -259,49 +259,6 @@ const recoverScenes=raw=>{
 };
 const useIsMobile=(bp=640)=>{const[m,setM]=useState(()=>window.innerWidth<bp);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[bp]);return m;};
 
-/* ── Share (WhatsApp / Email) ── */
-function ShareMenu({text,title,label}){
-  const[open,setOpen]=useState(false);const[copied,setCopied]=useState(false);
-  const canNative=typeof navigator!=='undefined'&&navigator.share;
-  const nativeShare=async()=>{try{await navigator.share({title,text});}catch{}setOpen(false);};
-  const openWhatsApp=()=>{window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');setOpen(false);};
-  const openMail=()=>{const to=window.prompt('Send to which email address?','')||'';window.location.href=`mailto:${to}?subject=${encodeURIComponent(title||'NKO')}&body=${encodeURIComponent(text)}`;setOpen(false);};
-  const copyText=async()=>{try{await navigator.clipboard.writeText(text);}catch{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch{}document.body.removeChild(ta);}setCopied(true);setTimeout(()=>{setCopied(false);setOpen(false);},1200);};
-  return(
-    <div style={{position:'relative',display:'inline-block'}}>
-      <Btn size="sm" variant="outline" onClick={()=>setOpen(o=>!o)}>{label||'📤 Share'}</Btn>
-      {open&&<div style={{position:'absolute',top:'110%',right:0,zIndex:20,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:6,display:'flex',flexDirection:'column',gap:4,minWidth:170,boxShadow:'0 6px 20px rgba(0,0,0,.4)'}}>
-        {canNative&&<button onClick={nativeShare} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>📲 Share…</button>}
-        <button onClick={openWhatsApp} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>💬 WhatsApp</button>
-        <button onClick={openMail} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>✉️ Email</button>
-        <button onClick={copyText} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>{copied?'✅ Copied!':'📋 Copy text'}</button>
-      </div>}
-    </div>
-  );
-}
-const advanceReceiptText=(advance,entries,project)=>{
-  const spent=entries.reduce((s,e)=>s+Number(e.amount||0),0);const bal=advance.amount-spent;
-  let t=`NKO Cash Advance Receipt\n${project?.name||''}\n\nRecipient: ${advance.recipient}\n`;
-  if(advance.dept)t+=`Department: ${advance.dept}\n`;
-  t+=`Purpose: ${advance.purpose||'-'}\nDate issued: ${advance.date_issued}\nAmount issued: ${sym(advance.currency)}${fmt(advance.amount)}\n\nExpenses:\n`;
-  entries.forEach(e=>{const cat=e.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(e.description||'').replace(/^\[[^\]]+\]\s*/,'');t+=`- ${desc}${cat?` (${cat})`:''}: ${sym(advance.currency)}${fmt(e.amount)}${e.date?` [${e.date}]`:''}\n`;});
-  t+=`\nTotal spent: ${sym(advance.currency)}${fmt(spent)}\nBalance: ${sym(advance.currency)}${fmt(bal)}\nStatus: ${advance.status==='reconciled'?'Reconciled':'Open'}`;
-  return t;
-};
-const paymentReceiptText=(payee,project)=>{
-  const paid=(payee.payments||[]).reduce((s,p)=>s+Number(p.amount||0),0);const bal=payee.agreed_fee-paid;
-  let t=`NKO Payment Receipt\n${project?.name||''}\n\nPayee: ${payee.name}\nRole: ${payee.role||'-'}\nAgreed fee: ${sym(payee.currency)}${fmt(payee.agreed_fee)}\n\nPayments:\n`;
-  (payee.payments||[]).forEach(p=>{t+=`- ${p.date} · ${p.method}: ${sym(payee.currency)}${fmt(p.amount)}\n`;});
-  t+=`\nTotal paid: ${sym(payee.currency)}${fmt(paid)}\nBalance: ${sym(payee.currency)}${fmt(bal)}\nStatus: ${bal<=0?'Paid in full':'Owing'}`;
-  return t;
-};
-const breakdownSummaryText=(scenes,project)=>{
-  let t=`NKO Script Breakdown — ${project?.name||''}\n${scenes.length} scene${scenes.length!==1?'s':''}\n\n`;
-  scenes.slice(0,30).forEach(sc=>{t+=`Scene ${sc.sceneNumber||'-'}: ${sc.heading||''}${sc.cast?.length?` · Cast: ${sc.cast.join(', ')}`:''}\n`;});
-  if(scenes.length>30)t+=`\n…and ${scenes.length-30} more scenes.`;
-  return t;
-};
-
 /* ── Atoms ── */
 const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
@@ -583,7 +540,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
 }
 
 /* ── Recon ── */
-function AdvanceCard({advance,entries,project,onUpdate,onAddEntry,onRemoveEntry}){
+function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry}){
   const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
   const spent=entries.reduce((s,e)=>s+(Number(e.amount)||0),0);const bal=advance.amount-spent;const pct=advance.amount>0?Math.min(100,(spent/advance.amount)*100):0;
   const sc=advance.status==='reconciled'?T.sage:bal<0?T.coral:T.gold;
@@ -595,7 +552,6 @@ function AdvanceCard({advance,entries,project,onUpdate,onAddEntry,onRemoveEntry}
         <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div><Pill color={sc}>{advance.status==='reconciled'?'Reconciled':bal<0?'Overspent':bal===0?'Balanced':'Open'}</Pill></div>
       </div>
       <div style={{padding:'0 16px 10px'}}><div style={{height:6,borderRadius:3,background:T.ink,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:bal<0?T.coral:T.gold}}/></div><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}><span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span><span style={{color:bal<0?T.coral:T.dim}}>{bal<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(advance.currency)}${fmt(bal)}`}</span></div></div>
-      <div style={{padding:'0 16px 10px',display:'flex',justifyContent:'flex-end'}}><ShareMenu text={advanceReceiptText(advance,entries,project)} title={`Advance receipt — ${advance.recipient}`} label="📤 Share receipt"/></div>
       {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');return<div key={en.id} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:T.hi,color:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:12}}>{sym(advance.currency)}{fmt(en.amount)}</span><button onClick={()=>onRemoveEntry(en.id)} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
         <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
       </div>}
@@ -633,13 +589,94 @@ function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,o
         </div>
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>Issue advance</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
       </div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pAdv.length} advance{pAdv.length!==1?'s':''}</div><Btn size="sm" onClick={()=>setShowForm(true)}>+ Issue advance</Btn></div>
-      {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} project={project} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry}/>)}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pAdv.length} advance{pAdv.length!==1?'s':''}</div><div style={{display:'flex',gap:8}}>{pAdv.length>0&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>+ Issue advance</Btn></div></div>
+      {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry}/>)}
     </div>
   );
 }
 
 /* ── Payments ── */
+/* ── PDF Receipt — bank-receipt style for a single payment ── */
+const receiptPDF=(payee,payment,project)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:42px;object-fit:contain"/>`:'';
+  const ref=`NKO-${project.id.slice(0,4).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+  const html=`<!DOCTYPE html><html><head><title>Receipt — ${payee.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#f4f4f4}</style></head><body>
+    <div class="np" style="background:#0F0120;padding:12px;text-align:center">
+      <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
+      <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
+    </div>
+    <div style="max-width:420px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12)">
+      <div style="background:#0F0120;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="color:#FEED61;font-size:20px;font-weight:700;font-family:Georgia">${brand.companyName||'NKO'}</div>
+        <div style="color:#8C852E;font-size:9px;text-transform:uppercase;letter-spacing:2px">Payment Receipt</div></div>
+        ${logoHtml}
+      </div>
+      <div style="padding:22px;text-align:center;border-bottom:1px dashed #ddd">
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Amount Paid</div>
+        <div style="font-size:34px;font-weight:700;color:#0F0120">${sym(payee.currency)}${fmt(payment.amount)}</div>
+        <div style="display:inline-block;margin-top:8px;background:#e8f5ee;color:#2c7a4e;font-size:11px;font-weight:700;padding:4px 14px;border-radius:12px">✓ PAID</div>
+      </div>
+      <div style="padding:16px 22px">
+        ${[['Paid to',payee.name],['Role',payee.role||'—'],['Production',project.name],['Payment method',payment.method],['Date',payment.date],['Reference',ref]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0f0"><span style="font-size:12px;color:#888">${k}</span><span style="font-size:12px;color:#222;font-weight:600;text-align:right">${v}</span></div>`).join('')}
+      </div>
+      <div style="padding:12px 22px 20px;text-align:center">
+        <div style="font-size:10px;color:#aaa">Generated by NKO — Budgets tailored just for you</div>
+        <div style="font-size:10px;color:#ccc;margin-top:2px">nko-nko.vercel.app</div>
+      </div>
+    </div>
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+};
+
+/* ── Recon Report PDF — full advances + expense log for a production ── */
+const reconReportPDF=(advances,reconEntries,project)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const totalIssued=advances.reduce((s,a)=>s+a.amount,0);
+  let totalSpent=0;
+  const blocks=advances.map(a=>{
+    const entries=reconEntries.filter(e=>e.advance_id===a.id);
+    const spent=entries.reduce((s,e)=>s+Number(e.amount),0);totalSpent+=spent;
+    const bal=a.amount-spent;
+    const rows=entries.map(en=>{
+      const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';
+      const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');
+      return`<tr><td style="padding:6px 10px;font-size:11px;color:#555;border-bottom:1px solid #f0f0f0">${en.date||''}</td><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #f0f0f0">${cat?`<span style="background:#f5f0dc;color:#8C852E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:5px">${cat}</span>`:''}${desc}</td><td style="padding:6px 10px;font-size:11px;text-align:right;font-family:monospace;border-bottom:1px solid #f0f0f0">${sym(a.currency)}${fmt(en.amount)}</td></tr>`;
+    }).join('');
+    return`<div style="margin-bottom:22px;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden">
+      <div style="background:#1A0835;padding:10px 14px;display:flex;justify-content:space-between">
+        <div><span style="color:#F0E8D0;font-weight:700;font-size:13px">${a.recipient}</span>${a.dept?`<span style="color:#9A9080;font-size:11px"> · ${a.dept}</span>`:''}
+        <div style="color:#8C852E;font-size:10px;margin-top:2px">${a.purpose||''} · Issued ${a.date_issued}</div></div>
+        <div style="text-align:right"><div style="color:#FEED61;font-family:monospace;font-size:15px">${sym(a.currency)}${fmt(a.amount)}</div>
+        <div style="font-size:10px;color:${bal<0?'#E06B52':bal===0?'#52B07A':'#9A9080'}">${a.status==='reconciled'?'✓ Reconciled':bal<0?`Over by ${sym(a.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(a.currency)}${fmt(bal)}`}</div></div>
+      </div>
+      ${entries.length?`<table style="width:100%;border-collapse:collapse"><tr style="background:#fafafa"><th style="padding:6px 10px;font-size:9px;color:#999;text-align:left;text-transform:uppercase">Date</th><th style="padding:6px 10px;font-size:9px;color:#999;text-align:left;text-transform:uppercase">Expense</th><th style="padding:6px 10px;font-size:9px;color:#999;text-align:right;text-transform:uppercase">Amount</th></tr>${rows}
+      <tr><td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;text-align:right">Total spent</td><td style="padding:8px 10px;font-size:12px;font-weight:700;text-align:right;font-family:monospace">${sym(a.currency)}${fmt(spent)}</td></tr></table>`:`<div style="padding:12px 14px;font-size:11px;color:#999">No expenses logged against this advance yet.</div>`}
+    </div>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#fff}</style></head><body>
+    <div class="np" style="background:#0F0120;padding:12px;text-align:center">
+      <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
+      <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
+    </div>
+    <div style="max-width:680px;margin:0 auto;padding:26px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#0F0120">${brand.companyName||'NKO'}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${project.name}</div>
+        <div style="font-size:10px;color:#999;margin-top:3px">Generated ${today()}</div></div>
+        ${logoHtml}
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:22px">
+        ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${v}</div></div>`).join('')}
+      </div>
+      ${blocks||'<div style="color:#999;font-size:12px">No advances issued yet.</div>'}
+      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:20px">Generated by NKO — Budgets tailored just for you · nko-nko.vercel.app</div>
+    </div>
+  </body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+};
+
 function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
   const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
@@ -660,9 +697,9 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
       {pPayees.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No payees yet.</div></div>:pPayees.map(p=>{
         const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);const bal=p.agreed_fee-paid;const pct=p.agreed_fee>0?Math.min(100,(paid/p.agreed_fee)*100):0;
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill><ShareMenu text={paymentReceiptText(p,project)} title={`Payment receipt — ${p.name}`} label="📤 Share"/></div></div>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
           <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
-          {(p.payments||[]).map((pay,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:`1px solid ${T.line}`}}><span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span><button onClick={()=>onRemovePayment(p.id,i)} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>)}
+          {(p.payments||[]).map((pay,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:`1px solid ${T.line}`}}><span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span><button onClick={()=>receiptPDF(p,pay,project)} title="Generate PDF receipt" style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>🧾 Receipt</button><button onClick={()=>onRemovePayment(p.id,i)} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>)}
           {bal>0&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>{const amt=window.prompt(`Amount to pay (${p.currency}):`);const method=window.prompt('Payment method:','Cash');if(amt&&method)onAddPayment(p.id,{amount:Number(amt),method,date:today()});}}>+ Log payment</Btn></div>}
         </div>;})}
     </div>
@@ -725,10 +762,12 @@ function AIView({project,budgetItems,advances}){
         </div>
         <div ref={botRef}/>
       </div>
+      {/* Image preview */}
       {imgPreview&&<div style={{marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
         <img src={imgPreview} style={{height:60,borderRadius:6,objectFit:'cover',border:`1px solid ${T.line}`}}/>
         <button onClick={clearImage} style={{color:T.coral,fontSize:11,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Remove</button>
       </div>}
+      {/* Input row */}
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
         <input ref={imgRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickImage}/>
         <button onClick={()=>imgRef.current.click()} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 10px',cursor:'pointer',color:T.goldDim,fontSize:16,flexShrink:0}} title="Attach image">📎</button>
@@ -738,6 +777,7 @@ function AIView({project,budgetItems,advances}){
     </div>
   );
 }
+
 /* ── Breakdown ── */
 const BKCAT=[{key:'cast',label:'Cast',icon:'👤'},{key:'extras',label:'Extras',icon:'👥'},{key:'location',label:'Location',icon:'📍'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'VFX / SFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'notes',label:'Notes',icon:'📝'}];
 function SceneCard({scene,onDelete,onUpdate,index}){
@@ -887,7 +927,7 @@ function BreakdownView({project,scenes,onAddScene,onDeleteScene,onUpdateScene}){
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
-        {ps.length>0&&<><Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project)} style={{flexShrink:0}}>📄 Export PDF</Btn><ShareMenu text={breakdownSummaryText(filtered,project)} title={`Script breakdown — ${project.name}`} label="📤 Share summary"/></>}
+        {ps.length>0&&<Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project)} style={{flexShrink:0}}>📄 Share / Export PDF</Btn>}
       </div>
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
@@ -914,19 +954,23 @@ function MarketplaceView({onApplyTemplate}){
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Marketplace</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates — budget + archetypal scenes bundled together.</div><div style={{marginTop:14}}><FS/></div></div>
+      {/* Featured creator hero */}
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:20,marginBottom:24,display:'flex',gap:16,alignItems:'center',flexWrap:mob?'wrap':'nowrap'}}>
         <div style={{width:52,height:52,borderRadius:'50%',background:T.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:T.ink,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{featured.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
         <div style={{flex:1}}><div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:3}}>Featured creator</div><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream}}>{featured.name}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{featured.role} · {featured.loc}</div></div>
         <div style={{display:'flex',gap:16,flexShrink:0}}><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>2</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>templates</div></div><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>{featured.downloads}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>uses</div></div></div>
       </div>
+      {/* Creator row */}
       <div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>Browse by creator</div>
         <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}><div style={{display:'flex',gap:10,paddingBottom:8,minWidth:'max-content'}}>
           <button onClick={()=>setSel(null)} style={{background:!sel?T.hi:T.panel,border:`1px solid ${!sel?T.gold:T.line}`,borderRadius:12,padding:'10px 14px',cursor:'pointer',color:!sel?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,flexShrink:0}}>All creators</button>
           {CREATORS.map(c=><CreatorCard key={c.id} creator={c} selected={sel===c.name} onClick={()=>setSel(sel===c.name?null:c.name)}/>)}
         </div></div>
       </div>
+      {/* Search + category */}
       <Inp placeholder="Search templates…" value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:12}}/>
       <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{MKTCAT.map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${cat===c?T.gold:T.line}`,background:cat===c?T.goldGlow:'transparent',color:cat===c?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
+      {/* Template grid */}
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No templates match.</div></div>:
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:14}}>
         {filtered.map(tpl=>{const total=tpl.items.reduce((s,i)=>s+lTot(i),0);const isApp=applied===tpl.id;const c=CREATORS.find(c=>c.name===tpl.author);const init=tpl.author.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -962,16 +1006,14 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py,sc]=await Promise.all([
+      const[pr,bi,ad,re,py]=await Promise.all([
         sb.from('projects').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
         sb.from('budget_items').select('*').eq('user_id',user.id),
         sb.from('advances').select('*').eq('user_id',user.id),
         sb.from('recon_entries').select('*').eq('user_id',user.id),
         sb.from('payees').select('*').eq('user_id',user.id),
-        sb.from('scenes').select('*').eq('user_id',user.id),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
-      if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
@@ -997,17 +1039,8 @@ function MainApp(){
     const{data,error}=await sb.from('budget_items').insert(rows).select();
     if(error){alert(`Could not apply template: ${error.message}`);return;}
     if(data)setBudgetItems(p=>[...p,...data]);
-    if(tpl.scenes?.length){
-      const sc=tpl.scenes.map(s=>({...s,project_id:currentId,id:Math.random().toString(36).slice(2,10)}));
-      const rows2=sc.map(sceneToRow);
-      const{error:scErr}=await sb.from('scenes').insert(rows2);
-      if(scErr){alert(`Could not save template scenes: ${scErr.message}`);}else{setScenes(p=>[...p,...sc]);}
-    }
+    if(tpl.scenes?.length){const sc=tpl.scenes.map(s=>({...s,project_id:currentId,id:Math.random().toString(36).slice(2,10)}));setScenes(p=>[...p,...sc]);}
   };
-  const sceneToRow=sc=>{const{id,project_id,...rest}=sc;return{id,project_id,user_id:user.id,data:rest};};
-  const addScene=async sc=>{const{error}=await sb.from('scenes').insert(sceneToRow(sc));if(error){alert(`Could not save scene: ${error.message}`);return;}setScenes(p=>[...p,sc]);};
-  const updateScene=async(id,upd)=>{const current=scenes.find(x=>x.id===id);if(!current)return;const merged={...current,...upd};setScenes(p=>p.map(x=>x.id===id?merged:x));const{id:_i,project_id:_p,...rest}=merged;await sb.from('scenes').update({data:rest}).eq('id',id);};
-  const removeScene=async id=>{setScenes(p=>p.filter(x=>x.id!==id));await sb.from('scenes').delete().eq('id',id);};
   const applyScriptBudget=async lines=>{
     const rows=lines.map(l=>({
       project_id:currentId,
@@ -1041,7 +1074,7 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={addScene} onDeleteScene={removeScene} onUpdateScene={updateScene}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))} onUpdateScene={(id,upd)=>setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s))}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(currentId)await applyTemplate(tpl);else{setView('dashboard');}}}/>}
