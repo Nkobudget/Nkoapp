@@ -259,6 +259,47 @@ const recoverScenes=raw=>{
 };
 const useIsMobile=(bp=640)=>{const[m,setM]=useState(()=>window.innerWidth<bp);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[bp]);return m;};
 
+/* ── Share (WhatsApp / Email) ── */
+function ShareMenu({text,title,label}){
+  const[open,setOpen]=useState(false);
+  const canNative=typeof navigator!=='undefined'&&navigator.share;
+  const wa=`https://wa.me/?text=${encodeURIComponent(text)}`;
+  const mail=`mailto:?subject=${encodeURIComponent(title||'NKO')}&body=${encodeURIComponent(text)}`;
+  const nativeShare=async()=>{try{await navigator.share({title,text});}catch{}setOpen(false);};
+  return(
+    <div style={{position:'relative',display:'inline-block'}}>
+      <Btn size="sm" variant="outline" onClick={()=>setOpen(o=>!o)}>{label||'📤 Share'}</Btn>
+      {open&&<div style={{position:'absolute',top:'110%',right:0,zIndex:20,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:6,display:'flex',flexDirection:'column',gap:4,minWidth:150,boxShadow:'0 6px 20px rgba(0,0,0,.4)'}}>
+        {canNative&&<button onClick={nativeShare} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>📲 Share…</button>}
+        <a href={wa} target="_blank" rel="noreferrer" onClick={()=>setOpen(false)} style={{color:T.cream,textDecoration:'none',padding:'6px 10px',fontSize:12,fontFamily:'Manrope,sans-serif',borderRadius:5}}>💬 WhatsApp</a>
+        <a href={mail} onClick={()=>setOpen(false)} style={{color:T.cream,textDecoration:'none',padding:'6px 10px',fontSize:12,fontFamily:'Manrope,sans-serif',borderRadius:5}}>✉️ Email</a>
+      </div>}
+    </div>
+  );
+}
+const advanceReceiptText=(advance,entries,project)=>{
+  const spent=entries.reduce((s,e)=>s+Number(e.amount||0),0);const bal=advance.amount-spent;
+  let t=`NKO Cash Advance Receipt\n${project?.name||''}\n\nRecipient: ${advance.recipient}\n`;
+  if(advance.dept)t+=`Department: ${advance.dept}\n`;
+  t+=`Purpose: ${advance.purpose||'-'}\nDate issued: ${advance.date_issued}\nAmount issued: ${sym(advance.currency)}${fmt(advance.amount)}\n\nExpenses:\n`;
+  entries.forEach(e=>{const cat=e.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(e.description||'').replace(/^\[[^\]]+\]\s*/,'');t+=`- ${desc}${cat?` (${cat})`:''}: ${sym(advance.currency)}${fmt(e.amount)}${e.date?` [${e.date}]`:''}\n`;});
+  t+=`\nTotal spent: ${sym(advance.currency)}${fmt(spent)}\nBalance: ${sym(advance.currency)}${fmt(bal)}\nStatus: ${advance.status==='reconciled'?'Reconciled':'Open'}`;
+  return t;
+};
+const paymentReceiptText=(payee,project)=>{
+  const paid=(payee.payments||[]).reduce((s,p)=>s+Number(p.amount||0),0);const bal=payee.agreed_fee-paid;
+  let t=`NKO Payment Receipt\n${project?.name||''}\n\nPayee: ${payee.name}\nRole: ${payee.role||'-'}\nAgreed fee: ${sym(payee.currency)}${fmt(payee.agreed_fee)}\n\nPayments:\n`;
+  (payee.payments||[]).forEach(p=>{t+=`- ${p.date} · ${p.method}: ${sym(payee.currency)}${fmt(p.amount)}\n`;});
+  t+=`\nTotal paid: ${sym(payee.currency)}${fmt(paid)}\nBalance: ${sym(payee.currency)}${fmt(bal)}\nStatus: ${bal<=0?'Paid in full':'Owing'}`;
+  return t;
+};
+const breakdownSummaryText=(scenes,project)=>{
+  let t=`NKO Script Breakdown — ${project?.name||''}\n${scenes.length} scene${scenes.length!==1?'s':''}\n\n`;
+  scenes.slice(0,30).forEach(sc=>{t+=`Scene ${sc.sceneNumber||'-'}: ${sc.heading||''}${sc.cast?.length?` · Cast: ${sc.cast.join(', ')}`:''}\n`;});
+  if(scenes.length>30)t+=`\n…and ${scenes.length-30} more scenes.`;
+  return t;
+};
+
 /* ── Atoms ── */
 const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
@@ -540,7 +581,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
 }
 
 /* ── Recon ── */
-function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry}){
+function AdvanceCard({advance,entries,project,onUpdate,onAddEntry,onRemoveEntry}){
   const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
   const spent=entries.reduce((s,e)=>s+(Number(e.amount)||0),0);const bal=advance.amount-spent;const pct=advance.amount>0?Math.min(100,(spent/advance.amount)*100):0;
   const sc=advance.status==='reconciled'?T.sage:bal<0?T.coral:T.gold;
@@ -552,6 +593,7 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry}){
         <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div><Pill color={sc}>{advance.status==='reconciled'?'Reconciled':bal<0?'Overspent':bal===0?'Balanced':'Open'}</Pill></div>
       </div>
       <div style={{padding:'0 16px 10px'}}><div style={{height:6,borderRadius:3,background:T.ink,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:bal<0?T.coral:T.gold}}/></div><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}><span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span><span style={{color:bal<0?T.coral:T.dim}}>{bal<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(advance.currency)}${fmt(bal)}`}</span></div></div>
+      <div style={{padding:'0 16px 10px',display:'flex',justifyContent:'flex-end'}}><ShareMenu text={advanceReceiptText(advance,entries,project)} title={`Advance receipt — ${advance.recipient}`} label="📤 Share receipt"/></div>
       {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');return<div key={en.id} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:T.hi,color:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:12}}>{sym(advance.currency)}{fmt(en.amount)}</span><button onClick={()=>onRemoveEntry(en.id)} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
         <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
       </div>}
@@ -590,7 +632,7 @@ function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,o
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>Issue advance</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pAdv.length} advance{pAdv.length!==1?'s':''}</div><Btn size="sm" onClick={()=>setShowForm(true)}>+ Issue advance</Btn></div>
-      {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry}/>)}
+      {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} project={project} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry}/>)}
     </div>
   );
 }
@@ -616,7 +658,7 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
       {pPayees.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No payees yet.</div></div>:pPayees.map(p=>{
         const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);const bal=p.agreed_fee-paid;const pct=p.agreed_fee>0?Math.min(100,(paid/p.agreed_fee)*100):0;
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill><ShareMenu text={paymentReceiptText(p,project)} title={`Payment receipt — ${p.name}`} label="📤 Share"/></div></div>
           <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
           {(p.payments||[]).map((pay,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:`1px solid ${T.line}`}}><span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span><button onClick={()=>onRemovePayment(p.id,i)} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>)}
           {bal>0&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>{const amt=window.prompt(`Amount to pay (${p.currency}):`);const method=window.prompt('Payment method:','Cash');if(amt&&method)onAddPayment(p.id,{amount:Number(amt),method,date:today()});}}>+ Log payment</Btn></div>}
@@ -681,12 +723,10 @@ function AIView({project,budgetItems,advances}){
         </div>
         <div ref={botRef}/>
       </div>
-      {/* Image preview */}
       {imgPreview&&<div style={{marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
         <img src={imgPreview} style={{height:60,borderRadius:6,objectFit:'cover',border:`1px solid ${T.line}`}}/>
         <button onClick={clearImage} style={{color:T.coral,fontSize:11,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Remove</button>
       </div>}
-      {/* Input row */}
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
         <input ref={imgRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickImage}/>
         <button onClick={()=>imgRef.current.click()} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 10px',cursor:'pointer',color:T.goldDim,fontSize:16,flexShrink:0}} title="Attach image">📎</button>
@@ -696,7 +736,6 @@ function AIView({project,budgetItems,advances}){
     </div>
   );
 }
-
 /* ── Breakdown ── */
 const BKCAT=[{key:'cast',label:'Cast',icon:'👤'},{key:'extras',label:'Extras',icon:'👥'},{key:'location',label:'Location',icon:'📍'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'VFX / SFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'notes',label:'Notes',icon:'📝'}];
 function SceneCard({scene,onDelete,onUpdate,index}){
@@ -846,7 +885,7 @@ function BreakdownView({project,scenes,onAddScene,onDeleteScene,onUpdateScene}){
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
-        {ps.length>0&&<Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project)} style={{flexShrink:0}}>📄 Share / Export PDF</Btn>}
+        {ps.length>0&&<><Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project)} style={{flexShrink:0}}>📄 Export PDF</Btn><ShareMenu text={breakdownSummaryText(filtered,project)} title={`Script breakdown — ${project.name}`} label="📤 Share summary"/></>}
       </div>
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
@@ -873,23 +912,19 @@ function MarketplaceView({onApplyTemplate}){
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Marketplace</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates — budget + archetypal scenes bundled together.</div><div style={{marginTop:14}}><FS/></div></div>
-      {/* Featured creator hero */}
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:20,marginBottom:24,display:'flex',gap:16,alignItems:'center',flexWrap:mob?'wrap':'nowrap'}}>
         <div style={{width:52,height:52,borderRadius:'50%',background:T.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:T.ink,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{featured.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
         <div style={{flex:1}}><div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:3}}>Featured creator</div><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream}}>{featured.name}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{featured.role} · {featured.loc}</div></div>
         <div style={{display:'flex',gap:16,flexShrink:0}}><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>2</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>templates</div></div><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>{featured.downloads}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>uses</div></div></div>
       </div>
-      {/* Creator row */}
       <div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>Browse by creator</div>
         <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}><div style={{display:'flex',gap:10,paddingBottom:8,minWidth:'max-content'}}>
           <button onClick={()=>setSel(null)} style={{background:!sel?T.hi:T.panel,border:`1px solid ${!sel?T.gold:T.line}`,borderRadius:12,padding:'10px 14px',cursor:'pointer',color:!sel?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,flexShrink:0}}>All creators</button>
           {CREATORS.map(c=><CreatorCard key={c.id} creator={c} selected={sel===c.name} onClick={()=>setSel(sel===c.name?null:c.name)}/>)}
         </div></div>
       </div>
-      {/* Search + category */}
       <Inp placeholder="Search templates…" value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:12}}/>
       <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{MKTCAT.map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${cat===c?T.gold:T.line}`,background:cat===c?T.goldGlow:'transparent',color:cat===c?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
-      {/* Template grid */}
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No templates match.</div></div>:
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:14}}>
         {filtered.map(tpl=>{const total=tpl.items.reduce((s,i)=>s+lTot(i),0);const isApp=applied===tpl.id;const c=CREATORS.find(c=>c.name===tpl.author);const init=tpl.author.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
