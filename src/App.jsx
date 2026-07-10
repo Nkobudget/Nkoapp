@@ -261,18 +261,20 @@ const useIsMobile=(bp=640)=>{const[m,setM]=useState(()=>window.innerWidth<bp);us
 
 /* ── Share (WhatsApp / Email) ── */
 function ShareMenu({text,title,label}){
-  const[open,setOpen]=useState(false);
+  const[open,setOpen]=useState(false);const[copied,setCopied]=useState(false);
   const canNative=typeof navigator!=='undefined'&&navigator.share;
-  const wa=`https://wa.me/?text=${encodeURIComponent(text)}`;
-  const mail=`mailto:?subject=${encodeURIComponent(title||'NKO')}&body=${encodeURIComponent(text)}`;
   const nativeShare=async()=>{try{await navigator.share({title,text});}catch{}setOpen(false);};
+  const openWhatsApp=()=>{window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');setOpen(false);};
+  const openMail=()=>{const to=window.prompt('Send to which email address?','')||'';window.location.href=`mailto:${to}?subject=${encodeURIComponent(title||'NKO')}&body=${encodeURIComponent(text)}`;setOpen(false);};
+  const copyText=async()=>{try{await navigator.clipboard.writeText(text);}catch{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch{}document.body.removeChild(ta);}setCopied(true);setTimeout(()=>{setCopied(false);setOpen(false);},1200);};
   return(
     <div style={{position:'relative',display:'inline-block'}}>
       <Btn size="sm" variant="outline" onClick={()=>setOpen(o=>!o)}>{label||'📤 Share'}</Btn>
-      {open&&<div style={{position:'absolute',top:'110%',right:0,zIndex:20,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:6,display:'flex',flexDirection:'column',gap:4,minWidth:150,boxShadow:'0 6px 20px rgba(0,0,0,.4)'}}>
+      {open&&<div style={{position:'absolute',top:'110%',right:0,zIndex:20,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:6,display:'flex',flexDirection:'column',gap:4,minWidth:170,boxShadow:'0 6px 20px rgba(0,0,0,.4)'}}>
         {canNative&&<button onClick={nativeShare} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>📲 Share…</button>}
-        <a href={wa} target="_blank" rel="noreferrer" onClick={()=>setOpen(false)} style={{color:T.cream,textDecoration:'none',padding:'6px 10px',fontSize:12,fontFamily:'Manrope,sans-serif',borderRadius:5}}>💬 WhatsApp</a>
-        <a href={mail} onClick={()=>setOpen(false)} style={{color:T.cream,textDecoration:'none',padding:'6px 10px',fontSize:12,fontFamily:'Manrope,sans-serif',borderRadius:5}}>✉️ Email</a>
+        <button onClick={openWhatsApp} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>💬 WhatsApp</button>
+        <button onClick={openMail} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>✉️ Email</button>
+        <button onClick={copyText} style={{background:'none',border:'none',color:T.cream,textAlign:'left',padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',borderRadius:5}}>{copied?'✅ Copied!':'📋 Copy text'}</button>
       </div>}
     </div>
   );
@@ -960,14 +962,16 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py]=await Promise.all([
+      const[pr,bi,ad,re,py,sc]=await Promise.all([
         sb.from('projects').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
         sb.from('budget_items').select('*').eq('user_id',user.id),
         sb.from('advances').select('*').eq('user_id',user.id),
         sb.from('recon_entries').select('*').eq('user_id',user.id),
         sb.from('payees').select('*').eq('user_id',user.id),
+        sb.from('scenes').select('*').eq('user_id',user.id),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
+      if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
@@ -993,8 +997,17 @@ function MainApp(){
     const{data,error}=await sb.from('budget_items').insert(rows).select();
     if(error){alert(`Could not apply template: ${error.message}`);return;}
     if(data)setBudgetItems(p=>[...p,...data]);
-    if(tpl.scenes?.length){const sc=tpl.scenes.map(s=>({...s,project_id:currentId,id:Math.random().toString(36).slice(2,10)}));setScenes(p=>[...p,...sc]);}
+    if(tpl.scenes?.length){
+      const sc=tpl.scenes.map(s=>({...s,project_id:currentId,id:Math.random().toString(36).slice(2,10)}));
+      const rows2=sc.map(sceneToRow);
+      const{error:scErr}=await sb.from('scenes').insert(rows2);
+      if(scErr){alert(`Could not save template scenes: ${scErr.message}`);}else{setScenes(p=>[...p,...sc]);}
+    }
   };
+  const sceneToRow=sc=>{const{id,project_id,...rest}=sc;return{id,project_id,user_id:user.id,data:rest};};
+  const addScene=async sc=>{const{error}=await sb.from('scenes').insert(sceneToRow(sc));if(error){alert(`Could not save scene: ${error.message}`);return;}setScenes(p=>[...p,sc]);};
+  const updateScene=async(id,upd)=>{const current=scenes.find(x=>x.id===id);if(!current)return;const merged={...current,...upd};setScenes(p=>p.map(x=>x.id===id?merged:x));const{id:_i,project_id:_p,...rest}=merged;await sb.from('scenes').update({data:rest}).eq('id',id);};
+  const removeScene=async id=>{setScenes(p=>p.filter(x=>x.id!==id));await sb.from('scenes').delete().eq('id',id);};
   const applyScriptBudget=async lines=>{
     const rows=lines.map(l=>({
       project_id:currentId,
@@ -1028,7 +1041,7 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))} onUpdateScene={(id,upd)=>setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s))}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={addScene} onDeleteScene={removeScene} onUpdateScene={updateScene}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(currentId)await applyTemplate(tpl);else{setView('dashboard');}}}/>}
