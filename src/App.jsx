@@ -540,7 +540,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
 }
 
 /* ── Recon ── */
-function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry}){
+function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}){
   const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
   const spent=entries.reduce((s,e)=>s+(Number(e.amount)||0),0);const bal=advance.amount-spent;const pct=advance.amount>0?Math.min(100,(spent/advance.amount)*100):0;
   const sc=advance.status==='reconciled'?T.sage:bal<0?T.coral:T.gold;
@@ -562,11 +562,12 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry}){
         <Inp placeholder="Receipt / voucher ref (optional)" value={eRef} onChange={e=>setERef(e.target.value)}/>
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={save}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setShow(false)}>Cancel</Btn></div>
       </div>}
-      {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Log expense</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>✓ Reconcile</button>}</div>}
+      {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14,flexWrap:'wrap'}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Log expense</button><button onClick={()=>{const extra=window.prompt(`Top up this advance — how much extra ${advance.currency} was given to ${advance.recipient}?`);if(extra&&Number(extra)>0)onTopUp(advance.id,Number(extra));}} style={{color:T.sapphire,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>💰 Top up</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>✓ Reconcile</button>}</div>}
+      {advance.status!=='reconciled'&&!show&&bal<0&&<div style={{padding:'0 16px 12px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Overspent — top up with new cash received, or remove a logged expense with the × button above.</div>}
     </div>
   );
 }
-function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry}){
+function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp}){
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pAdv=advances.filter(a=>a.project_id===project.id);
@@ -590,7 +591,7 @@ function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,o
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>Issue advance</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pAdv.length} advance{pAdv.length!==1?'s':''}</div><div style={{display:'flex',gap:8}}>{pAdv.length>0&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>+ Issue advance</Btn></div></div>
-      {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry}/>)}
+      {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onTopUp={onTopUp}/>)}
     </div>
   );
 }
@@ -1056,13 +1057,37 @@ function MainApp(){
     if(error){alert(`Could not apply budget: ${error.message}`);return;}
     if(data)setBudgetItems(p=>[...p,...data]);
   };
-  const addAdvance=async a=>{const{data}=await sb.from('advances').insert({...a,user_id:user.id}).select().single();if(data)setAdvances(p=>[...p,data]);};
-  const updateAdvance=async(id,upd)=>{setAdvances(p=>p.map(a=>a.id===id?{...a,...upd}:a));await sb.from('advances').update(upd).eq('id',id);};
-  const addReconEntry=async e=>{const{data}=await sb.from('recon_entries').insert({...e,user_id:user.id}).select().single();if(data)setReconEntries(p=>[...p,data]);};
+  const addAdvance=async a=>{const{data,error}=await sb.from('advances').insert({...a,user_id:user.id}).select().single();if(error){alert(`Could not save advance: ${error.message}`);return;}if(data)setAdvances(p=>[...p,data]);};
+  const updateAdvance=async(id,upd)=>{setAdvances(p=>p.map(a=>a.id===id?{...a,...upd}:a));const{error}=await sb.from('advances').update(upd).eq('id',id);if(error)alert(`Could not update advance: ${error.message}`);};
+  const addReconEntry=async e=>{const{data,error}=await sb.from('recon_entries').insert({...e,user_id:user.id}).select().single();if(error){alert(`Could not save expense: ${error.message}`);return;}if(data)setReconEntries(p=>[...p,data]);};
+  /* Top-up an advance — increases the amount when more cash is received */
+  const topUpAdvance=async(id,extra)=>{
+    const adv=advances.find(a=>a.id===id);if(!adv)return;
+    const newAmount=Number(adv.amount)+Number(extra);
+    setAdvances(p=>p.map(a=>a.id===id?{...a,amount:newAmount,status:'open'}:a));
+    const{error}=await sb.from('advances').update({amount:newAmount,status:'open'}).eq('id',id);
+    if(error)alert(`Could not top up: ${error.message}`);
+  };
   const removeReconEntry=async id=>{setReconEntries(p=>p.filter(e=>e.id!==id));await sb.from('recon_entries').delete().eq('id',id);};
-  const addPayee=async p=>{const np={...p,user_id:user.id,payments:[]};setPayees(prev=>[...prev,{...np,id:`local_${Date.now()}`}]);await sb.from('payees').insert(np);};
-  const addPayment=(pid,pay)=>setPayees(p=>p.map(x=>x.id===pid?{...x,payments:[...(x.payments||[]),pay]}:x));
-  const removePayment=(pid,idx)=>setPayees(p=>p.map(x=>x.id===pid?{...x,payments:(x.payments||[]).filter((_,i)=>i!==idx)}:x));
+  const addPayee=async p=>{
+    const{data,error}=await sb.from('payees').insert({...p,user_id:user.id,payments:[]}).select().single();
+    if(error){alert(`Could not save payee: ${error.message}`);return;}
+    if(data)setPayees(prev=>[...prev,{...data,payments:data.payments||[]}]);
+  };
+  const addPayment=async(pid,pay)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const newPayments=[...(payee.payments||[]),pay];
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:newPayments}:x));
+    const{error}=await sb.from('payees').update({payments:newPayments}).eq('id',pid);
+    if(error)alert(`Could not save payment: ${error.message}`);
+  };
+  const removePayment=async(pid,idx)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const newPayments=(payee.payments||[]).filter((_,i)=>i!==idx);
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:newPayments}:x));
+    const{error}=await sb.from('payees').update({payments:newPayments}).eq('id',pid);
+    if(error)alert(`Could not remove payment: ${error.message}`);
+  };
 
   const pReconEntries=reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id));
 
@@ -1075,7 +1100,7 @@ function MainApp(){
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))} onUpdateScene={(id,upd)=>setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s))}/>}
-          {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry}/>}
+          {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(currentId)await applyTemplate(tpl);else{setView('dashboard');}}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
