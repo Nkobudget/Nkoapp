@@ -24,7 +24,7 @@ const CURRENCIES=[
   {code:'ZAR',symbol:'R'},{code:'UGX',symbol:'USh'},{code:'TZS',symbol:'TSh'},
   {code:'XOF',symbol:'Fr'},{code:'ETB',symbol:'Br'},{code:'USD',symbol:'$'},{code:'GBP',symbol:'£'},
 ];
-const DEPTS=['Cast & Talent','Crew','Locations & Transport','Equipment','Post-Production','Marketing','Contingency'];
+const DEPTS=['Cast & Talent','Crew','Costume & Wardrobe','Hair & Make-up','Feeding & Welfare','Locations & Transport','Equipment','Post-Production','Marketing','Contingency'];
 const UNITS=['day','week','flat','person','item'];
 const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Animation / Cartoon','Other'];
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
@@ -43,15 +43,15 @@ const TEMPLATES=[
     {dept:'Crew',description:'Boom operator',qty:1,unit:'flat',rate:60000},
     {dept:'Crew',description:'Gaffer',qty:1,unit:'flat',rate:80000},
     {dept:'Crew',description:'Art director',qty:1,unit:'flat',rate:100000},
-    {dept:'Crew',description:'Wardrobe / costume',qty:1,unit:'flat',rate:60000},
-    {dept:'Crew',description:'Hair & make-up',qty:1,unit:'flat',rate:60000},
+    {dept:'Costume & Wardrobe',description:'Wardrobe / costume',qty:1,unit:'flat',rate:60000},
+    {dept:'Hair & Make-up',description:'Hair & make-up artist',qty:1,unit:'flat',rate:60000},
     {dept:'Crew',description:'Production assistant (2)',qty:2,unit:'person',rate:30000},
     {dept:'Locations & Transport',description:'Location fees',qty:6,unit:'day',rate:50000},
     {dept:'Locations & Transport',description:'Cast transport',qty:12,unit:'day',rate:20000},
-    {dept:'Locations & Transport',description:'Feeding & welfare (30 crew)',qty:12,unit:'day',rate:180000},
-    {dept:'Locations & Transport',description:'Crew accommodation',qty:12,unit:'day',rate:60000},
-    {dept:'Equipment',description:'Unit supplies — water, first aid, consumables',qty:12,unit:'day',rate:10000},
-    {dept:'Cast & Talent',description:'Costume purchases & rentals',qty:1,unit:'flat',rate:80000},
+    {dept:'Feeding & Welfare',description:'Feeding (30 crew)',qty:12,unit:'day',rate:180000},
+    {dept:'Feeding & Welfare',description:'Crew accommodation',qty:12,unit:'day',rate:60000},
+    {dept:'Feeding & Welfare',description:'Unit supplies — water, first aid, consumables',qty:12,unit:'day',rate:10000},
+    {dept:'Costume & Wardrobe',description:'Costume purchases & rentals',qty:1,unit:'flat',rate:80000},
     {dept:'Equipment',description:'Camera package',qty:12,unit:'day',rate:40000},
     {dept:'Equipment',description:'Lighting package',qty:12,unit:'day',rate:25000},
     {dept:'Equipment',description:'Generator hire',qty:12,unit:'day',rate:15000},
@@ -67,11 +67,11 @@ const TEMPLATES=[
     {dept:'Crew',description:'Camera operator',qty:1,unit:'flat',rate:60000},
     {dept:'Crew',description:'Sound (boom & lav)',qty:1,unit:'flat',rate:50000},
     {dept:'Crew',description:'Script supervisor / continuity',qty:1,unit:'flat',rate:30000},
-    {dept:'Crew',description:'Hair & make-up',qty:1,unit:'flat',rate:40000},
+    {dept:'Hair & Make-up',description:'Hair & make-up artist',qty:1,unit:'flat',rate:40000},
     {dept:'Locations & Transport',description:'Location fees',qty:4,unit:'day',rate:20000},
-    {dept:'Locations & Transport',description:'Feeding & welfare (15 crew)',qty:7,unit:'day',rate:60000},
-    {dept:'Cast & Talent',description:'Costume & wardrobe items',qty:1,unit:'flat',rate:40000},
-    {dept:'Equipment',description:'Unit supplies — water, consumables',qty:7,unit:'day',rate:5000},
+    {dept:'Feeding & Welfare',description:'Feeding (15 crew)',qty:7,unit:'day',rate:60000},
+    {dept:'Costume & Wardrobe',description:'Costume & wardrobe items',qty:1,unit:'flat',rate:40000},
+    {dept:'Feeding & Welfare',description:'Unit supplies — water, consumables',qty:7,unit:'day',rate:5000},
     {dept:'Locations & Transport',description:'Cast & crew transport',qty:7,unit:'day',rate:15000},
     {dept:'Equipment',description:'Camera + gimbal package',qty:7,unit:'day',rate:20000},
     {dept:'Equipment',description:'Lighting (LED panels)',qty:7,unit:'day',rate:10000},
@@ -85,11 +85,11 @@ const TEMPLATES=[
     {dept:'Crew',description:'DOP',qty:1,unit:'flat',rate:60000},
     {dept:'Crew',description:'Sound recordist',qty:1,unit:'flat',rate:30000},
     {dept:'Crew',description:'Gaffer / lighting',qty:1,unit:'flat',rate:25000},
-    {dept:'Crew',description:'Hair & make-up',qty:1,unit:'flat',rate:20000},
-    {dept:'Cast & Talent',description:'Costume & wardrobe',qty:1,unit:'flat',rate:15000},
-    {dept:'Equipment',description:'Unit supplies — water, consumables',qty:2,unit:'day',rate:5000},
+    {dept:'Hair & Make-up',description:'Hair & make-up artist',qty:1,unit:'flat',rate:20000},
+    {dept:'Costume & Wardrobe',description:'Costume & wardrobe',qty:1,unit:'flat',rate:15000},
+    {dept:'Feeding & Welfare',description:'Unit supplies — water, consumables',qty:2,unit:'day',rate:5000},
     {dept:'Locations & Transport',description:'Location fee',qty:1,unit:'flat',rate:30000},
-    {dept:'Locations & Transport',description:'Feeding & welfare (10 crew)',qty:2,unit:'day',rate:30000},
+    {dept:'Feeding & Welfare',description:'Feeding (10 crew)',qty:2,unit:'day',rate:30000},
     {dept:'Equipment',description:'Camera package',qty:2,unit:'day',rate:25000},
     {dept:'Equipment',description:'Lighting',qty:2,unit:'day',rate:15000},
     {dept:'Post-Production',description:'Edit & grade',qty:1,unit:'flat',rate:60000},
@@ -100,12 +100,12 @@ const TEMPLATES=[
     {dept:'Cast & Talent',description:'Dancers / background (6)',qty:6,unit:'person',rate:20000},
     {dept:'Crew',description:'Director',qty:1,unit:'flat',rate:300000},
     {dept:'Crew',description:'DOP',qty:1,unit:'flat',rate:150000},
-    {dept:'Crew',description:'Hair & make-up',qty:1,unit:'flat',rate:60000},
-    {dept:'Crew',description:'Wardrobe stylist',qty:1,unit:'flat',rate:50000},
+    {dept:'Hair & Make-up',description:'Hair & make-up artist',qty:1,unit:'flat',rate:60000},
+    {dept:'Costume & Wardrobe',description:'Wardrobe stylist',qty:1,unit:'flat',rate:50000},
     {dept:'Locations & Transport',description:'Location fee',qty:1,unit:'flat',rate:50000},
-    {dept:'Locations & Transport',description:'Feeding & welfare',qty:1,unit:'day',rate:80000},
-    {dept:'Cast & Talent',description:'Costume purchases',qty:1,unit:'flat',rate:60000},
-    {dept:'Equipment',description:'Unit supplies — water, consumables',qty:1,unit:'day',rate:10000},
+    {dept:'Feeding & Welfare',description:'Feeding',qty:1,unit:'day',rate:80000},
+    {dept:'Costume & Wardrobe',description:'Costume purchases',qty:1,unit:'flat',rate:60000},
+    {dept:'Feeding & Welfare',description:'Unit supplies — water, consumables',qty:1,unit:'day',rate:10000},
     {dept:'Equipment',description:'Camera + crane / drone',qty:1,unit:'day',rate:80000},
     {dept:'Equipment',description:'Lighting package',qty:1,unit:'day',rate:40000},
     {dept:'Post-Production',description:'Edit & grade',qty:1,unit:'flat',rate:150000},
@@ -120,10 +120,10 @@ const TEMPLATES=[
     {dept:'Crew',description:'Researcher / producer',qty:1,unit:'flat',rate:100000},
     {dept:'Locations & Transport',description:'Location permits',qty:3,unit:'item',rate:20000},
     {dept:'Locations & Transport',description:'Field transport',qty:5,unit:'day',rate:25000},
-    {dept:'Locations & Transport',description:'Feeding & welfare (6 crew)',qty:5,unit:'day',rate:36000},
-    {dept:'Locations & Transport',description:'Field accommodation',qty:4,unit:'day',rate:40000},
-    {dept:'Crew',description:'Hair & make-up (interview days)',qty:2,unit:'day',rate:10000},
-    {dept:'Equipment',description:'Unit supplies — water, consumables',qty:5,unit:'day',rate:5000},
+    {dept:'Feeding & Welfare',description:'Feeding (6 crew)',qty:5,unit:'day',rate:36000},
+    {dept:'Feeding & Welfare',description:'Field accommodation',qty:4,unit:'day',rate:40000},
+    {dept:'Hair & Make-up',description:'Hair & make-up (interview days)',qty:2,unit:'day',rate:10000},
+    {dept:'Feeding & Welfare',description:'Unit supplies — water, consumables',qty:5,unit:'day',rate:5000},
     {dept:'Equipment',description:'Camera (run-and-gun)',qty:5,unit:'day',rate:30000},
     {dept:'Equipment',description:'Lapel & boom mics',qty:5,unit:'day',rate:10000},
     {dept:'Post-Production',description:'Edit & grade',qty:1,unit:'flat',rate:200000},
@@ -135,12 +135,12 @@ const TEMPLATES=[
     {dept:'Crew',description:'Director',qty:1,unit:'flat',rate:200000},
     {dept:'Crew',description:'DOP',qty:1,unit:'flat',rate:120000},
     {dept:'Crew',description:'Sound recordist',qty:1,unit:'flat',rate:50000},
-    {dept:'Crew',description:'Hair & make-up',qty:1,unit:'flat',rate:40000},
+    {dept:'Hair & Make-up',description:'Hair & make-up artist',qty:1,unit:'flat',rate:40000},
     {dept:'Locations & Transport',description:'Studio / location',qty:1,unit:'flat',rate:100000},
-    {dept:'Locations & Transport',description:'Feeding & welfare',qty:1,unit:'day',rate:50000},
-    {dept:'Cast & Talent',description:'Costume & styling',qty:1,unit:'flat',rate:30000},
+    {dept:'Feeding & Welfare',description:'Feeding',qty:1,unit:'day',rate:50000},
+    {dept:'Costume & Wardrobe',description:'Costume & styling',qty:1,unit:'flat',rate:30000},
     {dept:'Equipment',description:'Camera + lights',qty:1,unit:'day',rate:60000},
-    {dept:'Equipment',description:'Unit supplies — water, consumables',qty:1,unit:'day',rate:8000},
+    {dept:'Feeding & Welfare',description:'Unit supplies — water, consumables',qty:1,unit:'day',rate:8000},
     {dept:'Post-Production',description:'Edit & graphics / lower thirds',qty:1,unit:'flat',rate:100000},
     {dept:'Marketing',description:'Social cutdowns (3)',qty:3,unit:'item',rate:20000},
     {dept:'Contingency',description:'Contingency (10%)',qty:1,unit:'flat',rate:90000},
@@ -158,7 +158,7 @@ const TEMPLATES=[
     {dept:'Equipment',description:'Software licences',qty:1,unit:'flat',rate:80000},
     {dept:'Equipment',description:'Drawing tablets',qty:2,unit:'item',rate:30000},
     {dept:'Equipment',description:'Recording studio (voice)',qty:1,unit:'day',rate:60000},
-    {dept:'Locations & Transport',description:'Feeding & welfare — studio and voice days',qty:5,unit:'day',rate:15000},
+    {dept:'Feeding & Welfare',description:'Feeding — studio and voice days',qty:5,unit:'day',rate:15000},
     {dept:'Post-Production',description:'Episode render & assembly',qty:1,unit:'flat',rate:80000},
     {dept:'Post-Production',description:'Sound mix & subtitles',qty:1,unit:'flat',rate:40000},
     {dept:'Marketing',description:'Promo art & trailer',qty:1,unit:'flat',rate:50000},
@@ -523,6 +523,38 @@ function ScriptUploader({project,onApplyBudget}){
     </>
   );
 }
+/* ── Budget PDF — full branded budget export ── */
+const budgetPDF=(items,project,advances,reconEntries)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
+  const deptBlocks=DEPTS.map(d=>{
+    const di=items.filter(i=>i.dept===d);if(!di.length)return'';
+    const sub={};di.forEach(i=>{sub[i.currency]=(sub[i.currency]||0)+lTot(i);});
+    const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #f0f0f0">${i.description||'—'}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.qty}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.unit}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
+    const subLine=Object.entries(sub).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
+    return`<div style="margin-bottom:16px"><div style="background:#1A0835;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between"><span>${d}</span><span style="font-family:monospace">${subLine}</span></div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e5e5e5;border-top:none"><tr style="background:#fafafa">${['Description','Qty','Unit','Rate','Total'].map((h,i)=>`<th style="padding:5px 10px;font-size:9px;color:#999;text-transform:uppercase;text-align:${i>2?'right':i>0?'center':'left'}">${h}</th>`).join('')}</tr>${rows}</table></div>`;
+  }).join('');
+  const grandLine=Object.entries(grand).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
+  const html=`<!DOCTYPE html><html><head><title>Budget — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial}</style></head><body>
+    <div class="np" style="background:#0F0120;padding:12px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
+    <div style="max-width:700px;margin:0 auto;padding:26px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:8px">
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#0F0120">${brand.companyName||'NKO'}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Production Budget — ${brand.productionTitle||project.name}</div>
+        <div style="font-size:10px;color:#999;margin-top:3px">${project.type} · Generated ${today()}</div></div>${logoHtml}
+      </div>
+      <div style="background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">
+        <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1.5px">Grand Total</div>
+        <div style="font-size:26px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${grandLine||'—'}</div>
+      </div>
+      ${deptBlocks}
+      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:18px">Generated by NKO — Budgets tailored just for you · nko-nko.vercel.app</div>
+    </div></body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();
+};
+
 function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript}){
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
@@ -541,6 +573,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
       </div>}
       <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
         <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>📋 Templates</Btn>
+        {pItems.length>0&&<Btn variant="outline" size="sm" onClick={()=>budgetPDF(pItems,project,advances,reconEntries)}>📄 Share Budget PDF</Btn>}
       </div>
       {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
