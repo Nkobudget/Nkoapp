@@ -620,8 +620,8 @@ const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
 const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readTxt=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
 const readImg=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
-const callClaude=async(msgs,sys)=>{
-  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:8000})});
+const callClaude=async(msgs,sys,maxTokens=8000)=>{
+  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:maxTokens})});
   if(!r.ok)throw new Error(`API ${r.status}`);
   const d=await r.json();
   return d.content?.map(c=>c.text||'').join('')||'';
@@ -633,6 +633,42 @@ const recoverScenes=raw=>{
   const scenes=[];let depth=0,start=-1;
   for(let i=0;i<s.length;i++){const c=s[i];if(c==='{'){if(!depth)start=i;depth++;}else if(c==='}'){depth--;if(!depth&&start!==-1){try{const o=JSON.parse(s.slice(start,i+1));if(o.sceneNumber||o.heading)scenes.push(o);}catch{}start=-1;}}}
   return scenes;
+};
+/* Recover a script budget from Claude's JSON response, tolerating truncation (hit token limit)
+   or stray syntax issues — salvages every complete line item it can find rather than failing outright. */
+const recoverBudget=raw=>{
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
+  const start=s.indexOf('{');if(start===-1)return null;
+  s=s.slice(start);
+  try{
+    const end=s.lastIndexOf('}');
+    if(end!==-1){
+      const parsed=JSON.parse(s.slice(0,end+1));
+      if(parsed&&Array.isArray(parsed.budget)&&parsed.budget.length)return{...parsed,truncated:false};
+    }
+  }catch{}
+  const titleMatch=s.match(/"title"\s*:\s*"([^"]*)"/);
+  const summaryMatch=s.match(/"summary"\s*:\s*"([^"]*)"/);
+  const budgetIdx=s.indexOf('"budget"');
+  const items=[];
+  if(budgetIdx!==-1){
+    const arrStart=s.indexOf('[',budgetIdx);
+    if(arrStart!==-1){
+      let depth=0,itemStart=-1;
+      for(let i=arrStart;i<s.length;i++){
+        const c=s[i];
+        if(c==='{'){if(!depth)itemStart=i;depth++;}
+        else if(c==='}'){depth--;if(!depth&&itemStart!==-1){try{const o=JSON.parse(s.slice(itemStart,i+1));if(o.description||o.dept)items.push(o);}catch{}itemStart=-1;}}
+      }
+    }
+  }
+  if(!items.length)return null;
+  return{
+    title:titleMatch?titleMatch[1]:'Script budget',
+    budget:items,
+    summary:summaryMatch?summaryMatch[1]:`Recovered ${items.length} line item${items.length!==1?'s':''} — the response was cut off, so some later lines may be missing. Re-run on a shorter script excerpt for a complete budget.`,
+    truncated:true,
+  };
 };
 const useIsMobile=(bp=640)=>{const[m,setM]=useState(()=>window.innerWidth<bp);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[bp]);return m;};
 /* Keyword safety net — used only if the AI ever returns a department outside the DEPTS list */
@@ -938,6 +974,7 @@ function ScriptResultModal({result,currency,onApply,onClose}){
     <div style={{position:'fixed',inset:0,background:'rgba(15,1,32,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:24,width:'100%',maxWidth:480,maxHeight:'80vh',overflow:'auto'}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,marginBottom:4}}>{result.title||'Script budget'}</div>
+        {result.truncated&&<div style={{background:'rgba(224,107,82,.12)',border:`1px solid ${T.coral}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:10}}>⚠️ Response was cut off — showing {result.budget.length} recovered line item{result.budget.length!==1?'s':''}. Review before applying, or re-run on a shorter excerpt for a complete budget.</div>}
         {result.summary&&<div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>{result.summary}</div>}
         <div style={{marginBottom:16}}>{(result.budget||[]).slice(0,12).map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.line}`,fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.cream}}>{item.description}</span><span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace'}}>{sym(currency)}{fmt(item.rate*item.qty)}</span></div>)}</div>
         <div style={{display:'flex',gap:8}}><Btn onClick={onApply}>Apply to budget</Btn><Btn variant="ghost" onClick={onClose}>Discard</Btn></div>
@@ -955,10 +992,10 @@ function ScriptUploader({project,onApplyBudget}){
       let uc;if(isPDF){const b=await readB64(f);uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:SCRIPT_PROMPT(project.base_currency)}];}
       else{const t=await readTxt(f);uc=[{type:'text',text:`Script:\n\n${t}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];}
       setState('analyzing');
-      const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS);
-      let c=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-      const s=c.indexOf('{'),e=c.lastIndexOf('}');if(s===-1||e===-1)throw new Error('No JSON in response');
-      setResult(JSON.parse(c.slice(s,e+1)));setState('done');
+      const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS,24000);
+      const recovered=recoverBudget(raw);
+      if(!recovered||!recovered.budget?.length)throw new Error('Could not read a budget from the response. Try again, or upload a shorter script excerpt.');
+      setResult(recovered);setState('done');
     }catch(e){setErr(`Failed: ${e.message}`);setState('error');}
   };
   return(
