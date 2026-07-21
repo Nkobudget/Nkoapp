@@ -770,6 +770,30 @@ const PI_FIELDS=[
   ['shootStart','Shoot Commencement'],['shootEnd','Wrap Date'],
   ['postStart','Post-production Start'],['postEnd','Post-production End'],
 ];
+/* ── Phase Cost Summary — manual input for pre/production/post totals ── */
+function PhaseCostPanel({project}){
+  const[costs,setCosts]=useState({pre:'',prod:'',post:''});
+  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_phasecost_${project.id}`)||'{}');setCosts({pre:s.pre||'',prod:s.prod||'',post:s.post||''});}catch{}},[project?.id]);
+  const set=(k,v)=>{const upd={...costs,[k]:v};setCosts(upd);localStorage.setItem(`nko_phasecost_${project.id}`,JSON.stringify(upd));};
+  const total=(Number(costs.pre)||0)+(Number(costs.prod)||0)+(Number(costs.post)||0);
+  const cols=[['pre','Pre-Production'],['prod','Production'],['post','Post-Production']];
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:12}}>
+      <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:10}}>Phase Cost Summary</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
+        {cols.map(([k,label])=><div key={k}>
+          <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{label}</div>
+          <Inp type="number" placeholder="0" value={costs[k]} onChange={e=>set(k,e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+        </div>)}
+        <div>
+          <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>Total</div>
+          <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(total)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProductionInfoPanel({project}){
   const[open,setOpen]=useState(false);const[info,setInfo]=useState({});const[saved,setSaved]=useState(false);
   useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');setInfo(s);setSaved(Object.keys(s).length>0);}catch{}},[project?.id]);
@@ -910,6 +934,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Budget — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      <PhaseCostPanel project={project}/>
       <ProductionInfoPanel project={project}/>
       <BrandPanel project={project}/>
       {Object.keys(totals).length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:18}}>
@@ -928,26 +953,19 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
         </div>
       </div>}
       <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
-      {PHASES.map(ph=>{
-        const phItems=pItems.filter(i=>ph.depts.includes(i.dept));
-        const phTotals={};phItems.forEach(i=>{phTotals[i.currency]=(phTotals[i.currency]||0)+lTot(i);});
-        const phLine=Object.entries(phTotals).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
-        const activeDepts=ph.depts.filter(d=>pItems.some(i=>i.dept===d));
-        const emptyDepts=ph.depts.filter(d=>!activeDepts.includes(d));
+      {(()=>{
+        const activeDepts=DEPTS.filter(d=>pItems.some(i=>i.dept===d));
+        const emptyDepts=DEPTS.filter(d=>!activeDepts.includes(d));
         return(
-          <div key={ph.name} style={{marginBottom:18}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 4px',borderBottom:`2px solid ${T.gold}`,marginBottom:10}}>
-              <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.gold}}>{ph.name}</div>
-              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,color:T.cream}}>{phLine||'—'}</div>
-            </div>
+          <>
             {activeDepts.map(d=>{const di=pItems.filter(i=>i.dept===d);return<DeptSection key={d} dept={d} items={di} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove}/>;})}
-            {emptyDepts.length>0&&<Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
+            <Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
               <option value="">+ Add a department…</option>
               {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
-            </Sel>}
-          </div>
+            </Sel>
+          </>
         );
-      })}
+      })()}
     </div>
   );
 }
