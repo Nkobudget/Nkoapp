@@ -56,7 +56,15 @@ const TEMPLATES=[
     {dept:'Locations & Transport',description:'Cast transport',qty:12,unit:'day',rate:20000},
     {dept:'Feeding & Welfare',description:'Feeding (30 crew)',qty:12,unit:'day',rate:180000},
     {dept:'Feeding & Welfare',description:'Crew accommodation',qty:12,unit:'day',rate:60000},
-    {dept:'Feeding & Welfare',description:'Unit supplies — water, first aid, consumables',qty:12,unit:'day',rate:10000},
+    {dept:'Feeding & Welfare',description:'Drinking water & soft drinks',qty:12,unit:'day',rate:5000},
+    {dept:'Feeding & Welfare',description:'First aid kit & medication',qty:1,unit:'flat',rate:15000},
+    {dept:'Costume & Wardrobe',description:'Costume consumables — needles, thread, tape, steamer gas',qty:1,unit:'flat',rate:12000},
+    {dept:'Hair & Make-up',description:'Make-up consumables — wipes, sponges, powder, cotton wool',qty:1,unit:'flat',rate:25000},
+    {dept:'Equipment',description:'Camera consumables — batteries, cards, gaffer tape',qty:1,unit:'flat',rate:30000},
+    {dept:'Equipment',description:'Fuel — generator & production vehicles',qty:12,unit:'day',rate:20000},
+    {dept:'Locations & Transport',description:'Location cleaning & restoration',qty:1,unit:'flat',rate:20000},
+    {dept:'Crew',description:'Continuity / script supervisor',qty:1,unit:'flat',rate:60000},
+    {dept:'Crew',description:'Welfare officer / unit manager',qty:1,unit:'flat',rate:50000},
     {dept:'Costume & Wardrobe',description:'Costume purchases & rentals',qty:1,unit:'flat',rate:80000},
     {dept:'Equipment',description:'Camera package',qty:12,unit:'day',rate:40000},
     {dept:'Equipment',description:'Lighting package',qty:12,unit:'day',rate:25000},
@@ -468,6 +476,34 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
     </div>
   );
 }
+/* ── Production Info — title-page metadata like a real budget document ── */
+const PI_FIELDS=[
+  ['producer','Producer'],['lineProducer','Line Producer'],['execProducer','Executive Producer'],['preparedBy','Prepared By'],
+  ['prepStart','Pre-production Start'],['prepEnd','Pre-production End'],
+  ['shootStart','Shoot Commencement'],['shootEnd','Wrap Date'],
+  ['postStart','Post-production Start'],['postEnd','Post-production End'],
+];
+function ProductionInfoPanel({project}){
+  const[open,setOpen]=useState(false);const[info,setInfo]=useState({});const[saved,setSaved]=useState(false);
+  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');setInfo(s);setSaved(Object.keys(s).length>0);}catch{}},[project?.id]);
+  const set=(k,v)=>setInfo(p=>({...p,[k]:v}));
+  const save=()=>{localStorage.setItem(`nko_info_${project.id}`,JSON.stringify(info));setSaved(true);setOpen(false);};
+  return(
+    <div style={{background:T.panel,border:`1px solid ${saved?T.sage:T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📋 Production Info <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— producer credits & phase dates</span></span>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:8}}>
+          {PI_FIELDS.map(([k,label])=><div key={k}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:3}}>{label}</div><Inp type={k.includes('Start')||k.includes('End')?'date':'text'} value={info[k]||''} onChange={e=>set(k,e.target.value)}/></div>)}
+        </div>
+        <div style={{display:'flex',gap:8,marginTop:12}}><Btn size="sm" variant="sage" onClick={save}>Save info</Btn><Btn size="sm" variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn></div>
+      </div>}
+    </div>
+  );
+}
+
 function BrandPanel({project}){
   const[open,setOpen]=useState(false);const[cname,setCname]=useState('');const[ptitle,setPtitle]=useState('');const[logo,setLogo]=useState(null);const[accent,setAccent]=useState('#FEED61');const[saved,setSaved]=useState(false);const lr=useRef();
   useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');setCname(s.companyName||'');setPtitle(s.productionTitle||project.name||'');setLogo(s.logo||null);setAccent(s.accentColor||'#FEED61');setSaved(!!(s.companyName||s.logo));}catch{}},[project?.id]);
@@ -533,7 +569,10 @@ function ScriptUploader({project,onApplyBudget}){
 /* ── Budget PDF — full branded budget export ── */
 const budgetPDF=(items,project,advances,reconEntries)=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const info=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');
   const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const infoRows=[['Producer',info.producer],['Line Producer',info.lineProducer],['Executive Producer',info.execProducer],['Prepared By',info.preparedBy],['Pre-production',info.prepStart&&`${info.prepStart} → ${info.prepEnd||''}`],['Shoot',info.shootStart&&`${info.shootStart} → ${info.shootEnd||''}`],['Post-production',info.postStart&&`${info.postStart} → ${info.postEnd||''}`]].filter(([,v])=>v);
+  const infoBlock=infoRows.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:18px;border:1px solid #eee;border-radius:8px">${infoRows.map(([k,v])=>`<tr><td style="padding:6px 12px;font-size:10px;color:#999;text-transform:uppercase;width:170px;background:#faf8f0;border-bottom:1px solid #f0f0f0">${k}</td><td style="padding:6px 12px;font-size:12px;color:#222;font-weight:600;border-bottom:1px solid #f0f0f0">${v}</td></tr>`).join('')}</table>`:'';
   const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
   const phaseSummary=PHASES.map(ph=>{
     const pi=items.filter(i=>ph.depts.includes(i.dept));
@@ -562,6 +601,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Production Budget — ${brand.productionTitle||project.name}</div>
         <div style="font-size:10px;color:#999;margin-top:3px">${project.type} · Generated ${today()}</div></div>${logoHtml}
       </div>
+      ${infoBlock}
       <div style="background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">
         <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1.5px">Grand Total</div>
         <div style="font-size:26px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${grandLine||'—'}</div>
@@ -583,6 +623,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Budget — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      <ProductionInfoPanel project={project}/>
       <BrandPanel project={project}/>
       {Object.keys(totals).length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>Total budget</div>
@@ -621,7 +662,9 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
 /* ── Recon ── */
 function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}){
   const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
-  const spent=entries.reduce((s,e)=>s+(Number(e.amount)||0),0);const bal=advance.amount-spent;const pct=advance.amount>0?Math.min(100,(spent/advance.amount)*100):0;
+  const cashIn=entries.filter(e=>e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const spent=entries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const funds=Number(advance.amount)+cashIn;const bal=funds-spent;const pct=funds>0?Math.min(100,(spent/funds)*100):0;
   const sc=advance.status==='reconciled'?T.sage:bal<0?T.coral:T.gold;
   const save=()=>{if(eDesc&&eAmt){onAddEntry({advance_id:advance.id,description:`[${eCat}] ${eDesc}${eRef?` · Ref: ${eRef}`:''}`,amount:Number(eAmt),date:eDate});setEDesc('');setEAmt('');setERef('');setECat('Miscellaneous');}setShow(false);};
   return(
@@ -631,7 +674,7 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}
         <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div><Pill color={sc}>{advance.status==='reconciled'?'Reconciled':bal<0?'Overspent':bal===0?'Balanced':'Open'}</Pill></div>
       </div>
       <div style={{padding:'0 16px 10px'}}><div style={{height:6,borderRadius:3,background:T.ink,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:bal<0?T.coral:T.gold}}/></div><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}><span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span><span style={{color:bal<0?T.coral:T.dim}}>{bal<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(advance.currency)}${fmt(bal)}`}</span></div></div>
-      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');return<div key={en.id} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:T.hi,color:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:12}}>{sym(advance.currency)}{fmt(en.amount)}</span><button onClick={()=>onRemoveEntry(en.id)} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
+      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{const isIn=en.description?.startsWith('[CASH-IN]');const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');return<div key={en.id} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:isIn?'rgba(82,176,122,.2)':T.hi,color:isIn?T.sage:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{isIn?'CASH IN':cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:isIn?T.sage:T.cream,fontSize:12}}>{isIn?'+':''}{sym(advance.currency)}{fmt(en.amount)}</span><button onClick={()=>onRemoveEntry(en.id)} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
         <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
       </div>}
       {show&&<div style={{padding:'10px 16px',borderTop:`1px solid ${T.line}`,background:T.hi,display:'flex',flexDirection:'column',gap:8}}>
@@ -1141,11 +1184,11 @@ function MainApp(){
   const addReconEntry=async e=>{const{data,error}=await sb.from('recon_entries').insert({...e,user_id:user.id}).select().single();if(error){alert(`Could not save expense: ${error.message}`);return;}if(data)setReconEntries(p=>[...p,data]);};
   /* Top-up an advance — increases the amount when more cash is received */
   const topUpAdvance=async(id,extra)=>{
-    const adv=advances.find(a=>a.id===id);if(!adv)return;
-    const newAmount=Number(adv.amount)+Number(extra);
-    setAdvances(p=>p.map(a=>a.id===id?{...a,amount:newAmount,status:'open'}:a));
-    const{error}=await sb.from('advances').update({amount:newAmount,status:'open'}).eq('id',id);
-    if(error)alert(`Could not top up: ${error.message}`);
+    const{data,error}=await sb.from('recon_entries').insert({advance_id:id,user_id:user.id,description:'[CASH-IN] Top-up received',amount:Number(extra),date:today()}).select().single();
+    if(error){alert(`Could not top up: ${error.message}`);return;}
+    if(data)setReconEntries(p=>[...p,data]);
+    setAdvances(p=>p.map(a=>a.id===id&&a.status==='reconciled'?{...a,status:'open'}:a));
+    await sb.from('advances').update({status:'open'}).eq('id',id);
   };
   const removeReconEntry=async id=>{setReconEntries(p=>p.filter(e=>e.id!==id));await sb.from('recon_entries').delete().eq('id',id);};
   const addPayee=async p=>{
