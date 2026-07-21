@@ -25,6 +25,12 @@ const CURRENCIES=[
   {code:'XOF',symbol:'Fr'},{code:'ETB',symbol:'Br'},{code:'USD',symbol:'$'},{code:'GBP',symbol:'£'},
 ];
 const DEPTS=['Cast & Talent','Crew','Costume & Wardrobe','Hair & Make-up','Feeding & Welfare','Locations & Transport','Equipment','Post-Production','Marketing','Contingency'];
+const PHASES=[
+  {name:'Pre-Production',depts:['Cast & Talent','Costume & Wardrobe']},
+  {name:'Production',depts:['Crew','Hair & Make-up','Feeding & Welfare','Locations & Transport','Equipment']},
+  {name:'Post-Production',depts:['Post-Production','Marketing']},
+  {name:'Contingency',depts:['Contingency']},
+];
 const UNITS=['day','week','flat','person','item'];
 const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Animation / Cartoon','Other'];
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
@@ -444,17 +450,18 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
         <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{ts}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 12px 14px'}}>
+        {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 56px 88px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span>Cur</span><span style={{textAlign:'right'}}>Line total</span><span/></div>}
         {items.map(item=><div key={item.id} style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
-          <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{marginBottom:6}}/>
-          <div style={{display:'grid',gridTemplateColumns:mob?'52px 1fr 90px 52px 20px':'2fr 52px 80px 100px 56px 20px',gap:4,alignItems:'center'}}>
-            {!mob&&<span/>}
+          {mob&&<Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{marginBottom:6}}/>}
+          <div style={{display:'grid',gridTemplateColumns:mob?'52px 1fr 90px 52px 20px':'2fr 52px 80px 100px 56px 88px 20px',gap:4,alignItems:'center'}}>
+            {!mob&&<Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>}
             <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:12}}/>
             <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:11}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
             <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
             <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
             <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none'}}>×</button>
           </div>
-          {mob&&<div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.gold,textAlign:'right',marginTop:4}}>{sym(item.currency)}{fmt(lTot(item))}</div>}
+          {mob&&<div style={{display:'flex',justifyContent:'space-between',marginTop:4,fontSize:11,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.faint}}>Unit cost × qty</span><span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.gold}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</span></div>}
         </div>)}
         <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Add line</button>
       </div>}
@@ -528,13 +535,23 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
   const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
-  const deptBlocks=DEPTS.map(d=>{
+  const phaseSummary=PHASES.map(ph=>{
+    const pi=items.filter(i=>ph.depts.includes(i.dept));
+    const t={};pi.forEach(i=>{t[i.currency]=(t[i.currency]||0)+lTot(i);});
+    const line=Object.entries(t).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ')||'—';
+    return`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#999;text-transform:uppercase;letter-spacing:1px">${ph.name}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${line}</div></div>`;
+  }).join('');
+  const deptBlocks=PHASES.map(ph=>{
+    const phBlocks=ph.depts.map(d=>{
     const di=items.filter(i=>i.dept===d);if(!di.length)return'';
     const sub={};di.forEach(i=>{sub[i.currency]=(sub[i.currency]||0)+lTot(i);});
     const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #f0f0f0">${i.description||'—'}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.qty}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.unit}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
     const subLine=Object.entries(sub).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
     return`<div style="margin-bottom:16px"><div style="background:#1A0835;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between"><span>${d}</span><span style="font-family:monospace">${subLine}</span></div>
     <table style="width:100%;border-collapse:collapse;border:1px solid #e5e5e5;border-top:none"><tr style="background:#fafafa">${['Description','Qty','Unit','Rate','Total'].map((h,i)=>`<th style="padding:5px 10px;font-size:9px;color:#999;text-transform:uppercase;text-align:${i>2?'right':i>0?'center':'left'}">${h}</th>`).join('')}</tr>${rows}</table></div>`;
+    }).join('');
+    if(!phBlocks)return'';
+    return`<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#0F0120;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${ph.name}</div>${phBlocks}</div>`;
   }).join('');
   const grandLine=Object.entries(grand).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
   const html=`<!DOCTYPE html><html><head><title>Budget — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial}</style></head><body>
@@ -549,6 +566,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
         <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1.5px">Grand Total</div>
         <div style="font-size:26px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${grandLine||'—'}</div>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px">${phaseSummary}</div>
       ${deptBlocks}
       <div style="text-align:center;font-size:10px;color:#bbb;margin-top:18px">Generated by NKO — Budgets tailored just for you · nko-nko.vercel.app</div>
     </div></body></html>`;
@@ -582,8 +600,20 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
         </div>
       </div>}
       <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
-      {DEPTS.map(d=>{const di=pItems.filter(i=>i.dept===d);if(!di.length&&d!=='Cast & Talent')return null;return<DeptSection key={d} dept={d} items={di} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove}/>;})}
-      {DEPTS.map(d=>{const di=pItems.filter(i=>i.dept===d);if(di.length)return null;return<button key={d} onClick={()=>onAdd(d)} style={{display:'block',color:T.faint,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',marginBottom:4}}>+ {d}</button>;})}
+      {PHASES.map(ph=>{
+        const phItems=pItems.filter(i=>ph.depts.includes(i.dept));
+        const phTotals={};phItems.forEach(i=>{phTotals[i.currency]=(phTotals[i.currency]||0)+lTot(i);});
+        const phLine=Object.entries(phTotals).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
+        return(
+          <div key={ph.name} style={{marginBottom:18}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 4px',borderBottom:`2px solid ${T.gold}`,marginBottom:10}}>
+              <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.gold}}>{ph.name}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,color:T.cream}}>{phLine||'—'}</div>
+            </div>
+            {ph.depts.map(d=>{const di=pItems.filter(i=>i.dept===d);if(!di.length)return<button key={d} onClick={()=>onAdd(d)} style={{display:'block',color:T.faint,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',marginBottom:6}}>+ {d}</button>;return<DeptSection key={d} dept={d} items={di} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove}/>;})}
+          </div>
+        );
+      })}
     </div>
   );
 }
