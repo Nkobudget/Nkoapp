@@ -864,7 +864,7 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
         </div>
       </>
       )}
-      {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{await onCreate(d);setShowModal(false);}}/>}
+      {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{const ok=await onCreate(d);if(ok)setShowModal(false);}}/>}
     </div>
   );
 }
@@ -1591,23 +1591,30 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py]=await Promise.all([
+      const[pr,bi,ad,re,py,sc]=await Promise.all([
         sb.from('projects').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
         sb.from('budget_items').select('*').eq('user_id',user.id),
         sb.from('advances').select('*').eq('user_id',user.id),
         sb.from('recon_entries').select('*').eq('user_id',user.id),
         sb.from('payees').select('*').eq('user_id',user.id),
+        sb.from('scenes').select('*').eq('user_id',user.id),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
+      if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
   const pBudget=budgetItems.filter(i=>i.project_id===currentId);
   const pAdvances=advances.filter(a=>a.project_id===currentId);
 
-  const createProject=async d=>{const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();if(!error&&data){setProjects(p=>[data,...p]);setCurrentId(data.id);setView('budgets');}};
+  const createProject=async d=>{
+    const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();
+    if(error){alert(`Could not create production: ${error.message}`);return false;}
+    if(data){setProjects(p=>[data,...p]);setCurrentId(data.id);setView('budgets');return true;}
+    return false;
+  };
   const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
-  const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(!error&&data)setBudgetItems(p=>[...p,data]);};
+  const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
   const updateBudgetItem=async(id,upd)=>{setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));await sb.from('budget_items').update(upd).eq('id',id);};
   const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));await sb.from('budget_items').delete().eq('id',id);};
   const applyTemplate=async tpl=>{
@@ -1624,7 +1631,12 @@ function MainApp(){
     const{data,error}=await sb.from('budget_items').insert(rows).select();
     if(error){alert(`Could not apply template: ${error.message}`);return;}
     if(data)setBudgetItems(p=>[...p,...data]);
-    if(tpl.scenes?.length){const sc=tpl.scenes.map(s=>({...s,project_id:currentId,id:Math.random().toString(36).slice(2,10)}));setScenes(p=>[...p,...sc]);}
+    if(tpl.scenes?.length){
+      const sceneRows=tpl.scenes.map(s=>({id:Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:s}));
+      const{data:scData,error:scError}=await sb.from('scenes').insert(sceneRows).select();
+      if(scError){alert(`Budget applied, but could not save template scenes: ${scError.message}`);}
+      else if(scData)setScenes(p=>[...p,...scData.map(r=>({...r.data,id:r.id,project_id:r.project_id}))]);
+    }
   };
   const applyScriptBudget=async lines=>{
     const rows=lines.map(l=>({
@@ -1653,6 +1665,26 @@ function MainApp(){
     await sb.from('advances').update({status:'open'}).eq('id',id);
   };
   const removeReconEntry=async id=>{setReconEntries(p=>p.filter(e=>e.id!==id));await sb.from('recon_entries').delete().eq('id',id);};
+  /* Scene breakdown persistence — stores the full scene object in a JSONB 'data' column */
+  const addScene=async sc=>{
+    const id=sc.id||Math.random().toString(36).slice(2,10);
+    const{id:_omit,project_id:_omit2,...rest}=sc;
+    const{data,error}=await sb.from('scenes').insert({id,project_id:currentId,user_id:user.id,data:rest}).select().single();
+    if(error){alert(`Could not save scene: ${error.message}`);return;}
+    if(data)setScenes(p=>[...p,{...data.data,id:data.id,project_id:data.project_id}]);
+  };
+  const updateScene=async(id,upd)=>{
+    setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s));
+    const merged=scenes.find(s=>s.id===id);
+    const{id:_omit,project_id:_omit2,...rest}={...merged,...upd};
+    const{error}=await sb.from('scenes').update({data:rest}).eq('id',id);
+    if(error)alert(`Could not save scene changes: ${error.message}`);
+  };
+  const deleteScene=async id=>{
+    setScenes(p=>p.filter(s=>s.id!==id));
+    const{error}=await sb.from('scenes').delete().eq('id',id);
+    if(error)alert(`Could not delete scene: ${error.message}`);
+  };
   const addPayee=async p=>{
     const{data,error}=await sb.from('payees').insert({...p,user_id:user.id,payments:[]}).select().single();
     if(error){alert(`Could not save payee: ${error.message}`);return;}
@@ -1683,7 +1715,7 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))} onUpdateScene={(id,upd)=>setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s))}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={addScene} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
