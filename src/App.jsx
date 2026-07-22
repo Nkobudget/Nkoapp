@@ -37,6 +37,10 @@ const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Mu
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
 const EXPENSE_CATS=['Feeding','Transport','Fuel','Location fee','Props & materials','Equipment hire','Accommodation','Communication','Labour','Miscellaneous'];
 const ACCENT_COLORS=['#FEED61','#E06B52','#52B07A','#4A90D9','#9B7FD4','#F5A623','#2ABFBF','#E8527A'];
+/* Approximate local-currency-to-USD conversion rates, for the dual currency display on each budget line.
+   These are illustrative rates and should be treated as approximate — update RATES_TO_USD as real rates move. */
+const RATES_TO_USD={NGN:1/1550,GHS:1/15.5,KES:1/129,ZAR:1/18.2,UGX:1/3700,TZS:1/2500,XOF:1/605,ETB:1/128,USD:1,GBP:1.27};
+const toUSD=(amount,code)=>Number(amount||0)*(RATES_TO_USD[code]??0);
 
 /* ── Templates ── */
 const TEMPLATES=[
@@ -546,7 +550,63 @@ const MKTCAT=['All','Feature Film','Vertical Series / Microdrama','Music Video',
 
 /* ── AI Prompts ── */
 const CHAT_SYS=`You are a production finance co-pilot for African film and TV productions. You know Lagos, Accra, Nairobi and Johannesburg market rates. Give practical, specific advice in Naira, Cedis, Shillings or Rand as appropriate. Keep responses concise and actionable. IMPORTANT: Do not use any Markdown formatting. No asterisks for bold, no # for headers, no | for tables, no bullet points with *. Write in plain conversational text only. Use line breaks to separate points.`;
-const SCRIPT_SYS=`You are a script budget AI for African film productions. Return ONLY valid JSON. No markdown. No code fences. Use departments: Cast & Talent, Crew, Locations & Transport, Equipment, Post-Production, Marketing, Contingency. Units: day, week, flat, person, item. No apostrophes in strings.`;
+const SCRIPT_SYS=`You are a script budget AI for African film productions. Return ONLY valid JSON. No markdown. No code fences. No apostrophes in strings.
+
+You must classify every budget line into exactly one of these 26 department codes. Use the string EXACTLY as written below, including the letter prefix. Never invent a new department name.
+
+A - Research & Development
+B - Script & Story
+C - Pre-Production Expenses
+D - Production Team
+E - Creative Team
+F - Talents
+G - Camera & Grip Team
+H - Camera & Grip Equipment
+I - Light & Power Team
+J - Light & Power Equipment
+K - Sound Team
+L - Sound Equipment
+M - Art Team
+N - Set & Prop Expenses
+O - Location
+P - Wardrobe
+Q - Makeup & Hair
+R - SFX & Stunts
+S - Production Logistics
+T - Hospitality & Welfare
+U - Overhead & General Expenses
+V - Production Support
+W - Post-Production Team
+X - Post-Production Expenses
+Y - PR & Marketing
+Z - Sales & Distribution
+
+Classification rules, follow these closely:
+- Producer, Line Producer, Production Manager, Unit Manager, Accountant, Production Assistant, Production Coordinator -> D - Production Team
+- Director, DOP, 1st/2nd/3rd AD, Script Supervisor, Continuity Supervisor, dialect or cultural consultants working with the director -> E - Creative Team
+- Any actor, cast member, lead or supporting performer, background extras, on-camera performers of any kind including ritual performers, musical guest performers, wrestling or fight performers appearing on camera -> F - Talents
+- Camera operators, focus pullers, camera assistants, drone or steadicam operators, key grip, gaffers grip crew -> G - Camera & Grip Team
+- Cameras, lenses, tripods, cranes, drones, camera consumables -> H - Camera & Grip Equipment
+- Gaffer, best boy electric, lighting technicians, electricians -> I - Light & Power Team
+- Lights, generators, power equipment -> J - Light & Power Equipment
+- Sound recordist, boom operator, sound mixer, sound assistant -> K - Sound Team
+- Microphones, recorders, sound equipment -> L - Sound Equipment
+- Production designer, art director, props master, set dressers, artisans -> M - Art Team
+- Set construction, prop purchases or rentals, set materials -> N - Set & Prop Expenses
+- Location fees, location manager, location scouting, location permits -> O - Location
+- Costume designer, wardrobe manager or stylist, costume purchase, rental or dry cleaning -> P - Wardrobe
+- Makeup artist, hair stylist, body paint or traditional makeup specialists, makeup and hair supplies -> Q - Makeup & Hair
+- Stunt coordinator, stunt performers acting purely as stunt doubles or riggers, fight choreographer, special effects supervisor, pyrotechnics, practical FX, SFX makeup, prop fabrication tied to stunts or effects such as masks or weapons -> R - SFX & Stunts
+- Vehicles, fuel, transport, travel, security -> S - Production Logistics
+- Feeding, accommodation, welfare, medical, water, craft services -> T - Hospitality & Welfare
+- Insurance, general permits, bank charges -> U - Overhead & General Expenses
+- Legal, audit, tax, safety consulting -> V - Production Support
+- Editor, colorist, sound designer, VFX artist, composer -> W - Post-Production Team
+- Editing suite, hard drives, music or footage licensing -> X - Post-Production Expenses
+- Posters, publicity, social media, press -> Y - PR & Marketing
+- Distribution, festival runs, DCP generation -> Z - Sales & Distribution
+
+If an item does not obviously fit, choose the single closest department from the list above. Never return a department that is not in this list, and never leave dept blank.`;
 const SCRIPT_PROMPT=(cur)=>`Analyze this script and return a production budget as JSON: {"title":"string","budget":[{"dept":"string","description":"string","qty":number,"unit":"string","rate":number,"currency":"${cur}"}],"summary":"string"}`;
 const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions. Return ONLY valid JSON array. No markdown. No apostrophes. Keep values short and clean.`;
 const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode, max ${max} episodes.`:`Extract scenes, max ${max} scenes.`} Return ONLY: [{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","notes":""}]`;
@@ -560,8 +620,8 @@ const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
 const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readTxt=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
 const readImg=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
-const callClaude=async(msgs,sys)=>{
-  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:8000})});
+const callClaude=async(msgs,sys,maxTokens=8000)=>{
+  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:maxTokens})});
   if(!r.ok)throw new Error(`API ${r.status}`);
   const d=await r.json();
   return d.content?.map(c=>c.text||'').join('')||'';
@@ -574,7 +634,83 @@ const recoverScenes=raw=>{
   for(let i=0;i<s.length;i++){const c=s[i];if(c==='{'){if(!depth)start=i;depth++;}else if(c==='}'){depth--;if(!depth&&start!==-1){try{const o=JSON.parse(s.slice(start,i+1));if(o.sceneNumber||o.heading)scenes.push(o);}catch{}start=-1;}}}
   return scenes;
 };
+/* Recover a script budget from Claude's JSON response, tolerating truncation (hit token limit)
+   or stray syntax issues — salvages every complete line item it can find rather than failing outright. */
+const recoverBudget=raw=>{
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
+  const start=s.indexOf('{');if(start===-1)return null;
+  s=s.slice(start);
+  try{
+    const end=s.lastIndexOf('}');
+    if(end!==-1){
+      const parsed=JSON.parse(s.slice(0,end+1));
+      if(parsed&&Array.isArray(parsed.budget)&&parsed.budget.length)return{...parsed,truncated:false};
+    }
+  }catch{}
+  const titleMatch=s.match(/"title"\s*:\s*"([^"]*)"/);
+  const summaryMatch=s.match(/"summary"\s*:\s*"([^"]*)"/);
+  const budgetIdx=s.indexOf('"budget"');
+  const items=[];
+  if(budgetIdx!==-1){
+    const arrStart=s.indexOf('[',budgetIdx);
+    if(arrStart!==-1){
+      let depth=0,itemStart=-1;
+      for(let i=arrStart;i<s.length;i++){
+        const c=s[i];
+        if(c==='{'){if(!depth)itemStart=i;depth++;}
+        else if(c==='}'){depth--;if(!depth&&itemStart!==-1){try{const o=JSON.parse(s.slice(itemStart,i+1));if(o.description||o.dept)items.push(o);}catch{}itemStart=-1;}}
+      }
+    }
+  }
+  if(!items.length)return null;
+  return{
+    title:titleMatch?titleMatch[1]:'Script budget',
+    budget:items,
+    summary:summaryMatch?summaryMatch[1]:`Recovered ${items.length} line item${items.length!==1?'s':''} — the response was cut off, so some later lines may be missing. Re-run on a shorter script excerpt for a complete budget.`,
+    truncated:true,
+  };
+};
 const useIsMobile=(bp=640)=>{const[m,setM]=useState(()=>window.innerWidth<bp);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[bp]);return m;};
+/* Keyword safety net — used only if the AI ever returns a department outside the DEPTS list */
+/* Hard override — some keywords are unambiguous enough that they should win regardless of what
+   department the AI claims, since the AI sometimes returns a VALID department that is simply wrong
+   (e.g. filing cast members under Production Team). Checked before trusting the AI's own dept value. */
+const forceDeptOverride=(desc='')=>{
+  const t=desc.toLowerCase();
+  if(/\bcast\b/.test(t))return'F - Talents';
+  if(/\bextras?\b/.test(t))return'F - Talents';
+  if(/\bactor\b|\bactress\b|\bperformer\b/.test(t))return'F - Talents';
+  if(/^lead\s*-|^supporting\s*-|^background\s*-/.test(t))return'F - Talents';
+  if(/\bwrestl/.test(t))return'F - Talents';
+  if(/\britual performer/.test(t))return'F - Talents';
+  if(/\bcostume\b|\bwardrobe\b|\btailor\b|\bdry clean/.test(t))return'P - Wardrobe';
+  if(/\bmakeup\b|\bmake-up\b|\bhair styl|\bbody paint/.test(t))return'Q - Makeup & Hair';
+  if(/\bstunt\b|\bpyro|\bfight choreo|\bsfx makeup|\bprop fabrication/.test(t))return'R - SFX & Stunts';
+  return null;
+};
+const smartDeptFallback=(desc='',rawDept='')=>{
+  const t=`${desc} ${rawDept}`.toLowerCase();
+  const has=(...words)=>words.some(w=>t.includes(w));
+  if(has('actor','cast','talent','extra','performer','lead','supporting','ritual','wrestl'))return'F - Talents';
+  if(has('costume','wardrobe','tailor','stylist','dry clean'))return'P - Wardrobe';
+  if(has('makeup','make-up','hair','wig','body paint'))return'Q - Makeup & Hair';
+  if(has('stunt','sfx','special effect','pyro','fight choreo','armour','weapon prop','python prop','mask'))return'R - SFX & Stunts';
+  if(has('director','dop','director of photography','1st ad','2nd ad','3rd ad','script supervisor','continuity','dialect','language coach'))return'E - Creative Team';
+  if(has('camera operator','focus puller','grip','1st ac','2nd ac','drone operator','steadicam'))return'G - Camera & Grip Team';
+  if(has('camera','lens','tripod','crane','gimbal'))return'H - Camera & Grip Equipment';
+  if(has('gaffer','electric','lighting tech'))return'I - Light & Power Team';
+  if(has('light','generator','genny'))return'J - Light & Power Equipment';
+  if(has('sound recordist','boom','mixer','sound engineer'))return'K - Sound Team';
+  if(has('mic','recorder'))return'L - Sound Equipment';
+  if(has('production designer','art director','props master','set dresser'))return'M - Art Team';
+  if(has('set construction','prop purchase','prop rental','set dressing'))return'N - Set & Prop Expenses';
+  if(has('location'))return'O - Location';
+  if(has('feeding','food','accommodation','welfare','medic','water'))return'T - Hospitality & Welfare';
+  if(has('editor','colorist','vfx','sound design','composer'))return'W - Post-Production Team';
+  if(has('poster','publicity','marketing','press','social media'))return'Y - PR & Marketing';
+  if(has('producer','production manager','unit manager','accountant'))return'D - Production Team';
+  return'D - Production Team';
+};
 
 /* ── Atoms ── */
 const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
@@ -738,26 +874,40 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
   const[open,setOpen]=useState(true);const mob=useIsMobile();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const ts=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')||'—';
+  const usdTotal=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden',marginBottom:8}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{dept}</span><span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>({items.length})</span></div>
-        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{ts}</span>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{ts}</div>
+          {items.length>0&&<div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usdTotal)}</div>}
+        </div>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 12px 14px'}}>
-        {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 56px 88px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span>Cur</span><span style={{textAlign:'right'}}>Line total</span><span/></div>}
-        {items.map(item=><div key={item.id} style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
+        {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span style={{textAlign:'right'}}>Line total</span><span>Cur</span><span/></div>}
+        {items.map(item=>{const usd=toUSD(lTot(item),item.currency);return<div key={item.id} style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
           {mob&&<Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{marginBottom:6}}/>}
-          <div style={{display:'grid',gridTemplateColumns:mob?'52px 1fr 90px 52px 20px':'2fr 52px 80px 100px 56px 88px 20px',gap:4,alignItems:'center'}}>
+          <div style={{display:'grid',gridTemplateColumns:mob?'52px 1fr 90px 20px':'2fr 52px 80px 100px 120px 56px 20px',gap:4,alignItems:'center'}}>
             {!mob&&<Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>}
             <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:12}}/>
             <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:11}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
             <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
-            <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+            {!mob&&<div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold,fontWeight:700}}>{sym(item.currency)}{fmt(lTot(item))}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
+            </div>}
+            {!mob&&<Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>}
             <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none'}}>×</button>
           </div>
-          {mob&&<div style={{display:'flex',justifyContent:'space-between',marginTop:4,fontSize:11,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.faint}}>Unit cost × qty</span><span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.gold}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</span></div>}
-        </div>)}
+          {mob&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6,gap:6}}>
+            <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.gold,fontWeight:700}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
+            </div>
+          </div>}
+        </div>;})}
         <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Add line</button>
       </div>}
     </div>
@@ -840,6 +990,7 @@ function ScriptResultModal({result,currency,onApply,onClose}){
     <div style={{position:'fixed',inset:0,background:'rgba(15,1,32,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:24,width:'100%',maxWidth:480,maxHeight:'80vh',overflow:'auto'}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,marginBottom:4}}>{result.title||'Script budget'}</div>
+        {result.truncated&&<div style={{background:'rgba(224,107,82,.12)',border:`1px solid ${T.coral}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:10}}>⚠️ Response was cut off — showing {result.budget.length} recovered line item{result.budget.length!==1?'s':''}. Review before applying, or re-run on a shorter excerpt for a complete budget.</div>}
         {result.summary&&<div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>{result.summary}</div>}
         <div style={{marginBottom:16}}>{(result.budget||[]).slice(0,12).map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.line}`,fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.cream}}>{item.description}</span><span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace'}}>{sym(currency)}{fmt(item.rate*item.qty)}</span></div>)}</div>
         <div style={{display:'flex',gap:8}}><Btn onClick={onApply}>Apply to budget</Btn><Btn variant="ghost" onClick={onClose}>Discard</Btn></div>
@@ -857,10 +1008,10 @@ function ScriptUploader({project,onApplyBudget}){
       let uc;if(isPDF){const b=await readB64(f);uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:SCRIPT_PROMPT(project.base_currency)}];}
       else{const t=await readTxt(f);uc=[{type:'text',text:`Script:\n\n${t}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];}
       setState('analyzing');
-      const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS);
-      let c=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-      const s=c.indexOf('{'),e=c.lastIndexOf('}');if(s===-1||e===-1)throw new Error('No JSON in response');
-      setResult(JSON.parse(c.slice(s,e+1)));setState('done');
+      const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS,24000);
+      const recovered=recoverBudget(raw);
+      if(!recovered||!recovered.budget?.length)throw new Error('Could not read a budget from the response. Try again, or upload a shorter script excerpt.');
+      setResult(recovered);setState('done');
     }catch(e){setErr(`Failed: ${e.message}`);setState('error');}
   };
   return(
@@ -1479,7 +1630,7 @@ function MainApp(){
     const rows=lines.map(l=>({
       project_id:currentId,
       user_id:user.id,
-      dept:DEPTS.includes(l.dept)?l.dept:'D - Production Team',
+      dept:forceDeptOverride(l.description)||(DEPTS.includes(l.dept)?l.dept:smartDeptFallback(l.description,l.dept)),
       description:String(l.description||'').slice(0,200),
       qty:Number(l.qty)||1,
       unit:UNITS.includes(l.unit)?l.unit:'flat',
