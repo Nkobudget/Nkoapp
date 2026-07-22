@@ -922,11 +922,11 @@ const PI_FIELDS=[
 ];
 /* ── Phase Cost Summary — manual input for pre/production/post totals ── */
 function PhaseCostPanel({project}){
-  const[costs,setCosts]=useState({pre:'',prod:'',post:''});
-  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_phasecost_${project.id}`)||'{}');setCosts({pre:s.pre||'',prod:s.prod||'',post:s.post||''});}catch{}},[project?.id]);
+  const[costs,setCosts]=useState({pre:'',prod:'',contingency:'',post:''});
+  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_phasecost_${project.id}`)||'{}');setCosts({pre:s.pre||'',prod:s.prod||'',contingency:s.contingency||'',post:s.post||''});}catch{}},[project?.id]);
   const set=(k,v)=>{const upd={...costs,[k]:v};setCosts(upd);localStorage.setItem(`nko_phasecost_${project.id}`,JSON.stringify(upd));};
-  const total=(Number(costs.pre)||0)+(Number(costs.prod)||0)+(Number(costs.post)||0);
-  const cols=[['pre','Pre-Production'],['prod','Production'],['post','Post-Production']];
+  const total=(Number(costs.pre)||0)+(Number(costs.prod)||0)+(Number(costs.contingency)||0)+(Number(costs.post)||0);
+  const cols=[['pre','Pre-Production'],['prod','Production'],['contingency','Contingency'],['post','Post-Production']];
   return(
     <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:12}}>
       <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:10}}>Phase Cost Summary</div>
@@ -1686,7 +1686,7 @@ function MainApp(){
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={sc=>setScenes(p=>[...p,sc])} onDeleteScene={id=>setScenes(p=>p.filter(s=>s.id!==id))} onUpdateScene={(id,upd)=>setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s))}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
-          {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(currentId)await applyTemplate(tpl);else{setView('dashboard');}}}/>}
+          {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
         </div>
       </div>
