@@ -956,15 +956,43 @@ const PI_FIELDS=[
   ['postStart','Post-production Start'],['postEnd','Post-production End'],
 ];
 /* ── Phase Cost Summary — manual input for pre/production/post totals ── */
-function PhaseCostPanel({project}){
+function PhaseCostPanel({project,items}){
+  const preDepts=['A - Research & Development','B - Script & Story','C - Pre-Production Expenses'];
+  const postDepts=['W - Post-Production Team','X - Post-Production Expenses'];
+  const prodDepts=PHASES[1].depts;
+  let autoPre=0,autoProd=0,autoContingency=0,autoPost=0;
+  items.forEach(i=>{
+    const t=lTot(i);
+    if(/contingency/i.test(i.description||'')){autoContingency+=t;return;}
+    if(preDepts.includes(i.dept))autoPre+=t;
+    else if(prodDepts.includes(i.dept))autoProd+=t;
+    else if(postDepts.includes(i.dept))autoPost+=t;
+  });
   const[costs,setCosts]=useState({pre:'',prod:'',contingency:'',post:''});
-  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_phasecost_${project.id}`)||'{}');setCosts({pre:s.pre||'',prod:s.prod||'',contingency:s.contingency||'',post:s.post||''});}catch{}},[project?.id]);
-  const set=(k,v)=>{const upd={...costs,[k]:v};setCosts(upd);localStorage.setItem(`nko_phasecost_${project.id}`,JSON.stringify(upd));};
+  const[isAuto,setIsAuto]=useState(true);
+  useEffect(()=>{
+    if(!project)return;
+    let saved=null;
+    try{saved=JSON.parse(localStorage.getItem(`nko_phasecost_${project.id}`)||'null');}catch{}
+    if(saved&&saved.manualOverride){
+      setCosts({pre:saved.pre||'',prod:saved.prod||'',contingency:saved.contingency||'',post:saved.post||''});
+      setIsAuto(false);
+    }else{
+      setCosts({pre:String(autoPre||''),prod:String(autoProd||''),contingency:String(autoContingency||''),post:String(autoPost||'')});
+      setIsAuto(true);
+    }
+  },[project?.id,autoPre,autoProd,autoContingency,autoPost]);
+  const set=(k,v)=>{const upd={...costs,[k]:v};setCosts(upd);setIsAuto(false);localStorage.setItem(`nko_phasecost_${project.id}`,JSON.stringify({...upd,manualOverride:true}));};
+  const resetToAuto=()=>{localStorage.removeItem(`nko_phasecost_${project.id}`);setCosts({pre:String(autoPre||''),prod:String(autoProd||''),contingency:String(autoContingency||''),post:String(autoPost||'')});setIsAuto(true);};
   const total=(Number(costs.pre)||0)+(Number(costs.prod)||0)+(Number(costs.contingency)||0)+(Number(costs.post)||0);
   const cols=[['pre','Pre-Production'],['prod','Production'],['contingency','Contingency'],['post','Post-Production']];
   return(
     <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:12}}>
-      <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:10}}>Phase Cost Summary</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,flexWrap:'wrap',gap:6}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Phase Cost Summary</div>
+        {isAuto&&items.length>0&&<span style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Auto-calculated from budget</span>}
+        {!isAuto&&<button onClick={resetToAuto} style={{fontSize:11,color:T.goldDim,background:'none',border:'none',cursor:'pointer',fontFamily:'Manrope,sans-serif',fontWeight:700}}>↺ Recalculate from budget</button>}
+      </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
         {cols.map(([k,label])=><div key={k}>
           <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{label}</div>
@@ -1120,7 +1148,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Budget — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
-      <PhaseCostPanel project={project}/>
+      <PhaseCostPanel project={project} items={pItems}/>
       <ProductionInfoPanel project={project}/>
       <BrandPanel project={project}/>
       {Object.keys(totals).length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:18}}>
