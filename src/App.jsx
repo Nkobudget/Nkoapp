@@ -34,6 +34,18 @@ const PHASES=[
 
 const UNITS=['day','week','flat','person','item'];
 const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Animation / Cartoon','Other'];
+const ROLES=[
+  {id:'line_producer',label:'Line Producer',sub:'Owns the top sheet and daily cost tracking'},
+  {id:'production_manager',label:'Production Manager',sub:'Runs logistics, crew and locations'},
+  {id:'producer',label:'Producer',sub:'Oversees the whole production'},
+  {id:'production_accountant',label:'Production Accountant',sub:'Reconciles actuals and processes payments'},
+];
+const MARKETS=[
+  {country:'Nigeria',code:'NGN',symbol:'₦'},
+  {country:'Ghana',code:'GHS',symbol:'₵'},
+  {country:'Kenya',code:'KES',symbol:'KSh'},
+  {country:'South Africa',code:'ZAR',symbol:'R'},
+];
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
 const EXPENSE_CATS=['Feeding','Transport','Fuel','Location fee','Props & materials','Equipment hire','Accommodation','Communication','Labour','Miscellaneous'];
 const ACCENT_COLORS=['#FEED61','#E06B52','#52B07A','#4A90D9','#9B7FD4','#F5A623','#2ABFBF','#E8527A'];
@@ -805,8 +817,8 @@ function MobileNav({view,setView}){
 }
 
 /* ── New Project Modal ── */
-function NewProjectModal({onClose,onCreate}){
-  const[name,setName]=useState('');const[type,setType]=useState(PROJ_TYPES[0]);const[cur,setCur]=useState('NGN');
+function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
+  const[name,setName]=useState('');const[type,setType]=useState(PROJ_TYPES[0]);const[cur,setCur]=useState(defaultCurrency);
   const create=async()=>{if(name)await onCreate({name,type,base_currency:cur});};
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(15,1,32,.88)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
@@ -824,7 +836,7 @@ function NewProjectModal({onClose,onCreate}){
 }
 
 /* ── Dashboard ── */
-function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal}){
+function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency}){
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
@@ -864,7 +876,7 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
         </div>
       </>
       )}
-      {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{const ok=await onCreate(d);if(ok)setShowModal(false);}}/>}
+      {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{const ok=await onCreate(d);if(ok)setShowModal(false);}} defaultCurrency={defaultCurrency}/>}
     </div>
   );
 }
@@ -886,27 +898,38 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 12px 14px'}}>
         {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span style={{textAlign:'right'}}>Line total</span><span>Cur</span><span/></div>}
-        {items.map(item=>{const usd=toUSD(lTot(item),item.currency);return<div key={item.id} style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
-          {mob&&<Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{marginBottom:6}}/>}
-          <div style={{display:'grid',gridTemplateColumns:mob?'52px 1fr 90px 20px':'2fr 52px 80px 100px 120px 56px 20px',gap:4,alignItems:'center'}}>
-            {!mob&&<Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>}
-            <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:12}}/>
-            <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:11}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
-            <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
-            {!mob&&<div style={{textAlign:'right'}}>
-              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold,fontWeight:700}}>{sym(item.currency)}{fmt(lTot(item))}</div>
-              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
-            </div>}
-            {!mob&&<Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>}
-            <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none'}}>×</button>
-          </div>
-          {mob&&<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6,gap:6}}>
-            <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
-            <div style={{textAlign:'right'}}>
-              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.gold,fontWeight:700}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</div>
-              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
+        {items.map(item=>{const usd=toUSD(lTot(item),item.currency);return<div key={item.id} style={{padding:mob?'14px 0':'8px 0',borderBottom:`1px solid ${T.line}`}}>
+          {mob?<>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{flex:1}}/>
+              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:20,cursor:'pointer',background:'none',border:'none',flexShrink:0,width:28}}>×</button>
             </div>
-          </div>}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit</div><Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:13}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel></div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit cost</div><Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Currency</div><Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:13}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,color:T.gold,fontWeight:700}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.dim}}>≈ ${fmt(usd)}</div>
+            </div>
+          </>:<>
+            <div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,alignItems:'center'}}>
+              <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
+              <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:12}}/>
+              <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:11}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
+              <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold,fontWeight:700}}>{sym(item.currency)}{fmt(lTot(item))}</div>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
+              </div>
+              <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none'}}>×</button>
+            </div>
+          </>}
         </div>;})}
         <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Add line</button>
       </div>}
@@ -1587,6 +1610,8 @@ function MainApp(){
   const[view,setView]=useState('dashboard');
   const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
+  const[defaultCurrency,setDefaultCurrency]=useState('NGN');
+  useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
 
   useEffect(()=>{if(!user)return;
@@ -1713,7 +1738,7 @@ function MainApp(){
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
         <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setView('dashboard');setShowNewModal(true);}}/>
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
-          {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal}/>}
+          {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={addScene} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
@@ -1728,7 +1753,68 @@ function MainApp(){
 }
 
 /* ── Root ── */
-function AuthGate(){const{user}=useAuth();return user?<MainApp/>:<AuthScreen/>;}
+function OnboardingScreen({onComplete}){
+  const[step,setStep]=useState(0);
+  const[role,setRole]=useState(null);
+  const[market,setMarket]=useState(null);
+  const RadioCard=({selected,title,sub,onClick})=>(
+    <button onClick={onClick} style={{width:'100%',textAlign:'left',background:selected?T.hi:T.panel,border:`1px solid ${selected?T.gold:T.line}`,borderRadius:10,padding:'14px 16px',marginBottom:10,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <div>
+        <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700}}>{title}</div>
+        <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:12,marginTop:2}}>{sub}</div>
+      </div>
+      <div style={{width:16,height:16,borderRadius:'50%',border:`2px solid ${selected?T.gold:T.faint}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+        {selected&&<div style={{width:8,height:8,borderRadius:'50%',background:T.gold}}/>}
+      </div>
+    </button>
+  );
+  const canContinue=step===0||(step===1&&role)||(step===2&&market);
+  return(
+    <div style={{minHeight:'100vh',background:T.ink,display:'flex',flexDirection:'column',padding:'32px 24px',boxSizing:'border-box'}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:step===0?'center':'flex-start',maxWidth:420,margin:'0 auto',width:'100%'}}>
+        {step===0&&<>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:40,color:T.gold}}>NKÒ</div>
+          <div style={{width:40,height:2,background:T.gold,margin:'16px 0'}}/>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>Budgets, breakdowns, recon and payments — built for the person who answers for the money, across Nigeria, Ghana, Kenya & South Africa.</div>
+        </>}
+        {step===1&&<>
+          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>Step 1 of 2</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>What's your role?</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>We'll tailor the workspace to what you manage day to day.</div>
+          {ROLES.map(r=><RadioCard key={r.id} selected={role===r.id} title={r.label} sub={r.sub} onClick={()=>setRole(r.id)}/>)}
+        </>}
+        {step===2&&<>
+          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>Step 2 of 2</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>Base currency?</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>Sets the default currency for budgets and payments.</div>
+          {MARKETS.map(m=><RadioCard key={m.code} selected={market===m.code} title={m.country} sub={`${m.code} · ${m.symbol}`} onClick={()=>setMarket(m.code)}/>)}
+        </>}
+      </div>
+      <div style={{maxWidth:420,margin:'0 auto',width:'100%'}}>
+        <div style={{display:'flex',gap:6,marginBottom:20}}>
+          {[0,1,2].map(i=><div key={i} style={{height:4,borderRadius:2,flex:1,background:i<=step?T.gold:T.line}}/>)}
+        </div>
+        <div style={{display:'flex',justifyContent:step===0?'flex-end':'space-between'}}>
+          {step>0&&<Btn variant="ghost" onClick={()=>setStep(s=>s-1)}>Back</Btn>}
+          {step<2&&<Btn onClick={()=>canContinue&&setStep(s=>s+1)} style={{opacity:canContinue?1:.5}}>{step===0?'Get started':'Continue'}</Btn>}
+          {step===2&&<Btn onClick={()=>canContinue&&onComplete({role,market})} style={{opacity:canContinue?1:.5}}>Finish</Btn>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthGate(){
+  const{user}=useAuth();
+  const[onboardDone,setOnboardDone]=useState(true);
+  useEffect(()=>{
+    if(!user){setOnboardDone(true);return;}
+    try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');setOnboardDone(!!s);}catch{setOnboardDone(false);}
+  },[user]);
+  if(!user)return<AuthScreen/>;
+  if(!onboardDone)return<OnboardingScreen onComplete={({role,market})=>{localStorage.setItem(`nko_onboarding_${user.id}`,JSON.stringify({role,market,completedAt:Date.now()}));setOnboardDone(true);}}/>;
+  return<MainApp/>;
+}
 export default function App(){
   useEffect(()=>{
     document.body.style.background='#0F0120';
