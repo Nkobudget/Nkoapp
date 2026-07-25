@@ -45,6 +45,8 @@ const MARKETS=[
   {country:'Ghana',code:'GHS',symbol:'₵'},
   {country:'Kenya',code:'KES',symbol:'KSh'},
   {country:'South Africa',code:'ZAR',symbol:'R'},
+  {country:'Uganda',code:'UGX',symbol:'USh'},
+  {country:'Tanzania',code:'TZS',symbol:'TSh'},
 ];
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
 const EXPENSE_CATS=['Feeding','Transport','Fuel','Location fee','Props & materials','Equipment hire','Accommodation','Communication','Labour','Miscellaneous'];
@@ -750,11 +752,17 @@ function AuthProvider({children}){
   return<AuthCtx.Provider value={{user,signOut}}>{children}</AuthCtx.Provider>;
 }
 function AuthScreen(){
-  const[mode,setMode]=useState('login');const[email,setEmail]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[ok,setOk]=useState('');
+  const[mode,setMode]=useState('login');const[email,setEmail]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[ok,setOk]=useState('');const[showPass,setShowPass]=useState(false);
   const submit=async()=>{setErr('');setOk('');
     const fn=mode==='login'?sb.auth.signInWithPassword:sb.auth.signUp;
     const{error}=await fn.call(sb.auth,{email,password:pass});
     if(error)setErr(error.message);else if(mode==='signup')setOk('Check your email to confirm your account.');
+  };
+  const forgotPassword=async()=>{
+    setErr('');setOk('');
+    if(!email){setErr('Enter your email above first, then tap Forgot password.');return;}
+    const{error}=await sb.auth.resetPasswordForEmail(email);
+    if(error)setErr(error.message);else setOk('Password reset link sent — check your email.');
   };
   return(
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
@@ -763,11 +771,15 @@ function AuthScreen(){
         <div style={{fontSize:11,color:T.goldDim,textAlign:'center',fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:28}}>Budgets tailored just for you</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           <Inp type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
-          <Inp type="password" placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+          <div style={{position:'relative'}}>
+            <Inp type={showPass?'text':'password'} placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} style={{paddingRight:56}}/>
+            <button type="button" onClick={()=>setShowPass(s=>!s)} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.goldDim,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{showPass?'Hide':'Show'}</button>
+          </div>
+          {mode==='login'&&<button onClick={forgotPassword} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',textAlign:'right',padding:0}}>Forgot password?</button>}
           {err&&<div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
           {ok&&<div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>{ok}</div>}
           <Btn onClick={submit}>{mode==='login'?'Sign in':'Create account'}</Btn>
-          <button onClick={()=>setMode(m=>m==='login'?'signup':'login')} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{mode==='login'?'No account? Sign up':'Have an account? Sign in'}</button>
+          <button onClick={()=>{setMode(m=>m==='login'?'signup':'login');setErr('');setOk('');}} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{mode==='login'?'No account? Sign up':'Have an account? Sign in'}</button>
         </div>
       </div>
     </div>
@@ -1775,7 +1787,7 @@ function OnboardingScreen({onComplete}){
         {step===0&&<>
           <div style={{fontFamily:'Fraunces,serif',fontSize:40,color:T.gold}}>NKÒ</div>
           <div style={{width:40,height:2,background:T.gold,margin:'16px 0'}}/>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>Budgets, breakdowns, recon and payments — built for the person who answers for the money, across Nigeria, Ghana, Kenya & South Africa.</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>Budgets tailored just for you.</div>
         </>}
         {step===1&&<>
           <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>Step 1 of 2</div>
