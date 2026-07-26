@@ -1,5 +1,5 @@
 /*
-  NKO — Budgets tailored just for you | Supabase Edition
+  NKÒ — Budgets tailored just for you | Supabase Edition
   Single-file React + Vite + Supabase
 */
 import { createClient } from '@supabase/supabase-js';
@@ -776,7 +776,7 @@ function AuthScreen(){
   return(
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:30,color:T.gold,textAlign:'center',marginBottom:4}}>NKO</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:30,color:T.gold,textAlign:'center',marginBottom:4}}>NKÒ</div>
         <div style={{fontSize:11,color:T.goldDim,textAlign:'center',fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:28}}>Budgets tailored just for you</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           <Inp type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
@@ -800,7 +800,7 @@ function Sidebar({view,setView,onSignOut,userEmail}){
   return(
     <div style={{width:210,minHeight:'100vh',background:T.panel,borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0}}>
       <div style={{padding:'22px 18px 14px'}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.gold,fontWeight:700}}>NKO</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.gold,fontWeight:700}}>NKÒ</div>
         <div style={{fontSize:9,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',marginTop:2}}>Budgets tailored just for you</div>
       </div>
       <FS/>
@@ -864,7 +864,7 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
   return(
     <div>
-      <div style={{marginBottom:22}}><div style={{fontFamily:'Fraunces,serif',fontSize:32,color:T.gold}}>NKO</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Budgets tailored just for you.</div><div style={{marginTop:16}}><FS/></div></div>
+      <div style={{marginBottom:22}}><div style={{fontFamily:'Fraunces,serif',fontSize:32,color:T.gold}}>NKÒ</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Budgets tailored just for you.</div><div style={{marginTop:16}}><FS/></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
         <StatCard label="Productions" value={projects.length} sub="active"/>
         <StatCard label="Budget lines" value={budgetItems.length} sub="all projects"/>
@@ -1090,7 +1090,7 @@ function ScriptUploader({project,onApplyBudget}){
     <>
       <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:(state==='idle'||state==='error')?'pointer':'default',marginBottom:18}}>
         <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
-        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Upload your script</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKO reads it and builds your budget</div><Btn variant="ghost" size="sm">Choose file</Btn></>}
+        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Upload your script</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div><Btn variant="ghost" size="sm">Choose file</Btn></>}
         {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
         {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Keep screen on during analysis</div></>}
         {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage}}>Analysis complete</div></>}
@@ -1131,7 +1131,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
     <div class="np" style="background:#141414;padding:12px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
     <div style="max-width:700px;margin:0 auto;padding:26px">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:8px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKO'}</div>
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKÒ'}</div>
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Production Budget — ${brand.productionTitle||project.name}</div>
         <div style="font-size:10px;color:#999;margin-top:3px">${project.type} · Generated ${today()}</div></div>${logoHtml}
       </div>
@@ -1142,7 +1142,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
       </div>
       <div style="display:flex;gap:8px;margin-bottom:20px">${phaseSummary}</div>
       ${deptBlocks}
-      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:18px">Generated by NKO — Budgets tailored just for you · nko-nko.vercel.app</div>
+      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:18px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
     </div></body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
@@ -1265,7 +1265,7 @@ const receiptPDF=(payee,payment,project)=>{
     </div>
     <div style="max-width:420px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12)">
       <div style="background:#141414;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
-        <div><div style="color:#FEED61;font-size:20px;font-weight:700;font-family:Georgia">${brand.companyName||'NKO'}</div>
+        <div><div style="color:#FEED61;font-size:20px;font-weight:700;font-family:Georgia">${brand.companyName||'NKÒ'}</div>
         <div style="color:#8C852E;font-size:9px;text-transform:uppercase;letter-spacing:2px">Payment Receipt</div></div>
         ${logoHtml}
       </div>
@@ -1278,7 +1278,7 @@ const receiptPDF=(payee,payment,project)=>{
         ${[['Paid to',payee.name],['Role',payee.role||'—'],['Production',project.name],['Payment method',payment.method],['Date',payment.date],['Reference',ref]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0f0"><span style="font-size:12px;color:#888">${k}</span><span style="font-size:12px;color:#222;font-weight:600;text-align:right">${v}</span></div>`).join('')}
       </div>
       <div style="padding:12px 22px 20px;text-align:center">
-        <div style="font-size:10px;color:#aaa">Generated by NKO — Budgets tailored just for you</div>
+        <div style="font-size:10px;color:#aaa">Generated by NKÒ — Budgets tailored just for you</div>
         <div style="font-size:10px;color:#ccc;margin-top:2px">nko-nko.vercel.app</div>
       </div>
     </div>
@@ -1319,7 +1319,7 @@ const reconReportPDF=(advances,reconEntries,project)=>{
     </div>
     <div style="max-width:680px;margin:0 auto;padding:26px">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKO'}</div>
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKÒ'}</div>
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${project.name}</div>
         <div style="font-size:10px;color:#999;margin-top:3px">Generated ${today()}</div></div>
         ${logoHtml}
@@ -1328,7 +1328,7 @@ const reconReportPDF=(advances,reconEntries,project)=>{
         ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#141414;margin-top:3px">${v}</div></div>`).join('')}
       </div>
       ${blocks||'<div style="color:#999;font-size:12px">No advances issued yet.</div>'}
-      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:20px">Generated by NKO — Budgets tailored just for you · nko-nko.vercel.app</div>
+      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:20px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
     </div>
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
@@ -1527,7 +1527,7 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
   const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
   const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
   const summaryHeader=title=>`<div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
-    <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKO'} · ${project.name}</div>
+    <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKÒ'} · ${project.name}</div>
     <div style="font-size:17px;font-weight:700">${title}</div></div>${logoHtml}</div>`;
   const castPage=castRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
     ${summaryHeader('Character Scene Breakdown')}
@@ -1569,7 +1569,7 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
     }).join('');
     return`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
       <div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
-        <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKO'} · ${project.name}</div>
+        <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKÒ'} · ${project.name}</div>
         <div style="font-size:17px;font-weight:700">Scene ${sc.sceneNumber||'—'}</div>
         <div style="font-size:12px;color:#9A9080;margin-top:2px">${sc.heading||''}</div></div>
         <div style="text-align:right">${logoHtml}<div style="font-size:10px;color:#8C852E">${sc.intExt||''} · ${sc.dayNight||''}</div></div>
@@ -1588,7 +1588,7 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
 function BreakdownUploader({project,onApply}){
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
   const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
-  const sendNotif=n=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKO Breakdown Complete',{body:`${n} scenes extracted from ${project.name}`});}catch{}};
+  const sendNotif=n=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKÒ Breakdown Complete',{body:`${n} scenes extracted from ${project.name}`});}catch{}};
   useEffect(()=>{const h=()=>{if(document.visibilityState==='visible'&&resRef.current){onApply(resRef.current);resRef.current=null;setState('done');}};document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);},[]);
   const process=async f=>{
     const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
@@ -1788,7 +1788,7 @@ function CreatorCard({creator,selected,onClick}){
       <div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream,marginBottom:2}}>{creator.name}</div>
       <div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:4}}>{creator.role}</div>
       <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>{creator.loc} · {creator.downloads} uses</div>
-      {creator.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,marginTop:4}}>✓ NKO Verified</div>}
+      {creator.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,marginTop:4}}>✓ NKÒ Verified</div>}
     </button>
   );
 }
@@ -1836,7 +1836,7 @@ function MarketplaceView({onApplyTemplate}){
           </div>
         </div>;})}
       </div>}
-      <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>Publish your template</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Share a budget that works and earn an NKO Verified badge.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Template submission','_blank')}>Submit a template →</Btn></div>
+      <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>Publish your template</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Share a budget that works and earn an NKÒ Verified badge.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Template submission','_blank')}>Submit a template →</Btn></div>
     </div>
   );
 }
