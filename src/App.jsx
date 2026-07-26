@@ -12,9 +12,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ── Theme ── */
 const T = {
-  ink:'#0F0120', panel:'#1A0835', hi:'#23104A', line:'#3A1F6A',
+  ink:'#141414', panel:'#1C1C1E', hi:'#242424', line:'#3A3A3A',
   gold:'#FEED61', goldDim:'#8C852E', goldGlow:'rgba(254,237,97,0.12)',
-  cream:'#F0E8D0', dim:'#9A9080', faint:'#5A4E6A',
+  cream:'#F0E8D0', dim:'#9A9080', faint:'#5A5A5A',
   coral:'#E06B52', sage:'#52B07A', sapphire:'#4A90D9',
 };
 
@@ -842,7 +842,7 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
   const[name,setName]=useState('');const[type,setType]=useState(PROJ_TYPES[0]);const[cur,setCur]=useState(defaultCurrency);
   const create=async()=>{if(name)await onCreate({name,type,base_currency:cur});};
   return(
-    <div style={{position:'fixed',inset:0,background:'rgba(15,1,32,.88)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
+    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.88)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:26,width:'100%',maxWidth:380}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:18}}>New production</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -871,8 +871,8 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
         <StatCard label="Open advances" value={openAdv} sub="pending" accent={openAdv>0?T.coral:T.sage}/>
         <StatCard label="Unpaid" value={unpaid} sub="cast & crew" accent={unpaid>0?T.coral:T.sage}/>
       </div>
-      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(15,1,32,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>Delete</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>Cancel</Btn></div></div></div>}
-      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(15,1,32,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>Cancel</Btn></div></div></div>}
+      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>Delete</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>Cancel</Btn></div></div></div>}
+      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>Cancel</Btn></div></div></div>}
       {projects.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:44,textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>🎬</div><div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:8}}>No productions yet</div><div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Manrope,sans-serif'}}>Create a production and start building your budget.</div><Btn onClick={()=>setShowModal(true)}>Create your first production</Btn></div>:(
       <>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
@@ -1059,7 +1059,7 @@ function BrandPanel({project}){
 }
 function ScriptResultModal({result,currency,onApply,onClose}){
   return(
-    <div style={{position:'fixed',inset:0,background:'rgba(15,1,32,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
+    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:24,width:'100%',maxWidth:480,maxHeight:'80vh',overflow:'auto'}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,marginBottom:4}}>{result.title||'Script budget'}</div>
         {result.truncated&&<div style={{background:'rgba(224,107,82,.12)',border:`1px solid ${T.coral}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:10}}>⚠️ Response was cut off — showing {result.budget.length} recovered line item{result.budget.length!==1?'s':''}. Review before applying, or re-run on a shorter excerpt for a complete budget.</div>}
@@ -1112,7 +1112,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
     const pi=items.filter(i=>ph.depts.includes(i.dept));
     const t={};pi.forEach(i=>{t[i.currency]=(t[i.currency]||0)+lTot(i);});
     const line=Object.entries(t).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ')||'—';
-    return`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#999;text-transform:uppercase;letter-spacing:1px">${ph.name}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${line}</div></div>`;
+    return`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#999;text-transform:uppercase;letter-spacing:1px">${ph.name}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#141414;margin-top:3px">${line}</div></div>`;
   }).join('');
   const deptBlocks=PHASES.map(ph=>{
     const phBlocks=ph.depts.map(d=>{
@@ -1120,25 +1120,25 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
     const sub={};di.forEach(i=>{sub[i.currency]=(sub[i.currency]||0)+lTot(i);});
     const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #f0f0f0">${i.description||'—'}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.qty}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.unit}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
     const subLine=Object.entries(sub).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
-    return`<div style="margin-bottom:16px"><div style="background:#1A0835;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between"><span>${d}</span><span style="font-family:monospace">${subLine}</span></div>
+    return`<div style="margin-bottom:16px"><div style="background:#1C1C1E;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between"><span>${d}</span><span style="font-family:monospace">${subLine}</span></div>
     <table style="width:100%;border-collapse:collapse;border:1px solid #e5e5e5;border-top:none"><tr style="background:#fafafa">${['Description','Qty','Unit','Rate','Total'].map((h,i)=>`<th style="padding:5px 10px;font-size:9px;color:#999;text-transform:uppercase;text-align:${i>2?'right':i>0?'center':'left'}">${h}</th>`).join('')}</tr>${rows}</table></div>`;
     }).join('');
     if(!phBlocks)return'';
-    return`<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#0F0120;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${ph.name}</div>${phBlocks}</div>`;
+    return`<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#141414;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${ph.name}</div>${phBlocks}</div>`;
   }).join('');
   const grandLine=Object.entries(grand).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
   const html=`<!DOCTYPE html><html><head><title>Budget — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial}</style></head><body>
-    <div class="np" style="background:#0F0120;padding:12px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
+    <div class="np" style="background:#141414;padding:12px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
     <div style="max-width:700px;margin:0 auto;padding:26px">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:8px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#0F0120">${brand.companyName||'NKO'}</div>
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKO'}</div>
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Production Budget — ${brand.productionTitle||project.name}</div>
         <div style="font-size:10px;color:#999;margin-top:3px">${project.type} · Generated ${today()}</div></div>${logoHtml}
       </div>
       ${infoBlock}
       <div style="background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">
         <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1.5px">Grand Total</div>
-        <div style="font-size:26px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${grandLine||'—'}</div>
+        <div style="font-size:26px;font-weight:700;font-family:monospace;color:#141414;margin-top:3px">${grandLine||'—'}</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:20px">${phaseSummary}</div>
       ${deptBlocks}
@@ -1259,19 +1259,19 @@ const receiptPDF=(payee,payment,project)=>{
   const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:42px;object-fit:contain"/>`:'';
   const ref=`NKO-${project.id.slice(0,4).toUpperCase()}-${Date.now().toString().slice(-6)}`;
   const html=`<!DOCTYPE html><html><head><title>Receipt — ${payee.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#f4f4f4}</style></head><body>
-    <div class="np" style="background:#0F0120;padding:12px;text-align:center">
+    <div class="np" style="background:#141414;padding:12px;text-align:center">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
       <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
     </div>
     <div style="max-width:420px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12)">
-      <div style="background:#0F0120;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+      <div style="background:#141414;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
         <div><div style="color:#FEED61;font-size:20px;font-weight:700;font-family:Georgia">${brand.companyName||'NKO'}</div>
         <div style="color:#8C852E;font-size:9px;text-transform:uppercase;letter-spacing:2px">Payment Receipt</div></div>
         ${logoHtml}
       </div>
       <div style="padding:22px;text-align:center;border-bottom:1px dashed #ddd">
         <div style="font-size:11px;color:#888;margin-bottom:4px">Amount Paid</div>
-        <div style="font-size:34px;font-weight:700;color:#0F0120">${sym(payee.currency)}${fmt(payment.amount)}</div>
+        <div style="font-size:34px;font-weight:700;color:#141414">${sym(payee.currency)}${fmt(payment.amount)}</div>
         <div style="display:inline-block;margin-top:8px;background:#e8f5ee;color:#2c7a4e;font-size:11px;font-weight:700;padding:4px 14px;border-radius:12px">✓ PAID</div>
       </div>
       <div style="padding:16px 22px">
@@ -1302,7 +1302,7 @@ const reconReportPDF=(advances,reconEntries,project)=>{
       return`<tr><td style="padding:6px 10px;font-size:11px;color:#555;border-bottom:1px solid #f0f0f0">${en.date||''}</td><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #f0f0f0">${cat?`<span style="background:#f5f0dc;color:#8C852E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:5px">${cat}</span>`:''}${desc}</td><td style="padding:6px 10px;font-size:11px;text-align:right;font-family:monospace;border-bottom:1px solid #f0f0f0">${sym(a.currency)}${fmt(en.amount)}</td></tr>`;
     }).join('');
     return`<div style="margin-bottom:22px;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden">
-      <div style="background:#1A0835;padding:10px 14px;display:flex;justify-content:space-between">
+      <div style="background:#1C1C1E;padding:10px 14px;display:flex;justify-content:space-between">
         <div><span style="color:#F0E8D0;font-weight:700;font-size:13px">${a.recipient}</span>${a.dept?`<span style="color:#9A9080;font-size:11px"> · ${a.dept}</span>`:''}
         <div style="color:#8C852E;font-size:10px;margin-top:2px">${a.purpose||''} · Issued ${a.date_issued}</div></div>
         <div style="text-align:right"><div style="color:#FEED61;font-family:monospace;font-size:15px">${sym(a.currency)}${fmt(a.amount)}</div>
@@ -1313,19 +1313,19 @@ const reconReportPDF=(advances,reconEntries,project)=>{
     </div>`;
   }).join('');
   const html=`<!DOCTYPE html><html><head><title>Recon Report — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#fff}</style></head><body>
-    <div class="np" style="background:#0F0120;padding:12px;text-align:center">
+    <div class="np" style="background:#141414;padding:12px;text-align:center">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
       <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
     </div>
     <div style="max-width:680px;margin:0 auto;padding:26px">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#0F0120">${brand.companyName||'NKO'}</div>
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKO'}</div>
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${project.name}</div>
         <div style="font-size:10px;color:#999;margin-top:3px">Generated ${today()}</div></div>
         ${logoHtml}
       </div>
       <div style="display:flex;gap:12px;margin-bottom:22px">
-        ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#0F0120;margin-top:3px">${v}</div></div>`).join('')}
+        ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#141414;margin-top:3px">${v}</div></div>`).join('')}
       </div>
       ${blocks||'<div style="color:#999;font-size:12px">No advances issued yet.</div>'}
       <div style="text-align:center;font-size:10px;color:#bbb;margin-top:20px">Generated by NKO — Budgets tailored just for you · nko-nko.vercel.app</div>
@@ -1515,20 +1515,32 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:38px;object-fit:contain;display:block;margin-bottom:6px"/>`:'';
   const castMap={};
-  scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;if(!castMap[key])castMap[key]={name:key,scenes:[]};castMap[key].scenes.push(s.sceneNumber);});});
+  scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;const lk=key.toLowerCase();if(!castMap[lk])castMap[lk]={name:key,scenes:[]};castMap[lk].scenes.push(s.sceneNumber);});});
   const findMeta=name=>charactersIn.find(c=>c.project_id===project.id&&c.name.trim().toLowerCase()===name.trim().toLowerCase());
   const castRows=Object.values(castMap).sort((a,b)=>b.scenes.length-a.scenes.length).map(r=>({...r,meta:findMeta(r.name)||{}}));
   const locMap={};
   scenes.forEach(s=>{const key=(s.location||'').trim()||'Unspecified';if(!locMap[key])locMap[key]={location:key,intExt:s.intExt||'',scenes:[]};locMap[key].scenes.push(s.sceneNumber);});
   const locRows=Object.values(locMap).sort((a,b)=>b.scenes.length-a.scenes.length);
-  const summaryHeader=title=>`<div style="background:#0F0120;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+  const scheduleRows=(()=>{const out=[];let current=null;scenes.forEach(s=>{const loc=(s.location||'').trim()||'Unspecified';if(current&&current.location===loc){current.scenes.push(s.sceneNumber);}else{current={location:loc,scenes:[s.sceneNumber]};out.push(current);}});return out;})();
+  const allCast=dedupeList(scenes.flatMap(s=>s.cast||[]));
+  const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
+  const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
+  const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
+  const summaryHeader=title=>`<div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
     <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKO'} · ${project.name}</div>
     <div style="font-size:17px;font-weight:700">${title}</div></div>${logoHtml}</div>`;
   const castPage=castRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
-    ${summaryHeader('Cast & Characters')}
+    ${summaryHeader('Character Scene Breakdown')}
     <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
-      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Character</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Age / description</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Role notes</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Scenes featured</th></tr>
-      ${castRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.name}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.age_description||''}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.role_notes||''}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee">${r.scenes.join(', ')}</td></tr>`).join('')}
+      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Character</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Age / description</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Role notes</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Total</th></tr>
+      ${castRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#999;border-top:1px solid #eee">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.name}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.age_description||''}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.role_notes||''}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
+    </table>
+  </div>`:'';
+  const schedulePage=scheduleRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+    ${summaryHeader('Outline Schedule')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
+      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Set / Location</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Total</th></tr>
+      ${scheduleRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#999;border-top:1px solid #eee">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.location}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
     </table>
   </div>`:'';
   const locPage=locRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
@@ -1538,15 +1550,25 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
       ${locRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.location}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:center;border-top:1px solid #eee">${r.intExt}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee">${r.scenes.join(', ')}</td></tr>`).join('')}
     </table>
   </div>`:'';
+  const elementGroup=(label,items)=>items.length?`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${items.map(it=>`<span style="background:#f5f0dc;border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:11px;color:#333">${it}</span>`).join('')}</div></div>`:`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="font-size:11px;color:#aaa;font-style:italic">None identified</div></div>`;
+  const elementsPage=`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+    ${summaryHeader('Production Elements')}
+    <div style="border:1px solid #ddd;border-top:none;padding:16px">
+      ${elementGroup('All Cast',allCast)}
+      ${elementGroup('All Props',allProps)}
+      ${elementGroup('All Costume',allCostume)}
+      ${elementGroup('All Equipment',allEquip)}
+    </div>
+  </div>`;
   const sheets=scenes.map(sc=>{
     const rows=BKCAT.map(cat=>{
       const val=sc[cat.key];
       if(!val||(Array.isArray(val)&&!val.length))return'';
       const display=Array.isArray(val)?val.join(', '):val;
-      return`<tr><td style="padding:7px 12px;background:#1A0835;color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;width:150px;white-space:nowrap;font-family:Arial">${cat.icon} ${cat.label}</td><td style="padding:7px 12px;font-size:12px;color:#222;font-family:Arial">${display}</td></tr>`;
+      return`<tr><td style="padding:7px 12px;background:#1C1C1E;color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;width:150px;white-space:nowrap;font-family:Arial">${cat.icon} ${cat.label}</td><td style="padding:7px 12px;font-size:12px;color:#222;font-family:Arial">${display}</td></tr>`;
     }).join('');
     return`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
-      <div style="background:#0F0120;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+      <div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
         <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKO'} · ${project.name}</div>
         <div style="font-size:17px;font-weight:700">Scene ${sc.sceneNumber||'—'}</div>
         <div style="font-size:12px;color:#9A9080;margin-top:2px">${sc.heading||''}</div></div>
@@ -1557,10 +1579,10 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
     </div>`;
   }).join('');
   const html=`<!DOCTYPE html><html><head><title>Breakdown — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0}</style></head><body>
-    <div class="np" style="background:#0F0120;padding:12px 18px;text-align:center;font-family:Arial">
+    <div class="np" style="background:#141414;padding:12px 18px;text-align:center;font-family:Arial">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button>
       <span style="color:#9A9080;font-size:11px;margin-left:10px">${scenes.length} scene${scenes.length!==1?'s':''} · ${project.name}</span>
-    </div>${castPage}${locPage}${sheets}</body></html>`;
+    </div>${castPage}${schedulePage}${locPage}${elementsPage}${sheets}</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 function BreakdownUploader({project,onApply}){
@@ -1598,35 +1620,102 @@ function BreakdownUploader({project,onApply}){
     </div>
   );
 }
+const dedupeList=arr=>{
+  const seen={};
+  arr.forEach(v=>{const t=String(v||'').trim();if(!t)return;const key=t.toLowerCase();if(!seen[key])seen[key]=t;});
+  return Object.values(seen);
+};
+function ProductionElementsPanel({scenes}){
+  const[open,setOpen]=useState(false);
+  const allCast=dedupeList(scenes.flatMap(s=>s.cast||[]));
+  const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
+  const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
+  const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
+  const Group=({label,items,color})=>(
+    <div style={{marginBottom:16}}>
+      <div style={{fontSize:10,color,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{label}</div>
+      {items.length===0?<div style={{color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif',fontStyle:'italic'}}>None identified</div>:
+      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{items.map((it,i)=><span key={i} style={{background:T.hi,border:`1px solid ${color}`,color:T.cream,borderRadius:6,padding:'4px 10px',fontSize:12,fontFamily:'Manrope,sans-serif'}}>{it}</span>)}</div>}
+    </div>
+  );
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🧾 Production Elements <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— every cast, prop, costume & equipment item across the script</span></span>
+        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'14px 16px 4px'}}>
+        <Group label="All Cast" items={allCast} color={T.sage}/>
+        <Group label="All Props" items={allProps} color={T.coral}/>
+        <Group label="All Costume" items={allCostume} color={T.sapphire}/>
+        <Group label="All Equipment" items={allEquip} color={T.gold}/>
+      </div>}
+    </div>
+  );
+}
 function CastSummaryPanel({scenes,characters,onSaveCharacter}){
   const[open,setOpen]=useState(false);
+  const[editingRow,setEditingRow]=useState(null);
   const rows=(()=>{
     const map={};
-    scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;if(!map[key])map[key]={name:key,scenes:[]};map[key].scenes.push(s.sceneNumber);});});
+    scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;const lk=key.toLowerCase();if(!map[lk])map[lk]={name:key,scenes:[]};map[lk].scenes.push(s.sceneNumber);});});
     return Object.values(map).sort((a,b)=>b.scenes.length-a.scenes.length);
   })();
   const findMeta=name=>characters.find(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 Cast & Characters <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} character{rows.length!==1?'s':''} across all scenes</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 Character Scene Breakdown <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} character{rows.length!==1?'s':''}</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
-      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 14px'}}>
-        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:
-        rows.map(r=>{const meta=findMeta(r.name)||{};return<div key={r.name} style={{padding:'10px 0',borderBottom:`1px solid ${T.line}`}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,marginBottom:8}}>
-            <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</div>
-            <div style={{textAlign:'right',flexShrink:0}}>
-              <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{r.scenes.length} scene{r.scenes.length!==1?'s':''}</div>
-              <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif'}}>Sc. {r.scenes.join(', ')}</div>
-            </div>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
+        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:<>
+        <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Character</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span><span/></div>
+        {rows.map((r,i)=>{const meta=findMeta(r.name)||{};const isEditing=editingRow===r.name;return<div key={r.name}>
+          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
+            <span style={{color:T.faint,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{i+1}</span>
+            <span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</span>
+            <span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{r.scenes.join(', ')}</span>
+            <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:13,textAlign:'right'}}>{r.scenes.length}</span>
+            <button onClick={()=>setEditingRow(isEditing?null:r.name)} style={{background:'none',border:'none',color:T.goldDim,cursor:'pointer',fontSize:13}} title="Edit age/role notes">✏️</button>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          {isEditing&&<div style={{padding:'8px 0 12px 36px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
             <Inp placeholder="Age / description" defaultValue={meta.age_description||''} onBlur={e=>{if(e.target.value!==(meta.age_description||''))onSaveCharacter(r.name,{age_description:e.target.value});}} style={{fontSize:12}}/>
             <Inp placeholder="Role notes" defaultValue={meta.role_notes||''} onBlur={e=>{if(e.target.value!==(meta.role_notes||''))onSaveCharacter(r.name,{role_notes:e.target.value});}} style={{fontSize:12}}/>
-          </div>
+          </div>}
         </div>;})}
+        </>}
+      </div>}
+    </div>
+  );
+}
+function OutlineSchedulePanel({scenes}){
+  const[open,setOpen]=useState(false);
+  const rows=(()=>{
+    const out=[];let current=null;
+    scenes.forEach(s=>{
+      const loc=(s.location||'').trim()||'Unspecified';
+      if(current&&current.location===loc){current.scenes.push(s.sceneNumber);}
+      else{current={location:loc,intExt:s.intExt||'',scenes:[s.sceneNumber]};out.push(current);}
+    });
+    return out;
+  })();
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🗓️ Outline Schedule <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} block{rows.length!==1?'s':''}, in script order</span></span>
+        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
+        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No scenes yet.</div>:<>
+        <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px',gap:8,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Set / Location</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span></div>
+        {rows.map((r,i)=><div key={i} style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px',gap:8,alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
+          <span style={{color:T.faint,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{i+1}</span>
+          <span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.location}</span>
+          <span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{r.scenes.join(', ')}</span>
+          <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:13,textAlign:'right'}}>{r.scenes.length}</span>
+        </div>)}
+        </>}
       </div>}
     </div>
   );
@@ -1676,7 +1765,9 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
       </div>
       <CastSummaryPanel scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onSaveCharacter={onSaveCharacter}/>
+      <OutlineSchedulePanel scenes={ps}/>
       <LocationsSummaryPanel scenes={ps}/>
+      <ProductionElementsPanel scenes={ps}/>
       <BreakdownUploader project={project} onApply={ns=>onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})))}/>
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
@@ -1988,7 +2079,7 @@ function AuthGate(){
 }
 export default function App(){
   useEffect(()=>{
-    document.body.style.background='#0F0120';
+    document.body.style.background='#141414';
     document.body.style.margin='0';
     document.body.style.padding='0';
   },[]);
