@@ -497,10 +497,10 @@ const CREATORS=[
 
 /* ── Community templates with bundled breakdown scenes ── */
 const mkScene=(num,heading,ie,dn,cast,props,notes)=>({
-  sceneNumber:num,heading,intExt:ie,dayNight:dn,
+  sceneNumber:num,heading,intExt:ie,dayNight:dn,timeNotes:'',
   cast:cast||[],extras:'',location:heading.split(' - ')[0].replace(/INT\.|EXT\./,'').trim(),
   props:props||[],vehicles:[],wardrobe:[],hairMakeup:'Per character brief',
-  specialEquip:[],vfxSfx:'None',sound:'Location sound',notes:notes||''
+  specialEquip:[],vfxSfx:'None',sound:'Location sound',languageNotes:'',notes:notes||''
 });
 
 const COMMUNITY_TEMPLATES=[
@@ -623,7 +623,7 @@ Classification rules, follow these closely:
 If an item does not obviously fit, choose the single closest department from the list above. Never return a department that is not in this list, and never leave dept blank.`;
 const SCRIPT_PROMPT=(cur)=>`Analyze this script and return a production budget as JSON: {"title":"string","budget":[{"dept":"string","description":"string","qty":number,"unit":"string","rate":number,"currency":"${cur}"}],"summary":"string"}`;
 const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions. Return ONLY valid JSON array. No markdown. No apostrophes. Keep values short and clean.`;
-const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode, max ${max} episodes.`:`Extract scenes, max ${max} scenes.`} Return ONLY: [{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","notes":""}]`;
+const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode, max ${max} episodes.`:`Extract scenes, max ${max} scenes.`} If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank. Return ONLY: [{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}]`;
 const QUICK=['Day rate for DOP in Lagos?','Estimate 1-day music video in Naira','Structure cash advances for crew','Contingency % for Nollywood?','Post costs for 5-episode vertical?','Mobile money payments in Kenya?'];
 
 /* ── Helpers ── */
@@ -640,6 +640,15 @@ const callClaude=async(msgs,sys,maxTokens=8000)=>{
   const d=await r.json();
   return d.content?.map(c=>c.text||'').join('')||'';
 };
+/* Sorts scenes by scene number correctly (1,2,...,10,11 — not lexicographic 1,10,11,2).
+   Falls back to string comparison for non-numeric labels like "Ep 1" or "OTV". */
+const sortScenes=arr=>[...arr].sort((a,b)=>{
+  const na=parseInt(String(a.sceneNumber||'').match(/\d+/)?.[0],10);
+  const nb=parseInt(String(b.sceneNumber||'').match(/\d+/)?.[0],10);
+  const va=isNaN(na)?Infinity:na,vb=isNaN(nb)?Infinity:nb;
+  if(va!==vb)return va-vb;
+  return String(a.sceneNumber||'').localeCompare(String(b.sceneNumber||''));
+});
 const recoverScenes=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
   const a=s.indexOf('[');if(a===-1)return[];s=s.slice(a);
@@ -1427,7 +1436,7 @@ function AIView({project,budgetItems,advances}){
 }
 
 /* ── Breakdown ── */
-const BKCAT=[{key:'cast',label:'Cast',icon:'👤'},{key:'extras',label:'Extras',icon:'👥'},{key:'location',label:'Location',icon:'📍'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'VFX / SFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'notes',label:'Notes',icon:'📝'}];
+const BKCAT=[{key:'location',label:'Location',icon:'📍'},{key:'timeNotes',label:'Time of Day',icon:'🕐'},{key:'cast',label:'Cast',icon:'👤'},{key:'extras',label:'Extras',icon:'👥'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'Stunts / SFX / VFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'languageNotes',label:'Language Notes',icon:'🗣️'},{key:'notes',label:'Notes',icon:'📝'}];
 function SceneCard({scene,onDelete,onUpdate,index}){
   const[open,setOpen]=useState(false);const[editing,setEditing]=useState(false);const[draft,setDraft]=useState(null);const mob=useIsMobile();
   const startEdit=()=>{setDraft({...scene,cast:(scene.cast||[]).join(', '),props:(scene.props||[]).join(', '),vehicles:(scene.vehicles||[]).join(', '),wardrobe:(scene.wardrobe||[]).join(', '),specialEquip:(scene.specialEquip||[]).join(', ')});setEditing(true);setOpen(true);};
@@ -1474,7 +1483,10 @@ function SceneCard({scene,onDelete,onUpdate,index}){
         </div>
         <Inp placeholder="Heading e.g. INT. MARKET - DAY" value={draft.heading||''} onChange={e=>d('heading',e.target.value)}/>
         <Inp placeholder="Synopsis" value={draft.synopsis||''} onChange={e=>d('synopsis',e.target.value)}/>
-        <Inp placeholder="Location" value={draft.location||''} onChange={e=>d('location',e.target.value)}/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <Inp placeholder="Location" value={draft.location||''} onChange={e=>d('location',e.target.value)}/>
+          <Inp placeholder="Time of day — e.g. Morning (9AM)" value={draft.timeNotes||''} onChange={e=>d('timeNotes',e.target.value)}/>
+        </div>
         <Inp placeholder="Cast — comma separated" value={draft.cast||''} onChange={e=>d('cast',e.target.value)}/>
         <Inp placeholder="Extras" value={draft.extras||''} onChange={e=>d('extras',e.target.value)}/>
         <Inp placeholder="Props — comma separated" value={draft.props||''} onChange={e=>d('props',e.target.value)}/>
@@ -1483,8 +1495,9 @@ function SceneCard({scene,onDelete,onUpdate,index}){
           <Inp placeholder="Wardrobe — comma separated" value={draft.wardrobe||''} onChange={e=>d('wardrobe',e.target.value)}/>
           <Inp placeholder="Hair & make-up" value={draft.hairMakeup||''} onChange={e=>d('hairMakeup',e.target.value)}/>
           <Inp placeholder="Special equipment" value={draft.specialEquip||''} onChange={e=>d('specialEquip',e.target.value)}/>
-          <Inp placeholder="VFX / SFX" value={draft.vfxSfx||''} onChange={e=>d('vfxSfx',e.target.value)}/>
+          <Inp placeholder="Stunts / SFX / VFX" value={draft.vfxSfx||''} onChange={e=>d('vfxSfx',e.target.value)}/>
           <Inp placeholder="Sound" value={draft.sound||''} onChange={e=>d('sound',e.target.value)}/>
+          <Inp placeholder="Language notes — e.g. Yoruba dialogue (subtitled)" value={draft.languageNotes||''} onChange={e=>d('languageNotes',e.target.value)}/>
         </div>
         <Inp placeholder="Notes" value={draft.notes||''} onChange={e=>d('notes',e.target.value)}/>
         <div style={{display:'flex',gap:8}}>
@@ -1497,9 +1510,34 @@ function SceneCard({scene,onDelete,onUpdate,index}){
 }
 
 /* Breakdown share / PDF export */
-const shareBreakdown=(scenes,project)=>{
+const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
+  const scenes=sortScenes(scenesIn);
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:38px;object-fit:contain;display:block;margin-bottom:6px"/>`:'';
+  const castMap={};
+  scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;if(!castMap[key])castMap[key]={name:key,scenes:[]};castMap[key].scenes.push(s.sceneNumber);});});
+  const findMeta=name=>charactersIn.find(c=>c.project_id===project.id&&c.name.trim().toLowerCase()===name.trim().toLowerCase());
+  const castRows=Object.values(castMap).sort((a,b)=>b.scenes.length-a.scenes.length).map(r=>({...r,meta:findMeta(r.name)||{}}));
+  const locMap={};
+  scenes.forEach(s=>{const key=(s.location||'').trim()||'Unspecified';if(!locMap[key])locMap[key]={location:key,intExt:s.intExt||'',scenes:[]};locMap[key].scenes.push(s.sceneNumber);});
+  const locRows=Object.values(locMap).sort((a,b)=>b.scenes.length-a.scenes.length);
+  const summaryHeader=title=>`<div style="background:#0F0120;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+    <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKO'} · ${project.name}</div>
+    <div style="font-size:17px;font-weight:700">${title}</div></div>${logoHtml}</div>`;
+  const castPage=castRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+    ${summaryHeader('Cast & Characters')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
+      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Character</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Age / description</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Role notes</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Scenes featured</th></tr>
+      ${castRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.name}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.age_description||''}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.role_notes||''}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee">${r.scenes.join(', ')}</td></tr>`).join('')}
+    </table>
+  </div>`:'';
+  const locPage=locRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+    ${summaryHeader('Locations Summary')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
+      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Location</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase">Int/Ext</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Scenes</th></tr>
+      ${locRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.location}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:center;border-top:1px solid #eee">${r.intExt}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee">${r.scenes.join(', ')}</td></tr>`).join('')}
+    </table>
+  </div>`:'';
   const sheets=scenes.map(sc=>{
     const rows=BKCAT.map(cat=>{
       const val=sc[cat.key];
@@ -1522,7 +1560,7 @@ const shareBreakdown=(scenes,project)=>{
     <div class="np" style="background:#0F0120;padding:12px 18px;text-align:center;font-family:Arial">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button>
       <span style="color:#9A9080;font-size:11px;margin-left:10px">${scenes.length} scene${scenes.length!==1?'s':''} · ${project.name}</span>
-    </div>${sheets}</body></html>`;
+    </div>${castPage}${locPage}${sheets}</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 function BreakdownUploader({project,onApply}){
@@ -1560,10 +1598,76 @@ function BreakdownUploader({project,onApply}){
     </div>
   );
 }
-function BreakdownView({project,scenes,onAddScene,onDeleteScene,onUpdateScene}){
+function CastSummaryPanel({scenes,characters,onSaveCharacter}){
+  const[open,setOpen]=useState(false);
+  const rows=(()=>{
+    const map={};
+    scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;if(!map[key])map[key]={name:key,scenes:[]};map[key].scenes.push(s.sceneNumber);});});
+    return Object.values(map).sort((a,b)=>b.scenes.length-a.scenes.length);
+  })();
+  const findMeta=name=>characters.find(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 Cast & Characters <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} character{rows.length!==1?'s':''} across all scenes</span></span>
+        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 14px'}}>
+        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:
+        rows.map(r=>{const meta=findMeta(r.name)||{};return<div key={r.name} style={{padding:'10px 0',borderBottom:`1px solid ${T.line}`}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,marginBottom:8}}>
+            <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</div>
+            <div style={{textAlign:'right',flexShrink:0}}>
+              <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{r.scenes.length} scene{r.scenes.length!==1?'s':''}</div>
+              <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif'}}>Sc. {r.scenes.join(', ')}</div>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            <Inp placeholder="Age / description" defaultValue={meta.age_description||''} onBlur={e=>{if(e.target.value!==(meta.age_description||''))onSaveCharacter(r.name,{age_description:e.target.value});}} style={{fontSize:12}}/>
+            <Inp placeholder="Role notes" defaultValue={meta.role_notes||''} onBlur={e=>{if(e.target.value!==(meta.role_notes||''))onSaveCharacter(r.name,{role_notes:e.target.value});}} style={{fontSize:12}}/>
+          </div>
+        </div>;})}
+      </div>}
+    </div>
+  );
+}
+function LocationsSummaryPanel({scenes}){
+  const[open,setOpen]=useState(false);
+  const rows=(()=>{
+    const map={};
+    scenes.forEach(s=>{
+      const key=(s.location||'').trim()||'Unspecified';
+      if(!map[key])map[key]={location:key,intExt:s.intExt||'',scenes:[]};
+      map[key].scenes.push(s.sceneNumber);
+    });
+    return Object.values(map).sort((a,b)=>b.scenes.length-a.scenes.length);
+  })();
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📍 Locations Summary <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} location{rows.length!==1?'s':''}, grouped by scene count</span></span>
+        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 14px'}}>
+        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No locations assigned to scenes yet.</div>:
+        rows.map(r=><div key={r.location} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`,gap:10}}>
+          <div>
+            <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.location}</div>
+            <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif',marginTop:2}}>{r.intExt}</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{r.scenes.length} scene{r.scenes.length!==1?'s':''}</div>
+            <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif'}}>Sc. {r.scenes.join(', ')}</div>
+          </div>
+        </div>)}
+      </div>}
+    </div>
+  );
+}
+function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene}){
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
-  const ps=scenes.filter(s=>s.project_id===project.id);
+  const ps=sortScenes(scenes.filter(s=>s.project_id===project.id));
   const filtered=ps.filter(s=>{const mf=filter==='ALL'||(filter==='INT'&&s.intExt==='INT')||(filter==='EXT'&&s.intExt==='EXT')||(filter==='DAY'&&s.dayNight==='DAY')||(filter==='NIGHT'&&s.dayNight==='NIGHT');const ms=!search||s.heading?.toLowerCase().includes(search.toLowerCase())||s.location?.toLowerCase().includes(search.toLowerCase());return mf&&ms;});
   return(
     <div>
@@ -1571,11 +1675,13 @@ function BreakdownView({project,scenes,onAddScene,onDeleteScene,onUpdateScene}){
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
       </div>
-      <BreakdownUploader project={project} onApply={ns=>ns.forEach(sc=>onAddScene({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)}))}/>
+      <CastSummaryPanel scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onSaveCharacter={onSaveCharacter}/>
+      <LocationsSummaryPanel scenes={ps}/>
+      <BreakdownUploader project={project} onApply={ns=>onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})))}/>
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
-        {ps.length>0&&<Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project)} style={{flexShrink:0}}>📄 Share / Export PDF</Btn>}
+        {ps.length>0&&<Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project,characters)} style={{flexShrink:0}}>📄 Share / Export PDF</Btn>}
       </div>
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
@@ -1648,7 +1754,7 @@ function MarketplaceView({onApplyTemplate}){
 function MainApp(){
   const{user,signOut}=useAuth();
   const[view,setView]=useState('dashboard');
-  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);
+  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
@@ -1656,16 +1762,18 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py,sc]=await Promise.all([
+      const[pr,bi,ad,re,py,sc,ch]=await Promise.all([
         sb.from('projects').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
         sb.from('budget_items').select('*').eq('user_id',user.id),
         sb.from('advances').select('*').eq('user_id',user.id),
         sb.from('recon_entries').select('*').eq('user_id',user.id),
         sb.from('payees').select('*').eq('user_id',user.id),
         sb.from('scenes').select('*').eq('user_id',user.id),
+        sb.from('characters').select('*').eq('user_id',user.id),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
       if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
+      if(ch.data)setCharacters(ch.data);
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
@@ -1678,7 +1786,7 @@ function MainApp(){
     if(data){setProjects(p=>[data,...p]);setCurrentId(data.id);setView('budgets');return true;}
     return false;
   };
-  const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
+  const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
   const updateBudgetItem=async(id,upd)=>{setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));await sb.from('budget_items').update(upd).eq('id',id);};
   const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));await sb.from('budget_items').delete().eq('id',id);};
@@ -1738,6 +1846,12 @@ function MainApp(){
     if(error){alert(`Could not save scene: ${error.message}`);return;}
     if(data)setScenes(p=>[...p,{...data.data,id:data.id,project_id:data.project_id}]);
   };
+  const addScenesBatch=async scenesArr=>{
+    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:rest};});
+    const{data,error}=await sb.from('scenes').insert(rows).select();
+    if(error){alert(`Could not save scenes: ${error.message}`);return;}
+    if(data)setScenes(p=>[...p,...data.map(r=>({...r.data,id:r.id,project_id:r.project_id}))]);
+  };
   const updateScene=async(id,upd)=>{
     setScenes(p=>p.map(s=>s.id===id?{...s,...upd}:s));
     const merged=scenes.find(s=>s.id===id);
@@ -1749,6 +1863,23 @@ function MainApp(){
     setScenes(p=>p.filter(s=>s.id!==id));
     const{error}=await sb.from('scenes').delete().eq('id',id);
     if(error)alert(`Could not delete scene: ${error.message}`);
+  };
+  /* Character metadata (Age/Description, Role Notes) — upserts by project_id + name */
+  const saveCharacterMeta=async(name,updates)=>{
+    if(!currentId||!name)return;
+    const existing=characters.find(c=>c.project_id===currentId&&c.name.trim().toLowerCase()===name.trim().toLowerCase());
+    const payload={age_description:updates.age_description??existing?.age_description??'',role_notes:updates.role_notes??existing?.role_notes??''};
+    if(existing){
+      setCharacters(p=>p.map(c=>c.id===existing.id?{...c,...payload}:c));
+      const{error}=await sb.from('characters').update(payload).eq('id',existing.id);
+      if(error)alert(`Could not save character notes: ${error.message}`);
+    }else{
+      const id=Math.random().toString(36).slice(2,10);
+      const row={id,project_id:currentId,user_id:user.id,name:name.trim(),...payload};
+      setCharacters(p=>[...p,row]);
+      const{error}=await sb.from('characters').insert(row);
+      if(error)alert(`Could not save character notes: ${error.message}`);
+    }
   };
   const addPayee=async p=>{
     const{data,error}=await sb.from('payees').insert({...p,user_id:user.id,payments:[]}).select().single();
@@ -1780,7 +1911,7 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} onAddScene={addScene} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
