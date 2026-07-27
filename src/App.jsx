@@ -765,7 +765,10 @@ function AuthScreen(){
   const submit=async()=>{setErr('');setOk('');
     const fn=mode==='login'?sb.auth.signInWithPassword:sb.auth.signUp;
     const{error}=await fn.call(sb.auth,{email,password:pass});
-    if(error)setErr(error.message);else if(mode==='signup')setOk('Check your email to confirm your account.');
+    if(error){
+      const readable=typeof error.message==='string'&&error.message.trim()&&error.message.trim()!=='{}'?error.message:'Something went wrong on our end. Please try again in a moment, or contact support if this keeps happening.';
+      setErr(readable);
+    }else if(mode==='signup')setOk('Check your email to confirm your account.');
   };
   const forgotPassword=async()=>{
     setErr('');setOk('');
@@ -1106,43 +1109,43 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   const info=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');
   const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
   const infoRows=[['Producer',info.producer],['Line Producer',info.lineProducer],['Executive Producer',info.execProducer],['Prepared By',info.preparedBy],['Pre-production',info.prepStart&&`${info.prepStart} → ${info.prepEnd||''}`],['Shoot',info.shootStart&&`${info.shootStart} → ${info.shootEnd||''}`],['Post-production',info.postStart&&`${info.postStart} → ${info.postEnd||''}`]].filter(([,v])=>v);
-  const infoBlock=infoRows.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:18px;border:1px solid #eee;border-radius:8px">${infoRows.map(([k,v])=>`<tr><td style="padding:6px 12px;font-size:10px;color:#999;text-transform:uppercase;width:170px;background:#faf8f0;border-bottom:1px solid #f0f0f0">${k}</td><td style="padding:6px 12px;font-size:12px;color:#222;font-weight:600;border-bottom:1px solid #f0f0f0">${v}</td></tr>`).join('')}</table>`:'';
+  const infoBlock=infoRows.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:18px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden">${infoRows.map(([k,v])=>`<tr><td style="padding:6px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;width:170px;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${k}</td><td style="padding:6px 12px;font-size:12px;color:#F0E8D0;font-weight:600;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${v}</td></tr>`).join('')}</table>`:'';
   const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
   const phaseSummary=PHASES.map(ph=>{
     const pi=items.filter(i=>ph.depts.includes(i.dept));
     const t={};pi.forEach(i=>{t[i.currency]=(t[i.currency]||0)+lTot(i);});
     const line=Object.entries(t).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ')||'—';
-    return`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#999;text-transform:uppercase;letter-spacing:1px">${ph.name}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#141414;margin-top:3px">${line}</div></div>`;
+    return`<div style="flex:1;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#9A9080;text-transform:uppercase;letter-spacing:1px">${ph.name}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${line}</div></div>`;
   }).join('');
-  const deptBlocks=PHASES.map(ph=>{
+  const deptBlocks=PHASES.map((ph,phIdx)=>{
     const phBlocks=ph.depts.map(d=>{
     const di=items.filter(i=>i.dept===d);if(!di.length)return'';
     const sub={};di.forEach(i=>{sub[i.currency]=(sub[i.currency]||0)+lTot(i);});
-    const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #f0f0f0">${i.description||'—'}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.qty}</td><td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0">${i.unit}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;border-bottom:1px solid #f0f0f0">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
+    const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${i.description||'—'}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${i.qty}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${i.unit}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:right;font-family:monospace;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;color:#FEED61;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
     const subLine=Object.entries(sub).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
-    return`<div style="margin-bottom:16px"><div style="background:#1C1C1E;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between"><span>${d}</span><span style="font-family:monospace">${subLine}</span></div>
-    <table style="width:100%;border-collapse:collapse;border:1px solid #e5e5e5;border-top:none"><tr style="background:#fafafa">${['Description','Qty','Unit','Rate','Total'].map((h,i)=>`<th style="padding:5px 10px;font-size:9px;color:#999;text-transform:uppercase;text-align:${i>2?'right':i>0?'center':'left'}">${h}</th>`).join('')}</tr>${rows}</table></div>`;
+    return`<div style="margin-bottom:16px;page-break-inside:avoid"><div style="background:#1C1C1E;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none"><span>${d}</span><span style="font-family:monospace">${subLine}</span></div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none"><tr style="background:#242424">${['Description','Qty','Unit','Rate','Total'].map((h,i)=>`<th style="padding:5px 10px;font-size:9px;color:#9A9080;text-transform:uppercase;text-align:${i>2?'right':i>0?'center':'left'}">${h}</th>`).join('')}</tr>${rows}</table></div>`;
     }).join('');
     if(!phBlocks)return'';
-    return`<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#141414;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${ph.name}</div>${phBlocks}</div>`;
+    return`<div style="margin-bottom:8px;${phIdx>0?'page-break-before:always;':''}"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#F0E8D0;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${ph.name}</div>${phBlocks}</div>`;
   }).join('');
   const grandLine=Object.entries(grand).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
-  const html=`<!DOCTYPE html><html><head><title>Budget — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial}</style></head><body>
-    <div class="np" style="background:#141414;padding:12px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
-    <div style="max-width:700px;margin:0 auto;padding:26px">
+  const html=`<!DOCTYPE html><html><head><title>Budget — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
+    <div style="max-width:700px;margin:0 auto;padding:26px;background:#141414">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:8px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKÒ'}</div>
-        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Production Budget — ${brand.productionTitle||project.name}</div>
-        <div style="font-size:10px;color:#999;margin-top:3px">${project.type} · Generated ${today()}</div></div>${logoHtml}
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${brand.companyName||'NKÒ'}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">${project.type} · ${brand.productionTitle||project.name}</div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Created ${new Date().getFullYear()}</div></div>${logoHtml}
       </div>
       ${infoBlock}
-      <div style="background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">
-        <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1.5px">Grand Total</div>
-        <div style="font-size:26px;font-weight:700;font-family:monospace;color:#141414;margin-top:3px">${grandLine||'—'}</div>
+      <div style="background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">
+        <div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1.5px">Grand Total</div>
+        <div style="font-size:26px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${grandLine||'—'}</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:20px">${phaseSummary}</div>
       ${deptBlocks}
-      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:18px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:18px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
     </div></body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
@@ -1258,28 +1261,28 @@ const receiptPDF=(payee,payment,project)=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:42px;object-fit:contain"/>`:'';
   const ref=`NKO-${project.id.slice(0,4).toUpperCase()}-${Date.now().toString().slice(-6)}`;
-  const html=`<!DOCTYPE html><html><head><title>Receipt — ${payee.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#f4f4f4}</style></head><body>
-    <div class="np" style="background:#141414;padding:12px;text-align:center">
+  const html=`<!DOCTYPE html><html><head><title>Receipt — ${payee.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
       <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
     </div>
-    <div style="max-width:420px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12)">
-      <div style="background:#141414;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+    <div style="max-width:420px;margin:24px auto;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.4)">
+      <div style="background:#141414;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #FEED61">
         <div><div style="color:#FEED61;font-size:20px;font-weight:700;font-family:Georgia">${brand.companyName||'NKÒ'}</div>
         <div style="color:#8C852E;font-size:9px;text-transform:uppercase;letter-spacing:2px">Payment Receipt</div></div>
         ${logoHtml}
       </div>
-      <div style="padding:22px;text-align:center;border-bottom:1px dashed #ddd">
-        <div style="font-size:11px;color:#888;margin-bottom:4px">Amount Paid</div>
-        <div style="font-size:34px;font-weight:700;color:#141414">${sym(payee.currency)}${fmt(payment.amount)}</div>
-        <div style="display:inline-block;margin-top:8px;background:#e8f5ee;color:#2c7a4e;font-size:11px;font-weight:700;padding:4px 14px;border-radius:12px">✓ PAID</div>
+      <div style="padding:22px;text-align:center;border-bottom:1px dashed #3A3A3A">
+        <div style="font-size:11px;color:#9A9080;margin-bottom:4px">Amount Paid</div>
+        <div style="font-size:34px;font-weight:700;color:#FEED61">${sym(payee.currency)}${fmt(payment.amount)}</div>
+        <div style="display:inline-block;margin-top:8px;background:rgba(82,176,122,.15);color:#52B07A;font-size:11px;font-weight:700;padding:4px 14px;border-radius:12px">✓ PAID</div>
       </div>
       <div style="padding:16px 22px">
-        ${[['Paid to',payee.name],['Role',payee.role||'—'],['Production',project.name],['Payment method',payment.method],['Date',payment.date],['Reference',ref]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0f0"><span style="font-size:12px;color:#888">${k}</span><span style="font-size:12px;color:#222;font-weight:600;text-align:right">${v}</span></div>`).join('')}
+        ${[['Paid to',payee.name],['Role',payee.role||'—'],['Production',project.name],['Payment method',payment.method],['Date',payment.date],['Reference',ref]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #3A3A3A"><span style="font-size:12px;color:#9A9080">${k}</span><span style="font-size:12px;color:#F0E8D0;font-weight:600;text-align:right">${v}</span></div>`).join('')}
       </div>
       <div style="padding:12px 22px 20px;text-align:center">
-        <div style="font-size:10px;color:#aaa">Generated by NKÒ — Budgets tailored just for you</div>
-        <div style="font-size:10px;color:#ccc;margin-top:2px">nko-nko.vercel.app</div>
+        <div style="font-size:10px;color:#5A5A5A">Generated by NKÒ — Budgets tailored just for you</div>
+        <div style="font-size:10px;color:#3A3A3A;margin-top:2px">nko-nko.vercel.app</div>
       </div>
     </div>
   </body></html>`;
@@ -1299,36 +1302,36 @@ const reconReportPDF=(advances,reconEntries,project)=>{
     const rows=entries.map(en=>{
       const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';
       const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');
-      return`<tr><td style="padding:6px 10px;font-size:11px;color:#555;border-bottom:1px solid #f0f0f0">${en.date||''}</td><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #f0f0f0">${cat?`<span style="background:#f5f0dc;color:#8C852E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:5px">${cat}</span>`:''}${desc}</td><td style="padding:6px 10px;font-size:11px;text-align:right;font-family:monospace;border-bottom:1px solid #f0f0f0">${sym(a.currency)}${fmt(en.amount)}</td></tr>`;
+      return`<tr><td style="padding:6px 10px;font-size:11px;color:#9A9080;border-bottom:1px solid #3A3A3A">${en.date||''}</td><td style="padding:6px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${cat?`<span style="background:#242424;color:#8C852E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:5px">${cat}</span>`:''}${desc}</td><td style="padding:6px 10px;font-size:11px;text-align:right;font-family:monospace;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${sym(a.currency)}${fmt(en.amount)}</td></tr>`;
     }).join('');
-    return`<div style="margin-bottom:22px;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden">
+    return`<div style="margin-bottom:22px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden;page-break-inside:avoid">
       <div style="background:#1C1C1E;padding:10px 14px;display:flex;justify-content:space-between">
         <div><span style="color:#F0E8D0;font-weight:700;font-size:13px">${a.recipient}</span>${a.dept?`<span style="color:#9A9080;font-size:11px"> · ${a.dept}</span>`:''}
         <div style="color:#8C852E;font-size:10px;margin-top:2px">${a.purpose||''} · Issued ${a.date_issued}</div></div>
         <div style="text-align:right"><div style="color:#FEED61;font-family:monospace;font-size:15px">${sym(a.currency)}${fmt(a.amount)}</div>
         <div style="font-size:10px;color:${bal<0?'#E06B52':bal===0?'#52B07A':'#9A9080'}">${a.status==='reconciled'?'✓ Reconciled':bal<0?`Over by ${sym(a.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(a.currency)}${fmt(bal)}`}</div></div>
       </div>
-      ${entries.length?`<table style="width:100%;border-collapse:collapse"><tr style="background:#fafafa"><th style="padding:6px 10px;font-size:9px;color:#999;text-align:left;text-transform:uppercase">Date</th><th style="padding:6px 10px;font-size:9px;color:#999;text-align:left;text-transform:uppercase">Expense</th><th style="padding:6px 10px;font-size:9px;color:#999;text-align:right;text-transform:uppercase">Amount</th></tr>${rows}
-      <tr><td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;text-align:right">Total spent</td><td style="padding:8px 10px;font-size:12px;font-weight:700;text-align:right;font-family:monospace">${sym(a.currency)}${fmt(spent)}</td></tr></table>`:`<div style="padding:12px 14px;font-size:11px;color:#999">No expenses logged against this advance yet.</div>`}
+      ${entries.length?`<table style="width:100%;border-collapse:collapse;background:#141414"><tr style="background:#242424"><th style="padding:6px 10px;font-size:9px;color:#9A9080;text-align:left;text-transform:uppercase">Date</th><th style="padding:6px 10px;font-size:9px;color:#9A9080;text-align:left;text-transform:uppercase">Expense</th><th style="padding:6px 10px;font-size:9px;color:#9A9080;text-align:right;text-transform:uppercase">Amount</th></tr>${rows}
+      <tr><td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:#F0E8D0;text-align:right">Total spent</td><td style="padding:8px 10px;font-size:12px;font-weight:700;color:#FEED61;text-align:right;font-family:monospace">${sym(a.currency)}${fmt(spent)}</td></tr></table>`:`<div style="padding:12px 14px;font-size:11px;color:#9A9080;background:#141414">No expenses logged against this advance yet.</div>`}
     </div>`;
   }).join('');
-  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#fff}</style></head><body>
-    <div class="np" style="background:#141414;padding:12px;text-align:center">
+  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
       <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
     </div>
-    <div style="max-width:680px;margin:0 auto;padding:26px">
+    <div style="max-width:680px;margin:0 auto;padding:26px;background:#141414">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#141414">${brand.companyName||'NKÒ'}</div>
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${brand.companyName||'NKÒ'}</div>
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${project.name}</div>
-        <div style="font-size:10px;color:#999;margin-top:3px">Generated ${today()}</div></div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Created ${new Date().getFullYear()}</div></div>
         ${logoHtml}
       </div>
       <div style="display:flex;gap:12px;margin-bottom:22px">
-        ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#faf8f0;border:1px solid #eee;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#141414;margin-top:3px">${v}</div></div>`).join('')}
+        ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${v}</div></div>`).join('')}
       </div>
-      ${blocks||'<div style="color:#999;font-size:12px">No advances issued yet.</div>'}
-      <div style="text-align:center;font-size:10px;color:#bbb;margin-top:20px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
+      ${blocks||'<div style="color:#9A9080;font-size:12px">No advances issued yet.</div>'}
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:20px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
     </div>
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
@@ -1526,34 +1529,34 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
   const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
   const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
   const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
-  const summaryHeader=title=>`<div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+  const summaryHeader=title=>`<div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none">
     <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKÒ'} · ${project.name}</div>
     <div style="font-size:17px;font-weight:700">${title}</div></div>${logoHtml}</div>`;
-  const castPage=castRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+  const castPage=castRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Character Scene Breakdown')}
-    <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
-      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Character</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Age / description</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Role notes</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Total</th></tr>
-      ${castRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#999;border-top:1px solid #eee">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.name}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.age_description||''}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.meta.role_notes||''}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
+      <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Character</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Age / description</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Role notes</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Total</th></tr>
+      ${castRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${r.name}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.meta.age_description||''}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.meta.role_notes||''}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
     </table>
   </div>`:'';
-  const schedulePage=scheduleRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+  const schedulePage=scheduleRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Outline Schedule')}
-    <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
-      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Set / Location</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Total</th></tr>
-      ${scheduleRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#999;border-top:1px solid #eee">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.location}</td><td style="padding:7px 12px;font-size:11px;color:#555;border-top:1px solid #eee">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
+      <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Set / Location</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Total</th></tr>
+      ${scheduleRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${r.location}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
     </table>
   </div>`:'';
-  const locPage=locRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+  const locPage=locRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Locations Summary')}
-    <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">
-      <tr style="background:#fafafa"><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:left">Location</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase">Int/Ext</th><th style="padding:7px 12px;font-size:10px;color:#999;text-transform:uppercase;text-align:right">Scenes</th></tr>
-      ${locRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#222;border-top:1px solid #eee">${r.location}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:center;border-top:1px solid #eee">${r.intExt}</td><td style="padding:7px 12px;font-size:12px;color:#555;text-align:right;border-top:1px solid #eee">${r.scenes.join(', ')}</td></tr>`).join('')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
+      <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Location</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase">Int/Ext</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Scenes</th></tr>
+      ${locRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${r.location}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:center;border-top:1px solid #3A3A3A">${r.intExt}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:right;border-top:1px solid #3A3A3A">${r.scenes.join(', ')}</td></tr>`).join('')}
     </table>
   </div>`:'';
-  const elementGroup=(label,items)=>items.length?`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${items.map(it=>`<span style="background:#f5f0dc;border:1px solid #ddd;border-radius:6px;padding:4px 10px;font-size:11px;color:#333">${it}</span>`).join('')}</div></div>`:`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="font-size:11px;color:#aaa;font-style:italic">None identified</div></div>`;
-  const elementsPage=`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
+  const elementGroup=(label,items)=>items.length?`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${items.map(it=>`<span style="background:#242424;border:1px solid #3A3A3A;border-radius:6px;padding:4px 10px;font-size:11px;color:#F0E8D0">${it}</span>`).join('')}</div></div>`:`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="font-size:11px;color:#5A5A5A;font-style:italic">None identified</div></div>`;
+  const elementsPage=`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Production Elements')}
-    <div style="border:1px solid #ddd;border-top:none;padding:16px">
+    <div style="border:1px solid #3A3A3A;border-top:none;padding:16px;background:#141414">
       ${elementGroup('All Cast',allCast)}
       ${elementGroup('All Props',allProps)}
       ${elementGroup('All Costume',allCostume)}
@@ -1565,21 +1568,21 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
       const val=sc[cat.key];
       if(!val||(Array.isArray(val)&&!val.length))return'';
       const display=Array.isArray(val)?val.join(', '):val;
-      return`<tr><td style="padding:7px 12px;background:#1C1C1E;color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;width:150px;white-space:nowrap;font-family:Arial">${cat.icon} ${cat.label}</td><td style="padding:7px 12px;font-size:12px;color:#222;font-family:Arial">${display}</td></tr>`;
+      return`<tr><td style="padding:7px 12px;background:#242424;color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;width:150px;white-space:nowrap;font-family:Arial;border-bottom:1px solid #3A3A3A">${cat.icon} ${cat.label}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;font-family:Arial;background:#141414;border-bottom:1px solid #3A3A3A">${display}</td></tr>`;
     }).join('');
-    return`<div style="page-break-after:always;padding:18px 26px;font-family:Arial">
-      <div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+    return`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
+      <div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none">
         <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKÒ'} · ${project.name}</div>
         <div style="font-size:17px;font-weight:700">Scene ${sc.sceneNumber||'—'}</div>
         <div style="font-size:12px;color:#9A9080;margin-top:2px">${sc.heading||''}</div></div>
         <div style="text-align:right">${logoHtml}<div style="font-size:10px;color:#8C852E">${sc.intExt||''} · ${sc.dayNight||''}</div></div>
       </div>
-      ${sc.synopsis?`<div style="background:#f7f7f7;border:1px solid #eee;border-top:none;padding:9px 18px;font-size:12px;color:#444;font-style:italic">${sc.synopsis}</div>`:''}
-      <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none">${rows}</table>
+      ${sc.synopsis?`<div style="background:#1C1C1E;border:1px solid #3A3A3A;border-top:none;padding:9px 18px;font-size:12px;color:#F0E8D0;font-style:italic">${sc.synopsis}</div>`:''}
+      <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none">${rows}</table>
     </div>`;
   }).join('');
-  const html=`<!DOCTYPE html><html><head><title>Breakdown — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0}</style></head><body>
-    <div class="np" style="background:#141414;padding:12px 18px;text-align:center;font-family:Arial">
+  const html=`<!DOCTYPE html><html><head><title>Breakdown — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px 18px;text-align:center;font-family:Arial;border-bottom:1px solid #3A3A3A">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button>
       <span style="color:#9A9080;font-size:11px;margin-left:10px">${scenes.length} scene${scenes.length!==1?'s':''} · ${project.name}</span>
     </div>${castPage}${schedulePage}${locPage}${elementsPage}${sheets}</body></html>`;
