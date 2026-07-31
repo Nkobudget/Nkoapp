@@ -34,6 +34,92 @@ const PHASES=[
 
 const UNITS=['day','week','flat','person','item'];
 const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Animation / Cartoon','Other'];
+const TRANSLATIONS={
+  en:{
+    tagline:'Budgets tailored just for you',
+    signOut:'Sign out',
+    studio:'Studio',
+    navDashboard:'Dashboard',navBudgets:'Budgets',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navMarketplace:'Marketplace',navAI:'AI Builder',navWorkspace:'Workspace',
+    selectProduction:'Select production…',newBtn:'+ New',back:'← Back',
+    emailPlaceholder:'Email',passwordPlaceholder:'Password',show:'Show',hide:'Hide',
+    forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
+    noAccountSignUp:'No account? Sign up',haveAccountSignIn:'Have an account? Sign in',
+    getStarted:'Get started',continueBtn:'Continue',backBtn:'Back',finishBtn:'Finish',
+    onboardTagline:'Budgets tailored just for you.',
+    step1Of2:'Step 1 of 2',whatsYourRole:"What's your role?",roleSubtitle:"We'll tailor the workspace to what you manage day to day.",
+    step2Of2:'Step 2 of 2',baseCurrency:'Base currency?',currencySubtitle:'Sets the default currency for budgets and payments.',
+    dashHeaderTagline:'Budgets tailored just for you.',
+    statProductions:'Productions',statActive:'active',statBudgetLines:'Budget lines',statAllProjects:'all projects',
+    statOpenAdvances:'Open advances',statPending:'pending',statUnpaid:'Unpaid',statCastCrew:'cast & crew',
+    noProductionsYet:'No productions yet',createFirstDesc:'Create a production and start building your budget.',
+    createFirstBtn:'Create your first production',productionsHeader:'Productions',
+    selectAll:'Select all',clear:'Clear',deleteBtn:'🗑️ Delete',
+    budgetHeader:'Budget',templates:'📋 Templates',shareBudgetPdf:'📄 Share Budget PDF',
+    addDepartment:'+ Add a department…',totalBudget:'Total budget',
+    phaseCostSummary:'Phase Cost Summary',preProduction:'Pre-Production',productionPhase:'Production',
+    contingency:'Contingency',postProduction:'Post-Production',total:'Total',
+    productionInfo:'Production Info',brandPanel:'Brand Panel',
+    uploadScript:'Upload your script',chooseFile:'Choose file',
+    breakdownHeader:'Breakdown',castSceneBreakdown:'Character Scene Breakdown',
+    outlineSchedule:'Outline Schedule',locationsSummary:'Locations Summary',productionElements:'Production Elements',
+    aiScriptBreakdown:'AI Script Breakdown',chooseScript:'Choose script',
+    keepScreenOpen:'⚠️ Keep this screen open during analysis',
+    notifOn:'🔔 Notifications on — you can switch apps',
+    analyzing:'Analyzing your script…',breakdownComplete:'Breakdown complete',
+    reconHeader:'Recon',issueAdvance:'+ Issue advance',newAdvance:'New advance',
+    logExpense:'+ Log expense',topUp:'💰 Top up',reconcileBtn:'✓ Reconcile',
+    paymentsHeader:'Payments',addPayee:'+ Add payee',logPayment:'+ Log payment',
+    marketplaceHeader:'Marketplace',useTemplate:'Use template',applied:'✓ Applied',
+    aiBuilderHeader:'AI Builder',askPlaceholder:'Ask about rates, budgets, recon… or attach an image',send:'Send',
+    save:'Save',cancel:'Cancel',deleteWord:'Delete',edit:'✏️ Edit',create:'Create',
+  },
+  fr:{
+    tagline:'Des budgets pensés pour vous',
+    signOut:'Se déconnecter',
+    studio:'Studio',
+    navDashboard:'Tableau de bord',navBudgets:'Budgets',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navMarketplace:'Place de marché',navAI:'Assistant IA',navWorkspace:'Espace de travail',
+    selectProduction:'Sélectionner une production…',newBtn:'+ Nouveau',back:'← Retour',
+    emailPlaceholder:'E-mail',passwordPlaceholder:'Mot de passe',show:'Afficher',hide:'Masquer',
+    forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
+    noAccountSignUp:'Pas de compte ? Inscrivez-vous',haveAccountSignIn:'Déjà un compte ? Connectez-vous',
+    getStarted:'Commencer',continueBtn:'Continuer',backBtn:'Retour',finishBtn:'Terminer',
+    onboardTagline:'Des budgets pensés pour vous.',
+    step1Of2:'Étape 1 sur 2',whatsYourRole:'Quel est votre rôle ?',roleSubtitle:"Nous adapterons l'espace de travail à vos tâches quotidiennes.",
+    step2Of2:'Étape 2 sur 2',baseCurrency:'Devise de base ?',currencySubtitle:'Définit la devise par défaut pour les budgets et paiements.',
+    dashHeaderTagline:'Des budgets pensés pour vous.',
+    statProductions:'Productions',statActive:'actives',statBudgetLines:'Lignes budgétaires',statAllProjects:'tous projets',
+    statOpenAdvances:'Avances ouvertes',statPending:'en attente',statUnpaid:'Impayés',statCastCrew:'acteurs et équipe',
+    noProductionsYet:'Aucune production pour le moment',createFirstDesc:'Créez une production et commencez votre budget.',
+    createFirstBtn:'Créer votre première production',productionsHeader:'Productions',
+    selectAll:'Tout sélectionner',clear:'Effacer',deleteBtn:'🗑️ Supprimer',
+    budgetHeader:'Budget',templates:'📋 Modèles',shareBudgetPdf:'📄 Partager le PDF du budget',
+    addDepartment:'+ Ajouter un département…',totalBudget:'Budget total',
+    phaseCostSummary:'Résumé des coûts par phase',preProduction:'Pré-production',productionPhase:'Production',
+    contingency:'Imprévus',postProduction:'Post-production',total:'Total',
+    productionInfo:'Infos production',brandPanel:'Panneau de marque',
+    uploadScript:'Téléversez votre scénario',chooseFile:'Choisir un fichier',
+    breakdownHeader:'Découpage',castSceneBreakdown:'Répartition des personnages par scène',
+    outlineSchedule:'Calendrier de tournage',locationsSummary:'Résumé des lieux',productionElements:'Éléments de production',
+    aiScriptBreakdown:'Découpage du scénario par IA',chooseScript:'Choisir un scénario',
+    keepScreenOpen:'⚠️ Gardez cet écran ouvert pendant l\u2019analyse',
+    notifOn:'🔔 Notifications activées — vous pouvez changer d\u2019application',
+    analyzing:'Analyse de votre scénario…',breakdownComplete:'Découpage terminé',
+    reconHeader:'Rapprochement',issueAdvance:'+ Émettre une avance',newAdvance:'Nouvelle avance',
+    logExpense:'+ Enregistrer une dépense',topUp:'💰 Recharger',reconcileBtn:'✓ Rapprocher',
+    paymentsHeader:'Paiements',addPayee:'+ Ajouter un bénéficiaire',logPayment:'+ Enregistrer un paiement',
+    marketplaceHeader:'Place de marché',useTemplate:'Utiliser le modèle',applied:'✓ Appliqué',
+    aiBuilderHeader:'Assistant IA',askPlaceholder:'Posez une question sur les tarifs, budgets, rapprochements… ou joignez une image',send:'Envoyer',
+    save:'Enregistrer',cancel:'Annuler',deleteWord:'Supprimer',edit:'✏️ Modifier',create:'Créer',
+  },
+};
+const LangCtx=createContext(null);
+const useLang=()=>useContext(LangCtx);
+function LangProvider({children}){
+  const[lang,setLangState]=useState(()=>{try{return localStorage.getItem('nko_lang')||'en';}catch{return'en';}});
+  const setLang=l=>{try{localStorage.setItem('nko_lang',l);}catch{}setLangState(l);};
+  const t=useCallback(key=>TRANSLATIONS[lang]?.[key]??TRANSLATIONS.en[key]??key,[lang]);
+  return<LangCtx.Provider value={{lang,setLang,t}}>{children}</LangCtx.Provider>;
+}
 const ROLES=[
   {id:'line_producer',label:'Line Producer',sub:'Owns the top sheet and daily cost tracking'},
   {id:'production_manager',label:'Production Manager',sub:'Runs logistics, crew and locations'},
@@ -736,7 +822,7 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 };
 
 /* ── Atoms ── */
-const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'workspace',e:'🧩',l:'Workspace'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
 const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
 const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
@@ -761,6 +847,7 @@ function AuthProvider({children}){
   return<AuthCtx.Provider value={{user,signOut}}>{children}</AuthCtx.Provider>;
 }
 function AuthScreen(){
+  const{t}=useLang();
   const[mode,setMode]=useState('login');const[email,setEmail]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[ok,setOk]=useState('');const[showPass,setShowPass]=useState(false);
   const submit=async()=>{setErr('');setOk('');
     const fn=mode==='login'?sb.auth.signInWithPassword:sb.auth.signUp;
@@ -779,19 +866,20 @@ function AuthScreen(){
   return(
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><LangToggle compact/></div>
         <div style={{fontFamily:'Fraunces,serif',fontSize:30,color:T.gold,textAlign:'center',marginBottom:4}}>NKÒ</div>
-        <div style={{fontSize:11,color:T.goldDim,textAlign:'center',fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:28}}>Budgets tailored just for you</div>
+        <div style={{fontSize:11,color:T.goldDim,textAlign:'center',fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:28}}>{t('tagline')}</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          <Inp type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
+          <Inp type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e=>setEmail(e.target.value)}/>
           <div style={{position:'relative'}}>
-            <Inp type={showPass?'text':'password'} placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} style={{paddingRight:56}}/>
-            <button type="button" onClick={()=>setShowPass(s=>!s)} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.goldDim,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{showPass?'Hide':'Show'}</button>
+            <Inp type={showPass?'text':'password'} placeholder={t('passwordPlaceholder')} value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} style={{paddingRight:56}}/>
+            <button type="button" onClick={()=>setShowPass(s=>!s)} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.goldDim,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{showPass?t('hide'):t('show')}</button>
           </div>
-          {mode==='login'&&<button onClick={forgotPassword} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',textAlign:'right',padding:0}}>Forgot password?</button>}
+          {mode==='login'&&<button onClick={forgotPassword} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',textAlign:'right',padding:0}}>{t('forgotPassword')}</button>}
           {err&&<div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
           {ok&&<div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>{ok}</div>}
-          <Btn onClick={submit}>{mode==='login'?'Sign in':'Create account'}</Btn>
-          <button onClick={()=>{setMode(m=>m==='login'?'signup':'login');setErr('');setOk('');}} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{mode==='login'?'No account? Sign up':'Have an account? Sign in'}</button>
+          <Btn onClick={submit}>{mode==='login'?t('signIn'):t('createAccount')}</Btn>
+          <button onClick={()=>{setMode(m=>m==='login'?'signup':'login');setErr('');setOk('');}} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{mode==='login'?t('noAccountSignUp'):t('haveAccountSignIn')}</button>
         </div>
       </div>
     </div>
@@ -799,43 +887,57 @@ function AuthScreen(){
 }
 
 /* ── Navigation ── */
+const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',breakdown:'navBreakdown',workspace:'navWorkspace',recon:'navRecon',payments:'navPayments',market:'navMarketplace',ai:'navAI'};
+function LangToggle({compact}){
+  const{lang,setLang}=useLang();
+  return(
+    <div style={{display:'flex',border:`1px solid ${T.line}`,borderRadius:6,overflow:'hidden',flexShrink:0}}>
+      {['en','fr'].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:compact?'4px 8px':'5px 10px',background:lang===l?T.gold:'transparent',color:lang===l?T.ink:T.dim,border:'none',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{l.toUpperCase()}</button>)}
+    </div>
+  );
+}
 function Sidebar({view,setView,onSignOut,userEmail}){
+  const{t}=useLang();
   return(
     <div style={{width:210,minHeight:'100vh',background:T.panel,borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0}}>
       <div style={{padding:'22px 18px 14px'}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.gold,fontWeight:700}}>NKÒ</div>
-        <div style={{fontSize:9,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',marginTop:2}}>Budgets tailored just for you</div>
+        <div style={{fontSize:9,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',marginTop:2}}>{t('tagline')}</div>
       </div>
       <FS/>
       <nav style={{flex:1,padding:'14px 10px'}}>
-        {NAV.map(n=>{const on=view===n.id;return<button key={n.id} onClick={()=>setView(n.id)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:8,border:'none',cursor:'pointer',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,textAlign:'left',marginBottom:2,borderLeft:`2px solid ${on?T.gold:'transparent'}`}}><span style={{fontSize:15}}>{n.e}</span>{n.l}</button>;})}
+        {NAV.map(n=>{const on=view===n.id;return<button key={n.id} onClick={()=>setView(n.id)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:8,border:'none',cursor:'pointer',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,textAlign:'left',marginBottom:2,borderLeft:`2px solid ${on?T.gold:'transparent'}`}}><span style={{fontSize:15}}>{n.e}</span>{t(NAV_KEY[n.id])}</button>;})}
       </nav>
       <div style={{padding:'14px 16px',borderTop:`1px solid ${T.line}`}}>
+        <div style={{marginBottom:12}}><LangToggle/></div>
         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
           <div style={{width:34,height:34,borderRadius:'50%',background:T.hi,border:`1px solid ${T.goldDim}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:T.gold,fontWeight:700,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{userEmail?.charAt(0).toUpperCase()||'?'}</div>
-          <div style={{overflow:'hidden'}}><div style={{fontSize:11,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>Studio</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div></div>
+          <div style={{overflow:'hidden'}}><div style={{fontSize:11,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t('studio')}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div></div>
         </div>
-        <Btn variant="ghost" size="sm" onClick={onSignOut} style={{width:'100%'}}>Sign out</Btn>
+        <Btn variant="ghost" size="sm" onClick={onSignOut} style={{width:'100%'}}>{t('signOut')}</Btn>
       </div>
     </div>
   );
 }
 function TopBar({view,setView,projects,currentId,onSelect,onCreate}){
+  const{t}=useLang();
   return(
     <div style={{background:T.panel,borderBottom:`1px solid ${T.line}`,padding:'10px 20px',display:'flex',alignItems:'center',gap:10}}>
-      {view!=='dashboard'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>← Back</Btn>}
+      {view!=='dashboard'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
       <Sel value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,maxWidth:280}}>
-        <option value="">Select production…</option>
+        <option value="">{t('selectProduction')}</option>
         {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
       </Sel>
-      <Btn onClick={onCreate} size="sm">+ New</Btn>
+      <Btn onClick={onCreate} size="sm">{t('newBtn')}</Btn>
+      <LangToggle compact/>
     </div>
   );
 }
 function MobileNav({view,setView}){
+  const{t}=useLang();
   return(
     <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:50,background:T.panel,borderTop:`1px solid ${T.line}`,display:'flex',overflowX:'auto'}}>
-      {NAV.map(n=>{const on=view===n.id;return<button key={n.id} onClick={()=>setView(n.id)} style={{flex:'0 0 auto',padding:'8px 12px 6px',border:'none',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontSize:9,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',cursor:'pointer'}}><span style={{fontSize:18}}>{n.e}</span>{n.l.split(' ')[0]}</button>;})}
+      {NAV.map(n=>{const on=view===n.id;const lbl=t(NAV_KEY[n.id]);return<button key={n.id} onClick={()=>setView(n.id)} style={{flex:'0 0 auto',padding:'8px 12px 6px',border:'none',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontSize:9,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',cursor:'pointer'}}><span style={{fontSize:18}}>{n.e}</span>{lbl.split(' ')[0]}</button>;})}
     </div>
   );
 }
@@ -861,25 +963,26 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
 
 /* ── Dashboard ── */
 function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency}){
+  const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
   return(
     <div>
-      <div style={{marginBottom:22}}><div style={{fontFamily:'Fraunces,serif',fontSize:32,color:T.gold}}>NKÒ</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Budgets tailored just for you.</div><div style={{marginTop:16}}><FS/></div></div>
+      <div style={{marginBottom:22}}><div style={{fontFamily:'Fraunces,serif',fontSize:32,color:T.gold}}>NKÒ</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
-        <StatCard label="Productions" value={projects.length} sub="active"/>
-        <StatCard label="Budget lines" value={budgetItems.length} sub="all projects"/>
-        <StatCard label="Open advances" value={openAdv} sub="pending" accent={openAdv>0?T.coral:T.sage}/>
-        <StatCard label="Unpaid" value={unpaid} sub="cast & crew" accent={unpaid>0?T.coral:T.sage}/>
+        <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
+        <StatCard label={t('statBudgetLines')} value={budgetItems.length} sub={t('statAllProjects')}/>
+        <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage}/>
+        <StatCard label={t('statUnpaid')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
       </div>
-      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>Delete</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>Cancel</Btn></div></div></div>}
-      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>Cancel</Btn></div></div></div>}
-      {projects.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:44,textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>🎬</div><div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:8}}>No productions yet</div><div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Manrope,sans-serif'}}>Create a production and start building your budget.</div><Btn onClick={()=>setShowModal(true)}>Create your first production</Btn></div>:(
+      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
+      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
+      {projects.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:44,textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>🎬</div><div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:8}}>{t('noProductionsYet')}</div><div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Manrope,sans-serif'}}>{t('createFirstDesc')}</div><Btn onClick={()=>setShowModal(true)}>{t('createFirstBtn')}</Btn></div>:(
       <>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream}}>Productions</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream}}>{t('productionsHeader')}</div>
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             {selected.size>0&&<><span style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{selected.size} selected</span><Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set())}>Clear</Btn><Btn size="sm" variant="danger" onClick={()=>setConfirmMulti(true)}>🗑️ Delete</Btn></>}
             {selected.size===0&&projects.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set(projects.map(p=>p.id)))}>Select all</Btn>}
@@ -969,6 +1072,7 @@ const PI_FIELDS=[
 ];
 /* ── Phase Cost Summary — manual input for pre/production/post totals ── */
 function PhaseCostPanel({project,items}){
+  const{t}=useLang();
   const preDepts=['A - Research & Development','B - Script & Story','C - Pre-Production Expenses'];
   const postDepts=['W - Post-Production Team','X - Post-Production Expenses'];
   const prodDepts=PHASES[1].depts;
@@ -997,11 +1101,11 @@ function PhaseCostPanel({project,items}){
   const set=(k,v)=>{const upd={...costs,[k]:v};setCosts(upd);setIsAuto(false);localStorage.setItem(`nko_phasecost_${project.id}`,JSON.stringify({...upd,manualOverride:true}));};
   const resetToAuto=()=>{localStorage.removeItem(`nko_phasecost_${project.id}`);setCosts({pre:String(autoPre||''),prod:String(autoProd||''),contingency:String(autoContingency||''),post:String(autoPost||'')});setIsAuto(true);};
   const total=(Number(costs.pre)||0)+(Number(costs.prod)||0)+(Number(costs.contingency)||0)+(Number(costs.post)||0);
-  const cols=[['pre','Pre-Production'],['prod','Production'],['contingency','Contingency'],['post','Post-Production']];
+  const cols=[['pre',t('preProduction')],['prod',t('productionPhase')],['contingency',t('contingency')],['post',t('postProduction')]];
   return(
     <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:12}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,flexWrap:'wrap',gap:6}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Phase Cost Summary</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{t('phaseCostSummary')}</div>
         {isAuto&&items.length>0&&<span style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Auto-calculated from budget</span>}
         {!isAuto&&<button onClick={resetToAuto} style={{fontSize:11,color:T.goldDim,background:'none',border:'none',cursor:'pointer',fontFamily:'Manrope,sans-serif',fontWeight:700}}>↺ Recalculate from budget</button>}
       </div>
@@ -1011,7 +1115,7 @@ function PhaseCostPanel({project,items}){
           <Inp type="number" placeholder="0" value={costs[k]} onChange={e=>set(k,e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
         </div>)}
         <div>
-          <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>Total</div>
+          <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
           <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(total)}</div>
         </div>
       </div>
@@ -1020,6 +1124,7 @@ function PhaseCostPanel({project,items}){
 }
 
 function ProductionInfoPanel({project}){
+  const{t}=useLang();
   const[open,setOpen]=useState(false);const[info,setInfo]=useState({});const[saved,setSaved]=useState(false);
   useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');setInfo(s);setSaved(Object.keys(s).length>0);}catch{}},[project?.id]);
   const set=(k,v)=>setInfo(p=>({...p,[k]:v}));
@@ -1027,7 +1132,7 @@ function ProductionInfoPanel({project}){
   return(
     <div style={{background:T.panel,border:`1px solid ${saved?T.sage:T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📋 Production Info <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— producer credits & phase dates</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📋 {t('productionInfo')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— producer credits & phase dates</span></span>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16}}>
@@ -1041,13 +1146,14 @@ function ProductionInfoPanel({project}){
 }
 
 function BrandPanel({project}){
+  const{t}=useLang();
   const[open,setOpen]=useState(false);const[cname,setCname]=useState('');const[ptitle,setPtitle]=useState('');const[logo,setLogo]=useState(null);const[accent,setAccent]=useState('#FEED61');const[saved,setSaved]=useState(false);const lr=useRef();
   useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');setCname(s.companyName||'');setPtitle(s.productionTitle||project.name||'');setLogo(s.logo||null);setAccent(s.accentColor||'#FEED61');setSaved(!!(s.companyName||s.logo));}catch{}},[project?.id]);
   const save=()=>{localStorage.setItem(`nko_brand_${project.id}`,JSON.stringify({companyName:cname,productionTitle:ptitle,logo,accentColor:accent}));setSaved(true);setOpen(false);};
   return(
     <div style={{background:T.panel,border:`1px solid ${saved?accent:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>{logo&&<img src={logo} style={{height:28,objectFit:'contain'}}/>}<div style={{width:10,height:10,borderRadius:'50%',background:accent}}/><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Brand Panel</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>{logo&&<img src={logo} style={{height:28,objectFit:'contain'}}/>}<div style={{width:10,height:10,borderRadius:'50%',background:accent}}/><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{t('brandPanel')}</span></div>
         <div style={{display:'flex',alignItems:'center',gap:8}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
@@ -1074,6 +1180,7 @@ function ScriptResultModal({result,currency,onApply,onClose}){
   );
 }
 function ScriptUploader({project,onApplyBudget}){
+  const{t}=useLang();
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[result,setResult]=useState(null);const fr=useRef();
   const process=async f=>{
     const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
@@ -1093,7 +1200,7 @@ function ScriptUploader({project,onApplyBudget}){
     <>
       <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:(state==='idle'||state==='error')?'pointer':'default',marginBottom:18}}>
         <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
-        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Upload your script</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div><Btn variant="ghost" size="sm">Choose file</Btn></>}
+        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{t('uploadScript')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div><Btn variant="ghost" size="sm">{t('chooseFile')}</Btn></>}
         {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
         {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Keep screen on during analysis</div></>}
         {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage}}>Analysis complete</div></>}
@@ -1151,6 +1258,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
 };
 
 function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript}){
+  const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pItems=items.filter(i=>i.project_id===project.id);
@@ -1159,23 +1267,23 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
   const totalAdv=pAdv.reduce((s,a)=>s+a.amount,0);
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Budget — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('budgetHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
       <PhaseCostPanel project={project} items={pItems}/>
       <ProductionInfoPanel project={project}/>
       <BrandPanel project={project}/>
       {Object.keys(totals).length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:18}}>
-        <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>Total budget</div>
+        <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>{tr('totalBudget')}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:20}}>{Object.entries(totals).map(([c,a])=><div key={c}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:28,color:T.cream}}>{sym(c)}{fmt(a)}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{c}</div></div>)}</div>
         {totalAdv>0&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:8}}>Advances issued: {sym(project.base_currency)}{fmt(totalAdv)}</div>}
       </div>}
       <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
-        <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>📋 Templates</Btn>
-        {pItems.length>0&&<Btn variant="outline" size="sm" onClick={()=>budgetPDF(pItems,project,advances,reconEntries)}>📄 Share Budget PDF</Btn>}
+        <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
+        {pItems.length>0&&<Btn variant="outline" size="sm" onClick={()=>budgetPDF(pItems,project,advances,reconEntries)}>{tr('shareBudgetPdf')}</Btn>}
       </div>
       {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:8}}>
-          {TEMPLATES.map(t=><button key={t.id} onClick={()=>{onApplyTemplate(t);setShowTpl(false);}} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:12,cursor:'pointer',textAlign:'left'}}><div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream}}>{t.label}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:3}}>{t.items.length} line items</div></button>)}
+          {TEMPLATES.map(tpl=><button key={tpl.id} onClick={()=>{onApplyTemplate(tpl);setShowTpl(false);}} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:12,cursor:'pointer',textAlign:'left'}}><div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream}}>{tpl.label}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:3}}>{tpl.items.length} line items</div></button>)}
         </div>
       </div>}
       <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
@@ -1186,7 +1294,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
           <>
             {activeDepts.map(d=>{const di=pItems.filter(i=>i.dept===d);return<DeptSection key={d} dept={d} items={di} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove}/>;})}
             <Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
-              <option value="">+ Add a department…</option>
+              <option value="">{tr('addDepartment')}</option>
               {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
             </Sel>
           </>
@@ -1198,6 +1306,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
 
 /* ── Recon ── */
 function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}){
+  const{t:tr}=useLang();
   const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
   const cashIn=entries.filter(e=>e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
   const spent=entries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
@@ -1221,24 +1330,25 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}
         <Inp placeholder="Receipt / voucher ref (optional)" value={eRef} onChange={e=>setERef(e.target.value)}/>
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={save}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setShow(false)}>Cancel</Btn></div>
       </div>}
-      {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14,flexWrap:'wrap'}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Log expense</button><button onClick={()=>{const extra=window.prompt(`Top up this advance — how much extra ${advance.currency} was given to ${advance.recipient}?`);if(extra&&Number(extra)>0)onTopUp(advance.id,Number(extra));}} style={{color:T.sapphire,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>💰 Top up</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>✓ Reconcile</button>}</div>}
+      {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14,flexWrap:'wrap'}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('logExpense')}</button><button onClick={()=>{const extra=window.prompt(`Top up this advance — how much extra ${advance.currency} was given to ${advance.recipient}?`);if(extra&&Number(extra)>0)onTopUp(advance.id,Number(extra));}} style={{color:T.sapphire,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('topUp')}</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('reconcileBtn')}</button>}</div>}
       {advance.status!=='reconciled'&&!show&&bal<0&&<div style={{padding:'0 16px 12px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Overspent — top up with new cash received, or remove a logged expense with the × button above.</div>}
     </div>
   );
 }
 function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp}){
+  const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const total=pAdv.reduce((s,a)=>s+a.amount,0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0)).reduce((a,b)=>a+b,0);
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Recon — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Track every cash advance. Log expenses against each. Reduce discrepancies.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Track every cash advance. Log expenses against each. Reduce discrepancies.</div><div style={{marginTop:14}}><FS/></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
       </div>
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>New advance</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>{tr('newAdvance')}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <Inp placeholder="Recipient name" value={rec.recipient} onChange={e=>setRec(p=>({...p,recipient:e.target.value}))}/>
           <Inp placeholder="Department" value={rec.dept} onChange={e=>setRec(p=>({...p,dept:e.target.value}))}/>
@@ -1247,9 +1357,9 @@ function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,o
           <Inp placeholder="Purpose" value={rec.purpose} onChange={e=>setRec(p=>({...p,purpose:e.target.value}))} style={{gridColumn:'span 2'}}/>
           <Inp type="date" value={rec.date_issued} onChange={e=>setRec(p=>({...p,date_issued:e.target.value}))} style={{gridColumn:'span 2'}}/>
         </div>
-        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>Issue advance</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>{tr('issueAdvance').replace('+ ','')}</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>{tr('cancel')}</Btn></div>
       </div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pAdv.length} advance{pAdv.length!==1?'s':''}</div><div style={{display:'flex',gap:8}}>{pAdv.length>0&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>+ Issue advance</Btn></div></div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pAdv.length} advance{pAdv.length!==1?'s':''}</div><div style={{display:'flex',gap:8}}>{pAdv.length>0&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div></div>
       {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onTopUp={onTopUp}/>)}
     </div>
   );
@@ -1338,12 +1448,13 @@ const reconReportPDF=(advances,reconEntries,project)=>{
 };
 
 function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
+  const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pPayees=payees.filter(p=>p.project_id===project.id);
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Payments — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('paymentsHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <Inp placeholder="Name" value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))}/>
@@ -1353,14 +1464,14 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
         </div>
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(np.name){onAddPayee({...np,agreed_fee:Number(np.agreed_fee),project_id:project.id,payments:[]});setNp({name:'',role:'',agreed_fee:'',currency:'NGN'});setShowForm(false);}}}>Add</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
       </div>}
-      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}><Btn size="sm" onClick={()=>setShowForm(true)}>+ Add payee</Btn></div>
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}><Btn size="sm" onClick={()=>setShowForm(true)}>{tr('addPayee')}</Btn></div>
       {pPayees.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No payees yet.</div></div>:pPayees.map(p=>{
         const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);const bal=p.agreed_fee-paid;const pct=p.agreed_fee>0?Math.min(100,(paid/p.agreed_fee)*100):0;
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
           <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
           {(p.payments||[]).map((pay,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:`1px solid ${T.line}`}}><span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span><button onClick={()=>receiptPDF(p,pay,project)} title="Generate PDF receipt" style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>🧾 Receipt</button><button onClick={()=>onRemovePayment(p.id,i)} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>)}
-          {bal>0&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>{const amt=window.prompt(`Amount to pay (${p.currency}):`);const method=window.prompt('Payment method:','Cash');if(amt&&method)onAddPayment(p.id,{amount:Number(amt),method,date:today()});}}>+ Log payment</Btn></div>}
+          {bal>0&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>{const amt=window.prompt(`Amount to pay (${p.currency}):`);const method=window.prompt('Payment method:','Cash');if(amt&&method)onAddPayment(p.id,{amount:Number(amt),method,date:today()});}}>{tr('logPayment')}</Btn></div>}
         </div>;})}
     </div>
   );
@@ -1368,6 +1479,7 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
 
 /* ── AI Builder ── */
 function AIView({project,budgetItems,advances}){
+  const{t:tr}=useLang();
   const[msgs,setMsgs]=useState([]);const[input,setInput]=useState('');const[loading,setLoading]=useState(false);const[editIdx,setEditIdx]=useState(null);const[editText,setEditText]=useState('');const[imgPreview,setImgPreview]=useState(null);const[imgB64,setImgB64]=useState(null);
   const botRef=useRef();const imgRef=useRef();
   useEffect(()=>{botRef.current?.scrollIntoView({behavior:'smooth'});},[msgs]);
@@ -1400,7 +1512,7 @@ function AIView({project,budgetItems,advances}){
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 130px)'}}>
-      <div style={{marginBottom:18}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>AI Builder</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Production finance co-pilot — calibrated for African markets.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:18}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('aiBuilderHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Production finance co-pilot — calibrated for African markets.</div><div style={{marginTop:14}}><FS/></div></div>
       <div style={{flex:1,overflowY:'auto',marginBottom:12}}>
         {msgs.length===0&&<div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>Quick prompts</div><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{QUICK.map(q=><button key={q} onClick={()=>send(q)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'6px 14px',fontSize:12,color:T.cream,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{q}</button>)}</div></div>}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -1431,8 +1543,8 @@ function AIView({project,budgetItems,advances}){
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
         <input ref={imgRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickImage}/>
         <button onClick={()=>imgRef.current.click()} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 10px',cursor:'pointer',color:T.goldDim,fontSize:16,flexShrink:0}} title="Attach image">📎</button>
-        <Inp placeholder="Ask about rates, budgets, recon… or attach an image" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} style={{flex:1}}/>
-        <Btn onClick={()=>send()} style={{flexShrink:0,opacity:loading?.5:1}}>Send</Btn>
+        <Inp placeholder={tr('askPlaceholder')} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} style={{flex:1}}/>
+        <Btn onClick={()=>send()} style={{flexShrink:0,opacity:loading?.5:1}}>{tr('send')}</Btn>
       </div>
     </div>
   );
@@ -1589,6 +1701,7 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 function BreakdownUploader({project,onApply}){
+  const{t:tr}=useLang();
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
   const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
   const sendNotif=n=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKÒ Breakdown Complete',{body:`${n} scenes extracted from ${project.name}`});}catch{}};
@@ -1611,10 +1724,10 @@ function BreakdownUploader({project,onApply}){
   };
   return(
     <div style={{marginBottom:18}}>
-      {state==='analyzing'&&<div style={{background:notif==='granted'?'rgba(82,176,122,.1)':'rgba(254,237,97,.1)',border:`1px solid ${notif==='granted'?T.sage:T.goldDim}`,borderRadius:8,padding:'10px 14px',marginBottom:10}}><div style={{fontSize:12,color:notif==='granted'?T.sage:T.gold,fontFamily:'Manrope,sans-serif'}}>{notif==='granted'?'🔔 Notifications on — you can switch apps':'⚠️ Keep this screen open during analysis'}</div></div>}
+      {state==='analyzing'&&<div style={{background:notif==='granted'?'rgba(82,176,122,.1)':'rgba(254,237,97,.1)',border:`1px solid ${notif==='granted'?T.sage:T.goldDim}`,borderRadius:8,padding:'10px 14px',marginBottom:10}}><div style={{fontSize:12,color:notif==='granted'?T.sage:T.gold,fontFamily:'Manrope,sans-serif'}}>{notif==='granted'?tr('notifOn'):tr('keepScreenOpen')}</div></div>}
       <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{background:T.hi,border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:20,textAlign:'center',cursor:(state==='idle'||state==='error')?'pointer':'default'}}>
         <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
-        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📋</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>AI Script Breakdown</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Upload your script — cast, props, location, vehicles per scene</div>{notif==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',marginBottom:8}}>🔔 Safe to switch apps during analysis</div>}{notif==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:8}}>💡 Allow notifications to switch apps freely</div>}<Btn variant="ghost" size="sm">Choose script</Btn></>}
+        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📋</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{tr('aiScriptBreakdown')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Upload your script — cast, props, location, vehicles per scene</div>{notif==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',marginBottom:8}}>🔔 Safe to switch apps during analysis</div>}{notif==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:8}}>💡 Allow notifications to switch apps freely</div>}<Btn variant="ghost" size="sm">{tr('chooseScript')}</Btn></>}
         {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading…</div></>}
         {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Analyzing your script…</div></>}
         {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage,marginBottom:4}}>Breakdown complete</div><button onClick={e=>{e.stopPropagation();setState('idle');}} style={{color:T.gold,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another →</button></>}
@@ -1629,6 +1742,7 @@ const dedupeList=arr=>{
   return Object.values(seen);
 };
 function ProductionElementsPanel({scenes}){
+  const{t:tr}=useLang();
   const[open,setOpen]=useState(false);
   const allCast=dedupeList(scenes.flatMap(s=>s.cast||[]));
   const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
@@ -1644,7 +1758,7 @@ function ProductionElementsPanel({scenes}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🧾 Production Elements <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— every cast, prop, costume & equipment item across the script</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🧾 {tr('productionElements')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— every cast, prop, costume & equipment item across the script</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'14px 16px 4px'}}>
@@ -1657,6 +1771,7 @@ function ProductionElementsPanel({scenes}){
   );
 }
 function CastSummaryPanel({scenes,characters,onSaveCharacter}){
+  const{t:tr}=useLang();
   const[open,setOpen]=useState(false);
   const[editingRow,setEditingRow]=useState(null);
   const rows=(()=>{
@@ -1668,7 +1783,7 @@ function CastSummaryPanel({scenes,characters,onSaveCharacter}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 Character Scene Breakdown <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} character{rows.length!==1?'s':''}</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 {tr('castSceneBreakdown')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} character{rows.length!==1?'s':''}</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
@@ -1693,6 +1808,7 @@ function CastSummaryPanel({scenes,characters,onSaveCharacter}){
   );
 }
 function OutlineSchedulePanel({scenes}){
+  const{t:tr}=useLang();
   const[open,setOpen]=useState(false);
   const rows=(()=>{
     const out=[];let current=null;
@@ -1706,7 +1822,7 @@ function OutlineSchedulePanel({scenes}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🗓️ Outline Schedule <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} block{rows.length!==1?'s':''}, in script order</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🗓️ {tr('outlineSchedule')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} block{rows.length!==1?'s':''}, in script order</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
@@ -1724,6 +1840,7 @@ function OutlineSchedulePanel({scenes}){
   );
 }
 function LocationsSummaryPanel({scenes}){
+  const{t:tr}=useLang();
   const[open,setOpen]=useState(false);
   const rows=(()=>{
     const map={};
@@ -1737,7 +1854,7 @@ function LocationsSummaryPanel({scenes}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📍 Locations Summary <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} location{rows.length!==1?'s':''}, grouped by scene count</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📍 {tr('locationsSummary')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} location{rows.length!==1?'s':''}, grouped by scene count</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 14px'}}>
@@ -1757,13 +1874,14 @@ function LocationsSummaryPanel({scenes}){
   );
 }
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene}){
+  const{t:tr}=useLang();
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const ps=sortScenes(scenes.filter(s=>s.project_id===project.id));
   const filtered=ps.filter(s=>{const mf=filter==='ALL'||(filter==='INT'&&s.intExt==='INT')||(filter==='EXT'&&s.intExt==='EXT')||(filter==='DAY'&&s.dayNight==='DAY')||(filter==='NIGHT'&&s.dayNight==='NIGHT');const ms=!search||s.heading?.toLowerCase().includes(search.toLowerCase())||s.location?.toLowerCase().includes(search.toLowerCase());return mf&&ms;});
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?22:26,color:T.cream}}>Breakdown — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?22:26,color:T.cream}}>{tr('breakdownHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div><div style={{marginTop:14}}><FS/></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
       </div>
@@ -1796,12 +1914,13 @@ function CreatorCard({creator,selected,onClick}){
   );
 }
 function MarketplaceView({onApplyTemplate}){
+  const{t:tr}=useLang();
   const[cat,setCat]=useState('All');const[sel,setSel]=useState(null);const[search,setSearch]=useState('');const[applied,setApplied]=useState(null);const mob=useIsMobile();
   const filtered=COMMUNITY_TEMPLATES.filter(t=>(cat==='All'||t.type===cat)&&(!sel||t.author===sel)&&(!search||t.label.toLowerCase().includes(search.toLowerCase())||t.author.toLowerCase().includes(search.toLowerCase())));
   const featured=CREATORS[0];
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Marketplace</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates — budget + archetypal scenes bundled together.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('marketplaceHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates — budget + archetypal scenes bundled together.</div><div style={{marginTop:14}}><FS/></div></div>
       {/* Featured creator hero */}
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:20,marginBottom:24,display:'flex',gap:16,alignItems:'center',flexWrap:mob?'wrap':'nowrap'}}>
         <div style={{width:52,height:52,borderRadius:'50%',background:T.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:T.ink,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{featured.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
@@ -1835,7 +1954,7 @@ function MarketplaceView({onApplyTemplate}){
           </div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.gold}}>₦{fmt(total)}</div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>{tpl.items.length} lines · {tpl.downloads} uses</div></div>
-            <Btn size="sm" variant={isApp?'sage':'outline'} onClick={()=>{onApplyTemplate(tpl);setApplied(tpl.id);setTimeout(()=>setApplied(null),3000);}}>{isApp?'✓ Applied':'Use template'}</Btn>
+            <Btn size="sm" variant={isApp?'sage':'outline'} onClick={()=>{onApplyTemplate(tpl);setApplied(tpl.id);setTimeout(()=>setApplied(null),3000);}}>{isApp?tr('applied'):tr('useTemplate')}</Btn>
           </div>
         </div>;})}
       </div>}
@@ -2006,6 +2125,16 @@ function MainApp(){
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
+          {view==='workspace'&&(
+            <div style={{display:'grid',gridTemplateColumns:mobile?'1fr':'1fr 1fr',gap:mobile?0:24,alignItems:'start'}}>
+              <div style={{minWidth:0,paddingBottom:mobile?32:0,borderBottom:mobile?`1px solid ${T.line}`:'none',marginBottom:mobile?24:0}}>
+                <BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>
+              </div>
+              <div style={{minWidth:0,borderLeft:mobile?'none':`1px solid ${T.line}`,paddingLeft:mobile?0:24}}>
+                <BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>
+              </div>
+            </div>
+          )}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
@@ -2019,6 +2148,7 @@ function MainApp(){
 
 /* ── Root ── */
 function OnboardingScreen({onComplete}){
+  const{t}=useLang();
   const[step,setStep]=useState(0);
   const[role,setRole]=useState(null);
   const[market,setMarket]=useState(null);
@@ -2036,22 +2166,23 @@ function OnboardingScreen({onComplete}){
   const canContinue=step===0||(step===1&&role)||(step===2&&market);
   return(
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',flexDirection:'column',padding:'32px 24px',boxSizing:'border-box'}}>
+      <div style={{display:'flex',justifyContent:'flex-end',maxWidth:420,margin:'0 auto',width:'100%'}}><LangToggle compact/></div>
       <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:step===0?'center':'flex-start',maxWidth:420,margin:'0 auto',width:'100%'}}>
         {step===0&&<>
           <div style={{fontFamily:'Fraunces,serif',fontSize:40,color:T.gold}}>NKÒ</div>
           <div style={{width:40,height:2,background:T.gold,margin:'16px 0'}}/>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>Budgets tailored just for you.</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>{t('onboardTagline')}</div>
         </>}
         {step===1&&<>
-          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>Step 1 of 2</div>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>What's your role?</div>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>We'll tailor the workspace to what you manage day to day.</div>
+          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{t('step1Of2')}</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>{t('whatsYourRole')}</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>{t('roleSubtitle')}</div>
           {ROLES.map(r=><RadioCard key={r.id} selected={role===r.id} title={r.label} sub={r.sub} onClick={()=>setRole(r.id)}/>)}
         </>}
         {step===2&&<>
-          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>Step 2 of 2</div>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>Base currency?</div>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>Sets the default currency for budgets and payments.</div>
+          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{t('step2Of2')}</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>{t('baseCurrency')}</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>{t('currencySubtitle')}</div>
           {MARKETS.map(m=><RadioCard key={m.code} selected={market===m.code} title={m.country} sub={`${m.code} · ${m.symbol}`} onClick={()=>setMarket(m.code)}/>)}
         </>}
       </div>
@@ -2060,9 +2191,9 @@ function OnboardingScreen({onComplete}){
           {[0,1,2].map(i=><div key={i} style={{height:4,borderRadius:2,flex:1,background:i<=step?T.gold:T.line}}/>)}
         </div>
         <div style={{display:'flex',justifyContent:step===0?'flex-end':'space-between'}}>
-          {step>0&&<Btn variant="ghost" onClick={()=>setStep(s=>s-1)}>Back</Btn>}
-          {step<2&&<Btn onClick={()=>canContinue&&setStep(s=>s+1)} style={{opacity:canContinue?1:.5}}>{step===0?'Get started':'Continue'}</Btn>}
-          {step===2&&<Btn onClick={()=>canContinue&&onComplete({role,market})} style={{opacity:canContinue?1:.5}}>Finish</Btn>}
+          {step>0&&<Btn variant="ghost" onClick={()=>setStep(s=>s-1)}>{t('backBtn')}</Btn>}
+          {step<2&&<Btn onClick={()=>canContinue&&setStep(s=>s+1)} style={{opacity:canContinue?1:.5}}>{step===0?t('getStarted'):t('continueBtn')}</Btn>}
+          {step===2&&<Btn onClick={()=>canContinue&&onComplete({role,market})} style={{opacity:canContinue?1:.5}}>{t('finishBtn')}</Btn>}
         </div>
       </div>
     </div>
@@ -2086,5 +2217,5 @@ export default function App(){
     document.body.style.margin='0';
     document.body.style.padding='0';
   },[]);
-  return<AuthProvider><AuthGate/></AuthProvider>;
+  return<LangProvider><AuthProvider><AuthGate/></AuthProvider></LangProvider>;
 }
