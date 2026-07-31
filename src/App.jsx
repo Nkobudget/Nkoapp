@@ -39,7 +39,7 @@ const TRANSLATIONS={
     tagline:'Budgets tailored just for you',
     signOut:'Sign out',
     studio:'Studio',
-    navDashboard:'Dashboard',navBudgets:'Budgets',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navMarketplace:'Marketplace',navAI:'AI Builder',navWorkspace:'Workspace',
+    navDashboard:'Dashboard',navBudgets:'Budgets',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navMarketplace:'Marketplace',navAI:'AI Builder',navWorkspace:'Budget & Breakdown',
     selectProduction:'Select production…',newBtn:'+ New',back:'← Back',
     emailPlaceholder:'Email',passwordPlaceholder:'Password',show:'Show',hide:'Hide',
     forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
@@ -77,7 +77,7 @@ const TRANSLATIONS={
     tagline:'Des budgets pensés pour vous',
     signOut:'Se déconnecter',
     studio:'Studio',
-    navDashboard:'Tableau de bord',navBudgets:'Budgets',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navMarketplace:'Place de marché',navAI:'Assistant IA',navWorkspace:'Espace de travail',
+    navDashboard:'Tableau de bord',navBudgets:'Budgets',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navMarketplace:'Place de marché',navAI:'Assistant IA',navWorkspace:'Budget et découpage',
     selectProduction:'Sélectionner une production…',newBtn:'+ Nouveau',back:'← Retour',
     emailPlaceholder:'E-mail',passwordPlaceholder:'Mot de passe',show:'Afficher',hide:'Masquer',
     forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
@@ -822,7 +822,7 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 };
 
 /* ── Atoms ── */
-const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'workspace',e:'🧩',l:'Workspace'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'workspace',e:'🧩',l:'Budget & Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
 const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
 const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
@@ -1970,6 +1970,15 @@ function MainApp(){
   const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
+  const[workspacePanels,setWorkspacePanels]=useState(()=>{try{return JSON.parse(localStorage.getItem('nko_workspace_panels')||'null')||{budget:true,breakdown:true};}catch{return{budget:true,breakdown:true};}});
+  const toggleWorkspacePanel=key=>{
+    setWorkspacePanels(p=>{
+      const next={...p,[key]:!p[key]};
+      if(!next[key]){const other=key==='budget'?'breakdown':'budget';next[other]=true;}
+      try{localStorage.setItem('nko_workspace_panels',JSON.stringify(next));}catch{}
+      return next;
+    });
+  };
   useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
 
@@ -2125,16 +2134,42 @@ function MainApp(){
           {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
-          {view==='workspace'&&(
-            <div style={{display:'grid',gridTemplateColumns:mobile?'1fr':'1fr 1fr',gap:mobile?0:24,alignItems:'start'}}>
-              <div style={{minWidth:0,paddingBottom:mobile?32:0,borderBottom:mobile?`1px solid ${T.line}`:'none',marginBottom:mobile?24:0}}>
-                <BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>
+          {view==='workspace'&&(()=>{
+            const budgetOpen=workspacePanels.budget;
+            const breakdownOpen=workspacePanels.breakdown;
+            const bothOpen=budgetOpen&&breakdownOpen;
+            const CollapsedBar=({label,color,onClick})=>mobile?(
+              <button onClick={onClick} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',marginBottom:12}}>
+                <span style={{color,fontSize:13}}>▶</span>
+                <span style={{color:T.cream,fontWeight:700,fontSize:14,fontFamily:'Fraunces,serif'}}>{label}</span>
+                <span style={{color:T.dim,fontSize:11,marginLeft:'auto'}}>Tap to expand</span>
+              </button>
+            ):(
+              <button onClick={onClick} style={{width:44,minHeight:300,background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'14px 0'}}>
+                <span style={{color,fontSize:13}}>▶</span>
+                <span style={{color:T.cream,fontWeight:700,fontSize:13,fontFamily:'Fraunces,serif',writingMode:'vertical-rl',textOrientation:'mixed'}}>{label}</span>
+              </button>
+            );
+            const CollapseToggle=({onClick})=>(
+              <button onClick={onClick} style={{background:'none',border:'none',cursor:'pointer',display:'flex',alignItems:'center',gap:6,padding:'2px 4px',marginBottom:10,color:T.goldDim,fontSize:11,fontFamily:'Manrope,sans-serif',fontWeight:700}}>▼ Collapse this panel</button>
+            );
+            return(
+              <div style={{display:'grid',gridTemplateColumns:mobile?'1fr':(bothOpen?'1fr 1fr':budgetOpen?'1fr 44px':'44px 1fr'),gap:mobile?0:16,alignItems:'start'}}>
+                <div style={{minWidth:0,paddingBottom:mobile&&budgetOpen?32:0,borderBottom:mobile&&budgetOpen?`1px solid ${T.line}`:'none',marginBottom:mobile&&budgetOpen?24:0}}>
+                  {budgetOpen?<>
+                    <CollapseToggle onClick={()=>toggleWorkspacePanel('budget')}/>
+                    <BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>
+                  </>:<CollapsedBar label="Budget" color={T.gold} onClick={()=>toggleWorkspacePanel('budget')}/>}
+                </div>
+                <div style={{minWidth:0,borderLeft:mobile||!bothOpen?'none':`1px solid ${T.line}`,paddingLeft:mobile||!bothOpen?0:16}}>
+                  {breakdownOpen?<>
+                    <CollapseToggle onClick={()=>toggleWorkspacePanel('breakdown')}/>
+                    <BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>
+                  </>:<CollapsedBar label="Breakdown" color={T.sapphire} onClick={()=>toggleWorkspacePanel('breakdown')}/>}
+                </div>
               </div>
-              <div style={{minWidth:0,borderLeft:mobile?'none':`1px solid ${T.line}`,paddingLeft:mobile?0:24}}>
-                <BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>
-              </div>
-            </div>
-          )}
+            );
+          })()}
           {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
