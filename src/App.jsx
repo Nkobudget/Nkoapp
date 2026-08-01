@@ -53,6 +53,7 @@ const TRANSLATIONS={
     statOpenAdvances:'Open advances',statPending:'pending',statUnpaid:'Unpaid',statCastCrew:'cast & crew',
     statTotalSpend:'Total spend',statAcrossSlate:'across all productions',statTotalSaved:'Total saved',statOverBudget:'over budget',statUnderBudget:'under budget',
     statTotalBudget:'Total budget',statOpenAdv:'open',statUnpaidCrew:'Unpaid crew',allProductions:'← All productions',productionDashboard:'Production dashboard',statThisProduction:'this production',
+    costReport:'Cost report',costReportSub:'Budget vs actual, pre-production through distribution',byPhase:'By phase',notStarted:'not started',totalBudgetLbl:'Total budget',actualSpentLbl:'Actual spent',remainingLbl:'Remaining',
     noProductionsYet:'No productions yet',createFirstDesc:'Create a production and start building your budget.',
     createFirstBtn:'Create your first production',productionsHeader:'Productions',
     selectAll:'Select all',clear:'Clear',deleteBtn:'🗑️ Delete',
@@ -93,6 +94,7 @@ const TRANSLATIONS={
     statOpenAdvances:'Avances ouvertes',statPending:'en attente',statUnpaid:'Impayés',statCastCrew:'acteurs et équipe',
     statTotalSpend:'Total dépensé',statAcrossSlate:'toutes productions',statTotalSaved:'Total économisé',statOverBudget:'dépassement',statUnderBudget:'sous le budget',
     statTotalBudget:'Budget total',statOpenAdv:'ouvertes',statUnpaidCrew:'Équipe impayée',allProductions:'← Toutes les productions',productionDashboard:'Tableau de bord de production',statThisProduction:'cette production',
+    costReport:'Rapport de coûts',costReportSub:'Budget vs réel, de la pré-production à la distribution',byPhase:'Par phase',notStarted:'non commencé',totalBudgetLbl:'Budget total',actualSpentLbl:'Dépenses réelles',remainingLbl:'Restant',
     noProductionsYet:'Aucune production pour le moment',createFirstDesc:'Créez une production et commencez votre budget.',
     createFirstBtn:'Créer votre première production',productionsHeader:'Productions',
     selectAll:'Tout sélectionner',clear:'Effacer',deleteBtn:'🗑️ Supprimer',
@@ -1426,7 +1428,60 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}
     </div>
   );
 }
-function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp}){
+/* ── Cost Report — budget vs actual by phase, using dept tag on advances ── */
+function CostReportPanel({project,items,advances,reconEntries}){
+  const{t:tr}=useLang();
+  const advIds=advances.map(a=>a.id);
+  const advCur=id=>advances.find(a=>a.id===id)?.currency||project.base_currency;
+  const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]'));
+  const budgetByCur={};items.forEach(i=>{budgetByCur[i.currency]=(budgetByCur[i.currency]||0)+lTot(i);});
+  const spentByCur={};spendEntries.forEach(e=>{const c=advCur(e.advance_id);spentByCur[c]=(spentByCur[c]||0)+(Number(e.amount)||0);});
+  const budgetUSD=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+  const remainUSD=budgetUSD-spentUSD;
+  const curs=[...new Set([...Object.keys(budgetByCur),...Object.keys(spentByCur),project.base_currency])];
+  const fmtCur=obj=>curs.filter(c=>obj[c]).map(c=>`${sym(c)}${fmt(obj[c])}`).join(' · ')||`${sym(project.base_currency)}0`;
+  const remainingByCur={};curs.forEach(c=>{remainingByCur[c]=(budgetByCur[c]||0)-(spentByCur[c]||0);});
+  const untaggedSpentUSD=spendEntries.filter(e=>{const a=advances.find(x=>x.id===e.advance_id);return a&&!a.dept;}).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+  if(items.length===0&&advances.length===0)return null;
+  return(
+    <div style={{marginBottom:22}}>
+      <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:2}}>{tr('costReport')}</div>
+      <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12}}>{tr('costReportSub')}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginBottom:12}}>
+        <StatCard label={tr('totalBudgetLbl')} value={fmtCur(budgetByCur)} sub={project.base_currency}/>
+        <StatCard label={tr('actualSpentLbl')} value={fmtCur(spentByCur)} sub={project.base_currency}/>
+        <StatCard label={tr('remainingLbl')} value={fmtCur(remainingByCur)} sub={remainUSD<0?tr('statOverBudget'):tr('statUnderBudget')} accent={remainUSD<0?T.coral:T.sage}/>
+      </div>
+      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent on advances with no department set — tag them when issuing an advance for an accurate phase breakdown.</div>}
+      <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>{tr('byPhase')}</div>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {PHASES.map(ph=>{
+          const bItems=items.filter(i=>ph.depts.includes(i.dept));
+          const bByCur={};bItems.forEach(i=>{bByCur[i.currency]=(bByCur[i.currency]||0)+lTot(i);});
+          const advIdsPhase=advances.filter(a=>ph.depts.includes(a.dept)).map(a=>a.id);
+          const sByCur={};spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).forEach(e=>{const c=advCur(e.advance_id);sByCur[c]=(sByCur[c]||0)+(Number(e.amount)||0);});
+          const bUSD=bItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+          const pct=bUSD>0?Math.min(100,(sUSD/bUSD)*100):0;const over=sUSD>bUSD;const diffUSD=sUSD-bUSD;
+          return(
+            <div key={ph.name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6,gap:8,flexWrap:'wrap'}}>
+                <span style={{color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif'}}>{ph.name}</span>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:sUSD===0?T.dim:(over?T.coral:T.sage)}}>{sUSD===0?tr('notStarted'):`${over?'+':'-'}$${fmt(Math.abs(diffUSD))} ${over?tr('statOverBudget'):tr('statUnderBudget')}`}</span>
+              </div>
+              <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:5}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,fontFamily:'IBM Plex Mono,monospace',flexWrap:'wrap',gap:6}}>
+                <span>Budget {fmtCur(bByCur)}</span><span>Spent {fmtCur(sByCur)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+function ReconView({project,items,advances,reconEntries,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
@@ -1435,6 +1490,7 @@ function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,o
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Track every cash advance. Log expenses against each. Reduce discrepancies.</div><div style={{marginTop:14}}><FS/></div></div>
+      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries}/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
       </div>
@@ -2243,7 +2299,7 @@ function MainApp(){
               </div>
             </div>
           )}
-          {view==='recon'&&<ReconView project={project} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
