@@ -51,6 +51,8 @@ const TRANSLATIONS={
     dashHeaderTagline:'Budgets tailored just for you.',
     statProductions:'Productions',statActive:'active',statBudgetLines:'Budget lines',statAllProjects:'all projects',
     statOpenAdvances:'Open advances',statPending:'pending',statUnpaid:'Unpaid',statCastCrew:'cast & crew',
+    statTotalSpend:'Total spend',statAcrossSlate:'across all productions',statTotalSaved:'Total saved',statOverBudget:'over budget',statUnderBudget:'under budget',
+    statTotalBudget:'Total budget',statOpenAdv:'open',statUnpaidCrew:'Unpaid crew',allProductions:'← All productions',productionDashboard:'Production dashboard',statThisProduction:'this production',
     noProductionsYet:'No productions yet',createFirstDesc:'Create a production and start building your budget.',
     createFirstBtn:'Create your first production',productionsHeader:'Productions',
     selectAll:'Select all',clear:'Clear',deleteBtn:'🗑️ Delete',
@@ -89,6 +91,8 @@ const TRANSLATIONS={
     dashHeaderTagline:'Des budgets pensés pour vous.',
     statProductions:'Productions',statActive:'actives',statBudgetLines:'Lignes budgétaires',statAllProjects:'tous projets',
     statOpenAdvances:'Avances ouvertes',statPending:'en attente',statUnpaid:'Impayés',statCastCrew:'acteurs et équipe',
+    statTotalSpend:'Total dépensé',statAcrossSlate:'toutes productions',statTotalSaved:'Total économisé',statOverBudget:'dépassement',statUnderBudget:'sous le budget',
+    statTotalBudget:'Budget total',statOpenAdv:'ouvertes',statUnpaidCrew:'Équipe impayée',allProductions:'← Toutes les productions',productionDashboard:'Tableau de bord de production',statThisProduction:'cette production',
     noProductionsYet:'Aucune production pour le moment',createFirstDesc:'Créez une production et commencez votre budget.',
     createFirstBtn:'Créer votre première production',productionsHeader:'Productions',
     selectAll:'Tout sélectionner',clear:'Effacer',deleteBtn:'🗑️ Supprimer',
@@ -720,6 +724,39 @@ const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
 const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readTxt=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
 const readImg=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+/* Client-side PDF text extraction. Screenplay text is tiny compared to the raw PDF binary —
+   extracting it in the browser avoids Vercel's 4.5MB serverless function payload limit, which
+   is the actual cause of "large script fails to upload" (base64-encoding a ~3.3MB+ PDF pushes
+   the request over that limit). Falls back to sending the raw PDF only if extraction fails
+   (e.g. a scanned/image-only script with no embedded text layer), and only for smaller files. */
+let pdfjsLoadPromise=null;
+const loadPdfjs=()=>{
+  if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+  if(pdfjsLoadPromise)return pdfjsLoadPromise;
+  pdfjsLoadPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js';
+    script.onload=()=>{
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    script.onerror=()=>reject(new Error('Could not load the PDF reader. Check your connection and try again.'));
+    document.head.appendChild(script);
+  });
+  return pdfjsLoadPromise;
+};
+const extractPdfText=async file=>{
+  const pdfjsLib=await loadPdfjs();
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    text+=content.items.map(it=>it.str).join(' ')+'\n\n';
+  }
+  return text.trim();
+};
 const callClaude=async(msgs,sys,maxTokens=8000)=>{
   const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:maxTokens})});
   if(!r.ok)throw new Error(`API ${r.status}`);
@@ -962,19 +999,22 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
 }
 
 /* ── Dashboard ── */
-function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency}){
+function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
-  const openAdv=advances.filter(a=>a.status!=='reconciled').length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
+  const advCurrency=id=>advances.find(a=>a.id===id)?.currency||'NGN';
+  const totalBudgetUSD=budgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const totalSpentUSD=reconEntries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
+  const savedUSD=totalBudgetUSD-totalSpentUSD;
   return(
     <div>
       <div style={{marginBottom:22}}><div style={{fontFamily:'Fraunces,serif',fontSize:32,color:T.gold}}>NKÒ</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
         <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
-        <StatCard label={t('statBudgetLines')} value={budgetItems.length} sub={t('statAllProjects')}/>
-        <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage}/>
+        <StatCard label={t('statTotalSpend')} value={`≈ $${fmt(totalSpentUSD)}`} sub={t('statAcrossSlate')}/>
+        <StatCard label={t('statTotalSaved')} value={`≈ $${fmt(Math.abs(savedUSD))}`} sub={savedUSD<0?t('statOverBudget'):t('statUnderBudget')} accent={savedUSD<0?T.coral:T.sage}/>
         <StatCard label={t('statUnpaid')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
       </div>
       {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
@@ -989,13 +1029,27 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
           </div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
-          {projects.map(p=>{const pi=budgetItems.filter(i=>i.project_id===p.id);const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});const open=advances.filter(a=>a.project_id===p.id&&a.status!=='reconciled').length;const isSel=selected.has(p.id);
+          {projects.map(p=>{
+            const pi=budgetItems.filter(i=>i.project_id===p.id);const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+            const open=advances.filter(a=>a.project_id===p.id&&a.status!=='reconciled').length;const isSel=selected.has(p.id);
+            const pAdvIds=advances.filter(a=>a.project_id===p.id).map(a=>a.id);
+            const spentTotals={};reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).forEach(e=>{const c=advCurrency(e.advance_id);spentTotals[c]=(spentTotals[c]||0)+(Number(e.amount)||0);});
+            const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+            const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
+            const pct=budgetUSD>0?Math.min(100,(spentUSD/budgetUSD)*100):0;const over=spentUSD>budgetUSD;
           return<div key={p.id} style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?T.hi:T.panel,border:`1px solid ${isSel?T.coral:p.id===currentId?T.gold:T.line}`,borderRadius:10,padding:18,position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSel?T.coral:T.faint}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
             <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',paddingRight:28}}>
               <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div>
               <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2,marginBottom:8}}>{p.type}</div>
-              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream,marginBottom:6}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
+              {budgetUSD>0&&<>
+                <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:6}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
+                  <span>{Object.entries(spentTotals).length===0?'No spend yet':Object.entries(spentTotals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}</span>
+                  <span style={{color:over?T.coral:T.sage}}>{over?'Over pace':`${Math.round(pct)}%`}</span>
+                </div>
+              </>}
               <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
             </button>
             <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}}>🗑️</button>
@@ -1008,6 +1062,29 @@ function DashboardView({projects,budgetItems,advances,payees,currentId,onSelect,
   );
 }
 
+/* ── Per-production Dashboard — shown when a production is selected ── */
+function ProductionDashboardView({project,items,advances,payees,onBack}){
+  const{t}=useLang();
+  const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+  const openAdv=advances.filter(a=>a.status!=='reconciled').length;
+  const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
+  return(
+    <div>
+      <button onClick={onBack} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',marginBottom:14,padding:0}}>{t('allProductions')}</button>
+      <div style={{marginBottom:22}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:28,color:T.cream}}>{project.name}</div>
+        <div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:4}}>{project.type}</div>
+        <div style={{fontSize:13,color:T.dim,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{t('productionDashboard')}</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
+        <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')} sub={project.base_currency}/>
+        <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')}/>
+        <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage}/>
+        <StatCard label={t('statUnpaidCrew')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
+      </div>
+    </div>
+  );
+}
 /* ── Budgets ── */
 function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
   const[open,setOpen]=useState(true);const mob=useIsMobile();
@@ -1187,8 +1264,22 @@ function ScriptUploader({project,onApplyBudget}){
     if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX file.');setState('error');return;}
     setState('reading');setErr('');
     try{
-      let uc;if(isPDF){const b=await readB64(f);uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:SCRIPT_PROMPT(project.base_currency)}];}
-      else{const t=await readTxt(f);uc=[{type:'text',text:`Script:\n\n${t}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];}
+      let uc;
+      if(isPDF){
+        let extracted='';
+        try{extracted=await extractPdfText(f);}catch{extracted='';}
+        if(extracted&&extracted.length>200){
+          uc=[{type:'text',text:`Script:\n\n${extracted.slice(0,300000)}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];
+        }else{
+          const sizeMB=f.size/1024/1024;
+          if(sizeMB>3.2)throw new Error(`This PDF looks like scanned pages with no selectable text, and is too large (${sizeMB.toFixed(1)}MB) to upload directly. Try exporting it as a text-based PDF, or paste the script into a .txt file instead.`);
+          const b=await readB64(f);
+          uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:SCRIPT_PROMPT(project.base_currency)}];
+        }
+      }else{
+        const txt=await readTxt(f);
+        uc=[{type:'text',text:`Script:\n\n${txt}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];
+      }
       setState('analyzing');
       const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS,24000);
       const recovered=recoverBudget(raw);
@@ -1351,7 +1442,7 @@ function ReconView({project,advances,reconEntries,onAddAdvance,onUpdateAdvance,o
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>{tr('newAdvance')}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <Inp placeholder="Recipient name" value={rec.recipient} onChange={e=>setRec(p=>({...p,recipient:e.target.value}))}/>
-          <Inp placeholder="Department" value={rec.dept} onChange={e=>setRec(p=>({...p,dept:e.target.value}))}/>
+          <Sel value={rec.dept} onChange={e=>setRec(p=>({...p,dept:e.target.value}))} style={{width:'100%'}}><option value="">Department (optional)</option>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel>
           <Inp type="number" placeholder="Amount" value={rec.amount} onChange={e=>setRec(p=>({...p,amount:e.target.value}))}/>
           <Sel value={rec.currency} onChange={e=>setRec(p=>({...p,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
           <Inp placeholder="Purpose" value={rec.purpose} onChange={e=>setRec(p=>({...p,purpose:e.target.value}))} style={{gridColumn:'span 2'}}/>
@@ -1712,8 +1803,22 @@ function BreakdownUploader({project,onApply}){
     await askNotif();setState('reading');setErr('');
     try{
       const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?20:25;
-      let uc;if(isPDF){const b=await readB64(f);uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:BREAKDOWN_PROMPT(ep,max)}];}
-      else{const t=await readTxt(f);uc=[{type:'text',text:`Script:\n\n${t.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];}
+      let uc;
+      if(isPDF){
+        let extracted='';
+        try{extracted=await extractPdfText(f);}catch{extracted='';}
+        if(extracted&&extracted.length>200){
+          uc=[{type:'text',text:`Script:\n\n${extracted.slice(0,300000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
+        }else{
+          const sizeMB=f.size/1024/1024;
+          if(sizeMB>3.2)throw new Error(`This PDF looks like scanned pages with no selectable text, and is too large (${sizeMB.toFixed(1)}MB) to upload directly. Try exporting it as a text-based PDF, or paste the script into a .txt file instead.`);
+          const b=await readB64(f);
+          uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:BREAKDOWN_PROMPT(ep,max)}];
+        }
+      }else{
+        const txt=await readTxt(f);
+        uc=[{type:'text',text:`Script:\n\n${txt.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
+      }
       setState('analyzing');
       const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS);
       const scenes=recoverScenes(raw);if(!scenes.length)throw new Error('No scenes found — try TXT format');
@@ -2120,9 +2225,12 @@ function MainApp(){
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',color:T.cream}}>
       {!mobile&&<Sidebar view={view} setView={setView} onSignOut={signOut} userEmail={user?.email}/>}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
-        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setView('dashboard');setShowNewModal(true);}}/>
+        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}}/>
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
-          {view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('budgets');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>}
+          {view==='dashboard'&&(project?
+            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>
+          )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
           {view==='workspace'&&(
