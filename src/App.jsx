@@ -743,22 +743,100 @@ const loadXLSX=()=>{
 };
 const budgetExcel=async(items,project)=>{
   const XLSX=await loadXLSX();
-  const rows=[['Phase','Department','Description','Qty','Unit','Rate','Currency','Total']];
-  PHASES.forEach(ph=>{
+  const wb=XLSX.utils.book_new();
+  const grand={};
+  const phaseTotals=PHASES.map(ph=>{
+    const t={};ph.depts.forEach(d=>{items.filter(i=>i.dept===d).forEach(i=>{t[i.currency]=(t[i.currency]||0)+lTot(i);grand[i.currency]=(grand[i.currency]||0)+lTot(i);});});
+    return{ph,t};
+  });
+  const fmtT=t=>Object.entries(t).map(([c,a])=>`${fmt(a)} ${c}`).join(' · ')||'—';
+
+  // ---- Top Sheet ----
+  const top=[['PRODUCTION BUDGET — TOP SHEET'],[project.name||''],[],['Account','Department','Total']];
+  phaseTotals.forEach(({ph,t})=>{
+    top.push([ph.name,'','']);
     ph.depts.forEach(d=>{
-      items.filter(i=>i.dept===d).forEach(i=>{
-        rows.push([ph.name,d,i.description||'',i.qty,i.unit,i.rate,i.currency,lTot(i)]);
-      });
+      const di=items.filter(i=>i.dept===d);if(!di.length)return;
+      const dt={};di.forEach(i=>{dt[i.currency]=(dt[i.currency]||0)+lTot(i);});
+      top.push(['',d,fmtT(dt)]);
+    });
+    top.push(['',`${ph.name} Subtotal`,fmtT(t)]);
+    top.push([]);
+  });
+  top.push(['','GRAND TOTAL',fmtT(grand)]);
+  const topWs=XLSX.utils.aoa_to_sheet(top);
+  topWs['!cols']=[{wch:24},{wch:32},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
+
+  // ---- Detail (department blocks, matches PDF layout) ----
+  const det=[];
+  PHASES.forEach(ph=>{
+    const phDepts=ph.depts.filter(d=>items.some(i=>i.dept===d));
+    if(!phDepts.length)return;
+    det.push([ph.name]);
+    phDepts.forEach(d=>{
+      const di=items.filter(i=>i.dept===d);
+      const dt={};di.forEach(i=>{dt[i.currency]=(dt[i.currency]||0)+lTot(i);});
+      det.push([d,'','','','',fmtT(dt)]);
+      det.push(['Description','Qty','Unit','Rate','Currency','Total']);
+      di.forEach(i=>det.push([i.description||'',i.qty,i.unit,i.rate,i.currency,lTot(i)]));
+      det.push([]);
     });
   });
-  const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
-  rows.push([]);
-  Object.entries(grand).forEach(([cur,amt])=>rows.push(['','','','','','TOTAL',cur,amt]));
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:22},{wch:28},{wch:32},{wch:8},{wch:10},{wch:12},{wch:10},{wch:14}];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Budget');
+  const detWs=XLSX.utils.aoa_to_sheet(det);
+  detWs['!cols']=[{wch:40},{wch:8},{wch:10},{wch:12},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,detWs,'Detail');
+
   XLSX.writeFile(wb,`${(project.name||'Budget').replace(/[^a-z0-9]/gi,'_')}_Budget.xlsx`);
+};
+const breakdownExcel=async(scenes,project,characters=[])=>{
+  const XLSX=await loadXLSX();
+  const wb=XLSX.utils.book_new();
+  const uniq=arr=>[...new Set(arr.filter(Boolean))];
+  const allCast=uniq(scenes.flatMap(s=>s.cast||[]));
+  const allProps=uniq(scenes.flatMap(s=>s.props||[]));
+  const allWardrobe=uniq(scenes.flatMap(s=>s.wardrobe||[]));
+  const allVehicles=uniq(scenes.flatMap(s=>s.vehicles||[]));
+  const allEquip=uniq(scenes.flatMap(s=>s.specialEquip||[]));
+  const intCount=scenes.filter(s=>s.intExt==='INT').length,extCount=scenes.filter(s=>s.intExt==='EXT').length;
+  const dayCount=scenes.filter(s=>s.dayNight==='DAY').length,nightCount=scenes.filter(s=>s.dayNight==='NIGHT').length;
+
+  // ---- Top Sheet ----
+  const top=[['SCRIPT BREAKDOWN — TOP SHEET'],[project.name||''],[],
+    ['Summary','Count'],
+    ['Total Scenes',scenes.length],
+    ['Interior / Exterior',`${intCount} INT · ${extCount} EXT`],
+    ['Day / Night',`${dayCount} DAY · ${nightCount} NIGHT`],
+    [],
+    ['Element','Unique Count'],
+    ['Cast',allCast.length],
+    ['Props',allProps.length],
+    ['Wardrobe',allWardrobe.length],
+    ['Vehicles',allVehicles.length],
+    ['Special Equipment',allEquip.length],
+    [],
+    ['Cast Member','Scene Count'],
+  ];
+  allCast.forEach(name=>{
+    const n=scenes.filter(s=>(s.cast||[]).includes(name)).length;
+    top.push([name,n]);
+  });
+  const topWs=XLSX.utils.aoa_to_sheet(top);
+  topWs['!cols']=[{wch:26},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
+
+  // ---- Detail (scene by scene) ----
+  const det=[['Scene #','Heading','Int/Ext','Day/Night','Synopsis','Cast','Props','Wardrobe','Vehicles','Special Equipment']];
+  scenes.forEach(s=>{
+    det.push([s.sceneNumber||'',s.heading||'',s.intExt||'',s.dayNight||'',s.synopsis||'',
+      (s.cast||[]).join(', '),(s.props||[]).join(', '),(s.wardrobe||[]).join(', '),
+      (s.vehicles||[]).join(', '),(s.specialEquip||[]).join(', ')]);
+  });
+  const detWs=XLSX.utils.aoa_to_sheet(det);
+  detWs['!cols']=[{wch:8},{wch:26},{wch:8},{wch:9},{wch:36},{wch:26},{wch:26},{wch:26},{wch:20},{wch:26}];
+  XLSX.utils.book_append_sheet(wb,detWs,'Detail');
+
+  XLSX.writeFile(wb,`${(project.name||'Breakdown').replace(/[^a-z0-9]/gi,'_')}_Breakdown.xlsx`);
 };
 /* Client-side PDF text extraction. Screenplay text is tiny compared to the raw PDF binary —
    extracting it in the browser avoids Vercel's 4.5MB serverless function payload limit, which
@@ -2090,6 +2168,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
         {ps.length>0&&<Btn size="sm" variant="outline" onClick={()=>shareBreakdown(filtered,project,characters)} style={{flexShrink:0}}>📄 Share / Export PDF</Btn>}
+        {ps.length>0&&<Btn size="sm" variant="outline" onClick={()=>breakdownExcel(filtered,project,characters)} style={{flexShrink:0}}>📊 Export Excel</Btn>}
       </div>
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
