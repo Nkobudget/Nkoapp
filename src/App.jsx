@@ -2258,7 +2258,7 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
   const pDays=shootDays.filter(d=>d.project_id===project?.id).sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
   const unscheduled=pScenes.filter(s=>!s.shootDayId);
   const locations=[...new Set(pScenes.map(s=>parseLocation(s.heading)))];
-  const castList=characters.filter(c=>c.project_id===project?.id);
+  const castList=[...new Set(pScenes.flatMap(s=>s.cast||[]))].map(name=>({id:name,name}));
   const castNum=name=>{const i=castList.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
   const addDay=()=>{onAddDay({dayNumber:pDays.length+1,date:newDate||''});setNewDate('');};
   if(!project)return<div style={{color:T.dim}}>Select a production first.</div>;
