@@ -962,6 +962,14 @@ const sortScenes=arr=>[...arr].sort((a,b)=>{
   if(va!==vb)return va-vb;
   return String(a.sceneNumber||'').localeCompare(String(b.sceneNumber||''));
 });
+const SCHEDULE_SYS=`You are a 1st AD scheduling a shoot. Given a list of scenes (number, location, INT/EXT, DAY/NIGHT, cast), group them into shooting days. Prioritize: (1) minimizing location moves — group scenes at the same location together, (2) keeping a day's scenes at a consistent INT/EXT and DAY/NIGHT where reasonable, (3) roughly 4-8 scenes per day depending on apparent complexity, but use judgment. This is a rough starting grouping for the producer to adjust, not a final professional schedule — you have no page-count or shoot-hour data, so don't imply precision you don't have.
+Respond with ONLY JSON, no markdown, no preamble: {"days":[["sceneNumber1","sceneNumber2"],["sceneNumber3"]]} — an array of days, each an array of scene number strings in shooting order. Include every scene number given exactly once.`;
+const recoverDayGroups=raw=>{
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+  const start=s.indexOf('{');if(start===-1)return null;
+  try{const parsed=JSON.parse(s.slice(start));if(Array.isArray(parsed.days))return parsed.days;}catch{}
+  return null;
+};
 const recoverScenes=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
   const a=s.indexOf('[');if(a===-1)return[];s=s.slice(a);
@@ -2251,9 +2259,11 @@ const callSheetPDF=(day,daySc,project,info,castTimes,characters=[])=>{
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
-function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddDay,onUpdateDay,onDeleteDay}){
+function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddDay,onUpdateDay,onDeleteDay,onGoToBreakdown}){
   const[newDate,setNewDate]=useState('');
   const[callSheetDay,setCallSheetDay]=useState(null);
+  const[autoScheduling,setAutoScheduling]=useState(false);
+  const[autoErr,setAutoErr]=useState('');
   const pScenes=scenes.filter(s=>s.project_id===project?.id);
   const pDays=shootDays.filter(d=>d.project_id===project?.id).sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
   const unscheduled=pScenes.filter(s=>!s.shootDayId);
@@ -2261,6 +2271,26 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
   const castList=[...new Set(pScenes.flatMap(s=>s.cast||[]))].map(name=>({id:name,name}));
   const castNum=name=>{const i=castList.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
   const addDay=()=>{onAddDay({dayNumber:pDays.length+1,date:newDate||''});setNewDate('');};
+  const autoSchedule=async()=>{
+    setAutoScheduling(true);setAutoErr('');
+    try{
+      const sceneSummary=unscheduled.map(s=>({sceneNumber:s.sceneNumber,location:parseLocation(s.heading),intExt:s.intExt,dayNight:s.dayNight,cast:s.cast||[]}));
+      const raw=await callClaude([{role:'user',content:JSON.stringify(sceneSummary)}],SCHEDULE_SYS,4000);
+      const groups=recoverDayGroups(raw);
+      if(!groups||!groups.length)throw new Error('Could not read a grouping from the response. Try again.');
+      let dayNum=pDays.length;
+      for(const group of groups){
+        dayNum+=1;
+        const dayId=await onAddDay({dayNumber:dayNum,date:''});
+        if(!dayId)continue;
+        for(const sceneNum of group){
+          const scene=unscheduled.find(s=>String(s.sceneNumber)===String(sceneNum));
+          if(scene)await onUpdateScene(scene.id,{shootDayId:dayId});
+        }
+      }
+    }catch(e){setAutoErr(e.message);}
+    setAutoScheduling(false);
+  };
   if(!project)return<div style={{color:T.dim}}>Select a production first.</div>;
   return(
     <div>
@@ -2273,8 +2303,20 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
         {castList.map((c,i)=><span key={c.id} style={{fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}><b style={{color:T.gold}}>{i+1}</b> {c.name}</span>)}
       </div>}
       <LocationColorPanel project={project} locations={locations}/>
+      {pScenes.length===0?(
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:36,textAlign:'center',marginBottom:16}}>
+          <div style={{fontSize:30,marginBottom:10}}>🎬</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>No scenes yet</div>
+          <div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',marginBottom:16}}>Schedules is built from your script breakdown — upload or build a breakdown first, then come back here to schedule it.</div>
+          <Btn onClick={onGoToBreakdown}>Go to Breakdown</Btn>
+        </div>
+      ):(
       <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
-        <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginRight:10}}>Unscheduled ({unscheduled.length})</span>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+          <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Unscheduled ({unscheduled.length})</span>
+          {unscheduled.length>0&&<Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>}
+        </div>
+        {autoErr&&<div style={{color:T.coral,fontSize:11,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
         <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
           {unscheduled.map(s=><div key={s.id} style={{background:T.hi,borderRadius:6,padding:'4px 4px 4px 9px',display:'flex',alignItems:'center',gap:6}}>
             <span style={{fontSize:11,color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber} · {s.heading}</span>
@@ -2286,6 +2328,7 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
           {!unscheduled.length&&<span style={{fontSize:11,color:T.dim}}>All scenes scheduled.</span>}
         </div>
       </div>
+      )}
       {pDays.map(day=>{
         const daySc=pScenes.filter(s=>s.shootDayId===day.id);
         const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
@@ -2637,8 +2680,9 @@ function MainApp(){
   const addShootDay=async d=>{
     const id=Math.random().toString(36).slice(2,10);
     const{data,error}=await sb.from('shoot_days').insert({id,project_id:currentId,user_id:user.id,data:d}).select().single();
-    if(error){alert(`Could not add shoot day: ${error.message}`);return;}
+    if(error){alert(`Could not add shoot day: ${error.message}`);return null;}
     if(data)setShootDays(p=>[...p,{...data.data,id:data.id,project_id:data.project_id}]);
+    return id;
   };
   const updateShootDay=async(id,upd)=>{
     setShootDays(p=>p.map(d=>d.id===id?{...d,...upd}:d));
@@ -2704,7 +2748,7 @@ function MainApp(){
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
-          {view==='workspace'&&<SchedulesView project={project} scenes={scenes} shootDays={shootDays} characters={characters.filter(c=>c.project_id===currentId)} onUpdateScene={updateScene} onAddDay={addShootDay} onUpdateDay={updateShootDay} onDeleteDay={deleteShootDay}/>}
+          {view==='workspace'&&<SchedulesView project={project} scenes={scenes} shootDays={shootDays} characters={characters.filter(c=>c.project_id===currentId)} onUpdateScene={updateScene} onAddDay={addShootDay} onUpdateDay={updateShootDay} onDeleteDay={deleteShootDay} onGoToBreakdown={()=>setView('breakdown')}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
