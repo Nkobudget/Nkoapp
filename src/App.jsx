@@ -57,7 +57,7 @@ const TRANSLATIONS={
     noProductionsYet:'No productions yet',createFirstDesc:'Create a production and start building your budget.',
     createFirstBtn:'Create your first production',productionsHeader:'Productions',
     selectAll:'Select all',clear:'Clear',deleteBtn:'🗑️ Delete',
-    budgetHeader:'Budget',templates:'📋 Templates',shareBudgetPdf:'📄 Share Budget PDF',
+    budgetHeader:'Budget',templates:'📋 Templates',shareBudgetPdf:'📄 Share Budget PDF',exportExcel:'📊 Export Excel',
     addDepartment:'+ Add a department…',totalBudget:'Total budget',
     phaseCostSummary:'Phase Cost Summary',preProduction:'Pre-Production',productionPhase:'Production',
     contingency:'Contingency',postProduction:'Post-Production',total:'Total',
@@ -98,7 +98,7 @@ const TRANSLATIONS={
     noProductionsYet:'Aucune production pour le moment',createFirstDesc:'Créez une production et commencez votre budget.',
     createFirstBtn:'Créer votre première production',productionsHeader:'Productions',
     selectAll:'Tout sélectionner',clear:'Effacer',deleteBtn:'🗑️ Supprimer',
-    budgetHeader:'Budget',templates:'📋 Modèles',shareBudgetPdf:'📄 Partager le PDF du budget',
+    budgetHeader:'Budget',templates:'📋 Modèles',shareBudgetPdf:'📄 Partager le PDF du budget',exportExcel:'📊 Exporter Excel',
     addDepartment:'+ Ajouter un département…',totalBudget:'Budget total',
     phaseCostSummary:'Résumé des coûts par phase',preProduction:'Pré-production',productionPhase:'Production',
     contingency:'Imprévus',postProduction:'Post-production',total:'Total',
@@ -726,6 +726,40 @@ const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
 const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readTxt=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
 const readImg=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+/* Excel export — real structured data (SheetJS), separate from the PDF export which is a formatted
+   document. Loaded from the official SheetJS CDN, same lazy-load pattern as the PDF.js reader above. */
+let xlsxLoadPromise=null;
+const loadXLSX=()=>{
+  if(window.XLSX)return Promise.resolve(window.XLSX);
+  if(xlsxLoadPromise)return xlsxLoadPromise;
+  xlsxLoadPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    script.onload=()=>resolve(window.XLSX);
+    script.onerror=()=>reject(new Error('Could not load the Excel export library. Check your connection and try again.'));
+    document.head.appendChild(script);
+  });
+  return xlsxLoadPromise;
+};
+const budgetExcel=async(items,project)=>{
+  const XLSX=await loadXLSX();
+  const rows=[['Phase','Department','Description','Qty','Unit','Rate','Currency','Total']];
+  PHASES.forEach(ph=>{
+    ph.depts.forEach(d=>{
+      items.filter(i=>i.dept===d).forEach(i=>{
+        rows.push([ph.name,d,i.description||'',i.qty,i.unit,i.rate,i.currency,lTot(i)]);
+      });
+    });
+  });
+  const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
+  rows.push([]);
+  Object.entries(grand).forEach(([cur,amt])=>rows.push(['','','','','','TOTAL',cur,amt]));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:22},{wch:28},{wch:32},{wch:8},{wch:10},{wch:12},{wch:10},{wch:14}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Budget');
+  XLSX.writeFile(wb,`${(project.name||'Budget').replace(/[^a-z0-9]/gi,'_')}_Budget.xlsx`);
+};
 /* Client-side PDF text extraction. Screenplay text is tiny compared to the raw PDF binary —
    extracting it in the browser avoids Vercel's 4.5MB serverless function payload limit, which
    is the actual cause of "large script fails to upload" (base64-encoding a ~3.3MB+ PDF pushes
@@ -1372,6 +1406,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
       <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
         <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
         {pItems.length>0&&<Btn variant="outline" size="sm" onClick={()=>budgetPDF(pItems,project,advances,reconEntries)}>{tr('shareBudgetPdf')}</Btn>}
+        {pItems.length>0&&<Btn variant="outline" size="sm" onClick={()=>budgetExcel(pItems,project)}>{tr('exportExcel')}</Btn>}
       </div>
       {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
