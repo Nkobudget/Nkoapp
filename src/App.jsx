@@ -962,7 +962,13 @@ const sortScenes=arr=>[...arr].sort((a,b)=>{
   if(va!==vb)return va-vb;
   return String(a.sceneNumber||'').localeCompare(String(b.sceneNumber||''));
 });
-const SCHEDULE_SYS=`You are a 1st AD scheduling a shoot. Given a list of scenes (number, location, INT/EXT, DAY/NIGHT, cast), group them into shooting days. Prioritize: (1) minimizing location moves — group scenes at the same location together, (2) keeping a day's scenes at a consistent INT/EXT and DAY/NIGHT where reasonable, (3) roughly 4-8 scenes per day depending on apparent complexity, but use judgment. This is a rough starting grouping for the producer to adjust, not a final professional schedule — you have no page-count or shoot-hour data, so don't imply precision you don't have.
+const SCHEDULE_SYS=`You are a 1st AD scheduling a shoot for a resource-constrained independent production — the common reality for most African indie film and TV, where every extra shoot day means real, often unaffordable added cost (crew day rates, location rental, cast availability, feeding). This is not a studio schedule with room to spread scenes out comfortably.
+
+Default to the FEWEST shoot days that can reasonably hold the scenes, not an even, generous spread. Be aggressive about compressing: pack more scenes into a day before opening a new one. As a rough directional anchor (not a formula to apply rigidly): a short film in the 8-12 page range often shoots in 3-4 days when scheduled tightly, well below what a scene-count-only spread would suggest — lean toward that kind of density unless the scene list clearly can't support it (e.g. genuinely too many distinct locations or day/night splits to compress further).
+
+Still prioritize: (1) minimizing location moves — same location stays together, (2) keeping a day's scenes at a consistent INT/EXT and DAY/NIGHT where reasonable so the crew isn't fighting daylight or re-lighting constantly, (3) if a target number of days is given, treat it as a hard ceiling and compress to fit it unless truly impossible — in that case still get as close as you can and say so.
+
+This is a rough starting grouping for the producer to adjust, not a final professional schedule — you have no page-count or shoot-hour data, so don't imply precision you don't have.
 Respond with ONLY JSON, no markdown, no preamble: {"days":[["sceneNumber1","sceneNumber2"],["sceneNumber3"]]} — an array of days, each an array of scene number strings in shooting order. Include every scene number given exactly once.`;
 const recoverDayGroups=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
@@ -2290,11 +2296,13 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
   const castList=[...new Set(pScenes.flatMap(s=>s.cast||[]))].map(name=>({id:name,name}));
   const castNum=name=>{const i=castList.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
   const addDay=()=>{onAddDay({dayNumber:pDays.length+1,date:newDate||''});setNewDate('');};
+  const[targetDays,setTargetDays]=useState('');
   const autoSchedule=async()=>{
     setAutoScheduling(true);setAutoErr('');
     try{
       const sceneSummary=unscheduled.map(s=>({sceneNumber:s.sceneNumber,location:parseLocation(s.heading),intExt:s.intExt,dayNight:s.dayNight,cast:s.cast||[]}));
-      const raw=await callClaude([{role:'user',content:JSON.stringify(sceneSummary)}],SCHEDULE_SYS,4000);
+      const targetNote=targetDays?`\n\nTarget: fit this into ${targetDays} shoot day(s). Treat this as a hard ceiling.`:'';
+      const raw=await callClaude([{role:'user',content:JSON.stringify(sceneSummary)+targetNote}],SCHEDULE_SYS,4000);
       const groups=recoverDayGroups(raw);
       if(!groups||!groups.length)throw new Error('Could not read a grouping from the response. Try again.');
       let dayNum=pDays.length;
@@ -2333,7 +2341,10 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
       <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
           <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Unscheduled ({unscheduled.length})</span>
-          {unscheduled.length>0&&<Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>}
+          {unscheduled.length>0&&<div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <input type="number" min="1" placeholder="days" value={targetDays} onChange={e=>setTargetDays(e.target.value)} style={{width:56,background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,fontSize:11,padding:'5px 6px'}}/>
+            <Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>
+          </div>}
         </div>
         {autoErr&&<div style={{color:T.coral,fontSize:11,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
         <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
