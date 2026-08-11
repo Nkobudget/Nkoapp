@@ -1068,6 +1068,25 @@ const Btn=({variant='primary',size='md',style:sx,...p})=>{
   return<button {...p} style={{background:bg,color:co,border:br,borderRadius:8,padding:size==='sm'?'5px 12px':'8px 18px',fontSize:size==='sm'?11:13,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',...sx}}/>;
 };
 const Pill=({children,color})=><span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:color?`${color}22`:T.hi,color:color||T.goldDim,border:`1px solid ${color||T.line}`,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{children}</span>;
+/* New NKÒ wordmark (Ò-mark asset pack). Inlined as SVG rather than an image file, since the
+   app ships as a single App.jsx — no separate asset upload needed. Uses Fraunces for "NK"
+   instead of the pack's Source Serif 4 placeholder, since Fraunces is the serif already loaded
+   and used everywhere else in the app (the pack itself calls Source Serif 4 a stand-in pending
+   the licensed font, so this isn't a deviation from a locked spec). Iris mark keeps the pack's
+   exact brand gold (#D4AF37), separate from the app's own accent gold (T.gold, #FEED61) —
+   worth deciding whether those two golds should be unified app-wide.*/
+const NkoLogo=({height=32,style})=>(
+  <svg viewBox="0 0 500 200" style={{height,width:'auto',display:'block',...style}}>
+    <text x="60" y="170" fontFamily="Fraunces, Georgia, serif" fontWeight="700" fontSize="150" fill="#EDEAE4">NK</text>
+    <g transform="translate(300,18) scale(1.55)">
+      <path d="M50 33 A27 27 0 0 1 77 60 L64 60 A14 14 0 0 0 50 46 Z" fill="#D4AF37"/>
+      <path d="M77 60 A27 27 0 0 1 50 87 L50 74 A14 14 0 0 0 64 60 Z" fill="#D4AF37"/>
+      <path d="M50 87 A27 27 0 0 1 23 60 L36 60 A14 14 0 0 0 50 74 Z" fill="#D4AF37"/>
+      <path d="M23 60 A27 27 0 0 1 50 33 L50 46 A14 14 0 0 0 36 60 Z" fill="#D4AF37"/>
+      <polygon points="20,2 76,18 76,29 20,13" fill="#D4AF37"/>
+    </g>
+  </svg>
+);
 const StatCard=({label,value,sub,accent})=><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
 function ExportMenu({onPdf,onExcel}){
   const[open,setOpen]=useState(false);
@@ -1120,7 +1139,7 @@ function AuthScreen(){
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
         <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><LangToggle compact/></div>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:30,color:T.gold,textAlign:'center',marginBottom:4}}>NKÒ</div>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:4}}><NkoLogo height={30}/></div>
         <div style={{fontSize:11,color:T.goldDim,textAlign:'center',fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:28}}>{t('tagline')}</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           <Inp type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e=>setEmail(e.target.value)}/>
@@ -1154,7 +1173,7 @@ function Sidebar({view,setView,onSignOut,userEmail}){
   return(
     <div style={{width:210,minHeight:'100vh',background:T.panel,borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0}}>
       <div style={{padding:'22px 18px 14px'}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.gold,fontWeight:700}}>NKÒ</div>
+        <NkoLogo height={26}/>
         <div style={{fontSize:9,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',marginTop:2}}>{t('tagline')}</div>
       </div>
       <FS/>
@@ -1226,7 +1245,7 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
   const savedUSD=totalBudgetUSD-totalSpentUSD;
   return(
     <div>
-      <div style={{marginBottom:22}}><div style={{fontFamily:'Fraunces,serif',fontSize:32,color:T.gold}}>NKÒ</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
+      <div style={{marginBottom:22}}><NkoLogo height={32}/><div style={{fontSize:14,color:T.dim,marginTop:8,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
         <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
         <StatCard label={t('statTotalSpend')} value={`≈ $${fmt(totalSpentUSD)}`} sub={t('statAcrossSlate')}/>
@@ -2783,7 +2802,7 @@ function OnboardingScreen({onComplete}){
       <div style={{display:'flex',justifyContent:'flex-end',maxWidth:420,margin:'0 auto',width:'100%'}}><LangToggle compact/></div>
       <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:step===0?'center':'flex-start',maxWidth:420,margin:'0 auto',width:'100%'}}>
         {step===0&&<>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:40,color:T.gold}}>NKÒ</div>
+          <NkoLogo height={40}/>
           <div style={{width:40,height:2,background:T.gold,margin:'16px 0'}}/>
           <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>{t('onboardTagline')}</div>
         </>}
