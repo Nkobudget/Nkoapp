@@ -1,5 +1,5 @@
 /*
-  NKÒ — Budgets tailored just for you | Supabase Edition
+  NKÒ — Budgets Tailored To Film
   Single-file React + Vite + Supabase
 */
 import { createClient } from '@supabase/supabase-js';
@@ -36,7 +36,7 @@ const UNITS=['day','week','flat','person','item'];
 const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Animation / Cartoon','Other'];
 const TRANSLATIONS={
   en:{
-    tagline:'Budgets tailored just for you',
+    tagline:'Budgets Tailored To Film',
     signOut:'Sign out',
     studio:'Studio',
     navDashboard:'Dashboard',navBudgets:'Budgets',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navMarketplace:'Marketplace',navAI:'AI Builder',navWorkspace:'Schedules and Call Sheets',
@@ -45,10 +45,10 @@ const TRANSLATIONS={
     forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
     noAccountSignUp:'No account? Sign up',haveAccountSignIn:'Have an account? Sign in',
     getStarted:'Get started',continueBtn:'Continue',backBtn:'Back',finishBtn:'Finish',
-    onboardTagline:'Budgets tailored just for you.',
+    onboardTagline:'Budgets Tailored To Film.',
     step1Of2:'Step 1 of 2',whatsYourRole:"What's your role?",roleSubtitle:"We'll tailor the workspace to what you manage day to day.",
     step2Of2:'Step 2 of 2',baseCurrency:'Base currency?',currencySubtitle:'Sets the default currency for budgets and payments.',
-    dashHeaderTagline:'Budgets tailored just for you.',
+    dashHeaderTagline:'Budgets Tailored To Film.',
     statProductions:'Productions',statActive:'active',statBudgetLines:'Budget lines',statAllProjects:'all projects',
     statOpenAdvances:'Open advances',statPending:'pending',statUnpaid:'Unpaid',statCastCrew:'cast & crew',
     statTotalSpend:'Total spend',statAcrossSlate:'across all productions',statTotalSaved:'Total saved',statOverBudget:'over budget',statUnderBudget:'under budget',
@@ -77,7 +77,7 @@ const TRANSLATIONS={
     save:'Save',cancel:'Cancel',deleteWord:'Delete',edit:'✏️ Edit',create:'Create',
   },
   fr:{
-    tagline:'Des budgets pensés pour vous',
+    tagline:'Des budgets taillés pour le cinéma',
     signOut:'Se déconnecter',
     studio:'Studio',
     navDashboard:'Tableau de bord',navBudgets:'Budgets',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navMarketplace:'Place de marché',navAI:'Assistant IA',navWorkspace:'Plannings et feuilles de service',
@@ -86,10 +86,10 @@ const TRANSLATIONS={
     forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
     noAccountSignUp:'Pas de compte ? Inscrivez-vous',haveAccountSignIn:'Déjà un compte ? Connectez-vous',
     getStarted:'Commencer',continueBtn:'Continuer',backBtn:'Retour',finishBtn:'Terminer',
-    onboardTagline:'Des budgets pensés pour vous.',
+    onboardTagline:'Des budgets taillés pour le cinéma.',
     step1Of2:'Étape 1 sur 2',whatsYourRole:'Quel est votre rôle ?',roleSubtitle:"Nous adapterons l'espace de travail à vos tâches quotidiennes.",
     step2Of2:'Étape 2 sur 2',baseCurrency:'Devise de base ?',currencySubtitle:'Définit la devise par défaut pour les budgets et paiements.',
-    dashHeaderTagline:'Des budgets pensés pour vous.',
+    dashHeaderTagline:'Des budgets taillés pour le cinéma.',
     statProductions:'Productions',statActive:'actives',statBudgetLines:'Lignes budgétaires',statAllProjects:'tous projets',
     statOpenAdvances:'Avances ouvertes',statPending:'en attente',statUnpaid:'Impayés',statCastCrew:'acteurs et équipe',
     statTotalSpend:'Total dépensé',statAcrossSlate:'toutes productions',statTotalSaved:'Total économisé',statOverBudget:'dépassement',statUnderBudget:'sous le budget',
@@ -741,6 +741,10 @@ const loadXLSX=()=>{
   });
   return xlsxLoadPromise;
 };
+const budgetPreview=(items,project)=>{
+  const rows=items.slice(0,10).map(i=>[i.dept,i.description||'',i.qty,i.unit,i.rate,i.currency,fmt(lTot(i))]);
+  return{title:`Budget — ${project.name}`,columns:['Department','Description','Qty','Unit','Rate','Currency','Total'],rows,totalCount:items.length};
+};
 const budgetExcel=async(items,project)=>{
   const XLSX=await loadXLSX();
   const wb=XLSX.utils.book_new();
@@ -808,6 +812,10 @@ const budgetExcel=async(items,project)=>{
 
   XLSX.writeFile(wb,`${(project.name||'Budget').replace(/[^a-z0-9]/gi,'_')}_Budget.xlsx`);
 };
+const breakdownPreview=(scenes,project)=>{
+  const rows=scenes.slice(0,10).map(s=>[s.sceneNumber||'',s.heading||'',s.intExt||'',s.dayNight||'',(s.cast||[]).join(', ')]);
+  return{title:`Breakdown — ${project.name}`,columns:['Scene #','Heading','Int/Ext','Day/Night','Cast'],rows,totalCount:scenes.length};
+};
 const breakdownExcel=async(scenes,project,characters=[])=>{
   const XLSX=await loadXLSX();
   const wb=XLSX.utils.book_new();
@@ -857,6 +865,11 @@ const breakdownExcel=async(scenes,project,characters=[])=>{
   XLSX.utils.book_append_sheet(wb,detWs,'Detail');
 
   XLSX.writeFile(wb,`${(project.name||'Breakdown').replace(/[^a-z0-9]/gi,'_')}_Breakdown.xlsx`);
+};
+const schedulePreview=(days,scenes,project)=>{
+  const allRows=[];
+  days.forEach(d=>{scenes.filter(s=>s.shootDayId===d.id).forEach(s=>{allRows.push([`Day ${d.dayNumber}`,s.sceneNumber||'',parseLocation(s.heading),s.dayNight||'',s.intExt||'']);});});
+  return{title:`Schedule — ${project.name}`,columns:['Day','Scene #','Location','Day/Night','Int/Ext'],rows:allRows.slice(0,10),totalCount:allRows.length};
 };
 const scheduleExcel=async(days,scenes,project,characters=[])=>{
   const XLSX=await loadXLSX();
@@ -1094,23 +1107,52 @@ const NkoLogo=({height=32,style})=>(
   </svg>
 );
 const StatCard=({label,value,sub,accent})=><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
-function ExportMenu({onPdf,onExcel}){
+function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:760,width:'100%',maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div style={{padding:'16px 20px 10px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+            <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Export preview — {title}</div>
+            <button onClick={onClose} style={{background:'none',border:'none',color:T.dim,fontSize:18,cursor:'pointer'}}>✕</button>
+          </div>
+          <div style={{color:T.dim,fontSize:12,marginTop:2}}>What you'll get in the .xlsx, before downloading</div>
+        </div>
+        <div style={{overflowX:'auto',overflowY:'auto',padding:'0 20px',flex:1}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+            <thead><tr>{columns.map(c=><th key={c} style={{textAlign:'left',padding:'6px 8px',color:T.goldDim,fontSize:10,textTransform:'uppercase',letterSpacing:'0.04em',borderBottom:`1px solid ${T.line}`,whiteSpace:'nowrap'}}>{c}</th>)}</tr></thead>
+            <tbody>{rows.map((r,i)=><tr key={i}>{r.map((cell,j)=><td key={j} style={{padding:'6px 8px',color:T.cream,borderBottom:'1px solid #2a2a2a',whiteSpace:'nowrap'}}>{cell}</td>)}</tr>)}</tbody>
+          </table>
+          {!rows.length&&<div style={{color:T.dim,fontSize:12,padding:'20px 0'}}>Nothing to export yet.</div>}
+        </div>
+        <div style={{padding:'8px 20px',color:T.dim,fontSize:11,textAlign:'right'}}>{totalCount>rows.length?`Showing ${rows.length} of ${totalCount} rows — full list downloads`:`${totalCount} row${totalCount===1?'':'s'}`}</div>
+        <div style={{display:'flex',gap:8,padding:'12px 20px',borderTop:`1px solid ${T.line}`}}>
+          <Btn variant="ghost" onClick={onClose}>← Edit in app first</Btn>
+          <Btn variant="sage" onClick={()=>{onDownload();onClose();}}>⬇️ Download .xlsx</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+function ExportMenu({onPdf,onExcel,getPreview}){
   const[open,setOpen]=useState(false);
+  const[preview,setPreview]=useState(null);
   const ref=useRef();
   useEffect(()=>{
     const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
     document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
   },[]);
   const item={display:'block',width:'100%',textAlign:'left',padding:'10px 14px',background:'none',border:'none',color:T.cream,fontSize:13,cursor:'pointer',fontFamily:'Manrope,sans-serif'};
-  return(
+  return(<>
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
       <Btn variant="outline" size="sm" onClick={()=>setOpen(o=>!o)}>⬇️ Export ▾</Btn>
       {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:200,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
         <button onClick={()=>{onPdf();setOpen(false);}} style={item}>📄 PDF Document</button>
-        <button onClick={()=>{onExcel();setOpen(false);}} style={{...item,borderTop:`1px solid ${T.line}`}}>📊 Excel Spreadsheet (.xlsx)</button>
+        <button onClick={()=>{setOpen(false);getPreview?setPreview(getPreview()):onExcel();}} style={{...item,borderTop:`1px solid ${T.line}`}}>📊 Excel Spreadsheet (.xlsx)</button>
       </div>}
     </div>
-  );
+    {preview&&<ExportPreviewModal {...preview} onClose={()=>setPreview(null)} onDownload={onExcel}/>}
+  </>);
 }
 const FS=()=><div style={{height:8,background:`repeating-linear-gradient(90deg,${T.gold} 0 12px,transparent 12px 20px)`,opacity:.4,borderRadius:1}}/>;
 
@@ -1584,7 +1626,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
       </div>
       <div style="display:flex;gap:8px;margin-bottom:20px">${phaseSummary}</div>
       ${deptBlocks}
-      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:18px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:18px">Generated by NKÒ — Budgets Tailored To Film · nko-nko.vercel.app</div>
     </div></body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
@@ -1610,7 +1652,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
       </div>}
       <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
         <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
-        {pItems.length>0&&<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)}/>}
+        {pItems.length>0&&<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>}
       </div>
       {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
@@ -1777,7 +1819,7 @@ const receiptPDF=(payee,payment,project)=>{
         ${[['Paid to',payee.name],['Role',payee.role||'—'],['Production',project.name],['Payment method',payment.method],['Date',payment.date],['Reference',ref]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #3A3A3A"><span style="font-size:12px;color:#9A9080">${k}</span><span style="font-size:12px;color:#F0E8D0;font-weight:600;text-align:right">${v}</span></div>`).join('')}
       </div>
       <div style="padding:12px 22px 20px;text-align:center">
-        <div style="font-size:10px;color:#5A5A5A">Generated by NKÒ — Budgets tailored just for you</div>
+        <div style="font-size:10px;color:#5A5A5A">Generated by NKÒ — Budgets Tailored To Film</div>
         <div style="font-size:10px;color:#3A3A3A;margin-top:2px">nko-nko.vercel.app</div>
       </div>
     </div>
@@ -1827,7 +1869,7 @@ const reconReportPDF=(advances,reconEntries,project)=>{
         ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${v}</div></div>`).join('')}
       </div>
       ${blocks||'<div style="color:#9A9080;font-size:12px">No advances issued yet.</div>'}
-      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:20px">Generated by NKÒ — Budgets tailored just for you · nko-nko.vercel.app</div>
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:20px">Generated by NKÒ — Budgets Tailored To Film · nko-nko.vercel.app</div>
     </div>
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
@@ -2183,6 +2225,57 @@ const parseLocation=heading=>{
   s=s.split(/\s+-\s+/)[0].split('—')[0].trim();
   return s||'Unknown';
 };
+const CAST_TIERS=['Lead Cast','Supporting Actors','Background Cast','Extras'];
+function getCastTiers(project,pScenes){
+  const counts={};pScenes.forEach(s=>(s.cast||[]).forEach(n=>{counts[n]=(counts[n]||0)+1;}));
+  const names=Object.keys(counts);
+  let overrides={};try{overrides=JSON.parse(localStorage.getItem(`nko_casttiers_${project.id}`)||'{}');}catch{}
+  const sorted=[...names].sort((a,b)=>counts[b]-counts[a]);
+  const n=sorted.length;
+  const defaultTier=name=>{
+    const rank=sorted.indexOf(name);
+    if(overrides[name])return overrides[name];
+    if(n<=4)return rank===0?0:1;
+    if(rank<Math.ceil(n*0.15))return 0;
+    if(rank<Math.ceil(n*0.4))return 1;
+    if(rank<Math.ceil(n*0.75))return 2;
+    return 3;
+  };
+  // Global numbering follows tier order (Lead first), then by frequency within tier — matches what scene rows reference.
+  const byTier=[[],[],[],[]];
+  sorted.forEach(name=>byTier[defaultTier(name)].push(name));
+  const ordered=byTier.flat();
+  return{ordered,byTier,setOverride:(name,tier)=>{const o={...overrides,[name]:tier};localStorage.setItem(`nko_casttiers_${project.id}`,JSON.stringify(o));}};
+}
+function CastTierLegend({project,pScenes}){
+  const[,force]=useState(0);
+  const{byTier,setOverride}=getCastTiers(project,pScenes);
+  const[editing,setEditing]=useState(null);
+  let num=0;
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:12}}>
+      {CAST_TIERS.map((tierName,ti)=>byTier[ti].length>0&&(
+        <div key={ti} style={{marginBottom:ti<3?8:0}}>
+          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>{tierName}</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+            {byTier[ti].map(name=>{num++;const myNum=num;return(
+              <div key={name} style={{position:'relative'}}>
+                <button onClick={()=>setEditing(editing===name?null:name)} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',padding:0}}>
+                  <b style={{color:T.gold}}>{myNum}</b> {name}
+                </button>
+                {editing===name&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{setOverride(name,i);setEditing(null);force(x=>x+1);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===ti?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})}
+          </div>
+        </div>
+      ))}
+      {byTier.flat().length===0&&<div style={{fontSize:12,color:T.dim}}>No cast found in scenes yet.</div>}
+      <div style={{fontSize:10,color:T.dim,fontStyle:'italic',marginTop:8}}>Auto-sorted by how often each name appears in scenes — click a name to move it to a different tier.</div>
+    </div>
+  );
+}
 function LocationColorPanel({project,locations}){
   const[open,setOpen]=useState(false);const[map,setMap]=useState({});
   useEffect(()=>{if(!project)return;try{setMap(JSON.parse(localStorage.getItem(`nko_schedcolors_${project.id}`)||'{}'));}catch{}},[project?.id]);
@@ -2293,10 +2386,13 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
   const pDays=shootDays.filter(d=>d.project_id===project?.id).sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
   const unscheduled=pScenes.filter(s=>!s.shootDayId);
   const locations=[...new Set(pScenes.map(s=>parseLocation(s.heading)))];
-  const castList=[...new Set(pScenes.flatMap(s=>s.cast||[]))].map(name=>({id:name,name}));
+  const castList=project?getCastTiers(project,pScenes).ordered.map(name=>({id:name,name})):[];
   const castNum=name=>{const i=castList.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
   const addDay=()=>{onAddDay({dayNumber:pDays.length+1,date:newDate||''});setNewDate('');};
   const[targetDays,setTargetDays]=useState('');
+  const clearSchedule=async()=>{
+    for(const d of pDays)await onDeleteDay(d.id);
+  };
   const autoSchedule=async()=>{
     setAutoScheduling(true);setAutoErr('');
     try{
@@ -2323,12 +2419,9 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14,flexWrap:'wrap',gap:10}}>
         <div><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Schedules — {project.name}</div><div style={{color:T.dim,fontSize:13,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Shooting schedule, built from your breakdown</div></div>
-        {pDays.length>0&&<ExportMenu onPdf={()=>schedulePDF(pDays,pScenes,project,castList)} onExcel={()=>scheduleExcel(pDays,pScenes,project,castList)}/>}
+        {pDays.length>0&&<ExportMenu onPdf={()=>schedulePDF(pDays,pScenes,project,castList)} onExcel={()=>scheduleExcel(pDays,pScenes,project,castList)} getPreview={()=>schedulePreview(pDays,pScenes,project)}/>}
       </div>
-      {castList.length>0&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:12,display:'flex',gap:16,flexWrap:'wrap',alignItems:'center'}}>
-        <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Cast</span>
-        {castList.map((c,i)=><span key={c.id} style={{fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}><b style={{color:T.gold}}>{i+1}</b> {c.name}</span>)}
-      </div>}
+      {castList.length>0&&<CastTierLegend project={project} pScenes={pScenes}/>}
       <LocationColorPanel project={project} locations={locations}/>
       {pScenes.length===0?(
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:36,textAlign:'center',marginBottom:16}}>
@@ -2341,10 +2434,13 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
       <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
           <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Unscheduled ({unscheduled.length})</span>
-          {unscheduled.length>0&&<div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <input type="number" min="1" placeholder="days" value={targetDays} onChange={e=>setTargetDays(e.target.value)} style={{width:56,background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,fontSize:11,padding:'5px 6px'}}/>
-            <Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>
-          </div>}
+          <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+            {pDays.length>0&&<button onClick={()=>{if(window.confirm(`Clear all ${pDays.length} shoot day(s)? Scenes go back to Unscheduled — nothing is deleted from your breakdown.`))clearSchedule();}} style={{background:'none',border:`1px solid ${T.line}`,color:T.dim,fontSize:11,padding:'5px 10px',borderRadius:6,cursor:'pointer'}}>🗑️ Clear all days</button>}
+            {unscheduled.length>0&&<div style={{display:'flex',gap:6,alignItems:'center'}}>
+              <input type="number" min="1" placeholder="days" value={targetDays} onChange={e=>setTargetDays(e.target.value)} style={{width:56,background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,fontSize:11,padding:'5px 6px'}}/>
+              <Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>
+            </div>}
+          </div>
         </div>
         {autoErr&&<div style={{color:T.coral,fontSize:11,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
         <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
@@ -2519,7 +2615,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
-        {ps.length>0&&<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)}/>}
+        {ps.length>0&&<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>}
       </div>
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
