@@ -721,6 +721,12 @@ const QUICK=['Day rate for DOP in Lagos?','Estimate 1-day music video in Naira',
 /* ── Helpers ── */
 const today=()=>new Date().toISOString().slice(0,10);
 const fmt=n=>Number(n||0).toLocaleString('en',{maximumFractionDigits:0});
+/* Every PDF export builds an HTML string from user-typed fields (descriptions, synopses,
+   notes, names) and renders it via document.write(). Without escaping, a producer typing
+   e.g. <script>...</script> into a budget line or scene synopsis would have it EXECUTE when
+   the generated document opens — a real stored-XSS path, not a theoretical one. Every piece
+   of user-supplied text interpolated into any exported HTML must go through this first. */
+const escapeHtml=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const sym=code=>(CURRENCIES.find(c=>c.code===code)||CURRENCIES[0]).symbol;
 const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
 const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
@@ -906,21 +912,21 @@ const scheduleExcel=async(days,scenes,project,characters=[])=>{
    wastes ink/toner and is harder to read outdoors than black text on white/light colour. */
 const schedulePDF=(days,scenes,project,characters=[])=>{
   const castNum=name=>{const i=characters.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
-  const castList=characters.map((c,i)=>`${i+1}. ${c.name}`).join('&nbsp;&nbsp;&nbsp;');
+  const castList=characters.map((c,i)=>`${i+1}. ${escapeHtml(c.name)}`).join('&nbsp;&nbsp;&nbsp;');
   const dayBlocks=days.map(d=>{
     const daySc=scenes.filter(s=>s.shootDayId===d.id);
     const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
     const rows=daySc.map(s=>{const loc=parseLocation(s.heading);const c=locationColor(project,loc);
-      return`<tr style="background:${c.bg}"><td style="padding:6px 8px;color:${c.text};font-weight:600;border:1px solid #ccc">#${s.sceneNumber}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc">${s.intExt||''}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc">${loc} · ${s.dayNight||''}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc;text-align:right">${(s.cast||[]).map(castNum).join(', ')||'—'}</td></tr>`;
+      return`<tr style="background:${c.bg}"><td style="padding:6px 8px;color:${c.text};font-weight:600;border:1px solid #ccc">#${escapeHtml(s.sceneNumber)}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc">${escapeHtml(s.intExt)}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc">${escapeHtml(loc)} · ${escapeHtml(s.dayNight)}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc;text-align:right">${(s.cast||[]).map(n=>`${castNum(n)} ${escapeHtml(n)}`).join(', ')||'—'}</td></tr>`;
     }).join('');
     return`<div style="page-break-inside:avoid;margin-bottom:14px">
-      <div style="background:#2a1414;color:#fff;padding:8px 14px;font-family:Georgia,serif;font-size:14px">START SHOOT DAY ${d.dayNumber}${d.date?` (${d.date})`:''}</div>
+      <div style="background:#2a1414;color:#fff;padding:8px 14px;font-family:Georgia,serif;font-size:14px">START SHOOT DAY ${escapeHtml(d.dayNumber)}${d.date?` (${escapeHtml(d.date)})`:''}</div>
       <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:Arial">${rows||`<tr><td style="padding:8px">No scenes assigned.</td></tr>`}</table>
-      <div style="background:#666;color:#fff;padding:6px 14px;font-size:11px;font-family:Arial">End of Shooting Day ${d.dayNumber}${cast.length?` — Cast: ${cast.join(', ')}`:''}</div>
+      <div style="background:#666;color:#fff;padding:6px 14px;font-size:11px;font-family:Arial">End of Shooting Day ${escapeHtml(d.dayNumber)}${cast.length?` — Cast: ${cast.map(escapeHtml).join(', ')}`:''}</div>
     </div>`;
   }).join('');
-  const html=`<!DOCTYPE html><html><head><title>Schedule — ${project.name}</title></head><body style="margin:0;font-family:Arial;background:#fff;padding:24px">
-    <h1 style="font-family:Georgia,serif;font-size:20px;margin:0 0 4px">${project.name} — Shooting Schedule</h1>
+  const html=`<!DOCTYPE html><html><head><title>Schedule — ${escapeHtml(project.name)}</title></head><body style="margin:0;font-family:Arial;background:#fff;padding:24px">
+    <h1 style="font-family:Georgia,serif;font-size:20px;margin:0 0 4px">${escapeHtml(project.name)} — Shooting Schedule</h1>
     <div style="font-size:11px;color:#666;margin-bottom:14px">Cast: ${castList||'—'}</div>
     ${dayBlocks}
     <div class="np" style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div>
@@ -1517,7 +1523,7 @@ function BrandPanel({project}){
         <div style={{display:'flex',alignItems:'center',gap:8}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
-        <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>lr.current.click()}><input ref={lr} type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{const f=e.target.files[0];if(f)setLogo(await readImg(f));}}/>{logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload logo</div>}</div>
+        <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>lr.current.click()}><input ref={lr} type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Please upload an image file.');return;}if(f.size>3*1024*1024){alert('Logo image is too large (max 3MB).');return;}setLogo(await readImg(f));}}/>{logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload logo</div>}</div>
         <Inp placeholder="Company name" value={cname} onChange={e=>setCname(e.target.value)}/>
         <Inp placeholder="Production title" value={ptitle} onChange={e=>setPtitle(e.target.value)}/>
         <div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:8,fontWeight:700}}>Accent colour</div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{ACCENT_COLORS.map(c=><button key={c} onClick={()=>setAccent(c)} style={{width:28,height:28,borderRadius:'50%',background:c,border:`3px solid ${accent===c?T.cream:'transparent'}`,cursor:'pointer'}}/>)}</div></div>
@@ -1545,6 +1551,7 @@ function ScriptUploader({project,onApplyBudget}){
   const process=async f=>{
     const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
     if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX file.');setState('error');return;}
+    if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
     setState('reading');setErr('');
     try{
       let uc;
@@ -1561,7 +1568,7 @@ function ScriptUploader({project,onApplyBudget}){
         }
       }else{
         const txt=await readTxt(f);
-        uc=[{type:'text',text:`Script:\n\n${txt}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];
+        uc=[{type:'text',text:`Script:\n\n${txt.slice(0,300000)}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];
       }
       setState('analyzing');
       const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS,24000);
@@ -1588,35 +1595,35 @@ function ScriptUploader({project,onApplyBudget}){
 const budgetPDF=(items,project,advances,reconEntries)=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const info=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');
-  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
   const infoRows=[['Producer',info.producer],['Line Producer',info.lineProducer],['Executive Producer',info.execProducer],['Prepared By',info.preparedBy],['Pre-production',info.prepStart&&`${info.prepStart} → ${info.prepEnd||''}`],['Shoot',info.shootStart&&`${info.shootStart} → ${info.shootEnd||''}`],['Post-production',info.postStart&&`${info.postStart} → ${info.postEnd||''}`]].filter(([,v])=>v);
-  const infoBlock=infoRows.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:18px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden">${infoRows.map(([k,v])=>`<tr><td style="padding:6px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;width:170px;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${k}</td><td style="padding:6px 12px;font-size:12px;color:#F0E8D0;font-weight:600;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${v}</td></tr>`).join('')}</table>`:'';
+  const infoBlock=infoRows.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:18px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden">${infoRows.map(([k,v])=>`<tr><td style="padding:6px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;width:170px;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${escapeHtml(k)}</td><td style="padding:6px 12px;font-size:12px;color:#F0E8D0;font-weight:600;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${escapeHtml(v)}</td></tr>`).join('')}</table>`:'';
   const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
   const phaseSummary=PHASES.map(ph=>{
     const pi=items.filter(i=>ph.depts.includes(i.dept));
     const t={};pi.forEach(i=>{t[i.currency]=(t[i.currency]||0)+lTot(i);});
     const line=Object.entries(t).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ')||'—';
-    return`<div style="flex:1;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#9A9080;text-transform:uppercase;letter-spacing:1px">${ph.name}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${line}</div></div>`;
+    return`<div style="flex:1;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#9A9080;text-transform:uppercase;letter-spacing:1px">${escapeHtml(ph.name)}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${line}</div></div>`;
   }).join('');
   const deptBlocks=PHASES.map((ph,phIdx)=>{
     const phBlocks=ph.depts.map(d=>{
     const di=items.filter(i=>i.dept===d);if(!di.length)return'';
     const sub={};di.forEach(i=>{sub[i.currency]=(sub[i.currency]||0)+lTot(i);});
-    const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${i.description||'—'}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${i.qty}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${i.unit}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:right;font-family:monospace;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;color:#FEED61;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
+    const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${escapeHtml(i.description||'—')}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${escapeHtml(i.qty)}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${escapeHtml(i.unit)}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:right;font-family:monospace;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;color:#FEED61;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
     const subLine=Object.entries(sub).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
-    return`<div style="margin-bottom:16px;page-break-inside:avoid"><div style="background:#1C1C1E;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none"><span>${d}</span><span style="font-family:monospace">${subLine}</span></div>
+    return`<div style="margin-bottom:16px;page-break-inside:avoid"><div style="background:#1C1C1E;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none"><span>${escapeHtml(d)}</span><span style="font-family:monospace">${subLine}</span></div>
     <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none"><tr style="background:#242424">${['Description','Qty','Unit','Rate','Total'].map((h,i)=>`<th style="padding:5px 10px;font-size:9px;color:#9A9080;text-transform:uppercase;text-align:${i>2?'right':i>0?'center':'left'}">${h}</th>`).join('')}</tr>${rows}</table></div>`;
     }).join('');
     if(!phBlocks)return'';
-    return`<div style="margin-bottom:8px;${phIdx>0?'page-break-before:always;':''}"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#F0E8D0;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${ph.name}</div>${phBlocks}</div>`;
+    return`<div style="margin-bottom:8px;${phIdx>0?'page-break-before:always;':''}"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#F0E8D0;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${escapeHtml(ph.name)}</div>${phBlocks}</div>`;
   }).join('');
   const grandLine=Object.entries(grand).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
-  const html=`<!DOCTYPE html><html><head><title>Budget — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+  const html=`<!DOCTYPE html><html><head><title>Budget — ${escapeHtml(project.name)}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
     <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
     <div style="max-width:700px;margin:0 auto;padding:26px;background:#141414">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:8px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${brand.companyName||'NKÒ'}</div>
-        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">${project.type} · ${brand.productionTitle||project.name}</div>
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">${escapeHtml(project.type)} · ${escapeHtml(brand.productionTitle||project.name)}</div>
         <div style="font-size:10px;color:#9A9080;margin-top:3px">Created ${new Date().getFullYear()}</div></div>${logoHtml}
       </div>
       ${infoBlock}
@@ -1830,7 +1837,7 @@ const receiptPDF=(payee,payment,project)=>{
 /* ── Recon Report PDF — full advances + expense log for a production ── */
 const reconReportPDF=(advances,reconEntries,project)=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
-  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
   const totalIssued=advances.reduce((s,a)=>s+a.amount,0);
   let totalSpent=0;
   const blocks=advances.map(a=>{
@@ -1840,12 +1847,12 @@ const reconReportPDF=(advances,reconEntries,project)=>{
     const rows=entries.map(en=>{
       const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';
       const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');
-      return`<tr><td style="padding:6px 10px;font-size:11px;color:#9A9080;border-bottom:1px solid #3A3A3A">${en.date||''}</td><td style="padding:6px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${cat?`<span style="background:#242424;color:#8C852E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:5px">${cat}</span>`:''}${desc}</td><td style="padding:6px 10px;font-size:11px;text-align:right;font-family:monospace;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${sym(a.currency)}${fmt(en.amount)}</td></tr>`;
+      return`<tr><td style="padding:6px 10px;font-size:11px;color:#9A9080;border-bottom:1px solid #3A3A3A">${escapeHtml(en.date)}</td><td style="padding:6px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${cat?`<span style="background:#242424;color:#8C852E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:5px">${escapeHtml(cat)}</span>`:''}${escapeHtml(desc)}</td><td style="padding:6px 10px;font-size:11px;text-align:right;font-family:monospace;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${sym(a.currency)}${fmt(en.amount)}</td></tr>`;
     }).join('');
     return`<div style="margin-bottom:22px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden;page-break-inside:avoid">
       <div style="background:#1C1C1E;padding:10px 14px;display:flex;justify-content:space-between">
-        <div><span style="color:#F0E8D0;font-weight:700;font-size:13px">${a.recipient}</span>${a.dept?`<span style="color:#9A9080;font-size:11px"> · ${a.dept}</span>`:''}
-        <div style="color:#8C852E;font-size:10px;margin-top:2px">${a.purpose||''} · Issued ${a.date_issued}</div></div>
+        <div><span style="color:#F0E8D0;font-weight:700;font-size:13px">${escapeHtml(a.recipient)}</span>${a.dept?`<span style="color:#9A9080;font-size:11px"> · ${escapeHtml(a.dept)}</span>`:''}
+        <div style="color:#8C852E;font-size:10px;margin-top:2px">${escapeHtml(a.purpose)} · Issued ${escapeHtml(a.date_issued)}</div></div>
         <div style="text-align:right"><div style="color:#FEED61;font-family:monospace;font-size:15px">${sym(a.currency)}${fmt(a.amount)}</div>
         <div style="font-size:10px;color:${bal<0?'#E06B52':bal===0?'#52B07A':'#9A9080'}">${a.status==='reconciled'?'✓ Reconciled':bal<0?`Over by ${sym(a.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(a.currency)}${fmt(bal)}`}</div></div>
       </div>
@@ -1853,15 +1860,15 @@ const reconReportPDF=(advances,reconEntries,project)=>{
       <tr><td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:#F0E8D0;text-align:right">Total spent</td><td style="padding:8px 10px;font-size:12px;font-weight:700;color:#FEED61;text-align:right;font-family:monospace">${sym(a.currency)}${fmt(spent)}</td></tr></table>`:`<div style="padding:12px 14px;font-size:11px;color:#9A9080;background:#141414">No expenses logged against this advance yet.</div>`}
     </div>`;
   }).join('');
-  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${escapeHtml(project.name)}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
     <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
       <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
     </div>
     <div style="max-width:680px;margin:0 auto;padding:26px;background:#141414">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
-        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${brand.companyName||'NKÒ'}</div>
-        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${project.name}</div>
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${escapeHtml(project.name)}</div>
         <div style="font-size:10px;color:#9A9080;margin-top:3px">Created ${new Date().getFullYear()}</div></div>
         ${logoHtml}
       </div>
@@ -1913,7 +1920,7 @@ function AIView({project,budgetItems,advances}){
   useEffect(()=>{botRef.current?.scrollIntoView({behavior:'smooth'});},[msgs]);
   const ctx=project?`Project: "${project.name}" (${project.type}, ${project.base_currency}). Budget: ${budgetItems.length} lines.`:'No project selected.';
 
-  const pickImage=async e=>{const f=e.target.files[0];if(!f)return;const b64=await readB64(f);setImgB64(b64);setImgPreview(URL.createObjectURL(f));};
+  const pickImage=async e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Please attach an image file.');return;}if(f.size>8*1024*1024){alert('Image is too large (max 8MB).');return;}const b64=await readB64(f);setImgB64(b64);setImgPreview(URL.createObjectURL(f));};
   const clearImage=()=>{setImgB64(null);setImgPreview(null);if(imgRef.current)imgRef.current.value='';};
 
   const buildContent=(text,b64)=>{if(b64)return[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},{type:'text',text:`[${ctx}]\n\n${text}`}];return`[${ctx}]\n\n${text}`;};
@@ -2056,7 +2063,7 @@ function SceneCard({scene,onDelete,onUpdate,index}){
 const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
   const scenes=sortScenes(scenesIn);
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
-  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:38px;object-fit:contain;display:block;margin-bottom:6px"/>`:'';
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:38px;object-fit:contain;display:block;margin-bottom:6px"/>`:'';
   const castMap={};
   scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;const lk=key.toLowerCase();if(!castMap[lk])castMap[lk]={name:key,scenes:[]};castMap[lk].scenes.push(s.sceneNumber);});});
   const findMeta=name=>charactersIn.find(c=>c.project_id===project.id&&c.name.trim().toLowerCase()===name.trim().toLowerCase());
@@ -2070,30 +2077,30 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
   const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
   const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
   const summaryHeader=title=>`<div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none">
-    <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKÒ'} · ${project.name}</div>
-    <div style="font-size:17px;font-weight:700">${title}</div></div>${logoHtml}</div>`;
+    <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${escapeHtml(brand.companyName||'NKÒ')} · ${escapeHtml(project.name)}</div>
+    <div style="font-size:17px;font-weight:700">${escapeHtml(title)}</div></div>${logoHtml}</div>`;
   const castPage=castRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Character Scene Breakdown')}
     <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
       <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Character</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Age / description</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Role notes</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Total</th></tr>
-      ${castRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${r.name}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.meta.age_description||''}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.meta.role_notes||''}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
+      ${castRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${escapeHtml(r.name)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${escapeHtml(r.meta.age_description)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${escapeHtml(r.meta.role_notes)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.map(escapeHtml).join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
     </table>
   </div>`:'';
   const schedulePage=scheduleRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Outline Schedule')}
     <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
       <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Set / Location</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Total</th></tr>
-      ${scheduleRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${r.location}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
+      ${scheduleRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${escapeHtml(r.location)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.map(escapeHtml).join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
     </table>
   </div>`:'';
   const locPage=locRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Locations Summary')}
     <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
       <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Location</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase">Int/Ext</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Scenes</th></tr>
-      ${locRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${r.location}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:center;border-top:1px solid #3A3A3A">${r.intExt}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:right;border-top:1px solid #3A3A3A">${r.scenes.join(', ')}</td></tr>`).join('')}
+      ${locRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${escapeHtml(r.location)}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:center;border-top:1px solid #3A3A3A">${escapeHtml(r.intExt)}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:right;border-top:1px solid #3A3A3A">${r.scenes.map(escapeHtml).join(', ')}</td></tr>`).join('')}
     </table>
   </div>`:'';
-  const elementGroup=(label,items)=>items.length?`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${items.map(it=>`<span style="background:#242424;border:1px solid #3A3A3A;border-radius:6px;padding:4px 10px;font-size:11px;color:#F0E8D0">${it}</span>`).join('')}</div></div>`:`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="font-size:11px;color:#5A5A5A;font-style:italic">None identified</div></div>`;
+  const elementGroup=(label,items)=>items.length?`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${items.map(it=>`<span style="background:#242424;border:1px solid #3A3A3A;border-radius:6px;padding:4px 10px;font-size:11px;color:#F0E8D0">${escapeHtml(it)}</span>`).join('')}</div></div>`:`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="font-size:11px;color:#5A5A5A;font-style:italic">None identified</div></div>`;
   const elementsPage=`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
     ${summaryHeader('Production Elements')}
     <div style="border:1px solid #3A3A3A;border-top:none;padding:16px;background:#141414">
@@ -2107,12 +2114,12 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
     const rows=BKCAT.map(cat=>{
       const val=sc[cat.key];
       if(!val||(Array.isArray(val)&&!val.length))return'';
-      const display=Array.isArray(val)?val.join(', '):val;
+      const display=escapeHtml(Array.isArray(val)?val.join(', '):val);
       return`<tr><td style="padding:7px 12px;background:#242424;color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;width:150px;white-space:nowrap;font-family:Arial;border-bottom:1px solid #3A3A3A">${cat.icon} ${cat.label}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;font-family:Arial;background:#141414;border-bottom:1px solid #3A3A3A">${display}</td></tr>`;
     }).join('');
     return`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
       <div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none">
-        <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${brand.companyName||'NKÒ'} · ${project.name}</div>
+        <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${escapeHtml(brand.companyName||'NKÒ')} · ${escapeHtml(project.name)}</div>
         <div style="font-size:17px;font-weight:700">Scene ${sc.sceneNumber||'—'}</div>
         <div style="font-size:12px;color:#9A9080;margin-top:2px">${sc.heading||''}</div></div>
         <div style="text-align:right">${logoHtml}<div style="font-size:10px;color:#8C852E">${sc.intExt||''} · ${sc.dayNight||''}</div></div>
@@ -2121,10 +2128,10 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
       <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none">${rows}</table>
     </div>`;
   }).join('');
-  const html=`<!DOCTYPE html><html><head><title>Breakdown — ${project.name}</title><style>@media print{.np{display:none}}body{margin:0;background:#141414}</style></head><body>
+  const html=`<!DOCTYPE html><html><head><title>Breakdown — ${escapeHtml(project.name)}</title><style>@media print{.np{display:none}}body{margin:0;background:#141414}</style></head><body>
     <div class="np" style="background:#141414;padding:12px 18px;text-align:center;font-family:Arial;border-bottom:1px solid #3A3A3A">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button>
-      <span style="color:#9A9080;font-size:11px;margin-left:10px">${scenes.length} scene${scenes.length!==1?'s':''} · ${project.name}</span>
+      <span style="color:#9A9080;font-size:11px;margin-left:10px">${scenes.length} scene${scenes.length!==1?'s':''} · ${escapeHtml(project.name)}</span>
     </div>${castPage}${schedulePage}${locPage}${elementsPage}${sheets}</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
@@ -2137,6 +2144,7 @@ function BreakdownUploader({project,onApply}){
   const process=async f=>{
     const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
     if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX file.');setState('error');return;}
+    if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
     await askNotif();setState('reading');setErr('');
     try{
       const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?20:25;
@@ -2304,9 +2312,13 @@ function locationColor(project,loc){
 }
 const CALLSHEET_FIELDS=[
   ['crew',[['execProducer','Executive Producer'],['producer','Producer'],['director','Director'],['prodManager','Production Manager'],['ad1','1st Assistant Director'],['ad2','2nd Assistant Director'],['dp','Director of Photography'],['camOp','Camera Operator'],['ac1','1st AC'],['keyGrip','Key Grip'],['gaffer','Gaffer'],['scriptSup','Script Supervisor'],['sound','Sound'],['unitManager','Unit Manager'],['dit','DIT'],['costumeDesigner','Costume Designer'],['artDirector','Art Director'],['hmu','HMU / SFX']]],
-  ['times',[['crewCall','Crew Call'],['artCall','Art Department Call'],['hmuCall','HMU / Wardrobe Call'],['crewPickup','Crew Pickup From Base'],['castCall','Cast Member Call'],['firstShot','1st Shot'],['estWrap','Est. Wrap']]],
-  ['location',[['locationName','Location Name'],['locationAddress','Address'],['sunrise','Sunrise'],['sunset','Sunset'],['weather','Weather'],['notes','Notes']]],
+  ['times',[['crewCall','Crew Call'],['shootingCall','Shooting Call'],['estWrap','Est. Wrap'],['artCall','Art Department Call'],['hmuCall','HMU / Wardrobe Call'],['crewPickup','Crew Pickup From Base'],['castCall','Cast Member Call']]],
+  ['location',[['locationName','Location Name'],['locationAddress','Address'],['unit','Unit'],['sunrise','Sunrise'],['sunset','Sunset'],['weather','Weather'],['nearestHospital','Nearest Hospital']]],
 ];
+const NOTE_CATEGORIES=[['safetyNotes','Safety'],['cameraNotes','Camera'],['wardrobeNotes','Wardrobe'],['cateringNotes','Catering & Welfare']];
+/* NKÒ's own call sheet identity — deliberately its own dark navy/violet palette, distinct
+   from the app's gold Charcoal Noir, per the standalone reference design. */
+const CS={bg:'#161826',panel:'#1c1e30',panel2:'#20223a',line:'#2e2f4a',accent:'#9184d9',accentDim:'#4a4a5c',text:'#F0EEF7',dim:'#8886a3'};
 function CallSheetModal({project,day,scenes,characters,onClose}){
   const key=`nko_callsheet_${project.id}_${day.id}`;
   const[info,setInfo]=useState({});const[castTimes,setCastTimes]=useState({});
@@ -2331,6 +2343,12 @@ function CallSheetModal({project,day,scenes,characters,onClose}){
             </div>
           </div>
         ))}
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Notes by department</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:8}}>
+            {NOTE_CATEGORIES.map(([k,label])=><div key={k}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:3}}>{label}</div><textarea value={info[k]||''} onChange={e=>set(k,e.target.value)} rows={2} style={{width:'100%',background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'6px 8px',fontSize:12,fontFamily:'Manrope,sans-serif',resize:'vertical'}}/></div>)}
+          </div>
+        </div>
         {cast.length>0&&<div style={{marginBottom:16}}>
           <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Cast Schedule</div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -2345,41 +2363,149 @@ function CallSheetModal({project,day,scenes,characters,onClose}){
           </div>
         </div>}
         <div style={{display:'flex',gap:8}}>
-          <Btn variant="sage" onClick={()=>{save();callSheetPDF(day,daySc,project,info,castTimes,characters);}}>📄 Save & Generate PDF</Btn>
-          <Btn variant="ghost" onClick={()=>{save();onClose();}}>Save & Close</Btn>
+          <Btn variant="sage" onClick={()=>{save();onClose();}}>Save</Btn>
+          <Btn variant="ghost" onClick={()=>{save();callSheetPDF(day,daySc,project,info,castTimes,characters);onClose();}}>📄 Save & Download PDF</Btn>
         </div>
       </div>
     </div>
   );
 }
 const callSheetPDF=(day,daySc,project,info,castTimes,characters=[])=>{
-  const rows=daySc.map(s=>{const loc=parseLocation(s.heading);const c=locationColor(project,loc);
-    const castNum=name=>{const i=characters.findIndex(ch=>ch.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
-    return`<tr style="background:${c.bg}"><td style="padding:5px 8px;border:1px solid #ccc;color:${c.text};font-weight:600">SC ${s.sceneNumber}</td><td style="padding:5px 8px;border:1px solid #ccc;color:${c.text}">${loc}</td><td style="padding:5px 8px;border:1px solid #ccc;color:${c.text};max-width:260px">${s.synopsis||''}</td><td style="padding:5px 8px;border:1px solid #ccc;color:${c.text}">${s.dayNight||''}</td><td style="padding:5px 8px;border:1px solid #ccc;color:${c.text}">${s.intExt||''}</td><td style="padding:5px 8px;border:1px solid #ccc;color:${c.text};text-align:right">${(s.cast||[]).map(castNum).join(', ')||'—'}</td></tr>`;
+  const castNum=name=>{const i=characters.findIndex(ch=>ch.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
+  const sceneCards=daySc.map(s=>{const loc=parseLocation(s.heading);
+    return`<div style="background:#1c1e30;border-left:3px solid #9184d9;border-radius:8px;padding:10px 14px;margin-bottom:8px">
+      <div style="color:#9184d9;font-family:monospace;font-size:11px;margin-bottom:4px">SC ${escapeHtml(s.sceneNumber)}</div>
+      <div style="color:#F0EEF7;font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(s.intExt)} · ${escapeHtml(loc)} · ${escapeHtml(s.dayNight)}</div>
+      ${s.synopsis?`<div style="color:#8886a3;font-size:12px;margin-bottom:6px">${escapeHtml(s.synopsis)}</div>`:''}
+      <div style="color:#8886a3;font-size:10px">Cast: ${(s.cast||[]).map(n=>`${castNum(n)} ${escapeHtml(n)}`).join(', ')||'—'}</div>
+    </div>`;
   }).join('');
-  const crewRows=CALLSHEET_FIELDS[0][1].filter(([k])=>info[k]).map(([k,label])=>`<tr><td style="padding:3px 8px;font-size:11px;color:#666">${label}</td><td style="padding:3px 8px;font-size:11px;font-weight:600">${info[k]}</td></tr>`).join('');
-  const timeRows=CALLSHEET_FIELDS[1][1].filter(([k])=>info[k]).map(([k,label])=>`<tr><td style="padding:3px 8px;font-size:11px;color:#666">${label}</td><td style="padding:3px 8px;font-size:11px;font-weight:600">${info[k]}</td></tr>`).join('');
-  const castRows=Object.entries(castTimes).map(([name,t])=>`<tr><td style="padding:4px 8px;border:1px solid #ccc;font-weight:600">${name}</td>${['pickup','depart','arrive','makeup','costume','onSet'].map(f=>`<td style="padding:4px 8px;border:1px solid #ccc;text-align:center">${t?.[f]||'—'}</td>`).join('')}</tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><title>Call Sheet — Day ${day.dayNumber}</title></head><body style="margin:0;font-family:Arial;background:#fff;padding:24px;color:#222">
-    <h1 style="font-family:Georgia,serif;font-size:20px;margin:0">${project.name} — Call Sheet</h1>
-    <div style="font-size:14px;font-weight:700;margin:4px 0 2px">DAY ${day.dayNumber}${day.date?` — ${day.date}`:''}</div>
-    <table style="width:100%;border-collapse:collapse;margin:14px 0"><tr>
-      <td style="vertical-align:top;width:50%"><table style="width:100%;border-collapse:collapse">${crewRows}</table></td>
-      <td style="vertical-align:top;width:50%"><table style="width:100%;border-collapse:collapse">${timeRows}</table></td>
-    </tr></table>
-    ${info.locationName||info.locationAddress?`<div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:11px"><b>${info.locationName||'Location'}</b><br/>${info.locationAddress||''}${info.sunrise?` &nbsp;·&nbsp; Sunrise ${info.sunrise}`:''}${info.sunset?` &nbsp;·&nbsp; Sunset ${info.sunset}`:''}${info.weather?` &nbsp;·&nbsp; Weather ${info.weather}`:''}${info.notes?`<br/><i>${info.notes}</i>`:''}</div>`:''}
-    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px">
-      <tr style="background:#333;color:#fff"><th style="padding:5px 8px;text-align:left">Scene</th><th style="padding:5px 8px;text-align:left">Location</th><th style="padding:5px 8px;text-align:left">Description</th><th style="padding:5px 8px;text-align:left">D/N</th><th style="padding:5px 8px;text-align:left">I/E</th><th style="padding:5px 8px;text-align:right">Cast</th></tr>
-      ${rows||'<tr><td colspan="6" style="padding:8px">No scenes assigned.</td></tr>'}
-    </table>
-    ${castRows?`<table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#333;color:#fff"><th style="padding:5px 8px;text-align:left">Cast</th><th style="padding:5px 8px">Pickup</th><th style="padding:5px 8px">Depart</th><th style="padding:5px 8px">Arrive</th><th style="padding:5px 8px">Makeup</th><th style="padding:5px 8px">Costume</th><th style="padding:5px 8px">On Set</th></tr>${castRows}</table>`:''}
-    <div class="np" style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div>
+  const castRows=Object.keys(castTimes).length?Object.entries(castTimes).map(([name,t])=>
+    `<div style="background:#1c1e30;border-radius:8px;padding:8px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+      <span style="background:#9184d9;color:#fff;width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${castNum(name)}</span>
+      <span style="flex:1;color:#F0EEF7;font-size:12px;font-weight:600">${escapeHtml(name)}</span>
+      <span style="color:#8886a3;font-size:11px;font-family:monospace">Pickup ${escapeHtml(t?.pickup||'—')}</span>
+      <span style="color:#8886a3;font-size:11px;font-family:monospace">On set ${escapeHtml(t?.onSet||'—')}</span>
+    </div>`).join(''):'';
+  const noteCards=NOTE_CATEGORIES.filter(([k])=>info[k]).map(([k,label])=>
+    `<div style="background:#1c1e30;border-radius:8px;padding:8px 14px;margin-bottom:6px">
+      <div style="color:#9184d9;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">${escapeHtml(label)}</div>
+      <div style="color:#F0EEF7;font-size:12px">${escapeHtml(info[k])}</div>
+    </div>`).join('');
+  const crewRows=CALLSHEET_FIELDS[0][1].filter(([k])=>info[k]).map(([k,label])=>`<tr><td style="padding:3px 10px;font-size:11px;color:#8886a3">${escapeHtml(label)}</td><td style="padding:3px 10px;font-size:11px;font-weight:600;color:#F0EEF7">${escapeHtml(info[k])}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><title>Call Sheet — Day ${escapeHtml(day.dayNumber)}</title></head><body style="margin:0;font-family:Arial,sans-serif;background:#161826;padding:24px;color:#F0EEF7">
+    <div style="color:#9184d9;font-family:Georgia,serif;font-size:16px;font-weight:700">NKÒ</div>
+    <div style="color:#8886a3;font-size:12px;margin-bottom:14px">Call sheet · Day ${escapeHtml(day.dayNumber)}</div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:2px">${escapeHtml(project.name)} — Call Sheet</div>
+    <div style="color:#8886a3;font-size:12px;margin-bottom:16px">${escapeHtml(day.date||'Date TBC')} · Day ${escapeHtml(day.dayNumber)}</div>
+    <div style="background:#1c1e30;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;gap:24px">
+      <div><div style="color:#8886a3;font-size:9px;text-transform:uppercase">Crew Call</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.crewCall||'—')}</div></div>
+      <div><div style="color:#8886a3;font-size:9px;text-transform:uppercase">Shooting Call</div><div style="font-size:16px;font-weight:700;color:#9184d9">${escapeHtml(info.shootingCall||'—')}</div></div>
+      <div><div style="color:#8886a3;font-size:9px;text-transform:uppercase">Est. Wrap</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.estWrap||'—')}</div></div>
+    </div>
+    ${info.locationName||info.locationAddress?`<div style="background:#1c1e30;border-radius:10px;padding:12px 14px;margin-bottom:14px"><div style="color:#8886a3;font-size:9px;text-transform:uppercase;margin-bottom:3px">Base Camp</div><div style="font-weight:700;font-size:13px">${escapeHtml(info.locationName)}</div><div style="color:#8886a3;font-size:11px">${escapeHtml(info.locationAddress)}</div>${info.nearestHospital?`<div style="color:#8886a3;font-size:11px;margin-top:6px">Nearest hospital: ${escapeHtml(info.nearestHospital)}</div>`:''}</div>`:''}
+    ${crewRows?`<table style="border-collapse:collapse;margin-bottom:14px">${crewRows}</table>`:''}
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Schedule</div>
+    ${sceneCards||'<div style="color:#8886a3;font-size:12px">No scenes assigned.</div>'}
+    ${castRows?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Cast</div>${castRows}`:''}
+    ${noteCards?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Notes</div>${noteCards}`:''}
+    <div class="np" style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#9184d9;color:#fff;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div>
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
+function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,onClose}){
+  const[tab,setTab]=useState('schedule');
+  const key=`nko_callsheet_${project.id}_${day.id}`;
+  const[info,setInfo]=useState({});const[castTimes,setCastTimes]=useState({});
+  useEffect(()=>{try{const s=JSON.parse(localStorage.getItem(key)||'{}');setInfo(s.info||{});setCastTimes(s.castTimes||{});}catch{}},[key]);
+  const daySc=scenes.filter(s=>s.shootDayId===day.id);
+  const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
+  const castNum=name=>{const i=characters.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
+  const sortedDays=[...allDays].sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
+  const tabBtn=(id,label)=><button onClick={()=>setTab(id)} style={{flex:1,padding:'8px 0',background:tab===id?CS.accent:'transparent',color:tab===id?'#fff':CS.text,border:`1px solid ${tab===id?CS.accent:CS.line}`,borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>{label}</button>;
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:CS.bg,border:`1px solid ${CS.line}`,borderRadius:16,maxWidth:460,width:'100%',maxHeight:'88vh',overflowY:'auto',padding:18,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+          <div>
+            <div style={{color:CS.accent,fontFamily:'Fraunces,serif',fontSize:16,fontWeight:700}}>NKÒ</div>
+            <div style={{color:CS.dim,fontSize:11}}>Call sheet · Day {day.dayNumber}</div>
+          </div>
+          <button onClick={onClose} style={{background:'none',border:'none',color:CS.dim,fontSize:18,cursor:'pointer'}}>✕</button>
+        </div>
+        {sortedDays.length>1&&<div style={{display:'flex',gap:6,marginBottom:14,overflowX:'auto'}}>
+          {sortedDays.map(d=><div key={d.id} style={{flex:'0 0 auto',minWidth:44,textAlign:'center',padding:'6px 8px',borderRadius:8,background:d.id===day.id?CS.accent:CS.panel,border:`1px solid ${d.id===day.id?CS.accent:CS.line}`}}>
+            <div style={{fontSize:9,color:d.id===day.id?'#fff':CS.dim,textTransform:'uppercase'}}>{d.date?new Date(d.date).toLocaleDateString('en',{weekday:'short'}):`Day`}</div>
+            <div style={{fontSize:13,color:d.id===day.id?'#fff':CS.text,fontWeight:700}}>{d.dayNumber}</div>
+          </div>)}
+        </div>}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+          <div>
+            <div style={{color:CS.text,fontSize:18,fontWeight:700}}>Call Sheet</div>
+            <div style={{color:CS.dim,fontSize:11}}>{day.date||'Date TBC'} · Day {day.dayNumber} of {sortedDays.length}</div>
+          </div>
+          {info.unit&&<span style={{background:CS.panel2,color:CS.accent,fontSize:10,fontWeight:700,padding:'4px 10px',borderRadius:6,border:`1px solid ${CS.accent}`}}>{info.unit}</span>}
+        </div>
+        <div style={{background:CS.panel,border:`1px solid ${CS.line}`,borderRadius:10,overflow:'hidden',marginBottom:8}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr'}}>
+            {[['Crew Call','crewCall',CS.text],['Shooting Call','shootingCall',CS.accent],['Est. Wrap','estWrap',CS.text]].map(([label,k,color],i)=>
+              <div key={k} style={{padding:'10px 12px',borderLeft:i>0?`1px solid ${CS.line}`:'none'}}>
+                <div style={{fontSize:9,color:CS.dim,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4}}>{label}</div>
+                <div style={{fontSize:15,color,fontFamily:'IBM Plex Mono,monospace',fontWeight:600}}>{info[k]||'—'}</div>
+              </div>
+            )}
+          </div>
+          {(info.sunrise||info.sunset||info.weather)&&<div style={{borderTop:`1px solid ${CS.line}`,padding:'6px 12px',fontSize:11,color:CS.dim,display:'flex',gap:14}}>
+            {info.sunrise&&<span>↑ {info.sunrise}</span>}{info.sunset&&<span>↓ {info.sunset}</span>}{info.weather&&<span>{info.weather}</span>}
+          </div>}
+        </div>
+        {(info.locationName||info.locationAddress)&&<div style={{background:CS.panel,border:`1px solid ${CS.line}`,borderRadius:10,padding:'10px 12px',marginBottom:14}}>
+          <div style={{fontSize:9,color:CS.dim,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:3}}>Base Camp</div>
+          <div style={{color:CS.text,fontSize:13,fontWeight:700}}>{info.locationName}</div>
+          <div style={{color:CS.dim,fontSize:11}}>{info.locationAddress}</div>
+          {info.nearestHospital&&<div style={{borderTop:`1px solid ${CS.line}`,marginTop:8,paddingTop:8,display:'flex',justifyContent:'space-between',fontSize:11}}><span style={{color:CS.dim}}>Nearest hospital</span><span style={{color:CS.text}}>{info.nearestHospital}</span></div>}
+        </div>}
+        <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('schedule','Schedule')}{tabBtn('cast','Cast')}{tabBtn('notes','Notes')}</div>
+        {tab==='schedule'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {daySc.map(s=>{const loc=parseLocation(s.heading);return(
+            <div key={s.id} style={{background:CS.panel,borderLeft:`3px solid ${CS.accent}`,borderRadius:8,padding:'8px 12px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:CS.accent,fontFamily:'IBM Plex Mono,monospace',marginBottom:4}}><span>SC {s.sceneNumber}</span></div>
+              <div style={{color:CS.text,fontSize:12,fontWeight:600,marginBottom:2}}>{s.intExt} · {loc} · {s.dayNight}</div>
+              {s.synopsis&&<div style={{color:CS.dim,fontSize:11,marginBottom:6}}>{s.synopsis}</div>}
+              <div style={{fontSize:10,color:CS.dim}}>Cast: {(s.cast||[]).map(n=>`${castNum(n)} ${n}`).join(', ')||'—'}</div>
+            </div>
+          );})}
+          {!daySc.length&&<div style={{color:CS.dim,fontSize:12,textAlign:'center',padding:20}}>No scenes assigned to this day.</div>}
+        </div>}
+        {tab==='cast'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <div style={{display:'flex',fontSize:9,color:CS.dim,textTransform:'uppercase',letterSpacing:'0.04em',padding:'0 12px'}}><span style={{flex:1}}>Cast</span><span style={{width:60,textAlign:'right'}}>Pickup</span><span style={{width:60,textAlign:'right'}}>On Set</span></div>
+          {cast.map(name=><div key={name} style={{background:CS.panel,borderRadius:8,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
+            <span style={{background:CS.accent,color:'#fff',width:20,height:20,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{castNum(name)}</span>
+            <span style={{flex:1,color:CS.text,fontSize:12,fontWeight:600}}>{name}</span>
+            <span style={{width:60,textAlign:'right',color:CS.dim,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{castTimes[name]?.pickup||'—'}</span>
+            <span style={{width:60,textAlign:'right',color:CS.dim,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{castTimes[name]?.onSet||'—'}</span>
+          </div>)}
+          {!cast.length&&<div style={{color:CS.dim,fontSize:12,textAlign:'center',padding:20}}>No cast assigned to this day.</div>}
+        </div>}
+        {tab==='notes'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {NOTE_CATEGORIES.filter(([k])=>info[k]).map(([k,label])=><div key={k} style={{background:CS.panel,borderRadius:8,padding:'10px 12px'}}>
+            <div style={{fontSize:9,color:CS.accent,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>{label}</div>
+            <div style={{color:CS.text,fontSize:12}}>{info[k]}</div>
+          </div>)}
+          {!NOTE_CATEGORIES.some(([k])=>info[k])&&<div style={{color:CS.dim,fontSize:12,textAlign:'center',padding:20}}>No notes added yet.</div>}
+        </div>}
+        <div style={{display:'flex',gap:8,marginTop:16}}>
+          <button onClick={onEdit} style={{flex:1,background:CS.panel,border:`1px solid ${CS.line}`,color:CS.text,borderRadius:8,padding:'10px 0',fontSize:12,fontWeight:600,cursor:'pointer'}}>✏️ Edit</button>
+          <button onClick={onDownload} style={{flex:1,background:CS.accent,border:'none',color:'#fff',borderRadius:8,padding:'10px 0',fontSize:12,fontWeight:600,cursor:'pointer'}}>📄 Download PDF</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddDay,onUpdateDay,onDeleteDay,onGoToBreakdown}){
   const[newDate,setNewDate]=useState('');
   const[callSheetDay,setCallSheetDay]=useState(null);
+  const[editingDay,setEditingDay]=useState(null);
   const[autoScheduling,setAutoScheduling]=useState(false);
   const[autoErr,setAutoErr]=useState('');
   const pScenes=scenes.filter(s=>s.project_id===project?.id);
@@ -2488,7 +2614,8 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
         <Inp type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{width:160}}/>
         <Btn size="sm" variant="sage" onClick={addDay}>+ Add shoot day {pDays.length+1}</Btn>
       </div>
-      {callSheetDay&&<CallSheetModal project={project} day={callSheetDay} scenes={pScenes} characters={castList} onClose={()=>setCallSheetDay(null)}/>}
+      {callSheetDay&&<CallSheetView project={project} day={callSheetDay} allDays={pDays} scenes={pScenes} characters={castList} onEdit={()=>setEditingDay(callSheetDay)} onDownload={()=>{const key=`nko_callsheet_${project.id}_${callSheetDay.id}`;let s={};try{s=JSON.parse(localStorage.getItem(key)||'{}');}catch{}callSheetPDF(callSheetDay,pScenes.filter(sc=>sc.shootDayId===callSheetDay.id),project,s.info||{},s.castTimes||{},castList);}} onClose={()=>setCallSheetDay(null)}/>}
+      {editingDay&&<CallSheetModal project={project} day={editingDay} scenes={pScenes} characters={castList} onClose={()=>setEditingDay(null)}/>}
     </div>
   );
 }
