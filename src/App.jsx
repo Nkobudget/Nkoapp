@@ -714,8 +714,13 @@ Classification rules, follow these closely:
 
 If an item does not obviously fit, choose the single closest department from the list above. Never return a department that is not in this list, and never leave dept blank.`;
 const SCRIPT_PROMPT=(cur)=>`Analyze this script and return a production budget as JSON: {"title":"string","budget":[{"dept":"string","description":"string","qty":number,"unit":"string","rate":number,"currency":"${cur}"}],"summary":"string"}`;
-const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions. Return ONLY valid JSON array. No markdown. No apostrophes. Keep values short and clean.`;
-const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode, max ${max} episodes.`:`Extract scenes, max ${max} scenes.`} If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank. Return ONLY: [{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}]`;
+const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions. Return ONLY valid JSON. No markdown. No apostrophes. Keep values short and clean.
+
+When classifying cast tier, judge by NARRATIVE ROLE — dialogue volume, plot centrality, whether the story revolves around them — not by how many scenes they physically appear in. A character can appear in few scenes but be a lead (a pivotal late-story reveal); a character can appear in many short scenes and still be background (a recurring extra with no dialogue). Use these four tiers only: "lead", "supporting", "background", "extra". If you're genuinely unsure, prefer "supporting" over guessing lead or extra at the extremes.
+
+For vehicles, extract PICTURE VEHICLES only — vehicles that appear on-camera as a scripted story element (a car a character drives, a bus involved in an accident), not incidental background traffic. Do not invent a vehicle that isn't actually indicated by the scene text.`;
+const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode, max ${max} episodes.`:`Extract scenes, max ${max} scenes.`} If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank.
+Return ONLY this JSON shape: {"scenes":[{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}],"characters":[{"name":"Name","tier":"lead"}]} — the "characters" array must include every named cast member across all scenes, exactly once each, with your judged tier.`;
 const QUICK=['Day rate for DOP in Lagos?','Estimate 1-day music video in Naira','Structure cash advances for crew','Contingency % for Nollywood?','Post costs for 5-episode vertical?','Mobile money payments in Kenya?'];
 
 /* ── Helpers ── */
@@ -997,11 +1002,36 @@ const recoverDayGroups=raw=>{
 };
 const recoverScenes=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
-  const a=s.indexOf('[');if(a===-1)return[];s=s.slice(a);
-  try{const r=JSON.parse(s);if(Array.isArray(r))return r;}catch{}
-  const scenes=[];let depth=0,start=-1;
-  for(let i=0;i<s.length;i++){const c=s[i];if(c==='{'){if(!depth)start=i;depth++;}else if(c==='}'){depth--;if(!depth&&start!==-1){try{const o=JSON.parse(s.slice(start,i+1));if(o.sceneNumber||o.heading)scenes.push(o);}catch{}start=-1;}}}
-  return scenes;
+  const salvageObjects=(text,keyHint)=>{
+    const out=[];let depth=0,start=-1;
+    for(let i=0;i<text.length;i++){const c=text[i];if(c==='{'){if(!depth)start=i;depth++;}else if(c==='}'){depth--;if(!depth&&start!==-1){try{const o=JSON.parse(text.slice(start,i+1));if(o[keyHint]!==undefined||o.sceneNumber||o.heading||o.name)out.push(o);}catch{}start=-1;}}}
+    return out;
+  };
+  // Try clean parse of the full {scenes,characters} object first
+  const objStart=s.indexOf('{');
+  if(objStart!==-1){
+    try{
+      const parsed=JSON.parse(s.slice(objStart));
+      if(parsed&&Array.isArray(parsed.scenes))return{scenes:parsed.scenes,characters:Array.isArray(parsed.characters)?parsed.characters:[]};
+    }catch{}
+  }
+  // Fall back: locate the scenes/characters arrays independently and salvage whatever complete objects exist
+  const scenesIdx=s.indexOf('"scenes"');
+  const charsIdx=s.indexOf('"characters"');
+  let scenes=[],characters=[];
+  if(scenesIdx!==-1){
+    const arrStart=s.indexOf('[',scenesIdx);
+    const arrEnd=charsIdx>arrStart?charsIdx:s.length;
+    if(arrStart!==-1)scenes=salvageObjects(s.slice(arrStart,arrEnd),'sceneNumber');
+  }else{
+    // Oldest fallback: a bare array with no wrapper object at all (pre-this-format responses)
+    const a=s.indexOf('[');if(a!==-1)scenes=salvageObjects(s.slice(a),'sceneNumber');
+  }
+  if(charsIdx!==-1){
+    const arrStart=s.indexOf('[',charsIdx);
+    if(arrStart!==-1)characters=salvageObjects(s.slice(arrStart),'name');
+  }
+  return{scenes,characters};
 };
 /* Recover a script budget from Claude's JSON response, tolerating truncation (hit token limit)
    or stray syntax issues — salvages every complete line item it can find rather than failing outright. */
@@ -1112,7 +1142,7 @@ const NkoLogo=({height=32,style})=>(
     </g>
   </svg>
 );
-const StatCard=({label,value,sub,accent})=><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
+const StatCard=({label,value,sub,accent,onClick})=><div onClick={onClick} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,cursor:onClick?'pointer':'default'}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
 function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -1352,7 +1382,7 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items,advances,payees,onBack}){
+function ProductionDashboardView({project,items,advances,payees,onBack,onOpenBudget}){
   const{t}=useLang();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
@@ -1366,7 +1396,7 @@ function ProductionDashboardView({project,items,advances,payees,onBack}){
         <div style={{fontSize:13,color:T.dim,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{t('productionDashboard')}</div>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
-        <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')} sub={project.base_currency}/>
+        <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')} sub={project.base_currency} onClick={onOpenBudget}/>
         <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')}/>
         <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage}/>
         <StatCard label={t('statUnpaidCrew')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
@@ -1375,8 +1405,20 @@ function ProductionDashboardView({project,items,advances,payees,onBack}){
   );
 }
 /* ── Budgets ── */
-function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
+function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characters,onSaveCharacter}){
   const[open,setOpen]=useState(true);const mob=useIsMobile();
+  const isTalent=dept==='F - Talents';
+  const tiers=isTalent&&project?getCastTiers(project,scenes||[],characters||[]):null;
+  const[tierEdit,setTierEdit]=useState(null);
+  const matchedCast=desc=>{
+    if(!tiers)return null;
+    const d=(desc||'').toLowerCase();
+    return tiers.ordered.find(name=>d.includes(name.toLowerCase()))||null;
+  };
+  const tierLabelOf=name=>{
+    for(let i=0;i<4;i++)if(tiers.byTier[i].includes(name))return{label:CAST_TIERS[i],idx:i};
+    return null;
+  };
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const ts=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')||'—';
   const usdTotal=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
@@ -1397,6 +1439,14 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
               <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{flex:1}}/>
               <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:20,cursor:'pointer',background:'none',border:'none',flexShrink:0,width:28}}>×</button>
             </div>
+            {isTalent&&matchedCast(item.description)&&(()=>{const mc=matchedCast(item.description);const tl=tierLabelOf(mc);return(
+              <div style={{position:'relative',marginBottom:10}}>
+                <button onClick={()=>setTierEdit(tierEdit===item.id?null:item.id)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'4px 10px',fontSize:11,color:T.gold,cursor:'pointer'}}>{mc}: {tl?.label||'—'} ✎</button>
+                {tierEdit===item.id&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(mc,{tier:TIER_KEYS[i]});setTierEdit(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===tl?.idx?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})()}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
               <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:13}}/></div>
               <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit</div><Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:13}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel></div>
@@ -1422,6 +1472,14 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove}){
               <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
               <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none'}}>×</button>
             </div>
+            {isTalent&&matchedCast(item.description)&&(()=>{const mc=matchedCast(item.description);const tl=tierLabelOf(mc);return(
+              <div style={{position:'relative',marginTop:5}}>
+                <button onClick={()=>setTierEdit(tierEdit===item.id?null:item.id)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'3px 9px',fontSize:10,color:T.gold,cursor:'pointer'}}>{mc}: {tl?.label||'—'} ✎</button>
+                {tierEdit===item.id&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(mc,{tier:TIER_KEYS[i]});setTierEdit(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===tl?.idx?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})()}
           </>}
         </div>;})}
         <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Add line</button>
@@ -1638,7 +1696,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 
-function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript}){
+function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
@@ -1673,7 +1731,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
         const emptyDepts=DEPTS.filter(d=>!activeDepts.includes(d));
         return(
           <>
-            {activeDepts.map(d=>{const di=pItems.filter(i=>i.dept===d);return<DeptSection key={d} dept={d} items={di} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove}/>;})}
+            {activeDepts.map(d=>{const di=pItems.filter(i=>i.dept===d);return<DeptSection key={d} dept={d} items={di} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove} project={project} scenes={scenes} characters={characters} onSaveCharacter={onSaveCharacter}/>;})}
             <Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
               <option value="">{tr('addDepartment')}</option>
               {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
@@ -2135,7 +2193,7 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
     </div>${castPage}${schedulePage}${locPage}${elementsPage}${sheets}</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
-function BreakdownUploader({project,onApply}){
+function BreakdownUploader({project,onApply,onSaveCharacter}){
   const{t:tr}=useLang();
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
   const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
@@ -2166,7 +2224,8 @@ function BreakdownUploader({project,onApply}){
       }
       setState('analyzing');
       const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS);
-      const scenes=recoverScenes(raw);if(!scenes.length)throw new Error('No scenes found — try TXT format');
+      const{scenes,characters}=recoverScenes(raw);if(!scenes.length)throw new Error('No scenes found — try TXT format');
+      characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
       sendNotif(scenes.length);
       try{localStorage.setItem(`nko_bk_${project?.id}`,JSON.stringify({scenes,ts:Date.now()}));}catch{}
       if(document.visibilityState==='hidden'){resRef.current=scenes;}else{onApply(scenes);setState('done');}
@@ -2234,30 +2293,35 @@ const parseLocation=heading=>{
   return s||'Unknown';
 };
 const CAST_TIERS=['Lead Cast','Supporting Actors','Background Cast','Extras'];
-function getCastTiers(project,pScenes){
+const TIER_KEYS=['lead','supporting','background','extra'];
+function getCastTiers(project,pScenes,characters=[]){
   const counts={};pScenes.forEach(s=>(s.cast||[]).forEach(n=>{counts[n]=(counts[n]||0)+1;}));
   const names=Object.keys(counts);
-  let overrides={};try{overrides=JSON.parse(localStorage.getItem(`nko_casttiers_${project.id}`)||'{}');}catch{}
+  const findChar=name=>characters.find(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());
   const sorted=[...names].sort((a,b)=>counts[b]-counts[a]);
   const n=sorted.length;
-  const defaultTier=name=>{
+  const frequencyTier=name=>{
     const rank=sorted.indexOf(name);
-    if(overrides[name])return overrides[name];
     if(n<=4)return rank===0?0:1;
     if(rank<Math.ceil(n*0.15))return 0;
     if(rank<Math.ceil(n*0.4))return 1;
     if(rank<Math.ceil(n*0.75))return 2;
     return 3;
   };
-  // Global numbering follows tier order (Lead first), then by frequency within tier — matches what scene rows reference.
+  // Real, shared tier (AI-judged at breakdown time, or producer-set) always wins over the
+  // frequency guess — frequency is only ever a fallback for a name with no tier saved yet.
+  const tierOf=name=>{
+    const c=findChar(name);
+    const idx=c?.tier?TIER_KEYS.indexOf(c.tier):-1;
+    return idx>=0?idx:frequencyTier(name);
+  };
   const byTier=[[],[],[],[]];
-  sorted.forEach(name=>byTier[defaultTier(name)].push(name));
+  sorted.forEach(name=>byTier[tierOf(name)].push(name));
   const ordered=byTier.flat();
-  return{ordered,byTier,setOverride:(name,tier)=>{const o={...overrides,[name]:tier};localStorage.setItem(`nko_casttiers_${project.id}`,JSON.stringify(o));}};
+  return{ordered,byTier,isGuessed:name=>!findChar(name)?.tier};
 }
-function CastTierLegend({project,pScenes}){
-  const[,force]=useState(0);
-  const{byTier,setOverride}=getCastTiers(project,pScenes);
+function CastTierLegend({project,pScenes,characters,onSaveCharacter}){
+  const{byTier,isGuessed}=getCastTiers(project,pScenes,characters);
   const[editing,setEditing]=useState(null);
   let num=0;
   return(
@@ -2266,13 +2330,13 @@ function CastTierLegend({project,pScenes}){
         <div key={ti} style={{marginBottom:ti<3?8:0}}>
           <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>{tierName}</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
-            {byTier[ti].map(name=>{num++;const myNum=num;return(
+            {byTier[ti].map(name=>{num++;const myNum=num;const guessed=isGuessed(name);return(
               <div key={name} style={{position:'relative'}}>
-                <button onClick={()=>setEditing(editing===name?null:name)} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',padding:0}}>
-                  <b style={{color:T.gold}}>{myNum}</b> {name}
+                <button onClick={()=>setEditing(editing===name?null:name)} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',padding:0}} title={guessed?'Not yet confirmed — click to set':'Set by script analysis or producer'}>
+                  <b style={{color:T.gold}}>{myNum}</b> {name}{guessed&&<span style={{color:T.dim,fontSize:10}}> ?</span>}
                 </button>
                 {editing===name&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
-                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{setOverride(name,i);setEditing(null);force(x=>x+1);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===ti?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(name,{tier:TIER_KEYS[i]});setEditing(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===ti?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
                 </div>}
               </div>
             );})}
@@ -2280,7 +2344,7 @@ function CastTierLegend({project,pScenes}){
         </div>
       ))}
       {byTier.flat().length===0&&<div style={{fontSize:12,color:T.dim}}>No cast found in scenes yet.</div>}
-      <div style={{fontSize:10,color:T.dim,fontStyle:'italic',marginTop:8}}>Auto-sorted by how often each name appears in scenes — click a name to move it to a different tier.</div>
+      <div style={{fontSize:10,color:T.dim,fontStyle:'italic',marginTop:8}}>Tier comes from script analysis where available (marked <b>?</b> if not yet confirmed) — click a name to set or correct it. This is shared with Budget and Breakdown.</div>
     </div>
   );
 }
@@ -2318,7 +2382,7 @@ const CALLSHEET_FIELDS=[
 const NOTE_CATEGORIES=[['safetyNotes','Safety'],['cameraNotes','Camera'],['wardrobeNotes','Wardrobe'],['cateringNotes','Catering & Welfare']];
 /* NKÒ's own call sheet identity — deliberately its own dark navy/violet palette, distinct
    from the app's gold Charcoal Noir, per the standalone reference design. */
-const CS={bg:'#161826',panel:'#1c1e30',panel2:'#20223a',line:'#2e2f4a',accent:'#9184d9',accentDim:'#4a4a5c',text:'#F0EEF7',dim:'#8886a3'};
+const CS={bg:T.ink,panel:T.panel,panel2:T.hi,line:T.line,accent:T.gold,accentDim:T.goldDim,text:T.cream,dim:T.dim};
 function CallSheetModal({project,day,scenes,characters,onClose}){
   const key=`nko_callsheet_${project.id}_${day.id}`;
   const[info,setInfo]=useState({});const[castTimes,setCastTimes]=useState({});
@@ -2373,47 +2437,47 @@ function CallSheetModal({project,day,scenes,characters,onClose}){
 const callSheetPDF=(day,daySc,project,info,castTimes,characters=[])=>{
   const castNum=name=>{const i=characters.findIndex(ch=>ch.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
   const sceneCards=daySc.map(s=>{const loc=parseLocation(s.heading);
-    return`<div style="background:#1c1e30;border-left:3px solid #9184d9;border-radius:8px;padding:10px 14px;margin-bottom:8px">
-      <div style="color:#9184d9;font-family:monospace;font-size:11px;margin-bottom:4px">SC ${escapeHtml(s.sceneNumber)}</div>
-      <div style="color:#F0EEF7;font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(s.intExt)} · ${escapeHtml(loc)} · ${escapeHtml(s.dayNight)}</div>
-      ${s.synopsis?`<div style="color:#8886a3;font-size:12px;margin-bottom:6px">${escapeHtml(s.synopsis)}</div>`:''}
-      <div style="color:#8886a3;font-size:10px">Cast: ${(s.cast||[]).map(n=>`${castNum(n)} ${escapeHtml(n)}`).join(', ')||'—'}</div>
+    return`<div style="background:#1C1C1E;border-left:3px solid #FEED61;border-radius:8px;padding:10px 14px;margin-bottom:8px">
+      <div style="color:#FEED61;font-family:monospace;font-size:11px;margin-bottom:4px">SC ${escapeHtml(s.sceneNumber)}</div>
+      <div style="color:#F0E8D0;font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(s.intExt)} · ${escapeHtml(loc)} · ${escapeHtml(s.dayNight)}</div>
+      ${s.synopsis?`<div style="color:#9A9080;font-size:12px;margin-bottom:6px">${escapeHtml(s.synopsis)}</div>`:''}
+      <div style="color:#9A9080;font-size:10px">Cast: ${(s.cast||[]).map(n=>`${castNum(n)} ${escapeHtml(n)}`).join(', ')||'—'}</div>
     </div>`;
   }).join('');
   const castRows=Object.keys(castTimes).length?Object.entries(castTimes).map(([name,t])=>
-    `<div style="background:#1c1e30;border-radius:8px;padding:8px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
-      <span style="background:#9184d9;color:#fff;width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${castNum(name)}</span>
-      <span style="flex:1;color:#F0EEF7;font-size:12px;font-weight:600">${escapeHtml(name)}</span>
-      <span style="color:#8886a3;font-size:11px;font-family:monospace">Pickup ${escapeHtml(t?.pickup||'—')}</span>
-      <span style="color:#8886a3;font-size:11px;font-family:monospace">On set ${escapeHtml(t?.onSet||'—')}</span>
+    `<div style="background:#1C1C1E;border-radius:8px;padding:8px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+      <span style="background:#FEED61;color:#141414;width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${castNum(name)}</span>
+      <span style="flex:1;color:#F0E8D0;font-size:12px;font-weight:600">${escapeHtml(name)}</span>
+      <span style="color:#9A9080;font-size:11px;font-family:monospace">Pickup ${escapeHtml(t?.pickup||'—')}</span>
+      <span style="color:#9A9080;font-size:11px;font-family:monospace">On set ${escapeHtml(t?.onSet||'—')}</span>
     </div>`).join(''):'';
   const noteCards=NOTE_CATEGORIES.filter(([k])=>info[k]).map(([k,label])=>
-    `<div style="background:#1c1e30;border-radius:8px;padding:8px 14px;margin-bottom:6px">
-      <div style="color:#9184d9;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">${escapeHtml(label)}</div>
-      <div style="color:#F0EEF7;font-size:12px">${escapeHtml(info[k])}</div>
+    `<div style="background:#1C1C1E;border-radius:8px;padding:8px 14px;margin-bottom:6px">
+      <div style="color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">${escapeHtml(label)}</div>
+      <div style="color:#F0E8D0;font-size:12px">${escapeHtml(info[k])}</div>
     </div>`).join('');
-  const crewRows=CALLSHEET_FIELDS[0][1].filter(([k])=>info[k]).map(([k,label])=>`<tr><td style="padding:3px 10px;font-size:11px;color:#8886a3">${escapeHtml(label)}</td><td style="padding:3px 10px;font-size:11px;font-weight:600;color:#F0EEF7">${escapeHtml(info[k])}</td></tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><title>Call Sheet — Day ${escapeHtml(day.dayNumber)}</title></head><body style="margin:0;font-family:Arial,sans-serif;background:#161826;padding:24px;color:#F0EEF7">
-    <div style="color:#9184d9;font-family:Georgia,serif;font-size:16px;font-weight:700">NKÒ</div>
-    <div style="color:#8886a3;font-size:12px;margin-bottom:14px">Call sheet · Day ${escapeHtml(day.dayNumber)}</div>
+  const crewRows=CALLSHEET_FIELDS[0][1].filter(([k])=>info[k]).map(([k,label])=>`<tr><td style="padding:3px 10px;font-size:11px;color:#9A9080">${escapeHtml(label)}</td><td style="padding:3px 10px;font-size:11px;font-weight:600;color:#F0E8D0">${escapeHtml(info[k])}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><title>Call Sheet — Day ${escapeHtml(day.dayNumber)}</title></head><body style="margin:0;font-family:Arial,sans-serif;background:#141414;padding:24px;color:#F0E8D0">
+    <div style="color:#FEED61;font-family:Georgia,serif;font-size:16px;font-weight:700">NKÒ</div>
+    <div style="color:#9A9080;font-size:12px;margin-bottom:14px">Call sheet · Day ${escapeHtml(day.dayNumber)}</div>
     <div style="font-size:20px;font-weight:700;margin-bottom:2px">${escapeHtml(project.name)} — Call Sheet</div>
-    <div style="color:#8886a3;font-size:12px;margin-bottom:16px">${escapeHtml(day.date||'Date TBC')} · Day ${escapeHtml(day.dayNumber)}</div>
-    <div style="background:#1c1e30;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;gap:24px">
-      <div><div style="color:#8886a3;font-size:9px;text-transform:uppercase">Crew Call</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.crewCall||'—')}</div></div>
-      <div><div style="color:#8886a3;font-size:9px;text-transform:uppercase">Shooting Call</div><div style="font-size:16px;font-weight:700;color:#9184d9">${escapeHtml(info.shootingCall||'—')}</div></div>
-      <div><div style="color:#8886a3;font-size:9px;text-transform:uppercase">Est. Wrap</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.estWrap||'—')}</div></div>
+    <div style="color:#9A9080;font-size:12px;margin-bottom:16px">${escapeHtml(day.date||'Date TBC')} · Day ${escapeHtml(day.dayNumber)}</div>
+    <div style="background:#1C1C1E;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;gap:24px">
+      <div><div style="color:#9A9080;font-size:9px;text-transform:uppercase">Crew Call</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.crewCall||'—')}</div></div>
+      <div><div style="color:#9A9080;font-size:9px;text-transform:uppercase">Shooting Call</div><div style="font-size:16px;font-weight:700;color:#FEED61">${escapeHtml(info.shootingCall||'—')}</div></div>
+      <div><div style="color:#9A9080;font-size:9px;text-transform:uppercase">Est. Wrap</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.estWrap||'—')}</div></div>
     </div>
-    ${info.locationName||info.locationAddress?`<div style="background:#1c1e30;border-radius:10px;padding:12px 14px;margin-bottom:14px"><div style="color:#8886a3;font-size:9px;text-transform:uppercase;margin-bottom:3px">Base Camp</div><div style="font-weight:700;font-size:13px">${escapeHtml(info.locationName)}</div><div style="color:#8886a3;font-size:11px">${escapeHtml(info.locationAddress)}</div>${info.nearestHospital?`<div style="color:#8886a3;font-size:11px;margin-top:6px">Nearest hospital: ${escapeHtml(info.nearestHospital)}</div>`:''}</div>`:''}
+    ${info.locationName||info.locationAddress?`<div style="background:#1C1C1E;border-radius:10px;padding:12px 14px;margin-bottom:14px"><div style="color:#9A9080;font-size:9px;text-transform:uppercase;margin-bottom:3px">Base Camp</div><div style="font-weight:700;font-size:13px">${escapeHtml(info.locationName)}</div><div style="color:#9A9080;font-size:11px">${escapeHtml(info.locationAddress)}</div>${info.nearestHospital?`<div style="color:#9A9080;font-size:11px;margin-top:6px">Nearest hospital: ${escapeHtml(info.nearestHospital)}</div>`:''}</div>`:''}
     ${crewRows?`<table style="border-collapse:collapse;margin-bottom:14px">${crewRows}</table>`:''}
     <div style="font-weight:700;font-size:13px;margin-bottom:8px">Schedule</div>
-    ${sceneCards||'<div style="color:#8886a3;font-size:12px">No scenes assigned.</div>'}
+    ${sceneCards||'<div style="color:#9A9080;font-size:12px">No scenes assigned.</div>'}
     ${castRows?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Cast</div>${castRows}`:''}
     ${noteCards?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Notes</div>${noteCards}`:''}
-    <div class="np" style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#9184d9;color:#fff;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div>
+    <div class="np" style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#FEED61;color:#141414;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div>
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
-function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,onClose}){
+function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,onClose,onSwitchDay}){
   const[tab,setTab]=useState('schedule');
   const key=`nko_callsheet_${project.id}_${day.id}`;
   const[info,setInfo]=useState({});const[castTimes,setCastTimes]=useState({});
@@ -2422,7 +2486,7 @@ function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,
   const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
   const castNum=name=>{const i=characters.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
   const sortedDays=[...allDays].sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
-  const tabBtn=(id,label)=><button onClick={()=>setTab(id)} style={{flex:1,padding:'8px 0',background:tab===id?CS.accent:'transparent',color:tab===id?'#fff':CS.text,border:`1px solid ${tab===id?CS.accent:CS.line}`,borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>{label}</button>;
+  const tabBtn=(id,label)=><button onClick={()=>setTab(id)} style={{flex:1,padding:'8px 0',background:tab===id?CS.accent:'transparent',color:tab===id?T.ink:CS.text,border:`1px solid ${tab===id?CS.accent:CS.line}`,borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>{label}</button>;
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:CS.bg,border:`1px solid ${CS.line}`,borderRadius:16,maxWidth:460,width:'100%',maxHeight:'88vh',overflowY:'auto',padding:18,fontFamily:'Manrope,sans-serif'}}>
@@ -2434,10 +2498,10 @@ function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,
           <button onClick={onClose} style={{background:'none',border:'none',color:CS.dim,fontSize:18,cursor:'pointer'}}>✕</button>
         </div>
         {sortedDays.length>1&&<div style={{display:'flex',gap:6,marginBottom:14,overflowX:'auto'}}>
-          {sortedDays.map(d=><div key={d.id} style={{flex:'0 0 auto',minWidth:44,textAlign:'center',padding:'6px 8px',borderRadius:8,background:d.id===day.id?CS.accent:CS.panel,border:`1px solid ${d.id===day.id?CS.accent:CS.line}`}}>
-            <div style={{fontSize:9,color:d.id===day.id?'#fff':CS.dim,textTransform:'uppercase'}}>{d.date?new Date(d.date).toLocaleDateString('en',{weekday:'short'}):`Day`}</div>
-            <div style={{fontSize:13,color:d.id===day.id?'#fff':CS.text,fontWeight:700}}>{d.dayNumber}</div>
-          </div>)}
+          {sortedDays.map(d=><button key={d.id} onClick={()=>onSwitchDay(d)} style={{flex:'0 0 auto',minWidth:44,textAlign:'center',padding:'6px 8px',borderRadius:8,background:d.id===day.id?CS.accent:CS.panel,border:`1px solid ${d.id===day.id?CS.accent:CS.line}`,cursor:'pointer'}}>
+            <div style={{fontSize:9,color:d.id===day.id?T.ink:CS.dim,textTransform:'uppercase'}}>{d.date?new Date(d.date).toLocaleDateString('en',{weekday:'short'}):`Day`}</div>
+            <div style={{fontSize:13,color:d.id===day.id?T.ink:CS.text,fontWeight:700}}>{d.dayNumber}</div>
+          </button>)}
         </div>}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
           <div>
@@ -2480,7 +2544,7 @@ function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,
         {tab==='cast'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
           <div style={{display:'flex',fontSize:9,color:CS.dim,textTransform:'uppercase',letterSpacing:'0.04em',padding:'0 12px'}}><span style={{flex:1}}>Cast</span><span style={{width:60,textAlign:'right'}}>Pickup</span><span style={{width:60,textAlign:'right'}}>On Set</span></div>
           {cast.map(name=><div key={name} style={{background:CS.panel,borderRadius:8,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
-            <span style={{background:CS.accent,color:'#fff',width:20,height:20,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{castNum(name)}</span>
+            <span style={{background:CS.accent,color:T.ink,width:20,height:20,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{castNum(name)}</span>
             <span style={{flex:1,color:CS.text,fontSize:12,fontWeight:600}}>{name}</span>
             <span style={{width:60,textAlign:'right',color:CS.dim,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{castTimes[name]?.pickup||'—'}</span>
             <span style={{width:60,textAlign:'right',color:CS.dim,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{castTimes[name]?.onSet||'—'}</span>
@@ -2496,13 +2560,13 @@ function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,
         </div>}
         <div style={{display:'flex',gap:8,marginTop:16}}>
           <button onClick={onEdit} style={{flex:1,background:CS.panel,border:`1px solid ${CS.line}`,color:CS.text,borderRadius:8,padding:'10px 0',fontSize:12,fontWeight:600,cursor:'pointer'}}>✏️ Edit</button>
-          <button onClick={onDownload} style={{flex:1,background:CS.accent,border:'none',color:'#fff',borderRadius:8,padding:'10px 0',fontSize:12,fontWeight:600,cursor:'pointer'}}>📄 Download PDF</button>
+          <button onClick={onDownload} style={{flex:1,background:CS.accent,border:'none',color:T.ink,borderRadius:8,padding:'10px 0',fontSize:12,fontWeight:600,cursor:'pointer'}}>📄 Download PDF</button>
         </div>
       </div>
     </div>
   );
 }
-function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddDay,onUpdateDay,onDeleteDay,onGoToBreakdown}){
+function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddDay,onUpdateDay,onDeleteDay,onGoToBreakdown,onSaveCharacter}){
   const[newDate,setNewDate]=useState('');
   const[callSheetDay,setCallSheetDay]=useState(null);
   const[editingDay,setEditingDay]=useState(null);
@@ -2512,7 +2576,7 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
   const pDays=shootDays.filter(d=>d.project_id===project?.id).sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
   const unscheduled=pScenes.filter(s=>!s.shootDayId);
   const locations=[...new Set(pScenes.map(s=>parseLocation(s.heading)))];
-  const castList=project?getCastTiers(project,pScenes).ordered.map(name=>({id:name,name})):[];
+  const castList=project?getCastTiers(project,pScenes,characters).ordered.map(name=>({id:name,name})):[];
   const castNum=name=>{const i=castList.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
   const addDay=()=>{onAddDay({dayNumber:pDays.length+1,date:newDate||''});setNewDate('');};
   const[targetDays,setTargetDays]=useState('');
@@ -2547,7 +2611,7 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
         <div><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Schedules — {project.name}</div><div style={{color:T.dim,fontSize:13,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Shooting schedule, built from your breakdown</div></div>
         {pDays.length>0&&<ExportMenu onPdf={()=>schedulePDF(pDays,pScenes,project,castList)} onExcel={()=>scheduleExcel(pDays,pScenes,project,castList)} getPreview={()=>schedulePreview(pDays,pScenes,project)}/>}
       </div>
-      {castList.length>0&&<CastTierLegend project={project} pScenes={pScenes}/>}
+      {castList.length>0&&<CastTierLegend project={project} pScenes={pScenes} characters={characters} onSaveCharacter={onSaveCharacter}/>}
       <LocationColorPanel project={project} locations={locations}/>
       {pScenes.length===0?(
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:36,textAlign:'center',marginBottom:16}}>
@@ -2614,76 +2678,50 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
         <Inp type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{width:160}}/>
         <Btn size="sm" variant="sage" onClick={addDay}>+ Add shoot day {pDays.length+1}</Btn>
       </div>
-      {callSheetDay&&<CallSheetView project={project} day={callSheetDay} allDays={pDays} scenes={pScenes} characters={castList} onEdit={()=>setEditingDay(callSheetDay)} onDownload={()=>{const key=`nko_callsheet_${project.id}_${callSheetDay.id}`;let s={};try{s=JSON.parse(localStorage.getItem(key)||'{}');}catch{}callSheetPDF(callSheetDay,pScenes.filter(sc=>sc.shootDayId===callSheetDay.id),project,s.info||{},s.castTimes||{},castList);}} onClose={()=>setCallSheetDay(null)}/>}
+      {callSheetDay&&<CallSheetView project={project} day={callSheetDay} allDays={pDays} scenes={pScenes} characters={castList} onEdit={()=>setEditingDay(callSheetDay)} onDownload={()=>{const key=`nko_callsheet_${project.id}_${callSheetDay.id}`;let s={};try{s=JSON.parse(localStorage.getItem(key)||'{}');}catch{}callSheetPDF(callSheetDay,pScenes.filter(sc=>sc.shootDayId===callSheetDay.id),project,s.info||{},s.castTimes||{},castList);}} onClose={()=>setCallSheetDay(null)} onSwitchDay={setCallSheetDay}/>}
       {editingDay&&<CallSheetModal project={project} day={editingDay} scenes={pScenes} characters={castList} onClose={()=>setEditingDay(null)}/>}
     </div>
   );
 }
-function CastSummaryPanel({scenes,characters,onSaveCharacter}){
+function CastSummaryPanel({project,scenes,characters,onSaveCharacter}){
   const{t:tr}=useLang();
   const[open,setOpen]=useState(false);
   const[editingRow,setEditingRow]=useState(null);
   const rows=(()=>{
     const map={};
     scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;const lk=key.toLowerCase();if(!map[lk])map[lk]={name:key,scenes:[]};map[lk].scenes.push(s.sceneNumber);});});
-    return Object.values(map).sort((a,b)=>b.scenes.length-a.scenes.length);
+    return map;
   })();
   const findMeta=name=>characters.find(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());
+  const{byTier}=project?getCastTiers(project,scenes,characters):{byTier:[[],[],[],[]]};
+  let sn=0;
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 {tr('castSceneBreakdown')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} character{rows.length!==1?'s':''}</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 {tr('castSceneBreakdown')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {Object.keys(rows).length} character{Object.keys(rows).length!==1?'s':''}</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
-        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:<>
-        <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Character</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span><span/></div>
-        {rows.map((r,i)=>{const meta=findMeta(r.name)||{};const isEditing=editingRow===r.name;return<div key={r.name}>
-          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
-            <span style={{color:T.faint,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{i+1}</span>
-            <span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</span>
-            <span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{r.scenes.join(', ')}</span>
-            <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:13,textAlign:'right'}}>{r.scenes.length}</span>
-            <button onClick={()=>setEditingRow(isEditing?null:r.name)} style={{background:'none',border:'none',color:T.goldDim,cursor:'pointer',fontSize:13}} title="Edit age/role notes">✏️</button>
+        {Object.keys(rows).length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:
+        CAST_TIERS.map((tierName,ti)=>byTier[ti].length>0&&(
+          <div key={ti} style={{marginBottom:10}}>
+            <div style={{fontSize:9,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 0 4px'}}>{tierName}</div>
+            <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,padding:'4px 0',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Character</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span><span/></div>
+            {byTier[ti].map(name=>{sn++;const i=sn;const r=rows[name.toLowerCase()];if(!r)return null;const meta=findMeta(r.name)||{};const isEditing=editingRow===r.name;return<div key={r.name}>
+              <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
+                <span style={{color:T.faint,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{i}</span>
+                <span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</span>
+                <span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{r.scenes.join(', ')}</span>
+                <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:13,textAlign:'right'}}>{r.scenes.length}</span>
+                <button onClick={()=>setEditingRow(isEditing?null:r.name)} style={{background:'none',border:'none',color:T.goldDim,cursor:'pointer',fontSize:13}} title="Edit age/role notes">✏️</button>
+              </div>
+              {isEditing&&<div style={{padding:'8px 0 12px 36px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <Inp placeholder="Age / description" defaultValue={meta.age_description||''} onBlur={e=>{if(e.target.value!==(meta.age_description||''))onSaveCharacter(r.name,{age_description:e.target.value});}} style={{fontSize:12}}/>
+                <Inp placeholder="Role notes" defaultValue={meta.role_notes||''} onBlur={e=>{if(e.target.value!==(meta.role_notes||''))onSaveCharacter(r.name,{role_notes:e.target.value});}} style={{fontSize:12}}/>
+              </div>}
+            </div>;})}
           </div>
-          {isEditing&&<div style={{padding:'8px 0 12px 36px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-            <Inp placeholder="Age / description" defaultValue={meta.age_description||''} onBlur={e=>{if(e.target.value!==(meta.age_description||''))onSaveCharacter(r.name,{age_description:e.target.value});}} style={{fontSize:12}}/>
-            <Inp placeholder="Role notes" defaultValue={meta.role_notes||''} onBlur={e=>{if(e.target.value!==(meta.role_notes||''))onSaveCharacter(r.name,{role_notes:e.target.value});}} style={{fontSize:12}}/>
-          </div>}
-        </div>;})}
-        </>}
-      </div>}
-    </div>
-  );
-}
-function OutlineSchedulePanel({scenes}){
-  const{t:tr}=useLang();
-  const[open,setOpen]=useState(false);
-  const rows=(()=>{
-    const out=[];let current=null;
-    scenes.forEach(s=>{
-      const loc=(s.location||'').trim()||'Unspecified';
-      if(current&&current.location===loc){current.scenes.push(s.sceneNumber);}
-      else{current={location:loc,intExt:s.intExt||'',scenes:[s.sceneNumber]};out.push(current);}
-    });
-    return out;
-  })();
-  return(
-    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
-      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🗓️ {tr('outlineSchedule')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} block{rows.length!==1?'s':''}, in script order</span></span>
-        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
-      </button>
-      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
-        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No scenes yet.</div>:<>
-        <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px',gap:8,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Set / Location</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span></div>
-        {rows.map((r,i)=><div key={i} style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px',gap:8,alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
-          <span style={{color:T.faint,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{i+1}</span>
-          <span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.location}</span>
-          <span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{r.scenes.join(', ')}</span>
-          <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:13,textAlign:'right'}}>{r.scenes.length}</span>
-        </div>)}
-        </>}
+        ))}
       </div>}
     </div>
   );
@@ -2734,11 +2772,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
       </div>
-      <CastSummaryPanel scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onSaveCharacter={onSaveCharacter}/>
-      <OutlineSchedulePanel scenes={ps}/>
+      <CastSummaryPanel project={project} scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onSaveCharacter={onSaveCharacter}/>
       <LocationsSummaryPanel scenes={ps}/>
       <ProductionElementsPanel scenes={ps}/>
-      <BreakdownUploader project={project} onApply={ns=>onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})))}/>
+      <BreakdownUploader project={project} onApply={ns=>onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})))} onSaveCharacter={onSaveCharacter}/>
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
@@ -2954,7 +2991,7 @@ function MainApp(){
   const saveCharacterMeta=async(name,updates)=>{
     if(!currentId||!name)return;
     const existing=characters.find(c=>c.project_id===currentId&&c.name.trim().toLowerCase()===name.trim().toLowerCase());
-    const payload={age_description:updates.age_description??existing?.age_description??'',role_notes:updates.role_notes??existing?.role_notes??''};
+    const payload={age_description:updates.age_description??existing?.age_description??'',role_notes:updates.role_notes??existing?.role_notes??'',tier:updates.tier??existing?.tier??''};
     if(existing){
       setCharacters(p=>p.map(c=>c.id===existing.id?{...c,...payload}:c));
       const{error}=await sb.from('characters').update(payload).eq('id',existing.id);
@@ -2996,12 +3033,12 @@ function MainApp(){
         <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}}/>
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&(project?
-            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)}/>
+            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
-          {view==='workspace'&&<SchedulesView project={project} scenes={scenes} shootDays={shootDays} characters={characters.filter(c=>c.project_id===currentId)} onUpdateScene={updateScene} onAddDay={addShootDay} onUpdateDay={updateShootDay} onDeleteDay={deleteShootDay} onGoToBreakdown={()=>setView('breakdown')}/>}
+          {view==='workspace'&&<SchedulesView project={project} scenes={scenes} shootDays={shootDays} characters={characters.filter(c=>c.project_id===currentId)} onUpdateScene={updateScene} onAddDay={addShootDay} onUpdateDay={updateShootDay} onDeleteDay={deleteShootDay} onGoToBreakdown={()=>setView('breakdown')} onSaveCharacter={saveCharacterMeta}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
