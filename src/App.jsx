@@ -824,8 +824,8 @@ const budgetExcel=async(items,project)=>{
   XLSX.writeFile(wb,`${(project.name||'Budget').replace(/[^a-z0-9]/gi,'_')}_Budget.xlsx`);
 };
 const breakdownPreview=(scenes,project)=>{
-  const rows=scenes.slice(0,10).map(s=>[s.sceneNumber||'',s.heading||'',s.intExt||'',s.dayNight||'',(s.cast||[]).join(', ')]);
-  return{title:`Breakdown — ${project.name}`,columns:['Scene #','Heading','Int/Ext','Day/Night','Cast'],rows,totalCount:scenes.length};
+  const rows=scenes.slice(0,10).map(s=>[s.sceneNumber||'',s.heading||'',s.dayNight||'',(s.cast||[]).join(', '),(s.vehicles||[]).join(', ')||'—']);
+  return{title:`Breakdown — ${project.name} (Cast by tier & Picture Vehicles sections precede this)`,columns:['Scene #','Heading','Day/Night','Cast','Vehicles'],rows,totalCount:scenes.length};
 };
 const breakdownExcel=async(scenes,project,characters=[])=>{
   const XLSX=await loadXLSX();
@@ -864,15 +864,38 @@ const breakdownExcel=async(scenes,project,characters=[])=>{
   topWs['!cols']=[{wch:26},{wch:24}];
   XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
 
-  // ---- Detail (scene by scene) ----
-  const det=[['Scene #','Heading','Int/Ext','Day/Night','Synopsis','Cast','Props','Wardrobe','Vehicles','Special Equipment']];
-  scenes.forEach(s=>{
-    det.push([s.sceneNumber||'',s.heading||'',s.intExt||'',s.dayNight||'',s.synopsis||'',
-      (s.cast||[]).join(', '),(s.props||[]).join(', '),(s.wardrobe||[]).join(', '),
-      (s.vehicles||[]).join(', '),(s.specialEquip||[]).join(', ')]);
+  // ---- Detail: Cast (by tier) -> Picture Vehicles -> Interior Scenes -> Exterior Scenes ----
+  const{byTier}=getCastTiers(project,scenes,characters);
+  const det=[['SCRIPT DETAIL BREAKDOWN']];
+  det.push([]);det.push(['CAST']);
+  CAST_TIERS.forEach((tierName,ti)=>{
+    if(!byTier[ti].length)return;
+    det.push([tierName]);
+    byTier[ti].forEach(name=>{
+      const n=scenes.filter(s=>(s.cast||[]).includes(name)).length;
+      det.push(['',name,`${n} scene${n!==1?'s':''}`]);
+    });
+    det.push([]);
   });
+  det.push(['PICTURE VEHICLES']);
+  if(allVehicles.length){
+    allVehicles.forEach(v=>{
+      const sc=scenes.filter(s=>(s.vehicles||[]).includes(v)).map(s=>s.sceneNumber);
+      det.push(['',v,`Scenes: ${sc.join(', ')}`]);
+    });
+  }else det.push(['','None identified']);
+  det.push([]);
+  const sceneRow=s=>[s.sceneNumber||'',s.heading||'',s.dayNight||'',s.synopsis||'',(s.cast||[]).join(', '),(s.props||[]).join(', '),(s.wardrobe||[]).join(', '),(s.vehicles||[]).join(', '),(s.specialEquip||[]).join(', ')];
+  const sceneHeader=['Scene #','Heading','Day/Night','Synopsis','Cast','Props','Wardrobe','Vehicles','Special Equipment'];
+  const intScenes=scenes.filter(s=>s.intExt==='INT');
+  const extScenes=scenes.filter(s=>s.intExt!=='INT');
+  det.push(['INTERIOR SCENES']);det.push(sceneHeader);
+  intScenes.forEach(s=>det.push(sceneRow(s)));
+  det.push([]);
+  det.push(['EXTERIOR SCENES']);det.push(sceneHeader);
+  extScenes.forEach(s=>det.push(sceneRow(s)));
   const detWs=XLSX.utils.aoa_to_sheet(det);
-  detWs['!cols']=[{wch:8},{wch:26},{wch:8},{wch:9},{wch:36},{wch:26},{wch:26},{wch:26},{wch:20},{wch:26}];
+  detWs['!cols']=[{wch:6},{wch:26},{wch:9},{wch:36},{wch:26},{wch:26},{wch:26},{wch:20},{wch:26}];
   XLSX.utils.book_append_sheet(wb,detWs,'Detail');
 
   XLSX.writeFile(wb,`${(project.name||'Breakdown').replace(/[^a-z0-9]/gi,'_')}_Breakdown.xlsx`);
