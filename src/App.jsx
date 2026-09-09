@@ -718,7 +718,7 @@ const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions.
 
 When classifying cast tier, judge by NARRATIVE ROLE — dialogue volume, plot centrality, whether the story revolves around them — not by how many scenes they physically appear in. A character can appear in few scenes but be a lead (a pivotal late-story reveal); a character can appear in many short scenes and still be background (a recurring extra with no dialogue). Use these four tiers only: "lead", "supporting", "background", "extra". If you're genuinely unsure, prefer "supporting" over guessing lead or extra at the extremes.
 
-For vehicles, extract PICTURE VEHICLES only — vehicles that appear on-camera as a scripted story element (a car a character drives, a bus involved in an accident), not incidental background traffic. Do not invent a vehicle that isn't actually indicated by the scene text.`;
+For vehicles, extract PICTURE VEHICLES — any vehicle actually used in the story, including taxis, trains, buses, military vehicles, motorcycles, and vehicles involved in accidents or action, not just personal cars. If the script indicates a vehicle is present, used, ridden in, or involved in an event (a character takes a taxi, boards a train, is thrown into a military van, a car crashes), extract it. Do not extract vehicles that are purely incidental background traffic with no story involvement, and do not invent a vehicle that isn't actually indicated by the scene text.`;
 const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode, max ${max} episodes.`:`Extract scenes, max ${max} scenes.`} If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank.
 Return ONLY this JSON shape: {"scenes":[{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}],"characters":[{"name":"Name","tier":"lead"}]} — the "characters" array must include every named cast member across all scenes, exactly once each, with your judged tier.`;
 const QUICK=['Day rate for DOP in Lagos?','Estimate 1-day music video in Naira','Structure cash advances for crew','Contingency % for Nollywood?','Post costs for 5-episode vertical?','Mobile money payments in Kenya?'];
@@ -864,39 +864,52 @@ const breakdownExcel=async(scenes,project,characters=[])=>{
   topWs['!cols']=[{wch:26},{wch:24}];
   XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
 
-  // ---- Detail: Cast (by tier) -> Picture Vehicles -> Interior Scenes -> Exterior Scenes ----
-  const{byTier}=getCastTiers(project,scenes,characters);
-  const det=[['SCRIPT DETAIL BREAKDOWN']];
-  det.push([]);det.push(['CAST']);
-  CAST_TIERS.forEach((tierName,ti)=>{
-    if(!byTier[ti].length)return;
-    det.push([tierName]);
-    byTier[ti].forEach(name=>{
-      const n=scenes.filter(s=>(s.cast||[]).includes(name)).length;
-      det.push(['',name,`${n} scene${n!==1?'s':''}`]);
-    });
-    det.push([]);
-  });
-  det.push(['PICTURE VEHICLES']);
-  if(allVehicles.length){
-    allVehicles.forEach(v=>{
-      const sc=scenes.filter(s=>(s.vehicles||[]).includes(v)).map(s=>s.sceneNumber);
-      det.push(['',v,`Scenes: ${sc.join(', ')}`]);
-    });
-  }else det.push(['','None identified']);
-  det.push([]);
+  // ---- Scenes sheet: its own tab, Interior then Exterior ----
   const sceneRow=s=>[s.sceneNumber||'',s.heading||'',s.dayNight||'',s.synopsis||'',(s.cast||[]).join(', '),(s.props||[]).join(', '),(s.wardrobe||[]).join(', '),(s.vehicles||[]).join(', '),(s.specialEquip||[]).join(', ')];
   const sceneHeader=['Scene #','Heading','Day/Night','Synopsis','Cast','Props','Wardrobe','Vehicles','Special Equipment'];
   const intScenes=scenes.filter(s=>s.intExt==='INT');
   const extScenes=scenes.filter(s=>s.intExt!=='INT');
-  det.push(['INTERIOR SCENES']);det.push(sceneHeader);
-  intScenes.forEach(s=>det.push(sceneRow(s)));
-  det.push([]);
-  det.push(['EXTERIOR SCENES']);det.push(sceneHeader);
-  extScenes.forEach(s=>det.push(sceneRow(s)));
-  const detWs=XLSX.utils.aoa_to_sheet(det);
-  detWs['!cols']=[{wch:6},{wch:26},{wch:9},{wch:36},{wch:26},{wch:26},{wch:26},{wch:20},{wch:26}];
-  XLSX.utils.book_append_sheet(wb,detWs,'Detail');
+  const sceneRows=[['INTERIOR SCENES'],sceneHeader,...intScenes.map(sceneRow),[],['EXTERIOR SCENES'],sceneHeader,...extScenes.map(sceneRow)];
+  const sceneWs=XLSX.utils.aoa_to_sheet(sceneRows);
+  sceneWs['!cols']=[{wch:6},{wch:26},{wch:9},{wch:36},{wch:26},{wch:26},{wch:26},{wch:20},{wch:26}];
+  XLSX.utils.book_append_sheet(wb,sceneWs,'Scenes');
+
+  // ---- Cast sheet: its own tab, grouped by tier ----
+  const{byTier}=getCastTiers(project,scenes,characters);
+  const castRows=[['Tier','Cast Member','Scenes']];
+  CAST_TIERS.forEach((tierName,ti)=>{
+    byTier[ti].forEach(name=>{
+      const sc=scenes.filter(s=>(s.cast||[]).includes(name)).map(s=>s.sceneNumber);
+      castRows.push([tierName,name,sc.join(', ')]);
+    });
+  });
+  const castWs=XLSX.utils.aoa_to_sheet(castRows);
+  castWs['!cols']=[{wch:20},{wch:24},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,castWs,'Cast');
+
+  // ---- Locations sheet: its own tab — was missing entirely before ----
+  const locMap={};
+  scenes.forEach(s=>{const key=(s.location||parseLocation(s.heading)||'Unspecified').trim()||'Unspecified';if(!locMap[key])locMap[key]={location:key,intExt:s.intExt||'',scenes:[]};locMap[key].scenes.push(s.sceneNumber);});
+  const locRows=[['Location','Int/Ext','Scene Count','Scenes'],...Object.values(locMap).sort((a,b)=>b.scenes.length-a.scenes.length).map(r=>[r.location,r.intExt,r.scenes.length,r.scenes.join(', ')])];
+  const locWs=XLSX.utils.aoa_to_sheet(locRows);
+  locWs['!cols']=[{wch:26},{wch:9},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,locWs,'Locations');
+
+  // ---- Picture Vehicles sheet: its own tab ----
+  const vehRows=[['Vehicle','Scene Count','Scenes']];
+  allVehicles.forEach(v=>{const sc=scenes.filter(s=>(s.vehicles||[]).includes(v)).map(s=>s.sceneNumber);vehRows.push([v,sc.length,sc.join(', ')]);});
+  if(!allVehicles.length)vehRows.push(['None identified','','']);
+  const vehWs=XLSX.utils.aoa_to_sheet(vehRows);
+  vehWs['!cols']=[{wch:30},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,vehWs,'Picture Vehicles');
+
+  // ---- Props sheet: its own tab ----
+  const propRows=[['Prop','Scene Count','Scenes']];
+  allProps.forEach(p=>{const sc=scenes.filter(s=>(s.props||[]).includes(p)).map(s=>s.sceneNumber);propRows.push([p,sc.length,sc.join(', ')]);});
+  if(!allProps.length)propRows.push(['None identified','','']);
+  const propWs=XLSX.utils.aoa_to_sheet(propRows);
+  propWs['!cols']=[{wch:30},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,propWs,'Props');
 
   XLSX.writeFile(wb,`${(project.name||'Breakdown').replace(/[^a-z0-9]/gi,'_')}_Breakdown.xlsx`);
 };
