@@ -988,7 +988,15 @@ const sortScenes=arr=>[...arr].sort((a,b)=>{
 });
 const SCHEDULE_SYS=`You are a 1st AD scheduling a shoot for a resource-constrained independent production — the common reality for most African indie film and TV, where every extra shoot day means real, often unaffordable added cost (crew day rates, location rental, cast availability, feeding). This is not a studio schedule with room to spread scenes out comfortably.
 
-Default to the FEWEST shoot days that can reasonably hold the scenes, not an even, generous spread. Be aggressive about compressing: pack more scenes into a day before opening a new one. As a rough directional anchor (not a formula to apply rigidly): a short film in the 8-12 page range often shoots in 3-4 days when scheduled tightly, well below what a scene-count-only spread would suggest — lean toward that kind of density unless the scene list clearly can't support it (e.g. genuinely too many distinct locations or day/night splits to compress further).
+Default to the FEWEST shoot days that can reasonably hold the scenes, not an even, generous spread. Be aggressive about compressing: pack more scenes into a day before opening a new one.
+
+Use these production-type duration bands as your directional anchor (not a rigid formula — the producer's own budget and scene complexity can move it within or slightly outside the band, but treat the band as the expected range until told otherwise):
+- Feature Film: 3-4 weeks, shooting across all 7 days of the week — roughly 21-28 shoot days total
+- Short Film: 2-4 days
+- Vertical Series / Microdrama: about 1 week (around 7 days), depending on budget
+- Other formats (documentary, music video, branded content, animation): no fixed band — use scene count and complexity alone
+
+If the production type given doesn't match one of these bands, or you're unsure, fall back to scene-count-based compression rather than forcing an unrelated band.
 
 Still prioritize: (1) minimizing location moves — same location stays together, (2) keeping a day's scenes at a consistent INT/EXT and DAY/NIGHT where reasonable so the crew isn't fighting daylight or re-lighting constantly, (3) if a target number of days is given, treat it as a hard ceiling and compress to fit it unless truly impossible — in that case still get as close as you can and say so.
 
@@ -2132,6 +2140,7 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
   const scheduleRows=(()=>{const out=[];let current=null;scenes.forEach(s=>{const loc=(s.location||'').trim()||'Unspecified';if(current&&current.location===loc){current.scenes.push(s.sceneNumber);}else{current={location:loc,scenes:[s.sceneNumber]};out.push(current);}});return out;})();
   const allCast=dedupeList(scenes.flatMap(s=>s.cast||[]));
   const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
+  const allVehicles=dedupeList(scenes.flatMap(s=>s.vehicles||[]));
   const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
   const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
   const summaryHeader=title=>`<div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none">
@@ -2164,6 +2173,7 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
     <div style="border:1px solid #3A3A3A;border-top:none;padding:16px;background:#141414">
       ${elementGroup('All Cast',allCast)}
       ${elementGroup('All Props',allProps)}
+      ${elementGroup('All Vehicles',allVehicles)}
       ${elementGroup('All Costume',allCostume)}
       ${elementGroup('All Equipment',allEquip)}
     </div>
@@ -2255,6 +2265,7 @@ function ProductionElementsPanel({scenes}){
   const[open,setOpen]=useState(false);
   const allCast=dedupeList(scenes.flatMap(s=>s.cast||[]));
   const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
+  const allVehicles=dedupeList(scenes.flatMap(s=>s.vehicles||[]));
   const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
   const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
   const Group=({label,items,color})=>(
@@ -2267,12 +2278,13 @@ function ProductionElementsPanel({scenes}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🧾 {tr('productionElements')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— every cast, prop, costume & equipment item across the script</span></span>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🧾 {tr('productionElements')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— every cast, prop, vehicle, costume & equipment item across the script</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'14px 16px 4px'}}>
         <Group label="All Cast" items={allCast} color={T.sage}/>
         <Group label="All Props" items={allProps} color={T.coral}/>
+        <Group label="All Vehicles" items={allVehicles} color={T.sage}/>
         <Group label="All Costume" items={allCostume} color={T.sapphire}/>
         <Group label="All Equipment" items={allEquip} color={T.gold}/>
       </div>}
@@ -2587,8 +2599,9 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
     setAutoScheduling(true);setAutoErr('');
     try{
       const sceneSummary=unscheduled.map(s=>({sceneNumber:s.sceneNumber,location:parseLocation(s.heading),intExt:s.intExt,dayNight:s.dayNight,cast:s.cast||[]}));
+      const typeNote=`Production type: ${project.type||'Unspecified'}.\n\n`;
       const targetNote=targetDays?`\n\nTarget: fit this into ${targetDays} shoot day(s). Treat this as a hard ceiling.`:'';
-      const raw=await callClaude([{role:'user',content:JSON.stringify(sceneSummary)+targetNote}],SCHEDULE_SYS,4000);
+      const raw=await callClaude([{role:'user',content:typeNote+JSON.stringify(sceneSummary)+targetNote}],SCHEDULE_SYS,4000);
       const groups=recoverDayGroups(raw);
       if(!groups||!groups.length)throw new Error('Could not read a grouping from the response. Try again.');
       let dayNum=pDays.length;
