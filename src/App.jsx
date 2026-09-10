@@ -1009,7 +1009,10 @@ const extractPdfText=async file=>{
 };
 const callClaude=async(msgs,sys,maxTokens=8000)=>{
   const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:maxTokens})});
-  if(!r.ok)throw new Error(`API ${r.status}`);
+  if(!r.ok){
+    if(r.status===504)throw new Error('The request took too long and timed out. This usually happens on very long scripts — try a shorter excerpt, or ask about increasing the server timeout.');
+    throw new Error(`API ${r.status}`);
+  }
   const d=await r.json();
   return d.content?.map(c=>c.text||'').join('')||'';
 };
