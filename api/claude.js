@@ -1,10 +1,24 @@
+// Replace YOUR_DOMAIN below with your actual production domain(s) — e.g. 'https://nko-nko.vercel.app'.
+// If you use a custom domain too, add it to ALLOWED_ORIGINS as a second entry.
+const ALLOWED_ORIGINS = ['https://YOUR_DOMAIN.vercel.app'];
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Requests from origins not in ALLOWED_ORIGINS never get an Allow-Origin header above,
+  // so browsers block the response client-side — this stops casual/browser-based abuse.
+  // It does NOT stop a direct server-to-server request (curl, another backend), since CORS
+  // is a browser-enforced mechanism, not a server-side one. Closing that fully requires
+  // verifying the caller is a real logged-in NKÒ user (a Supabase auth token check) — flagged
+  // separately below, not implemented here since it needs a client-side change too.
 
   try {
     const { system, messages, max_tokens = 8000 } = req.body;
