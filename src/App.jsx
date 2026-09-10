@@ -719,8 +719,8 @@ const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions.
 When classifying cast tier, judge by NARRATIVE ROLE — dialogue volume, plot centrality, whether the story revolves around them — not by how many scenes they physically appear in. A character can appear in few scenes but be a lead (a pivotal late-story reveal); a character can appear in many short scenes and still be background (a recurring extra with no dialogue). Use these four tiers only: "lead", "supporting", "background", "extra". If you're genuinely unsure, prefer "supporting" over guessing lead or extra at the extremes.
 
 For vehicles, extract PICTURE VEHICLES — any vehicle actually used in the story, including taxis, trains, buses, military vehicles, motorcycles, and vehicles involved in accidents or action, not just personal cars. If the script indicates a vehicle is present, used, ridden in, or involved in an event (a character takes a taxi, boards a train, is thrown into a military van, a car crashes), extract it. Do not extract vehicles that are purely incidental background traffic with no story involvement, and do not invent a vehicle that isn't actually indicated by the scene text.`;
-const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode, max ${max} episodes.`:`Extract scenes, max ${max} scenes.`} If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank.
-Return ONLY this JSON shape: {"scenes":[{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}],"characters":[{"name":"Name","tier":"lead"}]} — the "characters" array must include every named cast member across all scenes, exactly once each, with your judged tier.`;
+const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode.`:`Extract EVERY scene in the script, however many there are — do not stop early or cap the count to match some expected length. If the script genuinely has 70, 90, or 120+ scenes, extract all of them.`} (Hard safety ceiling, should not normally apply: ${max} ${ep?'episodes':'scenes'} max.) If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank.
+Return ONLY this JSON shape, with "characters" FIRST and "scenes" SECOND — this order matters, characters must be complete even if the scenes list is very long: {"characters":[{"name":"Name","tier":"lead"}],"scenes":[{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}]} — the "characters" array must include every named cast member across all scenes, exactly once each, with your judged tier.`;
 const QUICK=['Day rate for DOP in Lagos?','Estimate 1-day music video in Naira','Structure cash advances for crew','Contingency % for Nollywood?','Post costs for 5-episode vertical?','Mobile money payments in Kenya?'];
 
 /* ── Helpers ── */
@@ -1048,10 +1048,10 @@ const recoverScenes=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
   const salvageObjects=(text,keyHint)=>{
     const out=[];let depth=0,start=-1;
-    for(let i=0;i<text.length;i++){const c=text[i];if(c==='{'){if(!depth)start=i;depth++;}else if(c==='}'){depth--;if(!depth&&start!==-1){try{const o=JSON.parse(text.slice(start,i+1));if(o[keyHint]!==undefined||o.sceneNumber||o.heading||o.name)out.push(o);}catch{}start=-1;}}}
+    for(let i=0;i<text.length;i++){const c=text[i];if(c==='{'){if(!depth)start=i;depth++;}else if(c==='}'){depth--;if(!depth&&start!==-1){try{const o=JSON.parse(text.slice(start,i+1));if(o[keyHint]!==undefined)out.push(o);}catch{}start=-1;}}}
     return out;
   };
-  // Try clean parse of the full {scenes,characters} object first
+  // Try clean parse of the full {characters,scenes} object first
   const objStart=s.indexOf('{');
   if(objStart!==-1){
     try{
@@ -1059,13 +1059,15 @@ const recoverScenes=raw=>{
       if(parsed&&Array.isArray(parsed.scenes))return{scenes:parsed.scenes,characters:Array.isArray(parsed.characters)?parsed.characters:[]};
     }catch{}
   }
-  // Fall back: locate the scenes/characters arrays independently and salvage whatever complete objects exist
+  // Fall back: locate the scenes/characters arrays independently, whichever order they're actually in,
+  // and salvage whatever complete objects exist — each array's end is bounded by wherever the OTHER
+  // key starts (if it comes after), so neither array's salvage run bleeds into the other's content.
   const scenesIdx=s.indexOf('"scenes"');
   const charsIdx=s.indexOf('"characters"');
   let scenes=[],characters=[];
   if(scenesIdx!==-1){
     const arrStart=s.indexOf('[',scenesIdx);
-    const arrEnd=charsIdx>arrStart?charsIdx:s.length;
+    const arrEnd=(charsIdx!==-1&&charsIdx>arrStart)?charsIdx:s.length;
     if(arrStart!==-1)scenes=salvageObjects(s.slice(arrStart,arrEnd),'sceneNumber');
   }else{
     // Oldest fallback: a bare array with no wrapper object at all (pre-this-format responses)
@@ -1073,7 +1075,8 @@ const recoverScenes=raw=>{
   }
   if(charsIdx!==-1){
     const arrStart=s.indexOf('[',charsIdx);
-    if(arrStart!==-1)characters=salvageObjects(s.slice(arrStart),'name');
+    const arrEnd=(scenesIdx!==-1&&scenesIdx>arrStart)?scenesIdx:s.length;
+    if(arrStart!==-1)characters=salvageObjects(s.slice(arrStart,arrEnd),'name');
   }
   return{scenes,characters};
 };
@@ -2251,7 +2254,7 @@ function BreakdownUploader({project,onApply,onSaveCharacter}){
     if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
     await askNotif();setState('reading');setErr('');
     try{
-      const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?20:25;
+      const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?40:200;
       let uc;
       if(isPDF){
         let extracted='';
@@ -2269,7 +2272,7 @@ function BreakdownUploader({project,onApply,onSaveCharacter}){
         uc=[{type:'text',text:`Script:\n\n${txt.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
       }
       setState('analyzing');
-      const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS);
+      const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS,32000);
       const{scenes,characters}=recoverScenes(raw);if(!scenes.length)throw new Error('No scenes found — try TXT format');
       characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
       sendNotif(scenes.length);
