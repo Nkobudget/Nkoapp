@@ -1545,7 +1545,7 @@ const PI_FIELDS=[
   ['postStart','Post-production Start'],['postEnd','Post-production End'],
 ];
 /* ── Phase Cost Summary — manual input for pre/production/post totals ── */
-function PhaseCostPanel({project,items}){
+function PhaseCostPanel({project,items,onSetContingency}){
   const{t}=useLang();
   const preDepts=['A - Research & Development','B - Script & Story','C - Pre-Production Expenses'];
   const postDepts=['W - Post-Production Team','X - Post-Production Expenses'];
@@ -1560,7 +1560,15 @@ function PhaseCostPanel({project,items}){
     else if(postDepts.includes(i.dept))autoPost+=t;
     else if(prDepts.includes(i.dept))autoPR+=t;
   });
-  const cols=[['pre',t('preProduction'),autoPre],['prod',t('productionPhase'),autoProd],['contingency',t('contingency'),autoContingency],['post',t('postProduction'),autoPost],['pr',t('prMarketing')||'PR & Marketing',autoPR]];
+  const[contingencyInput,setContingencyInput]=useState(String(autoContingency||''));
+  useEffect(()=>{setContingencyInput(String(autoContingency||''));},[autoContingency]);
+  const debounceRef=useRef(null);
+  const onContingencyChange=v=>{
+    setContingencyInput(v);
+    clearTimeout(debounceRef.current);
+    debounceRef.current=setTimeout(()=>onSetContingency(v===''?0:v,items),500);
+  };
+  const cols=[['pre',t('preProduction'),autoPre],['prod',t('productionPhase'),autoProd],['post',t('postProduction'),autoPost],['pr',t('prMarketing')||'PR & Marketing',autoPR]];
   const total=autoPre+autoProd+autoContingency+autoPost+autoPR;
   return(
     <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:12}}>
@@ -1573,6 +1581,10 @@ function PhaseCostPanel({project,items}){
           <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{label}</div>
           <div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontFamily:'IBM Plex Mono,monospace',fontSize:13}}>{fmt(val)}</div>
         </div>)}
+        <div>
+          <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('contingency')}</div>
+          <Inp type="number" placeholder="0" value={contingencyInput} onChange={e=>onContingencyChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+        </div>
         <div>
           <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
           <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(total)}</div>
@@ -1731,7 +1743,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 
-function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter}){
+function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
   const[search,setSearch]=useState('');
@@ -1743,7 +1755,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('budgetHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
-      <PhaseCostPanel project={project} items={pItems}/>
+      <PhaseCostPanel project={project} items={pItems} onSetContingency={onSetContingency}/>
       <ProductionInfoPanel project={project}/>
       <BrandPanel project={project}/>
       {Object.keys(totals).length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:18}}>
@@ -2941,6 +2953,16 @@ function MainApp(){
   };
   const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
+  const setContingency=async(value,items)=>{
+    const existing=items.find(i=>i.dept==='V - Production Support'&&i.description==='Contingency');
+    if(existing){
+      await updateBudgetItem(existing.id,{rate:value});
+    }else if(Number(value)>0){
+      const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept:'V - Production Support',description:'Contingency',qty:1,unit:'flat',rate:value,currency:project.base_currency}).select().single();
+      if(error){alert(`Could not save contingency: ${error.message}`);return;}
+      if(data)setBudgetItems(p=>[...p,data]);
+    }
+  };
   const updateBudgetItem=async(id,upd)=>{
     setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));
     const{error}=await sb.from('budget_items').update(upd).eq('id',id);
@@ -3096,7 +3118,7 @@ function MainApp(){
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
           {view==='workspace'&&<SchedulesView project={project} scenes={scenes} shootDays={shootDays} characters={characters.filter(c=>c.project_id===currentId)} onUpdateScene={updateScene} onAddDay={addShootDay} onUpdateDay={updateShootDay} onDeleteDay={deleteShootDay} onGoToBreakdown={()=>setView('breakdown')} onSaveCharacter={saveCharacterMeta}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
