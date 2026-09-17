@@ -60,7 +60,7 @@ const TRANSLATIONS={
     budgetHeader:'Budget',templates:'📋 Templates',shareBudgetPdf:'📄 Share Budget PDF',exportExcel:'📊 Export Excel',
     addDepartment:'+ Add a department…',totalBudget:'Total budget',
     phaseCostSummary:'Phase Cost Summary',preProduction:'Pre-Production',productionPhase:'Production',
-    contingency:'Contingency',postProduction:'Post-Production',total:'Total',
+    contingency:'Contingency',postProduction:'Post-Production',total:'Total',prMarketing:'PR & Marketing',
     productionInfo:'Production Info',brandPanel:'Brand Panel',
     uploadScript:'Upload your script',chooseFile:'Choose file',
     breakdownHeader:'Breakdown',castSceneBreakdown:'Character Scene Breakdown',
@@ -101,7 +101,7 @@ const TRANSLATIONS={
     budgetHeader:'Budget',templates:'📋 Modèles',shareBudgetPdf:'📄 Partager le PDF du budget',exportExcel:'📊 Exporter Excel',
     addDepartment:'+ Ajouter un département…',totalBudget:'Budget total',
     phaseCostSummary:'Résumé des coûts par phase',preProduction:'Pré-production',productionPhase:'Production',
-    contingency:'Imprévus',postProduction:'Post-production',total:'Total',
+    contingency:'Imprévus',postProduction:'Post-production',total:'Total',prMarketing:'RP et marketing',
     productionInfo:'Infos production',brandPanel:'Panneau de marque',
     uploadScript:'Téléversez votre scénario',chooseFile:'Choisir un fichier',
     breakdownHeader:'Découpage',castSceneBreakdown:'Répartition des personnages par scène',
@@ -1498,11 +1498,11 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characte
               </div>
             );})()}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
-              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:13}}/></div>
               <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit</div><Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:13}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel></div>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
-              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit cost</div><Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit cost</div><Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13}}/></div>
               <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Currency</div><Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:13}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
             </div>
             <div style={{textAlign:'right'}}>
@@ -1512,9 +1512,9 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characte
           </>:<>
             <div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,alignItems:'center'}}>
               <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
-              <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value})} style={{fontSize:12}}/>
+              <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:12}}/>
               <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:11}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
-              <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
+              <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
               <div style={{textAlign:'right'}}>
                 <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold,fontWeight:700}}>{sym(item.currency)}{fmt(lTot(item))}</div>
                 <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
@@ -1550,43 +1550,28 @@ function PhaseCostPanel({project,items}){
   const preDepts=['A - Research & Development','B - Script & Story','C - Pre-Production Expenses'];
   const postDepts=['W - Post-Production Team','X - Post-Production Expenses'];
   const prodDepts=PHASES[1].depts;
-  let autoPre=0,autoProd=0,autoContingency=0,autoPost=0;
+  const prDepts=PHASES[3].depts;
+  let autoPre=0,autoProd=0,autoContingency=0,autoPost=0,autoPR=0;
   items.forEach(i=>{
     const t=lTot(i);
     if(/contingency/i.test(i.description||'')){autoContingency+=t;return;}
     if(preDepts.includes(i.dept))autoPre+=t;
     else if(prodDepts.includes(i.dept))autoProd+=t;
     else if(postDepts.includes(i.dept))autoPost+=t;
+    else if(prDepts.includes(i.dept))autoPR+=t;
   });
-  const[costs,setCosts]=useState({pre:'',prod:'',contingency:'',post:''});
-  const[isAuto,setIsAuto]=useState(true);
-  useEffect(()=>{
-    if(!project)return;
-    let saved=null;
-    try{saved=JSON.parse(localStorage.getItem(`nko_phasecost_${project.id}`)||'null');}catch{}
-    if(saved&&saved.manualOverride){
-      setCosts({pre:saved.pre||'',prod:saved.prod||'',contingency:saved.contingency||'',post:saved.post||''});
-      setIsAuto(false);
-    }else{
-      setCosts({pre:String(autoPre||''),prod:String(autoProd||''),contingency:String(autoContingency||''),post:String(autoPost||'')});
-      setIsAuto(true);
-    }
-  },[project?.id,autoPre,autoProd,autoContingency,autoPost]);
-  const set=(k,v)=>{const upd={...costs,[k]:v};setCosts(upd);setIsAuto(false);localStorage.setItem(`nko_phasecost_${project.id}`,JSON.stringify({...upd,manualOverride:true}));};
-  const resetToAuto=()=>{localStorage.removeItem(`nko_phasecost_${project.id}`);setCosts({pre:String(autoPre||''),prod:String(autoProd||''),contingency:String(autoContingency||''),post:String(autoPost||'')});setIsAuto(true);};
-  const total=(Number(costs.pre)||0)+(Number(costs.prod)||0)+(Number(costs.contingency)||0)+(Number(costs.post)||0);
-  const cols=[['pre',t('preProduction')],['prod',t('productionPhase')],['contingency',t('contingency')],['post',t('postProduction')]];
+  const cols=[['pre',t('preProduction'),autoPre],['prod',t('productionPhase'),autoProd],['contingency',t('contingency'),autoContingency],['post',t('postProduction'),autoPost],['pr',t('prMarketing')||'PR & Marketing',autoPR]];
+  const total=autoPre+autoProd+autoContingency+autoPost+autoPR;
   return(
     <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:12}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,flexWrap:'wrap',gap:6}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{t('phaseCostSummary')}</div>
-        {isAuto&&items.length>0&&<span style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Auto-calculated from budget</span>}
-        {!isAuto&&<button onClick={resetToAuto} style={{fontSize:11,color:T.goldDim,background:'none',border:'none',cursor:'pointer',fontFamily:'Manrope,sans-serif',fontWeight:700}}>↺ Recalculate from budget</button>}
+        <span style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Always live from your budget lines</span>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
-        {cols.map(([k,label])=><div key={k}>
+        {cols.map(([k,label,val])=><div key={k}>
           <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{label}</div>
-          <Inp type="number" placeholder="0" value={costs[k]} onChange={e=>set(k,e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+          <div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontFamily:'IBM Plex Mono,monospace',fontSize:13}}>{fmt(val)}</div>
         </div>)}
         <div>
           <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
@@ -1749,6 +1734,7 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
 function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
+  const[search,setSearch]=useState('');
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pItems=items.filter(i=>i.project_id===project.id);
   const totals={};pItems.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
@@ -1776,16 +1762,27 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
         </div>
       </div>}
       <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
+      <div style={{marginBottom:14}}>
+        <Inp placeholder="🔍 Search line items or departments…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%'}}/>
+      </div>
       {(()=>{
         const activeDepts=DEPTS.filter(d=>pItems.some(i=>i.dept===d));
         const emptyDepts=DEPTS.filter(d=>!activeDepts.includes(d));
+        const q=search.trim().toLowerCase();
+        const visibleDepts=q?activeDepts.filter(d=>d.toLowerCase().includes(q)||pItems.some(i=>i.dept===d&&(i.description||'').toLowerCase().includes(q))):activeDepts;
         return(
           <>
-            {activeDepts.map(d=>{const di=pItems.filter(i=>i.dept===d);return<DeptSection key={d} dept={d} items={di} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove} project={project} scenes={scenes} characters={characters} onSaveCharacter={onSaveCharacter}/>;})}
-            <Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
+            {q&&!visibleDepts.length&&<div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',padding:'12px 0'}}>No departments or line items match "{search}".</div>}
+            {visibleDepts.map(d=>{
+              const di=pItems.filter(i=>i.dept===d);
+              const deptNameMatches=d.toLowerCase().includes(q);
+              const shown=q&&!deptNameMatches?di.filter(i=>(i.description||'').toLowerCase().includes(q)):di;
+              return<DeptSection key={d} dept={d} items={shown} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove} project={project} scenes={scenes} characters={characters} onSaveCharacter={onSaveCharacter}/>;
+            })}
+            {!q&&<Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
               <option value="">{tr('addDepartment')}</option>
               {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
-            </Sel>
+            </Sel>}
           </>
         );
       })()}
@@ -2944,7 +2941,15 @@ function MainApp(){
   };
   const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
-  const updateBudgetItem=async(id,upd)=>{setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));await sb.from('budget_items').update(upd).eq('id',id);};
+  const updateBudgetItem=async(id,upd)=>{
+    setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));
+    const{error}=await sb.from('budget_items').update(upd).eq('id',id);
+    if(error){
+      alert(`Could not save that change: ${error.message}`);
+      const{data}=await sb.from('budget_items').select('*').eq('id',id).single();
+      if(data)setBudgetItems(p=>p.map(i=>i.id===id?data:i));
+    }
+  };
   const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));await sb.from('budget_items').delete().eq('id',id);};
   const applyTemplate=async tpl=>{
     const rows=tpl.items.map(t=>({
