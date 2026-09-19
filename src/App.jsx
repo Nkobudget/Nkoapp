@@ -1050,7 +1050,20 @@ const recoverDayGroups=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
   const start=s.indexOf('{');if(start===-1)return null;
   try{const parsed=JSON.parse(s.slice(start));if(Array.isArray(parsed.days))return parsed.days;}catch{}
-  return null;
+  // Fall back: the response was likely truncated (large scene counts need real token room) —
+  // salvage whatever complete [ ... ] day-arrays exist before the cutoff, rather than losing
+  // the whole schedule to one incomplete trailing array.
+  const daysIdx=s.indexOf('"days"');
+  if(daysIdx===-1)return null;
+  const arrStart=s.indexOf('[',daysIdx);
+  if(arrStart===-1)return null;
+  const groups=[];let depth=0,start2=-1;
+  for(let i=arrStart+1;i<s.length;i++){
+    const c=s[i];
+    if(c==='['){if(!depth)start2=i;depth++;}
+    else if(c===']'){depth--;if(!depth&&start2!==-1){try{const g=JSON.parse(s.slice(start2,i+1));if(Array.isArray(g))groups.push(g);}catch{}start2=-1;}}
+  }
+  return groups.length?groups:null;
 };
 const recoverScenes=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
@@ -1224,6 +1237,42 @@ function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
       </div>
     </div>
   );
+}
+function FeedbackButton({user,view,mobile}){
+  const[open,setOpen]=useState(false);
+  const[category,setCategory]=useState('Idea');
+  const[message,setMessage]=useState('');
+  const[state,setState]=useState('idle'); // idle | sending | sent | error
+  const submit=async()=>{
+    if(!message.trim())return;
+    setState('sending');
+    const id=Math.random().toString(36).slice(2,10);
+    const{error}=await sb.from('feedback').insert({id,user_id:user.id,user_email:user.email,category,message:message.trim(),page_context:view});
+    if(error){setState('error');return;}
+    setState('sent');
+    setTimeout(()=>{setOpen(false);setState('idle');setMessage('');setCategory('Idea');},1400);
+  };
+  return(<>
+    <button onClick={()=>setOpen(true)} style={{position:'fixed',right:18,bottom:mobile?66:18,zIndex:55,background:T.gold,color:T.ink,border:'none',borderRadius:24,padding:'10px 16px',fontSize:12,fontWeight:700,cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.4)',fontFamily:'Manrope,sans-serif'}}>💬 Feedback</button>
+    {open&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={()=>state!=='sending'&&setOpen(false)}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:420,width:'100%',padding:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Send feedback</div>
+          <button onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:T.dim,fontSize:18,cursor:'pointer'}}>✕</button>
+        </div>
+        {state==='sent'?(
+          <div style={{color:T.sage,fontSize:13,padding:'16px 0',textAlign:'center'}}>✓ Thanks — got it.</div>
+        ):(<>
+          <div style={{display:'flex',gap:6,marginBottom:10}}>
+            {['Idea','Bug','Other'].map(c=><button key={c} onClick={()=>setCategory(c)} style={{flex:1,background:category===c?T.gold:T.panel,color:category===c?T.ink:T.cream,border:`1px solid ${category===c?T.gold:T.line}`,borderRadius:6,padding:'6px 0',fontSize:12,cursor:'pointer',fontWeight:600}}>{c}</button>)}
+          </div>
+          <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="What's on your mind — a bug, an idea, anything." rows={4} style={{width:'100%',background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',fontSize:13,fontFamily:'Manrope,sans-serif',resize:'vertical',marginBottom:10}}/>
+          {state==='error'&&<div style={{color:T.coral,fontSize:12,marginBottom:8}}>Could not send — check your connection and try again.</div>}
+          <Btn variant="sage" onClick={submit} disabled={state==='sending'||!message.trim()}>{state==='sending'?'Sending…':'Send'}</Btn>
+        </>)}
+      </div>
+    </div>}
+  </>);
 }
 function ExportMenu({onPdf,onExcel,getPreview}){
   const[open,setOpen]=useState(false);
@@ -2663,11 +2712,16 @@ function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,
   );
 }
 function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddDay,onUpdateDay,onDeleteDay,onGoToBreakdown,onSaveCharacter}){
+  const mobile=useIsMobile();
   const[newDate,setNewDate]=useState('');
   const[callSheetDay,setCallSheetDay]=useState(null);
   const[editingDay,setEditingDay]=useState(null);
   const[autoScheduling,setAutoScheduling]=useState(false);
   const[autoErr,setAutoErr]=useState('');
+  const[dragSceneId,setDragSceneId]=useState(null);
+  const[dragOverDay,setDragOverDay]=useState(null);
+  const[expandedScene,setExpandedScene]=useState(null);
+  const[expandedDay,setExpandedDay]=useState(null);
   const pScenes=scenes.filter(s=>s.project_id===project?.id);
   const pDays=shootDays.filter(d=>d.project_id===project?.id).sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
   const unscheduled=pScenes.filter(s=>!s.shootDayId);
@@ -2685,7 +2739,7 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
       const sceneSummary=unscheduled.map(s=>({sceneNumber:s.sceneNumber,location:parseLocation(s.heading),intExt:s.intExt,dayNight:s.dayNight,cast:s.cast||[]}));
       const typeNote=`Production type: ${project.type||'Unspecified'}.\n\n`;
       const targetNote=targetDays?`\n\nTarget: fit this into ${targetDays} shoot day(s). Treat this as a hard ceiling.`:'';
-      const raw=await callClaude([{role:'user',content:typeNote+JSON.stringify(sceneSummary)+targetNote}],SCHEDULE_SYS,4000);
+      const raw=await callClaude([{role:'user',content:typeNote+JSON.stringify(sceneSummary)+targetNote}],SCHEDULE_SYS,16000);
       const groups=recoverDayGroups(raw);
       if(!groups||!groups.length)throw new Error('Could not read a grouping from the response. Try again.');
       let dayNum=pDays.length;
@@ -2701,7 +2755,22 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
     }catch(e){setAutoErr(e.message);}
     setAutoScheduling(false);
   };
+  const assign=(sceneId,dayId)=>{onUpdateScene(sceneId,{shootDayId:dayId});setExpandedScene(null);setDragSceneId(null);setDragOverDay(null);};
   if(!project)return<div style={{color:T.dim}}>Select a production first.</div>;
+
+  const autoBar=(
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8,marginBottom:8}}>
+      <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Unscheduled ({unscheduled.length})</span>
+      <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+        {pDays.length>0&&<button onClick={()=>{if(window.confirm(`Clear all ${pDays.length} shoot day(s)? Scenes go back to Unscheduled — nothing is deleted from your breakdown.`))clearSchedule();}} style={{background:'none',border:`1px solid ${T.line}`,color:T.dim,fontSize:11,padding:'5px 10px',borderRadius:6,cursor:'pointer'}}>🗑️ Clear all days</button>}
+        {unscheduled.length>0&&<div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <input type="number" min="1" placeholder="days" value={targetDays} onChange={e=>setTargetDays(e.target.value)} style={{width:56,background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,fontSize:11,padding:'5px 6px'}}/>
+          <Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>
+        </div>}
+      </div>
+    </div>
+  );
+
   return(
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14,flexWrap:'wrap',gap:10}}>
@@ -2717,64 +2786,119 @@ function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddD
           <div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',marginBottom:16}}>Schedules is built from your script breakdown — upload or build a breakdown first, then come back here to schedule it.</div>
           <Btn onClick={onGoToBreakdown}>Go to Breakdown</Btn>
         </div>
-      ):(
-      <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-          <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Unscheduled ({unscheduled.length})</span>
-          <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-            {pDays.length>0&&<button onClick={()=>{if(window.confirm(`Clear all ${pDays.length} shoot day(s)? Scenes go back to Unscheduled — nothing is deleted from your breakdown.`))clearSchedule();}} style={{background:'none',border:`1px solid ${T.line}`,color:T.dim,fontSize:11,padding:'5px 10px',borderRadius:6,cursor:'pointer'}}>🗑️ Clear all days</button>}
-            {unscheduled.length>0&&<div style={{display:'flex',gap:6,alignItems:'center'}}>
-              <input type="number" min="1" placeholder="days" value={targetDays} onChange={e=>setTargetDays(e.target.value)} style={{width:56,background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,fontSize:11,padding:'5px 6px'}}/>
-              <Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>
-            </div>}
+      ):mobile?(
+        /* ---- MOBILE: single column, tap to expand, no drag ---- */
+        <>
+          <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
+            {autoBar}
+            {autoErr&&<div style={{color:T.coral,fontSize:11,marginBottom:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              {unscheduled.map(s=>{const open=expandedScene===s.id;return(
+                <div key={s.id} style={{background:T.hi,border:open?`1px solid ${T.gold}`:'1px solid transparent',borderRadius:8,overflow:'hidden'}}>
+                  <button onClick={()=>setExpandedScene(open?null:s.id)} style={{width:'100%',background:'none',border:'none',padding:'8px 10px',display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}}>
+                    <span style={{fontSize:12,color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber} <span style={{fontFamily:'Manrope,sans-serif',fontWeight:600}}>{parseLocation(s.heading)}</span> <span style={{color:T.dim}}>· {s.dayNight}</span></span>
+                    <span style={{color:open?T.gold:T.dim,fontSize:13}}>{open?'⌄':'›'}</span>
+                  </button>
+                  {open&&<div style={{background:T.panel,padding:'8px 10px',display:'flex',gap:6,flexWrap:'wrap'}}>
+                    {pDays.map(d=><button key={d.id} onClick={()=>assign(s.id,d.id)} style={{background:T.ink,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'5px 10px',fontSize:11,cursor:'pointer'}}>Day {d.dayNumber}</button>)}
+                    <button onClick={async()=>{const id=await onAddDay({dayNumber:pDays.length+1,date:''});if(id)assign(s.id,id);}} style={{background:T.ink,color:T.gold,border:`1px solid ${T.gold}`,borderRadius:6,padding:'5px 10px',fontSize:11,cursor:'pointer'}}>+ New day</button>
+                  </div>}
+                </div>
+              );})}
+              {!unscheduled.length&&<span style={{fontSize:11,color:T.dim}}>All scenes scheduled.</span>}
+            </div>
           </div>
-        </div>
-        {autoErr&&<div style={{color:T.coral,fontSize:11,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
-        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
-          {unscheduled.map(s=><div key={s.id} style={{background:T.hi,borderRadius:6,padding:'4px 4px 4px 9px',display:'flex',alignItems:'center',gap:6}}>
-            <span style={{fontSize:11,color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber} · {s.heading}</span>
-            <select onChange={e=>{if(e.target.value)onUpdateScene(s.id,{shootDayId:e.target.value});}} defaultValue="" style={{background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:4,fontSize:10,padding:'2px 4px'}}>
-              <option value="">+ day</option>
-              {pDays.map(d=><option key={d.id} value={d.id}>Day {d.dayNumber}</option>)}
-            </select>
-          </div>)}
-          {!unscheduled.length&&<span style={{fontSize:11,color:T.dim}}>All scenes scheduled.</span>}
-        </div>
-      </div>
-      )}
-      {pDays.map(day=>{
-        const daySc=pScenes.filter(s=>s.shootDayId===day.id);
-        const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
-        return(
-          <div key={day.id} style={{marginBottom:16}}>
-            <div style={{background:'#2a1414',borderRadius:'8px 8px 0 0',padding:'10px 14px',border:`1px solid ${T.line}`,borderBottom:'none',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div style={{color:T.cream,fontFamily:'Fraunces,serif',fontSize:14}}>Shoot Day {day.dayNumber} {day.date&&<span style={{color:'#cc9999',fontSize:11,fontFamily:'Manrope,sans-serif',marginLeft:8}}>{day.date}</span>}</div>
-              <div style={{display:'flex',gap:12,alignItems:'center'}}>
-                <button onClick={()=>setCallSheetDay(day)} style={{background:'none',border:'none',color:T.gold,fontSize:11,cursor:'pointer',fontFamily:'Manrope,sans-serif',fontWeight:700}}>📋 Call Sheet</button>
-                <button onClick={()=>onDeleteDay(day.id)} style={{background:'none',border:'none',color:T.faint,fontSize:11,cursor:'pointer'}}>Delete day</button>
+          {pDays.map(day=>{
+            const daySc=pScenes.filter(s=>s.shootDayId===day.id);
+            const open=expandedDay===day.id;
+            return(
+              <div key={day.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:10,overflow:'hidden'}}>
+                <button onClick={()=>setExpandedDay(open?null:day.id)} style={{width:'100%',background:'none',border:'none',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'baseline',cursor:'pointer'}}>
+                  <span style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>Day {day.dayNumber} {day.date&&<span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{day.date}</span>}</span>
+                  <span style={{color:T.dim,fontSize:11}}>{daySc.length} scene{daySc.length!==1?'s':''} {open?'⌄':'›'}</span>
+                </button>
+                {!open&&daySc.length>0&&<div style={{padding:'0 14px 10px',color:T.dim,fontSize:11}}>{daySc.map(s=>`#${s.sceneNumber}`).join(' · ')}</div>}
+                {open&&<div style={{borderTop:`1px solid ${T.line}`}}>
+                  {daySc.map(s=>{const loc=parseLocation(s.heading);return(
+                    <div key={s.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 14px',borderBottom:`1px solid ${T.line}`}}>
+                      <span style={{fontSize:11,color:T.cream}}>#{s.sceneNumber} {loc} · {s.dayNight}</span>
+                      <button onClick={()=>onUpdateScene(s.id,{shootDayId:null})} style={{background:'none',border:'none',color:T.faint,cursor:'pointer',fontSize:12}}>✕</button>
+                    </div>
+                  );})}
+                  {!daySc.length&&<div style={{padding:'10px 14px',color:T.dim,fontSize:11}}>No scenes assigned yet.</div>}
+                  <div style={{display:'flex',gap:14,padding:'8px 14px'}}>
+                    <button onClick={()=>setCallSheetDay(day)} style={{background:'none',border:'none',color:T.gold,fontSize:11,cursor:'pointer',fontWeight:700}}>📋 Call Sheet</button>
+                    <button onClick={()=>onDeleteDay(day.id)} style={{background:'none',border:'none',color:T.faint,fontSize:11,cursor:'pointer'}}>Delete day</button>
+                  </div>
+                </div>}
               </div>
-            </div>
-            <div style={{border:`1px solid ${T.line}`,borderTop:'none',overflow:'hidden'}}>
-              <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}><tbody>
-                {daySc.map(s=>{const loc=parseLocation(s.heading);const c=locationColor(project,loc);
-                return(<tr key={s.id} style={{background:c.bg}}>
-                  <td style={{padding:'6px 8px',color:c.text,fontWeight:500,width:40}}>#{s.sceneNumber}</td>
-                  <td style={{padding:'6px 8px',color:c.text,fontWeight:500,width:38}}>{s.intExt}</td>
-                  <td style={{padding:'6px 8px',color:c.text,fontWeight:500}}>{loc} · {s.dayNight}</td>
-                  <td style={{padding:'6px 8px',color:c.text,textAlign:'right',width:60}}>{(s.cast||[]).map(castNum).join(', ')||'—'}</td>
-                  <td style={{padding:'6px 8px',width:24}}><button onClick={()=>onUpdateScene(s.id,{shootDayId:null})} style={{background:'none',border:'none',color:c.text,cursor:'pointer',fontSize:11}}>✕</button></td>
-                </tr>);})}
-                {!daySc.length&&<tr><td colSpan={5} style={{padding:'10px 8px',color:T.dim,fontSize:11}}>No scenes assigned yet.</td></tr>}
-              </tbody></table>
-            </div>
-            <div style={{background:'#4a4a4a',color:'#e8e8e8',fontSize:11,padding:'6px 14px',borderRadius:'0 0 6px 6px'}}>End of Shooting Day {day.dayNumber}{cast.length?` — Cast call: ${cast.join(', ')}`:''}</div>
+            );
+          })}
+          <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:14,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+            <Inp type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{width:160}}/>
+            <Btn size="sm" variant="sage" onClick={addDay}>+ Add shoot day {pDays.length+1}</Btn>
           </div>
-        );
-      })}
-      <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:14,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-        <Inp type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{width:160}}/>
-        <Btn size="sm" variant="sage" onClick={addDay}>+ Add shoot day {pDays.length+1}</Btn>
-      </div>
+        </>
+      ):(
+        /* ---- DESKTOP: drag and drop board ---- */
+        <>
+          <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
+            {autoBar}
+            {autoErr&&<div style={{color:T.coral,fontSize:11,marginBottom:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
+            <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
+              {unscheduled.map(s=>(
+                <div key={s.id} draggable onDragStart={()=>setDragSceneId(s.id)} onDragEnd={()=>setDragSceneId(null)}
+                  style={{flex:'0 0 auto',background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 10px',minWidth:120,cursor:'grab',opacity:dragSceneId===s.id?0.4:1}}>
+                  <div style={{color:T.gold,fontSize:10,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber}</div>
+                  <div style={{color:T.cream,fontSize:11,fontWeight:600,marginTop:2}}>{parseLocation(s.heading)}</div>
+                  <div style={{color:T.dim,fontSize:10}}>{s.dayNight}</div>
+                </div>
+              ))}
+              {!unscheduled.length&&<span style={{fontSize:11,color:T.dim}}>All scenes scheduled.</span>}
+            </div>
+          </div>
+          <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:8,alignItems:'flex-start'}}>
+            {pDays.map(day=>{
+              const daySc=pScenes.filter(s=>s.shootDayId===day.id);
+              const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
+              const isOver=dragOverDay===day.id;
+              return(
+                <div key={day.id}
+                  onDragOver={e=>{e.preventDefault();setDragOverDay(day.id);}}
+                  onDragLeave={()=>setDragOverDay(p=>p===day.id?null:p)}
+                  onDrop={e=>{e.preventDefault();if(dragSceneId)assign(dragSceneId,day.id);}}
+                  style={{flex:'0 0 240px',background:T.panel,border:`1px solid ${isOver?T.gold:T.line}`,borderRadius:10,overflow:'hidden'}}>
+                  <div style={{background:'#2a1414',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{color:T.cream,fontFamily:'Fraunces,serif',fontSize:13}}>Day {day.dayNumber}{day.date&&<div style={{color:'#cc9999',fontSize:10,fontFamily:'Manrope,sans-serif'}}>{day.date}</div>}</div>
+                  </div>
+                  <div style={{minHeight:80,padding:8}}>
+                    {daySc.map(s=>{const loc=parseLocation(s.heading);return(
+                      <div key={s.id} draggable onDragStart={()=>setDragSceneId(s.id)} onDragEnd={()=>setDragSceneId(null)}
+                        style={{background:T.hi,borderLeft:`3px solid ${T.gold}`,borderRadius:6,padding:'6px 8px',marginBottom:6,cursor:'grab',opacity:dragSceneId===s.id?0.4:1,display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
+                        <div>
+                          <div style={{color:T.gold,fontSize:10,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber}</div>
+                          <div style={{color:T.cream,fontSize:11,fontWeight:600}}>{loc} · {s.dayNight}</div>
+                          <div style={{color:T.dim,fontSize:10}}>{(s.cast||[]).map(castNum).join(', ')||'—'}</div>
+                        </div>
+                        <button onClick={()=>onUpdateScene(s.id,{shootDayId:null})} style={{background:'none',border:'none',color:T.faint,cursor:'pointer',fontSize:11}}>✕</button>
+                      </div>
+                    );})}
+                    {!daySc.length&&<div style={{border:`2px dashed ${T.line}`,borderRadius:6,padding:'14px 8px',textAlign:'center',color:T.dim,fontSize:10}}>Drop a scene here</div>}
+                  </div>
+                  <div style={{padding:'6px 14px',borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <button onClick={()=>setCallSheetDay(day)} style={{background:'none',border:'none',color:T.gold,fontSize:10,cursor:'pointer',fontWeight:700}}>📋 Call Sheet</button>
+                    <button onClick={()=>onDeleteDay(day.id)} style={{background:'none',border:'none',color:T.faint,fontSize:10,cursor:'pointer'}}>Delete</button>
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{flex:'0 0 90px',background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:120,gap:8,padding:10}}>
+              <Inp type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{fontSize:10,padding:'4px 6px'}}/>
+              <button onClick={addDay} style={{background:'none',border:`1px solid ${T.gold}`,color:T.gold,borderRadius:6,padding:'6px 10px',fontSize:16,cursor:'pointer'}}>+</button>
+            </div>
+          </div>
+        </>
+      )}
       {callSheetDay&&<CallSheetView project={project} day={callSheetDay} allDays={pDays} scenes={pScenes} characters={castList} onEdit={()=>setEditingDay(callSheetDay)} onDownload={()=>{const key=`nko_callsheet_${project.id}_${callSheetDay.id}`;let s={};try{s=JSON.parse(localStorage.getItem(key)||'{}');}catch{}callSheetPDF(callSheetDay,pScenes.filter(sc=>sc.shootDayId===callSheetDay.id),project,s.info||{},s.castTimes||{},castList);}} onClose={()=>setCallSheetDay(null)} onSwitchDay={setCallSheetDay}/>}
       {editingDay&&<CallSheetModal project={project} day={editingDay} scenes={pScenes} characters={castList} onClose={()=>setEditingDay(null)}/>}
     </div>
@@ -3161,6 +3285,7 @@ function MainApp(){
         </div>
       </div>
       {mobile&&<MobileNav view={view} setView={setView}/>}
+      <FeedbackButton user={user} view={view} mobile={mobile}/>
     </div>
   );
 }
