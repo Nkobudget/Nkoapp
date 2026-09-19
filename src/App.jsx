@@ -718,9 +718,14 @@ const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions.
 
 When classifying cast tier, judge by NARRATIVE ROLE — dialogue volume, plot centrality, whether the story revolves around them — not by how many scenes they physically appear in. A character can appear in few scenes but be a lead (a pivotal late-story reveal); a character can appear in many short scenes and still be background (a recurring extra with no dialogue). Use these four tiers only: "lead", "supporting", "background", "extra". If you're genuinely unsure, prefer "supporting" over guessing lead or extra at the extremes.
 
-For vehicles, extract PICTURE VEHICLES — any vehicle actually used in the story, including taxis, trains, buses, military vehicles, motorcycles, and vehicles involved in accidents or action, not just personal cars. If the script indicates a vehicle is present, used, ridden in, or involved in an event (a character takes a taxi, boards a train, is thrown into a military van, a car crashes), extract it. Do not extract vehicles that are purely incidental background traffic with no story involvement, and do not invent a vehicle that isn't actually indicated by the scene text.`;
+For vehicles, extract PICTURE VEHICLES — any vehicle actually used in the story, including taxis, trains, buses, military vehicles, motorcycles, and vehicles involved in accidents or action, not just personal cars. If the script indicates a vehicle is present, used, ridden in, or involved in an event (a character takes a taxi, boards a train, is thrown into a military van, a car crashes), extract it. Do not extract vehicles that are purely incidental background traffic with no story involvement, and do not invent a vehicle that isn't actually indicated by the scene text.
+
+For crowd sizes: talkingExtras and backgroundActors are handled differently, because a talking extra has a line and needs to be identifiable for continuity and payment, while a silent background person doesn't.
+- talkingExtras: an ARRAY of names or functional labels for people who have a line, a reaction beat, or featured business in THIS scene but aren't a main named character — e.g. ["Vendor", "Guard 1"]. Use whatever the script calls them (a script often labels a minor speaking part like "WOMAN AT MARKET" or "GUARD 1" even without a proper name) — that label IS their identity for scheduling purposes. If the same label has lines in multiple scenes, use the identical label each time so it's clear it's the same role recurring.
+- backgroundActors: a NUMBER — silent atmosphere people only, a crowd, a queue, bystanders with no line. Read actual scale language in the scene ("the hall is packed", "fifty recruits line up", "a handful of onlookers") and give your best real number based on what the text describes — a packed hall or a stated crowd is not 2 or 3 people.
+If a scene has neither, use an empty array for talkingExtras and 0 for backgroundActors — do not invent people or a number where the script gives no basis for one.`;
 const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode.`:`Extract EVERY scene in the script, however many there are — do not stop early or cap the count to match some expected length. If the script genuinely has 70, 90, or 120+ scenes, extract all of them.`} (Hard safety ceiling, should not normally apply: ${max} ${ep?'episodes':'scenes'} max.) If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank.
-Return ONLY this JSON shape, with "characters" FIRST and "scenes" SECOND — this order matters, characters must be complete even if the scenes list is very long: {"characters":[{"name":"Name","tier":"lead"}],"scenes":[{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"extras":"","location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}]} — the "characters" array must include every named cast member across all scenes, exactly once each, with your judged tier.`;
+Return ONLY this JSON shape, with "characters" FIRST and "scenes" SECOND — this order matters, characters must be complete even if the scenes list is very long: {"characters":[{"name":"Name","tier":"lead"}],"scenes":[{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","pageCount":1,"cast":["Name"],"talkingExtras":[],"backgroundActors":0,"location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}]} — the "characters" array must include every named cast member across all scenes, exactly once each, with your judged tier.`;
 const QUICK=['Day rate for DOP in Lagos?','Estimate 1-day music video in Naira','Structure cash advances for crew','Contingency % for Nollywood?','Post costs for 5-episode vertical?','Mobile money payments in Kenya?'];
 
 /* ── Helpers ── */
@@ -865,13 +870,13 @@ const breakdownExcel=async(scenes,project,characters=[])=>{
   XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
 
   // ---- Scenes sheet: its own tab, Interior then Exterior ----
-  const sceneRow=s=>[s.sceneNumber||'',s.heading||'',s.dayNight||'',s.synopsis||'',(s.cast||[]).join(', '),(s.props||[]).join(', '),(s.wardrobe||[]).join(', '),(s.vehicles||[]).join(', '),(s.specialEquip||[]).join(', ')];
-  const sceneHeader=['Scene #','Heading','Day/Night','Synopsis','Cast','Props','Wardrobe','Vehicles','Special Equipment'];
+  const sceneRow=s=>[s.sceneNumber||'',s.heading||'',s.dayNight||'',s.synopsis||'',(s.cast||[]).join(', '),(s.talkingExtras||[]).join(', '),s.backgroundActors||0,(s.props||[]).join(', '),(s.wardrobe||[]).join(', '),(s.vehicles||[]).join(', '),(s.specialEquip||[]).join(', ')];
+  const sceneHeader=['Scene #','Heading','Day/Night','Synopsis','Cast','Talking Extras','Background Actors','Props','Wardrobe','Vehicles','Special Equipment'];
   const intScenes=scenes.filter(s=>s.intExt==='INT');
   const extScenes=scenes.filter(s=>s.intExt!=='INT');
   const sceneRows=[['INTERIOR SCENES'],sceneHeader,...intScenes.map(sceneRow),[],['EXTERIOR SCENES'],sceneHeader,...extScenes.map(sceneRow)];
   const sceneWs=XLSX.utils.aoa_to_sheet(sceneRows);
-  sceneWs['!cols']=[{wch:6},{wch:26},{wch:9},{wch:36},{wch:26},{wch:26},{wch:26},{wch:20},{wch:26}];
+  sceneWs['!cols']=[{wch:6},{wch:26},{wch:9},{wch:36},{wch:26},{wch:12},{wch:14},{wch:26},{wch:26},{wch:20},{wch:26}];
   XLSX.utils.book_append_sheet(wb,sceneWs,'Scenes');
 
   // ---- Cast sheet: its own tab, grouped by tier ----
@@ -2103,10 +2108,10 @@ function AIView({project,budgetItems,advances}){
 }
 
 /* ── Breakdown ── */
-const BKCAT=[{key:'location',label:'Location',icon:'📍'},{key:'timeNotes',label:'Time of Day',icon:'🕐'},{key:'cast',label:'Cast',icon:'👤'},{key:'extras',label:'Extras',icon:'👥'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'Stunts / SFX / VFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'languageNotes',label:'Language Notes',icon:'🗣️'},{key:'notes',label:'Notes',icon:'📝'}];
+const BKCAT=[{key:'location',label:'Location',icon:'📍'},{key:'timeNotes',label:'Time of Day',icon:'🕐'},{key:'cast',label:'Cast',icon:'👤'},{key:'talkingExtras',label:'Talking Extras',icon:'🗣️'},{key:'backgroundActors',label:'Background Actors',icon:'👥'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'Stunts / SFX / VFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'languageNotes',label:'Language Notes',icon:'🗣️'},{key:'notes',label:'Notes',icon:'📝'}];
 function SceneCard({scene,onDelete,onUpdate,index}){
   const[open,setOpen]=useState(false);const[editing,setEditing]=useState(false);const[draft,setDraft]=useState(null);const mob=useIsMobile();
-  const startEdit=()=>{setDraft({...scene,cast:(scene.cast||[]).join(', '),props:(scene.props||[]).join(', '),vehicles:(scene.vehicles||[]).join(', '),wardrobe:(scene.wardrobe||[]).join(', '),specialEquip:(scene.specialEquip||[]).join(', ')});setEditing(true);setOpen(true);};
+  const startEdit=()=>{setDraft({...scene,cast:(scene.cast||[]).join(', '),props:(scene.props||[]).join(', '),vehicles:(scene.vehicles||[]).join(', '),wardrobe:(scene.wardrobe||[]).join(', '),specialEquip:(scene.specialEquip||[]).join(', '),talkingExtras:(scene.talkingExtras||[]).join(', ')});setEditing(true);setOpen(true);};
   const saveEdit=()=>{
     const upd={...draft,
       cast:String(draft.cast||'').split(',').map(x=>x.trim()).filter(Boolean),
@@ -2114,6 +2119,7 @@ function SceneCard({scene,onDelete,onUpdate,index}){
       vehicles:String(draft.vehicles||'').split(',').map(x=>x.trim()).filter(Boolean),
       wardrobe:String(draft.wardrobe||'').split(',').map(x=>x.trim()).filter(Boolean),
       specialEquip:String(draft.specialEquip||'').split(',').map(x=>x.trim()).filter(Boolean),
+      talkingExtras:String(draft.talkingExtras||'').split(',').map(x=>x.trim()).filter(Boolean),
     };
     onUpdate(scene.id,upd);setEditing(false);setDraft(null);
   };
@@ -2155,7 +2161,8 @@ function SceneCard({scene,onDelete,onUpdate,index}){
           <Inp placeholder="Time of day — e.g. Morning (9AM)" value={draft.timeNotes||''} onChange={e=>d('timeNotes',e.target.value)}/>
         </div>
         <Inp placeholder="Cast — comma separated" value={draft.cast||''} onChange={e=>d('cast',e.target.value)}/>
-        <Inp placeholder="Extras" value={draft.extras||''} onChange={e=>d('extras',e.target.value)}/>
+        <Inp placeholder="Talking extras — comma separated names/labels (e.g. Vendor, Guard 1)" value={draft.talkingExtras||''} onChange={e=>d('talkingExtras',e.target.value)}/>
+        <Inp type="number" min="0" placeholder="Background actors (silent headcount)" value={draft.backgroundActors??''} onChange={e=>d('backgroundActors',e.target.value===''?0:Number(e.target.value))}/>
         <Inp placeholder="Props — comma separated" value={draft.props||''} onChange={e=>d('props',e.target.value)}/>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
           <Inp placeholder="Vehicles — comma separated" value={draft.vehicles||''} onChange={e=>d('vehicles',e.target.value)}/>
@@ -2451,6 +2458,7 @@ function CallSheetModal({project,day,scenes,characters,onClose}){
   const[info,setInfo]=useState({});const[castTimes,setCastTimes]=useState({});
   useEffect(()=>{try{const s=JSON.parse(localStorage.getItem(key)||'{}');setInfo(s.info||{});setCastTimes(s.castTimes||{});}catch{}},[key]);
   const set=(k,v)=>setInfo(p=>({...p,[k]:v}));
+  const setBgCall=(sceneId,v)=>setInfo(p=>({...p,bgCallTimes:{...(p.bgCallTimes||{}),[sceneId]:v}}));
   const setCast=(name,field,v)=>setCastTimes(p=>({...p,[name]:{...(p[name]||{}),[field]:v}}));
   const save=()=>{localStorage.setItem(key,JSON.stringify({info,castTimes}));};
   const daySc=scenes.filter(s=>s.shootDayId===day.id);
@@ -2489,6 +2497,18 @@ function CallSheetModal({project,day,scenes,characters,onClose}){
             </div>)}
           </div>
         </div>}
+        {daySc.some(s=>(s.talkingExtras||[]).length>0||s.backgroundActors>0)&&<div style={{marginBottom:16}}>
+          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Background & Extras Call</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {daySc.filter(s=>(s.talkingExtras||[]).length>0||s.backgroundActors>0).map(s=><div key={s.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:10,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+              <div>
+                <div style={{color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif'}}>Scene {s.sceneNumber}</div>
+                <div style={{color:T.dim,fontSize:11}}>{(s.talkingExtras||[]).length>0?`Talking: ${s.talkingExtras.join(', ')}`:''}{(s.talkingExtras||[]).length>0&&s.backgroundActors>0?' · ':''}{s.backgroundActors>0?`${s.backgroundActors} background`:''}</div>
+              </div>
+              <div style={{width:110}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Call time</div><Inp value={info.bgCallTimes?.[s.id]||''} onChange={e=>setBgCall(s.id,e.target.value)} style={{fontSize:11,padding:'4px 6px'}}/></div>
+            </div>)}
+          </div>
+        </div>}
         <div style={{display:'flex',gap:8}}>
           <Btn variant="sage" onClick={()=>{save();onClose();}}>Save</Btn>
           <Btn variant="ghost" onClick={()=>{save();callSheetPDF(day,daySc,project,info,castTimes,characters);onClose();}}>📄 Save & Download PDF</Btn>
@@ -2499,12 +2519,19 @@ function CallSheetModal({project,day,scenes,characters,onClose}){
 }
 const callSheetPDF=(day,daySc,project,info,castTimes,characters=[])=>{
   const castNum=name=>{const i=characters.findIndex(ch=>ch.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
+  const totalExtras=daySc.reduce((s,sc)=>s+(sc.talkingExtras||[]).length,0);
+  const totalBg=daySc.reduce((s,sc)=>s+(sc.backgroundActors||0),0);
+  const headcountBanner=(totalExtras>0||totalBg>0)?`<div style="background:#1C1C1E;border:1px solid #FEED61;border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#F0E8D0;font-weight:700">Day total — ${totalExtras>0?`${totalExtras} talking extras`:''}${totalExtras>0&&totalBg>0?' · ':''}${totalBg>0?`${totalBg} background actors`:''} <span style="color:#9A9080;font-weight:400">(sum across today's scenes — plan catering/holding for peak scene, not necessarily this total)</span></div>`:'';
   const sceneCards=daySc.map(s=>{const loc=parseLocation(s.heading);
+    const hasExtras=(s.talkingExtras||[]).length>0||s.backgroundActors>0;
+    const bgCall=info.bgCallTimes?.[s.id];
+    const headcountLine=hasExtras?`<div style="color:#FEED61;font-size:10px;margin-top:3px">${(s.talkingExtras||[]).length>0?`Talking: ${s.talkingExtras.map(escapeHtml).join(', ')}`:''}${(s.talkingExtras||[]).length>0&&s.backgroundActors>0?' · ':''}${s.backgroundActors>0?`${s.backgroundActors} background`:''}${bgCall?` · Call ${escapeHtml(bgCall)}`:''}</div>`:'';
     return`<div style="background:#1C1C1E;border-left:3px solid #FEED61;border-radius:8px;padding:10px 14px;margin-bottom:8px">
       <div style="color:#FEED61;font-family:monospace;font-size:11px;margin-bottom:4px">SC ${escapeHtml(s.sceneNumber)}</div>
       <div style="color:#F0E8D0;font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(s.intExt)} · ${escapeHtml(loc)} · ${escapeHtml(s.dayNight)}</div>
       ${s.synopsis?`<div style="color:#9A9080;font-size:12px;margin-bottom:6px">${escapeHtml(s.synopsis)}</div>`:''}
       <div style="color:#9A9080;font-size:10px">Cast: ${(s.cast||[]).map(n=>`${castNum(n)} ${escapeHtml(n)}`).join(', ')||'—'}</div>
+      ${headcountLine}
     </div>`;
   }).join('');
   const castRows=Object.keys(castTimes).length?Object.entries(castTimes).map(([name,t])=>
@@ -2533,6 +2560,7 @@ const callSheetPDF=(day,daySc,project,info,castTimes,characters=[])=>{
     ${info.locationName||info.locationAddress?`<div style="background:#1C1C1E;border-radius:10px;padding:12px 14px;margin-bottom:14px"><div style="color:#9A9080;font-size:9px;text-transform:uppercase;margin-bottom:3px">Base Camp</div><div style="font-weight:700;font-size:13px">${escapeHtml(info.locationName)}</div><div style="color:#9A9080;font-size:11px">${escapeHtml(info.locationAddress)}</div>${info.nearestHospital?`<div style="color:#9A9080;font-size:11px;margin-top:6px">Nearest hospital: ${escapeHtml(info.nearestHospital)}</div>`:''}</div>`:''}
     ${crewRows?`<table style="border-collapse:collapse;margin-bottom:14px">${crewRows}</table>`:''}
     <div style="font-weight:700;font-size:13px;margin-bottom:8px">Schedule</div>
+    ${headcountBanner}
     ${sceneCards||'<div style="color:#9A9080;font-size:12px">No scenes assigned.</div>'}
     ${castRows?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Cast</div>${castRows}`:''}
     ${noteCards?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Notes</div>${noteCards}`:''}
@@ -2594,12 +2622,17 @@ function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,
         </div>}
         <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('schedule','Schedule')}{tabBtn('cast','Cast')}{tabBtn('notes','Notes')}</div>
         {tab==='schedule'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {daySc.map(s=>{const loc=parseLocation(s.heading);return(
+          {(()=>{const totalExtras=daySc.reduce((s,sc)=>s+(sc.talkingExtras||[]).length,0);const totalBg=daySc.reduce((s,sc)=>s+(sc.backgroundActors||0),0);
+          return(totalExtras>0||totalBg>0)&&<div style={{background:CS.panel2,border:`1px solid ${CS.accent}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:CS.text,fontWeight:600}}>
+            Day total — {totalExtras>0?`${totalExtras} talking extras`:''}{totalExtras>0&&totalBg>0?' · ':''}{totalBg>0?`${totalBg} background actors`:''} <span style={{color:CS.dim,fontWeight:400}}>(sum across today's scenes — plan catering/holding for peak scene, not necessarily this total)</span>
+          </div>;})()}
+          {daySc.map(s=>{const loc=parseLocation(s.heading);const bgCall=info.bgCallTimes?.[s.id];const hasExtras=(s.talkingExtras||[]).length>0||s.backgroundActors>0;return(
             <div key={s.id} style={{background:CS.panel,borderLeft:`3px solid ${CS.accent}`,borderRadius:8,padding:'8px 12px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:CS.accent,fontFamily:'IBM Plex Mono,monospace',marginBottom:4}}><span>SC {s.sceneNumber}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:CS.accent,fontFamily:'IBM Plex Mono,monospace',marginBottom:4}}><span>SC {s.sceneNumber}</span>{bgCall&&<span>Extras call {bgCall}</span>}</div>
               <div style={{color:CS.text,fontSize:12,fontWeight:600,marginBottom:2}}>{s.intExt} · {loc} · {s.dayNight}</div>
               {s.synopsis&&<div style={{color:CS.dim,fontSize:11,marginBottom:6}}>{s.synopsis}</div>}
               <div style={{fontSize:10,color:CS.dim}}>Cast: {(s.cast||[]).map(n=>`${castNum(n)} ${n}`).join(', ')||'—'}</div>
+              {hasExtras&&<div style={{fontSize:10,color:CS.accent,marginTop:3}}>{(s.talkingExtras||[]).length>0?`Talking: ${s.talkingExtras.join(', ')}`:''}{(s.talkingExtras||[]).length>0&&s.backgroundActors>0?' · ':''}{s.backgroundActors>0?`${s.backgroundActors} background`:''}</div>}
             </div>
           );})}
           {!daySc.length&&<div style={{color:CS.dim,fontSize:12,textAlign:'center',padding:20}}>No scenes assigned to this day.</div>}
