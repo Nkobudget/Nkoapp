@@ -141,7 +141,31 @@ const MARKETS=[
   {country:'Tanzania',code:'TZS',symbol:'TSh'},
 ];
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
-const EXPENSE_CATS=['Feeding','Transport','Fuel','Location fee','Props & materials','Equipment hire','Accommodation','Communication','Labour','Miscellaneous'];
+const EXPENSE_CATS_UNIVERSAL=['Transport','Feeding','Fuel','Communication','Accommodation','Labour'];
+const EXPENSE_CATS_BY_DEPT={
+  'A - Research & Development':['Research materials','Reference footage','Location scouting'],
+  'B - Script & Story':['Script printing','Writer fees','Script consultation'],
+  'C - Pre-Production Expenses':['Permits & licenses','Casting expenses','Rehearsal space'],
+  'F - Talents':['Cast per diem','Costume fitting','Talent transport'],
+  'H - Camera & Grip Equipment':['Equipment rental','Media & storage','Batteries & consumables','Insurance'],
+  'J - Light & Power Equipment':['Generator fuel','Equipment rental','Power & electrical supplies'],
+  'L - Sound Equipment':['Equipment rental','Batteries & consumables','Post-sync / ADR'],
+  'N - Set & Prop Expenses':['Set construction materials','Props purchase','Props rental','Set dressing'],
+  'O - Location':['Location fee','Location permit','Security deposit','Site preparation'],
+  'P - Wardrobe':['Fabric & materials','Tailoring','Costume rental','Alterations','Dry cleaning'],
+  'Q - Makeup & Hair':['Makeup supplies','Hair supplies & wigs','SFX makeup materials'],
+  'R - SFX & Stunts':['Stunt equipment','SFX materials','Safety equipment'],
+  'S - Production Logistics':['Vehicle hire','Equipment transport'],
+  'T - Hospitality & Welfare':['Medical & first aid','Water & refreshments'],
+  'U - Overhead & General Expenses':['Office supplies','Bank charges'],
+  'X - Post-Production Expenses':['Editing software / license','Color grading','VFX','Sound mix','Data storage'],
+  'Y - PR & Marketing':['Poster & key art design','Social media ads','Press kit printing','Publicity materials'],
+  'Z - Sales & Distribution':['Festival submission fees','Distribution & legal fees','DCP / delivery costs'],
+};
+const expenseCatsForDept=dept=>{
+  const specific=EXPENSE_CATS_BY_DEPT[dept]||[];
+  return[...specific,...EXPENSE_CATS_UNIVERSAL.filter(c=>!specific.includes(c)),'Miscellaneous'];
+};
 const ACCENT_COLORS=['#FEED61','#E06B52','#52B07A','#4A90D9','#9B7FD4','#F5A623','#2ABFBF','#E8527A'];
 /* Approximate local-currency-to-USD conversion rates, for the dual currency display on each budget line.
    These are illustrative rates and should be treated as approximate — update RATES_TO_USD as real rates move. */
@@ -748,9 +772,41 @@ const fmt=n=>Number(n||0).toLocaleString('en',{maximumFractionDigits:0});
    e.g. <script>...</script> into a budget line or scene synopsis would have it EXECUTE when
    the generated document opens — a real stored-XSS path, not a theoretical one. Every piece
    of user-supplied text interpolated into any exported HTML must go through this first. */
+const callClaude=async(msgs,sys,maxTokens=8000)=>{
+  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:maxTokens})});
+  if(!r.ok){
+    if(r.status===504)throw new Error('The request took too long and timed out. This usually happens on very long scripts — try a shorter excerpt, or ask about increasing the server timeout.');
+    throw new Error(`API ${r.status}`);
+  }
+  const d=await r.json();
+  return d.content?.map(c=>c.text||'').join('')||'';
+};
 const escapeHtml=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const sym=code=>(CURRENCIES.find(c=>c.code===code)||CURRENCIES[0]).symbol;
 const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
+/* Client-side PDF text extraction via PDF.js — avoids the Vercel 4.5MB request-body limit
+   that base64-encoding a whole PDF would otherwise hit, since screenplay TEXT is tiny
+   compared to the binary PDF itself. Loads the library from cdnjs on first use only. */
+const extractPdfText=async file=>{
+  if(!window.pdfjsLib){
+    await new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js';
+      script.onload=resolve;script.onerror=()=>reject(new Error('Could not load the PDF reader library.'));
+      document.head.appendChild(script);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
+  }
+  const buf=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    text+=content.items.map(it=>it.str).join(' ')+'\n';
+  }
+  return text;
+};
 const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readTxt=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
 const readImg=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
@@ -1808,7 +1864,7 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}
         <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
       </div>}
       {show&&<div style={{padding:'10px 16px',borderTop:`1px solid ${T.line}`,background:T.hi,display:'flex',flexDirection:'column',gap:8}}>
-        <Sel value={eCat} onChange={e=>setECat(e.target.value)} style={{width:'100%'}}>{EXPENSE_CATS.map(c=><option key={c}>{c}</option>)}</Sel>
+        <Sel value={eCat} onChange={e=>setECat(e.target.value)} style={{width:'100%'}}>{expenseCatsForDept(advance.dept).map(c=><option key={c}>{c}</option>)}</Sel>
         <Inp placeholder="What was spent on?" value={eDesc} onChange={e=>setEDesc(e.target.value)}/>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}><Inp type="number" placeholder="Amount" value={eAmt} onChange={e=>setEAmt(e.target.value)}/><Inp type="date" value={eDate} onChange={e=>setEDate(e.target.value)}/></div>
         <Inp placeholder="Receipt / voucher ref (optional)" value={eRef} onChange={e=>setERef(e.target.value)}/>
@@ -2388,6 +2444,13 @@ const LOCATION_PALETTE=[
   {bg:'#9fd9c9',text:'#0c4034'},{bg:'#d9b88f',text:'#40280c'},{bg:'#a8d98f',text:'#1c400c'},
   {bg:'#8f9fd9',text:'#0c1440'},
 ];
+const sortScenes=scenes=>[...scenes].sort((a,b)=>{
+  const pa=String(a.sceneNumber??'').match(/(\d+)(.*)/);
+  const pb=String(b.sceneNumber??'').match(/(\d+)(.*)/);
+  const na=pa?Number(pa[1]):0,nb=pb?Number(pb[1]):0;
+  if(na!==nb)return na-nb;
+  return String(pa?.[2]||'').localeCompare(String(pb?.[2]||''));
+});
 const parseLocation=heading=>{
   if(!heading)return'Unknown';
   let s=heading.trim().toUpperCase().replace(/^(INT|EXT|INT\/EXT|I\/E)[.\s\/]+/,'');
