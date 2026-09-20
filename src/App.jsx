@@ -39,7 +39,7 @@ const TRANSLATIONS={
     tagline:'Budgets Tailored To Film',
     signOut:'Sign out',
     studio:'Studio',
-    navDashboard:'Dashboard',navBudgets:'Budgets',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navMarketplace:'Marketplace',navAI:'AI Builder',navWorkspace:'Schedules and Call Sheets',
+    navDashboard:'Dashboard',navBudgets:'Budgets',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navPO:'Purchase Orders',navMarketplace:'Marketplace',navAI:'AI Builder',
     selectProduction:'Select production…',newBtn:'+ New',back:'← Back',
     emailPlaceholder:'Email',passwordPlaceholder:'Password',show:'Show',hide:'Hide',
     forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
@@ -80,7 +80,7 @@ const TRANSLATIONS={
     tagline:'Des budgets taillés pour le cinéma',
     signOut:'Se déconnecter',
     studio:'Studio',
-    navDashboard:'Tableau de bord',navBudgets:'Budgets',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navMarketplace:'Place de marché',navAI:'Assistant IA',navWorkspace:'Plannings et feuilles de service',
+    navDashboard:'Tableau de bord',navBudgets:'Budgets',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navPO:'Bons de commande',navMarketplace:'Place de marché',navAI:'Assistant IA',
     selectProduction:'Sélectionner une production…',newBtn:'+ Nouveau',back:'← Retour',
     emailPlaceholder:'E-mail',passwordPlaceholder:'Mot de passe',show:'Afficher',hide:'Masquer',
     forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
@@ -656,6 +656,18 @@ const MKTCAT=['All','Feature Film','Vertical Series / Microdrama','Music Video',
 
 /* ── AI Prompts ── */
 const CHAT_SYS=`You are a production finance co-pilot for African film and TV productions. You know Lagos, Accra, Nairobi and Johannesburg market rates. Give practical, specific advice in Naira, Cedis, Shillings or Rand as appropriate. Keep responses concise and actionable. IMPORTANT: Do not use any Markdown formatting. No asterisks for bold, no # for headers, no | for tables, no bullet points with *. Write in plain conversational text only. Use line breaks to separate points.`;
+const INVOICE_SYS=`You are a production accounting AI reading a raw vendor invoice or receipt for an African film production. Return ONLY valid JSON. No markdown. No code fences.
+
+Read the invoice exactly as given — extract the actual vendor name, actual line items and their real amounts, and the actual total as printed. Do not invent, round, or estimate a number that isn't on the document. If a field genuinely isn't present (no visible date, no vendor name), leave it as an empty string rather than guessing.
+
+For suggestedDept, pick the single best-fitting department from this exact list based on what the invoice is actually for: ${DEPTS.join(', ')}. This is a suggestion the producer will confirm or change, not a final answer — pick your best read, but don't agonize if the invoice is ambiguous.`;
+const INVOICE_PROMPT=cur=>`Extract this invoice as JSON: {"vendor":"string","date":"string","lineItems":[{"description":"string","amount":number}],"totalAmount":number,"currency":"${cur}","suggestedDept":"string"}`;
+const recoverInvoice=raw=>{
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+  const start=s.indexOf('{');if(start===-1)return null;
+  try{return JSON.parse(s.slice(start));}catch{}
+  return null;
+};
 const SCRIPT_SYS=`You are a script budget AI for African film productions. Return ONLY valid JSON. No markdown. No code fences. No apostrophes in strings.
 
 You must classify every budget line into exactly one of these 26 department codes. Use the string EXACTLY as written below, including the letter prefix. Never invent a new department name.
@@ -918,153 +930,6 @@ const breakdownExcel=async(scenes,project,characters=[])=>{
 
   XLSX.writeFile(wb,`${(project.name||'Breakdown').replace(/[^a-z0-9]/gi,'_')}_Breakdown.xlsx`);
 };
-const schedulePreview=(days,scenes,project)=>{
-  const allRows=[];
-  days.forEach(d=>{scenes.filter(s=>s.shootDayId===d.id).forEach(s=>{allRows.push([`Day ${d.dayNumber}`,s.sceneNumber||'',parseLocation(s.heading),s.dayNight||'',s.intExt||'']);});});
-  return{title:`Schedule — ${project.name}`,columns:['Day','Scene #','Location','Day/Night','Int/Ext'],rows:allRows.slice(0,10),totalCount:allRows.length};
-};
-const scheduleExcel=async(days,scenes,project,characters=[])=>{
-  const XLSX=await loadXLSX();
-  const wb=XLSX.utils.book_new();
-  const castNum=name=>{const i=characters.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
-  // ---- Top Sheet ----
-  const top=[['SHOOTING SCHEDULE — TOP SHEET'],[project.name||''],[],['Cast','']];
-  characters.forEach((c,i)=>top.push([`${i+1}. ${c.name}`,'']));
-  top.push([]);top.push(['Day','Date','Scenes','Cast Call']);
-  days.forEach(d=>{
-    const daySc=scenes.filter(s=>s.shootDayId===d.id);
-    const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
-    top.push([`Day ${d.dayNumber}`,d.date||'',daySc.length,cast.join(', ')||'—']);
-  });
-  const topWs=XLSX.utils.aoa_to_sheet(top);
-  topWs['!cols']=[{wch:20},{wch:14},{wch:10},{wch:40}];
-  XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
-  // ---- Detail ----
-  const det=[['Day','Date','Scene #','Int/Ext','Location','Day/Night','Cast','Synopsis']];
-  days.forEach(d=>{
-    scenes.filter(s=>s.shootDayId===d.id).forEach(s=>{
-      det.push([`Day ${d.dayNumber}`,d.date||'',s.sceneNumber||'',s.intExt||'',parseLocation(s.heading),s.dayNight||'',(s.cast||[]).map(castNum).join(', '),s.synopsis||'']);
-    });
-  });
-  const unsch=scenes.filter(s=>!s.shootDayId);
-  if(unsch.length){det.push([]);det.push(['UNSCHEDULED']);unsch.forEach(s=>det.push(['','',s.sceneNumber||'',s.intExt||'',parseLocation(s.heading),s.dayNight||'',(s.cast||[]).map(castNum).join(', '),s.synopsis||'']));}
-  const detWs=XLSX.utils.aoa_to_sheet(det);
-  detWs['!cols']=[{wch:10},{wch:12},{wch:8},{wch:8},{wch:22},{wch:10},{wch:14},{wch:40}];
-  XLSX.utils.book_append_sheet(wb,detWs,'Detail');
-  XLSX.writeFile(wb,`${(project.name||'Schedule').replace(/[^a-z0-9]/gi,'_')}_Schedule.xlsx`);
-};
-/* Schedule and Call Sheet PDFs use a light, print-friendly style rather than NKÒ's dark theme —
-   these are working documents meant to be printed and read on set, where a dark background
-   wastes ink/toner and is harder to read outdoors than black text on white/light colour. */
-const schedulePDF=(days,scenes,project,characters=[])=>{
-  const castNum=name=>{const i=characters.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
-  const castList=characters.map((c,i)=>`${i+1}. ${escapeHtml(c.name)}`).join('&nbsp;&nbsp;&nbsp;');
-  const dayBlocks=days.map(d=>{
-    const daySc=scenes.filter(s=>s.shootDayId===d.id);
-    const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
-    const rows=daySc.map(s=>{const loc=parseLocation(s.heading);const c=locationColor(project,loc);
-      return`<tr style="background:${c.bg}"><td style="padding:6px 8px;color:${c.text};font-weight:600;border:1px solid #ccc">#${escapeHtml(s.sceneNumber)}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc">${escapeHtml(s.intExt)}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc">${escapeHtml(loc)} · ${escapeHtml(s.dayNight)}</td><td style="padding:6px 8px;color:${c.text};border:1px solid #ccc;text-align:right">${(s.cast||[]).map(n=>`${castNum(n)} ${escapeHtml(n)}`).join(', ')||'—'}</td></tr>`;
-    }).join('');
-    return`<div style="page-break-inside:avoid;margin-bottom:14px">
-      <div style="background:#2a1414;color:#fff;padding:8px 14px;font-family:Georgia,serif;font-size:14px">START SHOOT DAY ${escapeHtml(d.dayNumber)}${d.date?` (${escapeHtml(d.date)})`:''}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:Arial">${rows||`<tr><td style="padding:8px">No scenes assigned.</td></tr>`}</table>
-      <div style="background:#666;color:#fff;padding:6px 14px;font-size:11px;font-family:Arial">End of Shooting Day ${escapeHtml(d.dayNumber)}${cast.length?` — Cast: ${cast.map(escapeHtml).join(', ')}`:''}</div>
-    </div>`;
-  }).join('');
-  const html=`<!DOCTYPE html><html><head><title>Schedule — ${escapeHtml(project.name)}</title></head><body style="margin:0;font-family:Arial;background:#fff;padding:24px">
-    <h1 style="font-family:Georgia,serif;font-size:20px;margin:0 0 4px">${escapeHtml(project.name)} — Shooting Schedule</h1>
-    <div style="font-size:11px;color:#666;margin-bottom:14px">Cast: ${castList||'—'}</div>
-    ${dayBlocks}
-    <div class="np" style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div>
-  </body></html>`;
-  const w=window.open('','_blank');w.document.write(html);w.document.close();
-};
-/* Client-side PDF text extraction. Screenplay text is tiny compared to the raw PDF binary —
-   extracting it in the browser avoids Vercel's 4.5MB serverless function payload limit, which
-   is the actual cause of "large script fails to upload" (base64-encoding a ~3.3MB+ PDF pushes
-   the request over that limit). Falls back to sending the raw PDF only if extraction fails
-   (e.g. a scanned/image-only script with no embedded text layer), and only for smaller files. */
-let pdfjsLoadPromise=null;
-const loadPdfjs=()=>{
-  if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
-  if(pdfjsLoadPromise)return pdfjsLoadPromise;
-  pdfjsLoadPromise=new Promise((resolve,reject)=>{
-    const script=document.createElement('script');
-    script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js';
-    script.onload=()=>{
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
-      resolve(window.pdfjsLib);
-    };
-    script.onerror=()=>reject(new Error('Could not load the PDF reader. Check your connection and try again.'));
-    document.head.appendChild(script);
-  });
-  return pdfjsLoadPromise;
-};
-const extractPdfText=async file=>{
-  const pdfjsLib=await loadPdfjs();
-  const buf=await file.arrayBuffer();
-  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-  let text='';
-  for(let i=1;i<=pdf.numPages;i++){
-    const page=await pdf.getPage(i);
-    const content=await page.getTextContent();
-    text+=content.items.map(it=>it.str).join(' ')+'\n\n';
-  }
-  return text.trim();
-};
-const callClaude=async(msgs,sys,maxTokens=8000)=>{
-  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:maxTokens})});
-  if(!r.ok){
-    if(r.status===504)throw new Error('The request took too long and timed out. This usually happens on very long scripts — try a shorter excerpt, or ask about increasing the server timeout.');
-    throw new Error(`API ${r.status}`);
-  }
-  const d=await r.json();
-  return d.content?.map(c=>c.text||'').join('')||'';
-};
-/* Sorts scenes by scene number correctly (1,2,...,10,11 — not lexicographic 1,10,11,2).
-   Falls back to string comparison for non-numeric labels like "Ep 1" or "OTV". */
-const sortScenes=arr=>[...arr].sort((a,b)=>{
-  const na=parseInt(String(a.sceneNumber||'').match(/\d+/)?.[0],10);
-  const nb=parseInt(String(b.sceneNumber||'').match(/\d+/)?.[0],10);
-  const va=isNaN(na)?Infinity:na,vb=isNaN(nb)?Infinity:nb;
-  if(va!==vb)return va-vb;
-  return String(a.sceneNumber||'').localeCompare(String(b.sceneNumber||''));
-});
-const SCHEDULE_SYS=`You are a 1st AD scheduling a shoot for a resource-constrained independent production — the common reality for most African indie film and TV, where every extra shoot day means real, often unaffordable added cost (crew day rates, location rental, cast availability, feeding). This is not a studio schedule with room to spread scenes out comfortably.
-
-Default to the FEWEST shoot days that can reasonably hold the scenes, not an even, generous spread. Be aggressive about compressing: pack more scenes into a day before opening a new one.
-
-Use these production-type duration bands as your directional anchor (not a rigid formula — the producer's own budget and scene complexity can move it within or slightly outside the band, but treat the band as the expected range until told otherwise):
-- Feature Film: 3-4 weeks, shooting across all 7 days of the week — roughly 21-28 shoot days total
-- Short Film: 2-4 days
-- Vertical Series / Microdrama: about 1 week (around 7 days), depending on budget
-- Other formats (documentary, music video, branded content, animation): no fixed band — use scene count and complexity alone
-
-If the production type given doesn't match one of these bands, or you're unsure, fall back to scene-count-based compression rather than forcing an unrelated band.
-
-Still prioritize: (1) minimizing location moves — same location stays together, (2) keeping a day's scenes at a consistent INT/EXT and DAY/NIGHT where reasonable so the crew isn't fighting daylight or re-lighting constantly, (3) if a target number of days is given, treat it as a hard ceiling and compress to fit it unless truly impossible — in that case still get as close as you can and say so.
-
-This is a rough starting grouping for the producer to adjust, not a final professional schedule — you have no page-count or shoot-hour data, so don't imply precision you don't have.
-Respond with ONLY JSON, no markdown, no preamble: {"days":[["sceneNumber1","sceneNumber2"],["sceneNumber3"]]} — an array of days, each an array of scene number strings in shooting order. Include every scene number given exactly once.`;
-const recoverDayGroups=raw=>{
-  let s=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-  const start=s.indexOf('{');if(start===-1)return null;
-  try{const parsed=JSON.parse(s.slice(start));if(Array.isArray(parsed.days))return parsed.days;}catch{}
-  // Fall back: the response was likely truncated (large scene counts need real token room) —
-  // salvage whatever complete [ ... ] day-arrays exist before the cutoff, rather than losing
-  // the whole schedule to one incomplete trailing array.
-  const daysIdx=s.indexOf('"days"');
-  if(daysIdx===-1)return null;
-  const arrStart=s.indexOf('[',daysIdx);
-  if(arrStart===-1)return null;
-  const groups=[];let depth=0,start2=-1;
-  for(let i=arrStart+1;i<s.length;i++){
-    const c=s[i];
-    if(c==='['){if(!depth)start2=i;depth++;}
-    else if(c===']'){depth--;if(!depth&&start2!==-1){try{const g=JSON.parse(s.slice(start2,i+1));if(Array.isArray(g))groups.push(g);}catch{}start2=-1;}}
-  }
-  return groups.length?groups:null;
-};
 const recoverScenes=raw=>{
   let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
   const salvageObjects=(text,keyHint)=>{
@@ -1180,7 +1045,7 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 };
 
 /* ── Atoms ── */
-const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'workspace',e:'🗓️',l:'Schedules and Call Sheets'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
 const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
 const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
@@ -1300,11 +1165,15 @@ const FS=()=><div style={{height:8,background:`repeating-linear-gradient(90deg,$
 const AuthCtx=createContext(null);
 const useAuth=()=>useContext(AuthCtx);
 function AuthProvider({children}){
-  const[user,setUser]=useState(null);const[loading,setLoading]=useState(true);
-  useEffect(()=>{sb.auth.getSession().then(({data:{session}})=>{setUser(session?.user??null);setLoading(false);});const{data:{subscription}}=sb.auth.onAuthStateChange((_,s)=>setUser(s?.user??null));return()=>subscription.unsubscribe();},[]);
+  const[user,setUser]=useState(null);const[loading,setLoading]=useState(true);const[recovery,setRecovery]=useState(false);
+  useEffect(()=>{
+    sb.auth.getSession().then(({data:{session}})=>{setUser(session?.user??null);setLoading(false);});
+    const{data:{subscription}}=sb.auth.onAuthStateChange((event,s)=>{setUser(s?.user??null);if(event==='PASSWORD_RECOVERY')setRecovery(true);});
+    return()=>subscription.unsubscribe();
+  },[]);
   const signOut=()=>sb.auth.signOut();
   if(loading)return<div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',color:T.gold,fontFamily:'Fraunces,serif',fontSize:22}}>Loading…</div>;
-  return<AuthCtx.Provider value={{user,signOut}}>{children}</AuthCtx.Provider>;
+  return<AuthCtx.Provider value={{user,signOut,recovery,clearRecovery:()=>setRecovery(false)}}>{children}</AuthCtx.Provider>;
 }
 function AuthScreen(){
   const{t}=useLang();
@@ -1320,7 +1189,7 @@ function AuthScreen(){
   const forgotPassword=async()=>{
     setErr('');setOk('');
     if(!email){setErr('Enter your email above first, then tap Forgot password.');return;}
-    const{error}=await sb.auth.resetPasswordForEmail(email);
+    const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
     if(error)setErr(error.message);else setOk('Password reset link sent — check your email.');
   };
   return(
@@ -1347,7 +1216,7 @@ function AuthScreen(){
 }
 
 /* ── Navigation ── */
-const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',breakdown:'navBreakdown',workspace:'navWorkspace',recon:'navRecon',payments:'navPayments',market:'navMarketplace',ai:'navAI'};
+const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',breakdown:'navBreakdown',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
 function LangToggle({compact}){
   const{lang,setLang}=useLang();
   return(
@@ -1704,6 +1573,69 @@ function ScriptResultModal({result,currency,onApply,onClose}){
     </div>
   );
 }
+function InvoiceUploader({project,onCreatePO}){
+  const[state,setState]=useState('idle'); // idle | reading | analyzing | done | error
+  const[err,setErr]=useState('');
+  const[draft,setDraft]=useState(null);
+  const fr=useRef();
+  const process=async f=>{
+    const isPDF=f.type==='application/pdf';
+    const isImg=f.type.startsWith('image/');
+    if(!isPDF&&!isImg){setErr('Upload a PDF, JPG, or PNG invoice.');setState('error');return;}
+    if(f.size>15*1024*1024){setErr('File is too large (max 15MB).');setState('error');return;}
+    setState('reading');setErr('');
+    try{
+      const b=await readB64(f);
+      const uc=isPDF
+        ?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}]
+        :[{type:'image',source:{type:'base64',media_type:f.type,data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}];
+      setState('analyzing');
+      const raw=await callClaude([{role:'user',content:uc}],INVOICE_SYS,4000);
+      const parsed=recoverInvoice(raw);
+      if(!parsed)throw new Error('Could not read this invoice. Try a clearer photo or a different file.');
+      setDraft({
+        vendor:parsed.vendor||'',
+        dept:DEPTS.includes(parsed.suggestedDept)?parsed.suggestedDept:DEPTS[0],
+        description:(parsed.lineItems||[]).map(li=>li.description).filter(Boolean).join(', ')||'',
+        amount:String(parsed.totalAmount||''),
+        currency:parsed.currency||project.base_currency,
+      });
+      setState('done');
+    }catch(e){setErr(e.message);setState('error');}
+  };
+  const reset=()=>{setState('idle');setDraft(null);setErr('');};
+  return(
+    <div style={{marginBottom:18}}>
+      {(state==='idle'||state==='error')&&<div onClick={()=>fr.current.click()} style={{border:`2px dashed ${T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:'pointer'}}>
+        <input ref={fr} type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
+        <div style={{fontSize:24,marginBottom:8}}>🧾</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Drop an invoice or receipt</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, or a photo of a paper receipt — NKÒ reads it and drafts a PO</div>
+        <Btn variant="ghost" size="sm">Choose file</Btn>
+        {err&&<div style={{color:T.coral,fontSize:12,marginTop:10}}>{err}</div>}
+      </div>}
+      {(state==='reading'||state==='analyzing')&&<div style={{border:`2px dashed ${T.gold}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi}}>
+        <div style={{color:T.gold,fontFamily:'Manrope,sans-serif',fontSize:13}}>{state==='reading'?'Reading file…':'Extracting invoice details…'}</div>
+      </div>}
+      {state==='done'&&draft&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Confirm before creating PO — check these against the actual invoice</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Vendor</div><Inp value={draft.vendor} onChange={e=>setDraft(d=>({...d,vendor:e.target.value}))}/></div>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Department</div><Sel value={draft.dept} onChange={e=>setDraft(d=>({...d,dept:e.target.value}))} style={{width:'100%'}}>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel></div>
+        </div>
+        <div style={{marginBottom:8}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Description</div><Inp value={draft.description} onChange={e=>setDraft(d=>({...d,description:e.target.value}))}/></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Amount</div><Inp type="number" value={draft.amount} onChange={e=>setDraft(d=>({...d,amount:e.target.value}))}/></div>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Currency</div><Sel value={draft.currency} onChange={e=>setDraft(d=>({...d,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <Btn variant="sage" onClick={()=>{onCreatePO({...draft,amount:Number(draft.amount)||0});reset();}}>Create Purchase Order</Btn>
+          <Btn variant="ghost" onClick={reset}>Cancel</Btn>
+        </div>
+      </div>}
+    </div>
+  );
+}
 function ScriptUploader({project,onApplyBudget}){
   const{t}=useLang();
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[result,setResult]=useState(null);const fr=useRef();
@@ -2053,6 +1985,57 @@ const reconReportPDF=(advances,reconEntries,project)=>{
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 
+function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,onDeletePO}){
+  const{t:tr}=useLang();
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const pPOs=purchaseOrders.filter(po=>po.project_id===project.id);
+  const activeDepts=[...new Set(items.filter(i=>i.dept).map(i=>i.dept))];
+  const deptBudget=dept=>items.filter(i=>i.dept===dept).reduce((s,i)=>s+lTot(i),0);
+  const deptCommitted=dept=>pPOs.filter(po=>po.dept===dept).reduce((s,po)=>s+Number(po.amount||0),0);
+  const statusColor=st=>st==='Paid'?T.sage:st==='Approved'?T.gold:T.dim;
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Purchase Orders — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Drop in an invoice — NKÒ drafts the PO and plots it against what's left in that department.</div></div>
+      <InvoiceUploader project={project} onCreatePO={draft=>onCreatePO({...draft,project_id:project.id})}/>
+      {activeDepts.length>0&&<div style={{marginBottom:20}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Departmental Allowance</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
+          {activeDepts.map(dept=>{
+            const budget=deptBudget(dept);const committed=deptCommitted(dept);const remaining=budget-committed;
+            const pct=budget>0?Math.min(100,(committed/budget)*100):0;
+            return(
+              <div key={dept} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:12}}>
+                <div style={{color:T.cream,fontSize:12,fontWeight:600,marginBottom:6}}>{dept}</div>
+                <div style={{height:5,borderRadius:3,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:remaining<0?T.coral:pct>85?T.gold:T.sage}}/></div>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim}}>
+                  <span>Committed {fmt(committed)}</span>
+                  <span style={{color:remaining<0?T.coral:T.dim,fontWeight:remaining<0?700:400}}>{remaining<0?`Over by ${fmt(Math.abs(remaining))}`:`${fmt(remaining)} left`}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>}
+      <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>All Purchase Orders ({pPOs.length})</div>
+      {pPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No purchase orders yet — drop in an invoice above to create your first one.</div></div>:
+      pPOs.slice().reverse().map(po=>(
+        <div key={po.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <div>
+            <div style={{color:T.cream,fontSize:13,fontWeight:600}}>{po.vendor||'Unnamed vendor'} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {po.dept}</span></div>
+            <div style={{color:T.dim,fontSize:11,marginTop:2}}>{po.description}</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(po.currency)}{fmt(po.amount)}</span>
+            <Sel value={po.status} onChange={e=>onUpdatePO(po.id,{status:e.target.value})} style={{fontSize:11,padding:'4px 6px',color:statusColor(po.status),borderColor:statusColor(po.status)}}>
+              <option>Pending</option><option>Approved</option><option>Paid</option>
+            </Sel>
+            <button onClick={()=>{if(window.confirm('Delete this purchase order?'))onDeletePO(po.id);}} style={{background:'none',border:'none',color:T.faint,cursor:'pointer'}}>✕</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
@@ -2467,443 +2450,6 @@ function CastTierLegend({project,pScenes,characters,onSaveCharacter}){
     </div>
   );
 }
-function LocationColorPanel({project,locations}){
-  const[open,setOpen]=useState(false);const[map,setMap]=useState({});
-  useEffect(()=>{if(!project)return;try{setMap(JSON.parse(localStorage.getItem(`nko_schedcolors_${project.id}`)||'{}'));}catch{}},[project?.id]);
-  const setColor=(loc,idx)=>{const nm={...map,[loc]:idx};setMap(nm);localStorage.setItem(`nko_schedcolors_${project.id}`,JSON.stringify(nm));};
-  return(
-    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
-      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}>🎨 Location colours <span style={{color:T.dim,fontSize:11}}>— pick which colour each location uses</span></span>
-        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
-      </button>
-      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:14,display:'flex',flexDirection:'column',gap:8}}>
-        {locations.map(loc=>{const idx=map[loc]!=null?map[loc]:Math.abs([...loc].reduce((h,c)=>h+c.charCodeAt(0),0))%LOCATION_PALETTE.length;
-        return(<div key={loc} style={{display:'flex',alignItems:'center',gap:10}}>
-          <span style={{fontSize:11,color:T.cream,fontFamily:'Manrope,sans-serif',minWidth:140}}>{loc}</span>
-          <div style={{display:'flex',gap:5}}>{LOCATION_PALETTE.map((c,i)=><button key={i} onClick={()=>setColor(loc,i)} style={{width:20,height:20,borderRadius:5,background:c.bg,border:idx===i?`2px solid ${T.gold}`:'2px solid transparent',cursor:'pointer'}}/>)}</div>
-        </div>);})}
-        {!locations.length&&<div style={{fontSize:12,color:T.dim}}>No locations found yet — add scenes in Breakdown first.</div>}
-      </div>}
-    </div>
-  );
-}
-function locationColor(project,loc){
-  let map={};try{map=JSON.parse(localStorage.getItem(`nko_schedcolors_${project.id}`)||'{}');}catch{}
-  const idx=map[loc]!=null?map[loc]:Math.abs([...loc].reduce((h,c)=>h+c.charCodeAt(0),0))%LOCATION_PALETTE.length;
-  return LOCATION_PALETTE[idx];
-}
-const CALLSHEET_FIELDS=[
-  ['crew',[['execProducer','Executive Producer'],['producer','Producer'],['director','Director'],['prodManager','Production Manager'],['ad1','1st Assistant Director'],['ad2','2nd Assistant Director'],['dp','Director of Photography'],['camOp','Camera Operator'],['ac1','1st AC'],['keyGrip','Key Grip'],['gaffer','Gaffer'],['scriptSup','Script Supervisor'],['sound','Sound'],['unitManager','Unit Manager'],['dit','DIT'],['costumeDesigner','Costume Designer'],['artDirector','Art Director'],['hmu','HMU / SFX']]],
-  ['times',[['crewCall','Crew Call'],['shootingCall','Shooting Call'],['estWrap','Est. Wrap'],['artCall','Art Department Call'],['hmuCall','HMU / Wardrobe Call'],['crewPickup','Crew Pickup From Base'],['castCall','Cast Member Call']]],
-  ['location',[['locationName','Location Name'],['locationAddress','Address'],['unit','Unit'],['sunrise','Sunrise'],['sunset','Sunset'],['weather','Weather'],['nearestHospital','Nearest Hospital']]],
-];
-const NOTE_CATEGORIES=[['safetyNotes','Safety'],['cameraNotes','Camera'],['wardrobeNotes','Wardrobe'],['cateringNotes','Catering & Welfare']];
-/* NKÒ's own call sheet identity — deliberately its own dark navy/violet palette, distinct
-   from the app's gold Charcoal Noir, per the standalone reference design. */
-const CS={bg:T.ink,panel:T.panel,panel2:T.hi,line:T.line,accent:T.gold,accentDim:T.goldDim,text:T.cream,dim:T.dim};
-function CallSheetModal({project,day,scenes,characters,onClose}){
-  const key=`nko_callsheet_${project.id}_${day.id}`;
-  const[info,setInfo]=useState({});const[castTimes,setCastTimes]=useState({});
-  useEffect(()=>{try{const s=JSON.parse(localStorage.getItem(key)||'{}');setInfo(s.info||{});setCastTimes(s.castTimes||{});}catch{}},[key]);
-  const set=(k,v)=>setInfo(p=>({...p,[k]:v}));
-  const setBgCall=(sceneId,v)=>setInfo(p=>({...p,bgCallTimes:{...(p.bgCallTimes||{}),[sceneId]:v}}));
-  const setCast=(name,field,v)=>setCastTimes(p=>({...p,[name]:{...(p[name]||{}),[field]:v}}));
-  const save=()=>{localStorage.setItem(key,JSON.stringify({info,castTimes}));};
-  const daySc=scenes.filter(s=>s.shootDayId===day.id);
-  const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
-  return(
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:640,width:'100%',maxHeight:'85vh',overflowY:'auto',padding:20}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream}}>Call Sheet — Day {day.dayNumber}</div>
-          <button onClick={onClose} style={{background:'none',border:'none',color:T.dim,fontSize:18,cursor:'pointer'}}>✕</button>
-        </div>
-        {CALLSHEET_FIELDS.map(([section,fields])=>(
-          <div key={section} style={{marginBottom:16}}>
-            <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>{section==='crew'?'Key Crew':section==='times'?'Call Times':'Location & Notes'}</div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:8}}>
-              {fields.map(([k,label])=><div key={k}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:3}}>{label}</div><Inp value={info[k]||''} onChange={e=>set(k,e.target.value)}/></div>)}
-            </div>
-          </div>
-        ))}
-        <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Notes by department</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:8}}>
-            {NOTE_CATEGORIES.map(([k,label])=><div key={k}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:3}}>{label}</div><textarea value={info[k]||''} onChange={e=>set(k,e.target.value)} rows={2} style={{width:'100%',background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'6px 8px',fontSize:12,fontFamily:'Manrope,sans-serif',resize:'vertical'}}/></div>)}
-          </div>
-        </div>
-        {cast.length>0&&<div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Cast Schedule</div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {cast.map(name=><div key={name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:10}}>
-              <div style={{color:T.cream,fontSize:12,marginBottom:6,fontFamily:'Manrope,sans-serif'}}>{name}</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))',gap:6}}>
-                {[['pickup','Pickup'],['depart','Depart'],['arrive','Arrive'],['makeup','Makeup'],['costume','Costume'],['onSet','On Set']].map(([f,l])=>
-                  <div key={f}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>{l}</div><Inp value={castTimes[name]?.[f]||''} onChange={e=>setCast(name,f,e.target.value)} style={{fontSize:11,padding:'4px 6px'}}/></div>
-                )}
-              </div>
-            </div>)}
-          </div>
-        </div>}
-        {daySc.some(s=>(s.talkingExtras||[]).length>0||s.backgroundActors>0)&&<div style={{marginBottom:16}}>
-          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Background & Extras Call</div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {daySc.filter(s=>(s.talkingExtras||[]).length>0||s.backgroundActors>0).map(s=><div key={s.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:10,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-              <div>
-                <div style={{color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif'}}>Scene {s.sceneNumber}</div>
-                <div style={{color:T.dim,fontSize:11}}>{(s.talkingExtras||[]).length>0?`Talking: ${s.talkingExtras.join(', ')}`:''}{(s.talkingExtras||[]).length>0&&s.backgroundActors>0?' · ':''}{s.backgroundActors>0?`${s.backgroundActors} background`:''}</div>
-              </div>
-              <div style={{width:110}}><div style={{fontSize:9,color:T.dim,marginBottom:2}}>Call time</div><Inp value={info.bgCallTimes?.[s.id]||''} onChange={e=>setBgCall(s.id,e.target.value)} style={{fontSize:11,padding:'4px 6px'}}/></div>
-            </div>)}
-          </div>
-        </div>}
-        <div style={{display:'flex',gap:8}}>
-          <Btn variant="sage" onClick={()=>{save();onClose();}}>Save</Btn>
-          <Btn variant="ghost" onClick={()=>{save();callSheetPDF(day,daySc,project,info,castTimes,characters);onClose();}}>📄 Save & Download PDF</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-const callSheetPDF=(day,daySc,project,info,castTimes,characters=[])=>{
-  const castNum=name=>{const i=characters.findIndex(ch=>ch.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
-  const totalExtras=daySc.reduce((s,sc)=>s+(sc.talkingExtras||[]).length,0);
-  const totalBg=daySc.reduce((s,sc)=>s+(sc.backgroundActors||0),0);
-  const headcountBanner=(totalExtras>0||totalBg>0)?`<div style="background:#1C1C1E;border:1px solid #FEED61;border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#F0E8D0;font-weight:700">Day total — ${totalExtras>0?`${totalExtras} talking extras`:''}${totalExtras>0&&totalBg>0?' · ':''}${totalBg>0?`${totalBg} background actors`:''} <span style="color:#9A9080;font-weight:400">(sum across today's scenes — plan catering/holding for peak scene, not necessarily this total)</span></div>`:'';
-  const sceneCards=daySc.map(s=>{const loc=parseLocation(s.heading);
-    const hasExtras=(s.talkingExtras||[]).length>0||s.backgroundActors>0;
-    const bgCall=info.bgCallTimes?.[s.id];
-    const headcountLine=hasExtras?`<div style="color:#FEED61;font-size:10px;margin-top:3px">${(s.talkingExtras||[]).length>0?`Talking: ${s.talkingExtras.map(escapeHtml).join(', ')}`:''}${(s.talkingExtras||[]).length>0&&s.backgroundActors>0?' · ':''}${s.backgroundActors>0?`${s.backgroundActors} background`:''}${bgCall?` · Call ${escapeHtml(bgCall)}`:''}</div>`:'';
-    return`<div style="background:#1C1C1E;border-left:3px solid #FEED61;border-radius:8px;padding:10px 14px;margin-bottom:8px">
-      <div style="color:#FEED61;font-family:monospace;font-size:11px;margin-bottom:4px">SC ${escapeHtml(s.sceneNumber)}</div>
-      <div style="color:#F0E8D0;font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(s.intExt)} · ${escapeHtml(loc)} · ${escapeHtml(s.dayNight)}</div>
-      ${s.synopsis?`<div style="color:#9A9080;font-size:12px;margin-bottom:6px">${escapeHtml(s.synopsis)}</div>`:''}
-      <div style="color:#9A9080;font-size:10px">Cast: ${(s.cast||[]).map(n=>`${castNum(n)} ${escapeHtml(n)}`).join(', ')||'—'}</div>
-      ${headcountLine}
-    </div>`;
-  }).join('');
-  const castRows=Object.keys(castTimes).length?Object.entries(castTimes).map(([name,t])=>
-    `<div style="background:#1C1C1E;border-radius:8px;padding:8px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
-      <span style="background:#FEED61;color:#141414;width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${castNum(name)}</span>
-      <span style="flex:1;color:#F0E8D0;font-size:12px;font-weight:600">${escapeHtml(name)}</span>
-      <span style="color:#9A9080;font-size:11px;font-family:monospace">Pickup ${escapeHtml(t?.pickup||'—')}</span>
-      <span style="color:#9A9080;font-size:11px;font-family:monospace">On set ${escapeHtml(t?.onSet||'—')}</span>
-    </div>`).join(''):'';
-  const noteCards=NOTE_CATEGORIES.filter(([k])=>info[k]).map(([k,label])=>
-    `<div style="background:#1C1C1E;border-radius:8px;padding:8px 14px;margin-bottom:6px">
-      <div style="color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">${escapeHtml(label)}</div>
-      <div style="color:#F0E8D0;font-size:12px">${escapeHtml(info[k])}</div>
-    </div>`).join('');
-  const crewRows=CALLSHEET_FIELDS[0][1].filter(([k])=>info[k]).map(([k,label])=>`<tr><td style="padding:3px 10px;font-size:11px;color:#9A9080">${escapeHtml(label)}</td><td style="padding:3px 10px;font-size:11px;font-weight:600;color:#F0E8D0">${escapeHtml(info[k])}</td></tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><title>Call Sheet — Day ${escapeHtml(day.dayNumber)}</title></head><body style="margin:0;font-family:Arial,sans-serif;background:#141414;padding:24px;color:#F0E8D0">
-    <div style="color:#FEED61;font-family:Georgia,serif;font-size:16px;font-weight:700">NKÒ</div>
-    <div style="color:#9A9080;font-size:12px;margin-bottom:14px">Call sheet · Day ${escapeHtml(day.dayNumber)}</div>
-    <div style="font-size:20px;font-weight:700;margin-bottom:2px">${escapeHtml(project.name)} — Call Sheet</div>
-    <div style="color:#9A9080;font-size:12px;margin-bottom:16px">${escapeHtml(day.date||'Date TBC')} · Day ${escapeHtml(day.dayNumber)}</div>
-    <div style="background:#1C1C1E;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;gap:24px">
-      <div><div style="color:#9A9080;font-size:9px;text-transform:uppercase">Crew Call</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.crewCall||'—')}</div></div>
-      <div><div style="color:#9A9080;font-size:9px;text-transform:uppercase">Shooting Call</div><div style="font-size:16px;font-weight:700;color:#FEED61">${escapeHtml(info.shootingCall||'—')}</div></div>
-      <div><div style="color:#9A9080;font-size:9px;text-transform:uppercase">Est. Wrap</div><div style="font-size:16px;font-weight:700">${escapeHtml(info.estWrap||'—')}</div></div>
-    </div>
-    ${info.locationName||info.locationAddress?`<div style="background:#1C1C1E;border-radius:10px;padding:12px 14px;margin-bottom:14px"><div style="color:#9A9080;font-size:9px;text-transform:uppercase;margin-bottom:3px">Base Camp</div><div style="font-weight:700;font-size:13px">${escapeHtml(info.locationName)}</div><div style="color:#9A9080;font-size:11px">${escapeHtml(info.locationAddress)}</div>${info.nearestHospital?`<div style="color:#9A9080;font-size:11px;margin-top:6px">Nearest hospital: ${escapeHtml(info.nearestHospital)}</div>`:''}</div>`:''}
-    ${crewRows?`<table style="border-collapse:collapse;margin-bottom:14px">${crewRows}</table>`:''}
-    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Schedule</div>
-    ${headcountBanner}
-    ${sceneCards||'<div style="color:#9A9080;font-size:12px">No scenes assigned.</div>'}
-    ${castRows?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Cast</div>${castRows}`:''}
-    ${noteCards?`<div style="font-weight:700;font-size:13px;margin:16px 0 8px">Notes</div>${noteCards}`:''}
-    <div class="np" style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#FEED61;color:#141414;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button></div>
-  </body></html>`;
-  const w=window.open('','_blank');w.document.write(html);w.document.close();
-};
-function CallSheetView({project,day,allDays,scenes,characters,onEdit,onDownload,onClose,onSwitchDay}){
-  const[tab,setTab]=useState('schedule');
-  const key=`nko_callsheet_${project.id}_${day.id}`;
-  const[info,setInfo]=useState({});const[castTimes,setCastTimes]=useState({});
-  useEffect(()=>{try{const s=JSON.parse(localStorage.getItem(key)||'{}');setInfo(s.info||{});setCastTimes(s.castTimes||{});}catch{}},[key]);
-  const daySc=scenes.filter(s=>s.shootDayId===day.id);
-  const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
-  const castNum=name=>{const i=characters.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
-  const sortedDays=[...allDays].sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
-  const tabBtn=(id,label)=><button onClick={()=>setTab(id)} style={{flex:1,padding:'8px 0',background:tab===id?CS.accent:'transparent',color:tab===id?T.ink:CS.text,border:`1px solid ${tab===id?CS.accent:CS.line}`,borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer'}}>{label}</button>;
-  return(
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.7)',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div style={{background:CS.bg,border:`1px solid ${CS.line}`,borderRadius:16,maxWidth:460,width:'100%',maxHeight:'88vh',overflowY:'auto',padding:18,fontFamily:'Manrope,sans-serif'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
-          <div>
-            <div style={{color:CS.accent,fontFamily:'Fraunces,serif',fontSize:16,fontWeight:700}}>NKÒ</div>
-            <div style={{color:CS.dim,fontSize:11}}>Call sheet · Day {day.dayNumber}</div>
-          </div>
-          <button onClick={onClose} style={{background:'none',border:'none',color:CS.dim,fontSize:18,cursor:'pointer'}}>✕</button>
-        </div>
-        {sortedDays.length>1&&<div style={{display:'flex',gap:6,marginBottom:14,overflowX:'auto'}}>
-          {sortedDays.map(d=><button key={d.id} onClick={()=>onSwitchDay(d)} style={{flex:'0 0 auto',minWidth:44,textAlign:'center',padding:'6px 8px',borderRadius:8,background:d.id===day.id?CS.accent:CS.panel,border:`1px solid ${d.id===day.id?CS.accent:CS.line}`,cursor:'pointer'}}>
-            <div style={{fontSize:9,color:d.id===day.id?T.ink:CS.dim,textTransform:'uppercase'}}>{d.date?new Date(d.date).toLocaleDateString('en',{weekday:'short'}):`Day`}</div>
-            <div style={{fontSize:13,color:d.id===day.id?T.ink:CS.text,fontWeight:700}}>{d.dayNumber}</div>
-          </button>)}
-        </div>}
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
-          <div>
-            <div style={{color:CS.text,fontSize:18,fontWeight:700}}>Call Sheet</div>
-            <div style={{color:CS.dim,fontSize:11}}>{day.date||'Date TBC'} · Day {day.dayNumber} of {sortedDays.length}</div>
-          </div>
-          {info.unit&&<span style={{background:CS.panel2,color:CS.accent,fontSize:10,fontWeight:700,padding:'4px 10px',borderRadius:6,border:`1px solid ${CS.accent}`}}>{info.unit}</span>}
-        </div>
-        <div style={{background:CS.panel,border:`1px solid ${CS.line}`,borderRadius:10,overflow:'hidden',marginBottom:8}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr'}}>
-            {[['Crew Call','crewCall',CS.text],['Shooting Call','shootingCall',CS.accent],['Est. Wrap','estWrap',CS.text]].map(([label,k,color],i)=>
-              <div key={k} style={{padding:'10px 12px',borderLeft:i>0?`1px solid ${CS.line}`:'none'}}>
-                <div style={{fontSize:9,color:CS.dim,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:4}}>{label}</div>
-                <div style={{fontSize:15,color,fontFamily:'IBM Plex Mono,monospace',fontWeight:600}}>{info[k]||'—'}</div>
-              </div>
-            )}
-          </div>
-          {(info.sunrise||info.sunset||info.weather)&&<div style={{borderTop:`1px solid ${CS.line}`,padding:'6px 12px',fontSize:11,color:CS.dim,display:'flex',gap:14}}>
-            {info.sunrise&&<span>↑ {info.sunrise}</span>}{info.sunset&&<span>↓ {info.sunset}</span>}{info.weather&&<span>{info.weather}</span>}
-          </div>}
-        </div>
-        {(info.locationName||info.locationAddress)&&<div style={{background:CS.panel,border:`1px solid ${CS.line}`,borderRadius:10,padding:'10px 12px',marginBottom:14}}>
-          <div style={{fontSize:9,color:CS.dim,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:3}}>Base Camp</div>
-          <div style={{color:CS.text,fontSize:13,fontWeight:700}}>{info.locationName}</div>
-          <div style={{color:CS.dim,fontSize:11}}>{info.locationAddress}</div>
-          {info.nearestHospital&&<div style={{borderTop:`1px solid ${CS.line}`,marginTop:8,paddingTop:8,display:'flex',justifyContent:'space-between',fontSize:11}}><span style={{color:CS.dim}}>Nearest hospital</span><span style={{color:CS.text}}>{info.nearestHospital}</span></div>}
-        </div>}
-        <div style={{display:'flex',gap:6,marginBottom:12}}>{tabBtn('schedule','Schedule')}{tabBtn('cast','Cast')}{tabBtn('notes','Notes')}</div>
-        {tab==='schedule'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {(()=>{const totalExtras=daySc.reduce((s,sc)=>s+(sc.talkingExtras||[]).length,0);const totalBg=daySc.reduce((s,sc)=>s+(sc.backgroundActors||0),0);
-          return(totalExtras>0||totalBg>0)&&<div style={{background:CS.panel2,border:`1px solid ${CS.accent}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:CS.text,fontWeight:600}}>
-            Day total — {totalExtras>0?`${totalExtras} talking extras`:''}{totalExtras>0&&totalBg>0?' · ':''}{totalBg>0?`${totalBg} background actors`:''} <span style={{color:CS.dim,fontWeight:400}}>(sum across today's scenes — plan catering/holding for peak scene, not necessarily this total)</span>
-          </div>;})()}
-          {daySc.map(s=>{const loc=parseLocation(s.heading);const bgCall=info.bgCallTimes?.[s.id];const hasExtras=(s.talkingExtras||[]).length>0||s.backgroundActors>0;return(
-            <div key={s.id} style={{background:CS.panel,borderLeft:`3px solid ${CS.accent}`,borderRadius:8,padding:'8px 12px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:CS.accent,fontFamily:'IBM Plex Mono,monospace',marginBottom:4}}><span>SC {s.sceneNumber}</span>{bgCall&&<span>Extras call {bgCall}</span>}</div>
-              <div style={{color:CS.text,fontSize:12,fontWeight:600,marginBottom:2}}>{s.intExt} · {loc} · {s.dayNight}</div>
-              {s.synopsis&&<div style={{color:CS.dim,fontSize:11,marginBottom:6}}>{s.synopsis}</div>}
-              <div style={{fontSize:10,color:CS.dim}}>Cast: {(s.cast||[]).map(n=>`${castNum(n)} ${n}`).join(', ')||'—'}</div>
-              {hasExtras&&<div style={{fontSize:10,color:CS.accent,marginTop:3}}>{(s.talkingExtras||[]).length>0?`Talking: ${s.talkingExtras.join(', ')}`:''}{(s.talkingExtras||[]).length>0&&s.backgroundActors>0?' · ':''}{s.backgroundActors>0?`${s.backgroundActors} background`:''}</div>}
-            </div>
-          );})}
-          {!daySc.length&&<div style={{color:CS.dim,fontSize:12,textAlign:'center',padding:20}}>No scenes assigned to this day.</div>}
-        </div>}
-        {tab==='cast'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
-          <div style={{display:'flex',fontSize:9,color:CS.dim,textTransform:'uppercase',letterSpacing:'0.04em',padding:'0 12px'}}><span style={{flex:1}}>Cast</span><span style={{width:60,textAlign:'right'}}>Pickup</span><span style={{width:60,textAlign:'right'}}>On Set</span></div>
-          {cast.map(name=><div key={name} style={{background:CS.panel,borderRadius:8,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
-            <span style={{background:CS.accent,color:T.ink,width:20,height:20,borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{castNum(name)}</span>
-            <span style={{flex:1,color:CS.text,fontSize:12,fontWeight:600}}>{name}</span>
-            <span style={{width:60,textAlign:'right',color:CS.dim,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{castTimes[name]?.pickup||'—'}</span>
-            <span style={{width:60,textAlign:'right',color:CS.dim,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{castTimes[name]?.onSet||'—'}</span>
-          </div>)}
-          {!cast.length&&<div style={{color:CS.dim,fontSize:12,textAlign:'center',padding:20}}>No cast assigned to this day.</div>}
-        </div>}
-        {tab==='notes'&&<div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {NOTE_CATEGORIES.filter(([k])=>info[k]).map(([k,label])=><div key={k} style={{background:CS.panel,borderRadius:8,padding:'10px 12px'}}>
-            <div style={{fontSize:9,color:CS.accent,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>{label}</div>
-            <div style={{color:CS.text,fontSize:12}}>{info[k]}</div>
-          </div>)}
-          {!NOTE_CATEGORIES.some(([k])=>info[k])&&<div style={{color:CS.dim,fontSize:12,textAlign:'center',padding:20}}>No notes added yet.</div>}
-        </div>}
-        <div style={{display:'flex',gap:8,marginTop:16}}>
-          <button onClick={onEdit} style={{flex:1,background:CS.panel,border:`1px solid ${CS.line}`,color:CS.text,borderRadius:8,padding:'10px 0',fontSize:12,fontWeight:600,cursor:'pointer'}}>✏️ Edit</button>
-          <button onClick={onDownload} style={{flex:1,background:CS.accent,border:'none',color:T.ink,borderRadius:8,padding:'10px 0',fontSize:12,fontWeight:600,cursor:'pointer'}}>📄 Download PDF</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-function SchedulesView({project,scenes,shootDays,characters,onUpdateScene,onAddDay,onUpdateDay,onDeleteDay,onGoToBreakdown,onSaveCharacter}){
-  const mobile=useIsMobile();
-  const[newDate,setNewDate]=useState('');
-  const[callSheetDay,setCallSheetDay]=useState(null);
-  const[editingDay,setEditingDay]=useState(null);
-  const[autoScheduling,setAutoScheduling]=useState(false);
-  const[autoErr,setAutoErr]=useState('');
-  const[dragSceneId,setDragSceneId]=useState(null);
-  const[dragOverDay,setDragOverDay]=useState(null);
-  const[expandedScene,setExpandedScene]=useState(null);
-  const[expandedDay,setExpandedDay]=useState(null);
-  const pScenes=scenes.filter(s=>s.project_id===project?.id);
-  const pDays=shootDays.filter(d=>d.project_id===project?.id).sort((a,b)=>(a.dayNumber||0)-(b.dayNumber||0));
-  const unscheduled=pScenes.filter(s=>!s.shootDayId);
-  const locations=[...new Set(pScenes.map(s=>parseLocation(s.heading)))];
-  const castList=project?getCastTiers(project,pScenes,characters).ordered.map(name=>({id:name,name})):[];
-  const castNum=name=>{const i=castList.findIndex(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());return i>=0?i+1:'—';};
-  const addDay=()=>{onAddDay({dayNumber:pDays.length+1,date:newDate||''});setNewDate('');};
-  const[targetDays,setTargetDays]=useState('');
-  const clearSchedule=async()=>{
-    for(const d of pDays)await onDeleteDay(d.id);
-  };
-  const autoSchedule=async()=>{
-    setAutoScheduling(true);setAutoErr('');
-    try{
-      const sceneSummary=unscheduled.map(s=>({sceneNumber:s.sceneNumber,location:parseLocation(s.heading),intExt:s.intExt,dayNight:s.dayNight,cast:s.cast||[]}));
-      const typeNote=`Production type: ${project.type||'Unspecified'}.\n\n`;
-      const targetNote=targetDays?`\n\nTarget: fit this into ${targetDays} shoot day(s). Treat this as a hard ceiling.`:'';
-      const raw=await callClaude([{role:'user',content:typeNote+JSON.stringify(sceneSummary)+targetNote}],SCHEDULE_SYS,16000);
-      const groups=recoverDayGroups(raw);
-      if(!groups||!groups.length)throw new Error('Could not read a grouping from the response. Try again.');
-      let dayNum=pDays.length;
-      for(const group of groups){
-        dayNum+=1;
-        const dayId=await onAddDay({dayNumber:dayNum,date:''});
-        if(!dayId)continue;
-        for(const sceneNum of group){
-          const scene=unscheduled.find(s=>String(s.sceneNumber)===String(sceneNum));
-          if(scene)await onUpdateScene(scene.id,{shootDayId:dayId});
-        }
-      }
-    }catch(e){setAutoErr(e.message);}
-    setAutoScheduling(false);
-  };
-  const assign=(sceneId,dayId)=>{onUpdateScene(sceneId,{shootDayId:dayId});setExpandedScene(null);setDragSceneId(null);setDragOverDay(null);};
-  if(!project)return<div style={{color:T.dim}}>Select a production first.</div>;
-
-  const autoBar=(
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8,marginBottom:8}}>
-      <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Unscheduled ({unscheduled.length})</span>
-      <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-        {pDays.length>0&&<button onClick={()=>{if(window.confirm(`Clear all ${pDays.length} shoot day(s)? Scenes go back to Unscheduled — nothing is deleted from your breakdown.`))clearSchedule();}} style={{background:'none',border:`1px solid ${T.line}`,color:T.dim,fontSize:11,padding:'5px 10px',borderRadius:6,cursor:'pointer'}}>🗑️ Clear all days</button>}
-        {unscheduled.length>0&&<div style={{display:'flex',gap:6,alignItems:'center'}}>
-          <input type="number" min="1" placeholder="days" value={targetDays} onChange={e=>setTargetDays(e.target.value)} style={{width:56,background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,fontSize:11,padding:'5px 6px'}}/>
-          <Btn size="sm" variant="sage" onClick={autoSchedule} disabled={autoScheduling}>{autoScheduling?'Scheduling…':'🪄 Auto-schedule with AI'}</Btn>
-        </div>}
-      </div>
-    </div>
-  );
-
-  return(
-    <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14,flexWrap:'wrap',gap:10}}>
-        <div><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Schedules — {project.name}</div><div style={{color:T.dim,fontSize:13,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Shooting schedule, built from your breakdown</div></div>
-        {pDays.length>0&&<ExportMenu onPdf={()=>schedulePDF(pDays,pScenes,project,castList)} onExcel={()=>scheduleExcel(pDays,pScenes,project,castList)} getPreview={()=>schedulePreview(pDays,pScenes,project)}/>}
-      </div>
-      {castList.length>0&&<CastTierLegend project={project} pScenes={pScenes} characters={characters} onSaveCharacter={onSaveCharacter}/>}
-      <LocationColorPanel project={project} locations={locations}/>
-      {pScenes.length===0?(
-        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:36,textAlign:'center',marginBottom:16}}>
-          <div style={{fontSize:30,marginBottom:10}}>🎬</div>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>No scenes yet</div>
-          <div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',marginBottom:16}}>Schedules is built from your script breakdown — upload or build a breakdown first, then come back here to schedule it.</div>
-          <Btn onClick={onGoToBreakdown}>Go to Breakdown</Btn>
-        </div>
-      ):mobile?(
-        /* ---- MOBILE: single column, tap to expand, no drag ---- */
-        <>
-          <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
-            {autoBar}
-            {autoErr&&<div style={{color:T.coral,fontSize:11,marginBottom:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
-              {unscheduled.map(s=>{const open=expandedScene===s.id;return(
-                <div key={s.id} style={{background:T.hi,border:open?`1px solid ${T.gold}`:'1px solid transparent',borderRadius:8,overflow:'hidden'}}>
-                  <button onClick={()=>setExpandedScene(open?null:s.id)} style={{width:'100%',background:'none',border:'none',padding:'8px 10px',display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}}>
-                    <span style={{fontSize:12,color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber} <span style={{fontFamily:'Manrope,sans-serif',fontWeight:600}}>{parseLocation(s.heading)}</span> <span style={{color:T.dim}}>· {s.dayNight}</span></span>
-                    <span style={{color:open?T.gold:T.dim,fontSize:13}}>{open?'⌄':'›'}</span>
-                  </button>
-                  {open&&<div style={{background:T.panel,padding:'8px 10px',display:'flex',gap:6,flexWrap:'wrap'}}>
-                    {pDays.map(d=><button key={d.id} onClick={()=>assign(s.id,d.id)} style={{background:T.ink,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'5px 10px',fontSize:11,cursor:'pointer'}}>Day {d.dayNumber}</button>)}
-                    <button onClick={async()=>{const id=await onAddDay({dayNumber:pDays.length+1,date:''});if(id)assign(s.id,id);}} style={{background:T.ink,color:T.gold,border:`1px solid ${T.gold}`,borderRadius:6,padding:'5px 10px',fontSize:11,cursor:'pointer'}}>+ New day</button>
-                  </div>}
-                </div>
-              );})}
-              {!unscheduled.length&&<span style={{fontSize:11,color:T.dim}}>All scenes scheduled.</span>}
-            </div>
-          </div>
-          {pDays.map(day=>{
-            const daySc=pScenes.filter(s=>s.shootDayId===day.id);
-            const open=expandedDay===day.id;
-            return(
-              <div key={day.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:10,overflow:'hidden'}}>
-                <button onClick={()=>setExpandedDay(open?null:day.id)} style={{width:'100%',background:'none',border:'none',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'baseline',cursor:'pointer'}}>
-                  <span style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>Day {day.dayNumber} {day.date&&<span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{day.date}</span>}</span>
-                  <span style={{color:T.dim,fontSize:11}}>{daySc.length} scene{daySc.length!==1?'s':''} {open?'⌄':'›'}</span>
-                </button>
-                {!open&&daySc.length>0&&<div style={{padding:'0 14px 10px',color:T.dim,fontSize:11}}>{daySc.map(s=>`#${s.sceneNumber}`).join(' · ')}</div>}
-                {open&&<div style={{borderTop:`1px solid ${T.line}`}}>
-                  {daySc.map(s=>{const loc=parseLocation(s.heading);return(
-                    <div key={s.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 14px',borderBottom:`1px solid ${T.line}`}}>
-                      <span style={{fontSize:11,color:T.cream}}>#{s.sceneNumber} {loc} · {s.dayNight}</span>
-                      <button onClick={()=>onUpdateScene(s.id,{shootDayId:null})} style={{background:'none',border:'none',color:T.faint,cursor:'pointer',fontSize:12}}>✕</button>
-                    </div>
-                  );})}
-                  {!daySc.length&&<div style={{padding:'10px 14px',color:T.dim,fontSize:11}}>No scenes assigned yet.</div>}
-                  <div style={{display:'flex',gap:14,padding:'8px 14px'}}>
-                    <button onClick={()=>setCallSheetDay(day)} style={{background:'none',border:'none',color:T.gold,fontSize:11,cursor:'pointer',fontWeight:700}}>📋 Call Sheet</button>
-                    <button onClick={()=>onDeleteDay(day.id)} style={{background:'none',border:'none',color:T.faint,fontSize:11,cursor:'pointer'}}>Delete day</button>
-                  </div>
-                </div>}
-              </div>
-            );
-          })}
-          <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:14,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-            <Inp type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{width:160}}/>
-            <Btn size="sm" variant="sage" onClick={addDay}>+ Add shoot day {pDays.length+1}</Btn>
-          </div>
-        </>
-      ):(
-        /* ---- DESKTOP: drag and drop board ---- */
-        <>
-          <div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16}}>
-            {autoBar}
-            {autoErr&&<div style={{color:T.coral,fontSize:11,marginBottom:6,fontFamily:'Manrope,sans-serif'}}>{autoErr}</div>}
-            <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
-              {unscheduled.map(s=>(
-                <div key={s.id} draggable onDragStart={()=>setDragSceneId(s.id)} onDragEnd={()=>setDragSceneId(null)}
-                  style={{flex:'0 0 auto',background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 10px',minWidth:120,cursor:'grab',opacity:dragSceneId===s.id?0.4:1}}>
-                  <div style={{color:T.gold,fontSize:10,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber}</div>
-                  <div style={{color:T.cream,fontSize:11,fontWeight:600,marginTop:2}}>{parseLocation(s.heading)}</div>
-                  <div style={{color:T.dim,fontSize:10}}>{s.dayNight}</div>
-                </div>
-              ))}
-              {!unscheduled.length&&<span style={{fontSize:11,color:T.dim}}>All scenes scheduled.</span>}
-            </div>
-          </div>
-          <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:8,alignItems:'flex-start'}}>
-            {pDays.map(day=>{
-              const daySc=pScenes.filter(s=>s.shootDayId===day.id);
-              const cast=[...new Set(daySc.flatMap(s=>s.cast||[]))];
-              const isOver=dragOverDay===day.id;
-              return(
-                <div key={day.id}
-                  onDragOver={e=>{e.preventDefault();setDragOverDay(day.id);}}
-                  onDragLeave={()=>setDragOverDay(p=>p===day.id?null:p)}
-                  onDrop={e=>{e.preventDefault();if(dragSceneId)assign(dragSceneId,day.id);}}
-                  style={{flex:'0 0 240px',background:T.panel,border:`1px solid ${isOver?T.gold:T.line}`,borderRadius:10,overflow:'hidden'}}>
-                  <div style={{background:'#2a1414',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{color:T.cream,fontFamily:'Fraunces,serif',fontSize:13}}>Day {day.dayNumber}{day.date&&<div style={{color:'#cc9999',fontSize:10,fontFamily:'Manrope,sans-serif'}}>{day.date}</div>}</div>
-                  </div>
-                  <div style={{minHeight:80,padding:8}}>
-                    {daySc.map(s=>{const loc=parseLocation(s.heading);return(
-                      <div key={s.id} draggable onDragStart={()=>setDragSceneId(s.id)} onDragEnd={()=>setDragSceneId(null)}
-                        style={{background:T.hi,borderLeft:`3px solid ${T.gold}`,borderRadius:6,padding:'6px 8px',marginBottom:6,cursor:'grab',opacity:dragSceneId===s.id?0.4:1,display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
-                        <div>
-                          <div style={{color:T.gold,fontSize:10,fontFamily:'IBM Plex Mono,monospace'}}>#{s.sceneNumber}</div>
-                          <div style={{color:T.cream,fontSize:11,fontWeight:600}}>{loc} · {s.dayNight}</div>
-                          <div style={{color:T.dim,fontSize:10}}>{(s.cast||[]).map(castNum).join(', ')||'—'}</div>
-                        </div>
-                        <button onClick={()=>onUpdateScene(s.id,{shootDayId:null})} style={{background:'none',border:'none',color:T.faint,cursor:'pointer',fontSize:11}}>✕</button>
-                      </div>
-                    );})}
-                    {!daySc.length&&<div style={{border:`2px dashed ${T.line}`,borderRadius:6,padding:'14px 8px',textAlign:'center',color:T.dim,fontSize:10}}>Drop a scene here</div>}
-                  </div>
-                  <div style={{padding:'6px 14px',borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <button onClick={()=>setCallSheetDay(day)} style={{background:'none',border:'none',color:T.gold,fontSize:10,cursor:'pointer',fontWeight:700}}>📋 Call Sheet</button>
-                    <button onClick={()=>onDeleteDay(day.id)} style={{background:'none',border:'none',color:T.faint,fontSize:10,cursor:'pointer'}}>Delete</button>
-                  </div>
-                </div>
-              );
-            })}
-            <div style={{flex:'0 0 90px',background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:120,gap:8,padding:10}}>
-              <Inp type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{fontSize:10,padding:'4px 6px'}}/>
-              <button onClick={addDay} style={{background:'none',border:`1px solid ${T.gold}`,color:T.gold,borderRadius:6,padding:'6px 10px',fontSize:16,cursor:'pointer'}}>+</button>
-            </div>
-          </div>
-        </>
-      )}
-      {callSheetDay&&<CallSheetView project={project} day={callSheetDay} allDays={pDays} scenes={pScenes} characters={castList} onEdit={()=>setEditingDay(callSheetDay)} onDownload={()=>{const key=`nko_callsheet_${project.id}_${callSheetDay.id}`;let s={};try{s=JSON.parse(localStorage.getItem(key)||'{}');}catch{}callSheetPDF(callSheetDay,pScenes.filter(sc=>sc.shootDayId===callSheetDay.id),project,s.info||{},s.castTimes||{},castList);}} onClose={()=>setCallSheetDay(null)} onSwitchDay={setCallSheetDay}/>}
-      {editingDay&&<CallSheetModal project={project} day={editingDay} scenes={pScenes} characters={castList} onClose={()=>setEditingDay(null)}/>}
-    </div>
-  );
-}
 function CastSummaryPanel({project,scenes,characters,onSaveCharacter}){
   const{t:tr}=useLang();
   const[open,setOpen]=useState(false);
@@ -2981,6 +2527,22 @@ function LocationsSummaryPanel({scenes}){
     </div>
   );
 }
+/* Estimated Shoot Days — replaces the old day-by-day scheduling apparatus (that's an AD's job,
+   not a producer's). This is deliberately a rough number, not a schedule: it exists to give
+   Budget a cost driver (crew day rates, location days) without pretending to plan a shoot. */
+const estimateShootDays=(scenes,projectType)=>{
+  const n=scenes.length;
+  if(!n)return null;
+  const distinctLocations=new Set(scenes.map(s=>parseLocation(s.heading))).size;
+  const scenesPerLocation=n/Math.max(distinctLocations,1);
+  // More scenes packed per location = fewer company moves = more shootable per day.
+  const baseScenesPerDay=scenesPerLocation>=3?5:scenesPerLocation>=1.5?4:3;
+  let raw=Math.ceil(n/baseScenesPerDay);
+  const bands={'Feature Film':[21,28],'Short Film':[2,4],'Vertical Series / Microdrama':[5,9]};
+  const band=bands[projectType];
+  if(band)raw=Math.min(Math.max(raw,band[0]),band[1]);
+  return raw;
+};
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene}){
   const{t:tr}=useLang();
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
@@ -2990,6 +2552,15 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?22:26,color:T.cream}}>{tr('breakdownHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div><div style={{marginTop:14}}><FS/></div></div>
+      {ps.length>0&&(()=>{const est=estimateShootDays(ps,project.type);return est&&(
+        <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+          <div>
+            <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Estimated Shoot Days</span>
+            <div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2}}>A rough guide from scene and location count — not a schedule. Use it to size crew day-rate and location-rental lines in Budget.</div>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:28,color:T.gold,fontWeight:700}}>{est} <span style={{fontSize:13,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:400}}>days</span></div>
+        </div>
+      );})()}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
       </div>
@@ -3074,7 +2645,7 @@ function MarketplaceView({onApplyTemplate}){
 function MainApp(){
   const{user,signOut}=useAuth();
   const[view,setView]=useState('dashboard');
-  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[shootDays,setShootDays]=useState([]);
+  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
@@ -3082,7 +2653,7 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py,sc,ch,sd]=await Promise.all([
+      const[pr,bi,ad,re,py,sc,ch,po]=await Promise.all([
         sb.from('projects').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
         sb.from('budget_items').select('*').eq('user_id',user.id),
         sb.from('advances').select('*').eq('user_id',user.id),
@@ -3090,12 +2661,12 @@ function MainApp(){
         sb.from('payees').select('*').eq('user_id',user.id),
         sb.from('scenes').select('*').eq('user_id',user.id),
         sb.from('characters').select('*').eq('user_id',user.id),
-        sb.from('shoot_days').select('*').eq('user_id',user.id),
+        sb.from('purchase_orders').select('*').eq('user_id',user.id),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
-      if(sd.data)setShootDays(sd.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
       if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
       if(ch.data)setCharacters(ch.data);
+      if(po.data)setPurchaseOrders(po.data);
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
@@ -3204,28 +2775,6 @@ function MainApp(){
     const{error}=await sb.from('scenes').delete().eq('id',id);
     if(error)alert(`Could not delete scene: ${error.message}`);
   };
-  /* Shoot day persistence — same JSONB 'data' pattern as scenes. Scene→day assignment is
-     just a shootDayId field on the scene itself, set via the existing updateScene function. */
-  const addShootDay=async d=>{
-    const id=Math.random().toString(36).slice(2,10);
-    const{data,error}=await sb.from('shoot_days').insert({id,project_id:currentId,user_id:user.id,data:d}).select().single();
-    if(error){alert(`Could not add shoot day: ${error.message}`);return null;}
-    if(data)setShootDays(p=>[...p,{...data.data,id:data.id,project_id:data.project_id}]);
-    return id;
-  };
-  const updateShootDay=async(id,upd)=>{
-    setShootDays(p=>p.map(d=>d.id===id?{...d,...upd}:d));
-    const merged=shootDays.find(d=>d.id===id);
-    const{id:_omit,project_id:_omit2,...rest}={...merged,...upd};
-    const{error}=await sb.from('shoot_days').update({data:rest}).eq('id',id);
-    if(error)alert(`Could not save shoot day changes: ${error.message}`);
-  };
-  const deleteShootDay=async id=>{
-    setShootDays(p=>p.filter(d=>d.id!==id));
-    scenes.filter(s=>s.shootDayId===id).forEach(s=>updateScene(s.id,{shootDayId:null}));
-    const{error}=await sb.from('shoot_days').delete().eq('id',id);
-    if(error)alert(`Could not delete shoot day: ${error.message}`);
-  };
   /* Character metadata (Age/Description, Role Notes) — upserts by project_id + name */
   const saveCharacterMeta=async(name,updates)=>{
     if(!currentId||!name)return;
@@ -3262,6 +2811,23 @@ function MainApp(){
     const{error}=await sb.from('payees').update({payments:newPayments}).eq('id',pid);
     if(error)alert(`Could not remove payment: ${error.message}`);
   };
+  const addPO=async po=>{
+    const id=Math.random().toString(36).slice(2,10);
+    const po_number=`PO-${String(purchaseOrders.length+1).padStart(4,'0')}`;
+    const{data,error}=await sb.from('purchase_orders').insert({id,po_number,...po,user_id:user.id}).select().single();
+    if(error){alert(`Could not create purchase order: ${error.message}`);return;}
+    if(data)setPurchaseOrders(p=>[...p,data]);
+  };
+  const updatePO=async(id,upd)=>{
+    setPurchaseOrders(p=>p.map(po=>po.id===id?{...po,...upd}:po));
+    const{error}=await sb.from('purchase_orders').update(upd).eq('id',id);
+    if(error)alert(`Could not update purchase order: ${error.message}`);
+  };
+  const deletePO=async id=>{
+    setPurchaseOrders(p=>p.filter(po=>po.id!==id));
+    const{error}=await sb.from('purchase_orders').delete().eq('id',id);
+    if(error)alert(`Could not delete purchase order: ${error.message}`);
+  };
 
   const pReconEntries=reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id));
 
@@ -3277,9 +2843,9 @@ function MainApp(){
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
-          {view==='workspace'&&<SchedulesView project={project} scenes={scenes} shootDays={shootDays} characters={characters.filter(c=>c.project_id===currentId)} onUpdateScene={updateScene} onAddDay={addShootDay} onUpdateDay={updateShootDay} onDeleteDay={deleteShootDay} onGoToBreakdown={()=>setView('breakdown')} onSaveCharacter={saveCharacterMeta}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
+          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
         </div>
@@ -3344,13 +2910,40 @@ function OnboardingScreen({onComplete}){
   );
 }
 
+function SetNewPasswordScreen({onDone}){
+  const[pw,setPw]=useState('');const[pw2,setPw2]=useState('');const[err,setErr]=useState('');const[busy,setBusy]=useState(false);
+  const submit=async()=>{
+    setErr('');
+    if(pw.length<6){setErr('Password must be at least 6 characters.');return;}
+    if(pw!==pw2){setErr('Passwords do not match.');return;}
+    setBusy(true);
+    const{error}=await sb.auth.updateUser({password:pw});
+    setBusy(false);
+    if(error){setErr(error.message);return;}
+    onDone();
+  };
+  return(
+    <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:16}}><NkoLogo height={30}/></div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,textAlign:'center',marginBottom:6}}>Set a new password</div>
+        <div style={{color:T.dim,fontSize:12,textAlign:'center',marginBottom:20,fontFamily:'Manrope,sans-serif'}}>You followed a password reset link — choose a new password to finish.</div>
+        <div style={{marginBottom:10}}><Inp type="password" placeholder="New password" value={pw} onChange={e=>setPw(e.target.value)}/></div>
+        <div style={{marginBottom:14}}><Inp type="password" placeholder="Confirm new password" value={pw2} onChange={e=>setPw2(e.target.value)}/></div>
+        {err&&<div style={{color:T.coral,fontSize:12,marginBottom:12,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
+        <Btn onClick={submit} disabled={busy} style={{width:'100%'}}>{busy?'Saving…':'Set new password'}</Btn>
+      </div>
+    </div>
+  );
+}
 function AuthGate(){
-  const{user}=useAuth();
+  const{user,recovery,clearRecovery}=useAuth();
   const[onboardDone,setOnboardDone]=useState(true);
   useEffect(()=>{
     if(!user){setOnboardDone(true);return;}
     try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');setOnboardDone(!!s);}catch{setOnboardDone(false);}
   },[user]);
+  if(recovery)return<SetNewPasswordScreen onDone={clearRecovery}/>;
   if(!user)return<AuthScreen/>;
   if(!onboardDone)return<OnboardingScreen onComplete={({role,market})=>{localStorage.setItem(`nko_onboarding_${user.id}`,JSON.stringify({role,market,completedAt:Date.now()}));setOnboardDone(true);}}/>;
   return<MainApp/>;
