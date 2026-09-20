@@ -692,7 +692,7 @@ const recoverInvoice=raw=>{
   try{return JSON.parse(s.slice(start));}catch{}
   return null;
 };
-const SCRIPT_SYS=`You are a script budget AI for African film productions. Return ONLY valid JSON. No markdown. No code fences. No apostrophes in strings.
+const SCRIPT_SYS_LIVE_ACTION=`You are a script budget AI for African film productions. Return ONLY valid JSON. No markdown. No code fences. No apostrophes in strings.
 
 You must classify every budget line into exactly one of these 26 department codes. Use the string EXACTLY as written below, including the letter prefix. Never invent a new department name.
 
@@ -749,6 +749,42 @@ Classification rules, follow these closely:
 - Distribution, festival runs, DCP generation -> Z - Sales & Distribution
 
 If an item does not obviously fit, choose the single closest department from the list above. Never return a department that is not in this list, and never leave dept blank.`;
+const SCRIPT_SYS_ANIMATION=`You are a script budget AI for African ANIMATED productions specifically. Return ONLY valid JSON. No markdown. No code fences. No apostrophes in strings.
+
+This is an animated production. There is no physical set, no camera crew, no on-set lighting crew, no physical location, no on-camera wardrobe or makeup for characters, and no physical stunts — do NOT invent live-action production costs just because the script reads like a normal screenplay with scene descriptions and action lines. Read it as a story to be animated, not a shoot to be filmed.
+
+You must classify every budget line into exactly one of these 26 department codes. Use the string EXACTLY as written below, including the letter prefix. Never invent a new department name, and never use a physical-production department this list rules out below.
+
+A - Research & Development
+B - Script & Story
+C - Pre-Production Expenses
+D - Production Team
+E - Creative Team
+F - Talents
+T - Hospitality & Welfare
+U - Overhead & General Expenses
+V - Production Support
+W - Post-Production Team
+X - Post-Production Expenses
+Y - PR & Marketing
+Z - Sales & Distribution
+
+Classification rules for animation, follow these closely:
+- Writer, story consultant, script development -> B - Script & Story
+- Character design, concept art, style frames, world-building art done before production begins -> C - Pre-Production Expenses
+- Producer, Line Producer, Production Manager, Production Coordinator -> D - Production Team
+- Director, animation supervisor working with the director on creative direction -> E - Creative Team
+- Voice actors, voice cast, ADR performers -> F - Talents
+- Animation director, supervising animator, character animator, layout artist, background/environment artist, storyboard artist, rigger, colorist/compositor, VFX artist, render wrangler, editor, sound designer, composer, foley artist -> W - Post-Production Team
+- Animation workstations, drawing tablets, rigging/animation/compositing software licenses, render farm or cloud rendering costs, recording studio time for voice sessions, hard drives, asset storage -> X - Post-Production Expenses
+- Feeding, welfare, or accommodation for studio days or voice recording sessions -> T - Hospitality & Welfare
+- Studio rent, general overhead, insurance, bank charges -> U - Overhead & General Expenses
+- Legal, audit, contingency -> V - Production Support
+- Promo art, trailer, key art, social media, press -> Y - PR & Marketing
+- Festival submission, distribution, delivery -> Z - Sales & Distribution
+
+Never use G, H, I, J, K, L, M, N, O, P, Q, R, or S for an animated production — those departments describe physical-set production (camera, lighting, sound recording on set, art department construction, locations, wardrobe, makeup, stunts, logistics) that does not exist here. If an item does not obviously fit the departments above, choose the single closest one from this animation-specific list — never fall back to a physical-production department.`;
+const SCRIPT_SYS=projectType=>projectType==='Animation / Cartoon'?SCRIPT_SYS_ANIMATION:SCRIPT_SYS_LIVE_ACTION;
 const SCRIPT_PROMPT=(cur)=>`Analyze this script and return a production budget as JSON: {"title":"string","budget":[{"dept":"string","description":"string","qty":number,"unit":"string","rate":number,"currency":"${cur}"}],"summary":"string"}`;
 const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions. Return ONLY valid JSON. No markdown. No apostrophes. Keep values short and clean.
 
@@ -1718,7 +1754,7 @@ function ScriptUploader({project,onApplyBudget}){
         uc=[{type:'text',text:`Script:\n\n${txt.slice(0,300000)}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];
       }
       setState('analyzing');
-      const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS,24000);
+      const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS(project.type),24000);
       const recovered=recoverBudget(raw);
       if(!recovered||!recovered.budget?.length)throw new Error('Could not read a budget from the response. Try again, or upload a shorter script excerpt.');
       setResult(recovered);setState('done');
