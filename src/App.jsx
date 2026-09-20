@@ -1928,15 +1928,55 @@ function CostReportPanel({project,items,advances,reconEntries}){
     </div>
   );
 }
-function ReconView({project,items,advances,reconEntries,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp}){
+function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
+  const openAdv=advances.filter(a=>a.status!=='reconciled'&&(a.amount-reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0))>0);
+  const feed=[
+    ...reconEntries.filter(e=>advances.some(a=>a.id===e.advance_id)).map(e=>({...e,_source:'ADVANCE',_label:advances.find(a=>a.id===e.advance_id)?.recipient||'Advance',_date:e.date})),
+    ...paidPOs.map(po=>({id:po.id,amount:po.amount,_source:po.po_number||'PO',_label:po.vendor||'Vendor',_date:po.created_at})),
+  ].sort((a,b)=>new Date(b._date||0)-new Date(a._date||0));
+  const total=feed.reduce((s,f)=>s+Number(f.amount||0),0);
+  return(
+    <div style={{marginBottom:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
+        <div style={{color:T.cream,fontFamily:'Fraunces,serif',fontSize:15}}>{dept}</div>
+        <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:16,fontWeight:700}}>{sym(currency)}{fmt(total)} <span style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif',fontWeight:400}}>spent</span></div>
+      </div>
+      {openAdv.length>0&&<div style={{marginBottom:10}}>
+        <div style={{fontSize:9,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:5}}>Cash still with someone</div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {openAdv.map(a=>{const bal=a.amount-reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0);return(
+            <div key={a.id} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'5px 10px',fontSize:11}}>
+              <span style={{color:T.cream}}>{a.recipient}</span> <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace'}}>{sym(a.currency)}{fmt(bal)}</span>
+            </div>
+          );})}
+        </div>
+      </div>}
+      {feed.length>0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden'}}>
+        {feed.slice(0,8).map((f,i)=>(
+          <div key={f.id+i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 12px',borderBottom:i<feed.length-1?`1px solid ${T.line}`:'none'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{background:f._source==='ADVANCE'?T.hi:'rgba(82,176,122,.15)',color:f._source==='ADVANCE'?T.dim:T.sage,fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:5}}>{f._source}</span>
+              <span style={{color:T.cream,fontSize:12}}>{f.description||f._label}</span>
+            </div>
+            <span style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{fmt(f.amount)}</span>
+          </div>
+        ))}
+      </div>:<div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>Nothing logged yet.</div>}
+    </div>
+  );
+}
+function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
+  const[showAll,setShowAll]=useState(false);
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pAdv=advances.filter(a=>a.project_id===project.id);
+  const pPOsPaid=(purchaseOrders||[]).filter(po=>po.project_id===project.id&&po.status==='Paid');
   const total=pAdv.reduce((s,a)=>s+a.amount,0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0)).reduce((a,b)=>a+b,0);
+  const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept)].filter(Boolean))];
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Track every cash advance. Log expenses against each. Reduce discrepancies.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances and paid purchase orders, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
       <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries}/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
@@ -1953,8 +1993,16 @@ function ReconView({project,items,advances,reconEntries,onAddAdvance,onUpdateAdv
         </div>
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>{tr('issueAdvance').replace('+ ','')}</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>{tr('cancel')}</Btn></div>
       </div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pAdv.length} advance{pAdv.length!==1?'s':''}</div><div style={{display:'flex',gap:8}}>{pAdv.length>0&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div></div>
-      {pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onTopUp={onTopUp}/>)}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>By department</div>
+        <div style={{display:'flex',gap:8}}>{pAdv.length>0&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
+      </div>
+      {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
+        activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} currency={project.base_currency}/>)}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+        <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
+      </div>
+      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onTopUp={onTopUp}/>))}
     </div>
   );
 }
@@ -2043,46 +2091,64 @@ const reconReportPDF=(advances,reconEntries,project)=>{
 
 function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,onDeletePO}){
   const{t:tr}=useLang();
+  const[justPaid,setJustPaid]=useState({}); // {poId: true} — cleared after a few seconds, purely a transient confirmation
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pPOs=purchaseOrders.filter(po=>po.project_id===project.id);
-  const activeDepts=[...new Set(items.filter(i=>i.dept).map(i=>i.dept))];
+  // Departments are driven by actual PO activity, not by every department with a budget line —
+  // a department only ever appears here once an invoice has actually been detected for it.
+  const deptsByRecency=[];
+  pPOs.slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).forEach(po=>{
+    if(po.dept&&!deptsByRecency.includes(po.dept))deptsByRecency.push(po.dept);
+  });
+  const mostRecentDept=deptsByRecency[0];
   const deptBudget=dept=>items.filter(i=>i.dept===dept).reduce((s,i)=>s+lTot(i),0);
   const deptCommitted=dept=>pPOs.filter(po=>po.dept===dept).reduce((s,po)=>s+Number(po.amount||0),0);
   const statusColor=st=>st==='Paid'?T.sage:st==='Approved'?T.gold:T.dim;
+  const changeStatus=(po,newStatus)=>{
+    onUpdatePO(po.id,{status:newStatus});
+    if(newStatus==='Paid'){
+      setJustPaid(p=>({...p,[po.id]:true}));
+      setTimeout(()=>setJustPaid(p=>{const n={...p};delete n[po.id];return n;}),6000);
+    }
+  };
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Purchase Orders — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Drop in an invoice — NKÒ drafts the PO and plots it against what's left in that department.</div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Purchase Orders — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Drop in an invoice — NKÒ detects the department and plots it against what's left there.</div></div>
       <InvoiceUploader project={project} onCreatePO={draft=>onCreatePO({...draft,project_id:project.id})}/>
-      {activeDepts.length>0&&<div style={{marginBottom:20}}>
-        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Departmental Allowance</div>
+      {deptsByRecency.length>0&&<div style={{marginBottom:20}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Departments in this production</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
-          {activeDepts.map(dept=>{
+          {deptsByRecency.map(dept=>{
             const budget=deptBudget(dept);const committed=deptCommitted(dept);const remaining=budget-committed;
             const pct=budget>0?Math.min(100,(committed/budget)*100):0;
+            const isNew=dept===mostRecentDept;
             return(
-              <div key={dept} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:12}}>
+              <div key={dept} style={{background:T.panel,border:`1px solid ${isNew?T.gold:T.line}`,borderRadius:10,padding:12,position:'relative'}}>
+                {isNew&&<div style={{position:'absolute',top:-8,right:12,background:T.gold,color:T.ink,fontSize:8,fontWeight:800,padding:'2px 8px',borderRadius:8}}>JUST DETECTED</div>}
                 <div style={{color:T.cream,fontSize:12,fontWeight:600,marginBottom:6}}>{dept}</div>
                 <div style={{height:5,borderRadius:3,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:remaining<0?T.coral:pct>85?T.gold:T.sage}}/></div>
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim}}>
                   <span>Committed {fmt(committed)}</span>
-                  <span style={{color:remaining<0?T.coral:T.dim,fontWeight:remaining<0?700:400}}>{remaining<0?`Over by ${fmt(Math.abs(remaining))}`:`${fmt(remaining)} left`}</span>
+                  <span style={{color:remaining<0?T.coral:T.dim,fontWeight:remaining<0?700:400}}>{remaining<0?`Over by ${fmt(Math.abs(remaining))}`:budget>0?`${fmt(remaining)} left`:'No budget set'}</span>
                 </div>
               </div>
             );
           })}
         </div>
+        <div style={{color:T.faint,fontSize:10,textAlign:'center',marginTop:8,fontStyle:'italic'}}>Other departments appear here the moment an invoice is detected for them.</div>
       </div>}
       <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>All Purchase Orders ({pPOs.length})</div>
       {pPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No purchase orders yet — drop in an invoice above to create your first one.</div></div>:
       pPOs.slice().reverse().map(po=>(
-        <div key={po.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <div key={po.id} style={{background:T.panel,border:`1px solid ${justPaid[po.id]?T.sage:T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           <div>
             <div style={{color:T.cream,fontSize:13,fontWeight:600}}>{po.vendor||'Unnamed vendor'} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {po.dept}</span></div>
             <div style={{color:T.dim,fontSize:11,marginTop:2}}>{po.description}</div>
+            {justPaid[po.id]&&<div style={{color:T.sage,fontSize:10,marginTop:3}}>✓ added to Recon just now</div>}
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(po.currency)}{fmt(po.amount)}</span>
-            <Sel value={po.status} onChange={e=>onUpdatePO(po.id,{status:e.target.value})} style={{fontSize:11,padding:'4px 6px',color:statusColor(po.status),borderColor:statusColor(po.status)}}>
+            <Sel value={po.status} onChange={e=>changeStatus(po,e.target.value)} style={{fontSize:11,padding:'4px 6px',color:statusColor(po.status),borderColor:statusColor(po.status)}}>
               <option>Pending</option><option>Approved</option><option>Paid</option>
             </Sel>
             <button onClick={()=>{if(window.confirm('Delete this purchase order?'))onDeletePO(po.id);}} style={{background:'none',border:'none',color:T.faint,cursor:'pointer'}}>✕</button>
@@ -2906,7 +2972,7 @@ function MainApp(){
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
