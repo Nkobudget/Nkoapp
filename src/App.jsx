@@ -2930,7 +2930,15 @@ function MainApp(){
     await sb.from('project_collaborators').delete().eq('project_id',projectId);
     const{data,error}=await sb.from('project_collaborators').insert({id:Math.random().toString(36).slice(2,10),project_id:projectId,user_id:resolvedId,invited_by:user.id}).select().single();
     if(error){alert(`Could not add collaborator: ${error.message}`);return;}
-    if(data)setCollaborators(p=>[...p.filter(c=>c.project_id!==projectId),data]);
+    if(data){
+      setCollaborators(p=>[...p.filter(c=>c.project_id!==projectId),data]);
+      const proj=projects.find(p=>p.id===projectId);
+      fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        to:email.trim(),
+        subject:`You've been added to ${proj?.name||'a production'} on NKÒ`,
+        html:`<p>${user.email} added you as a collaborator on <strong>${proj?.name||'a production'}</strong> on NKÒ.</p><p>Log in to NKÒ to see it: <a href="${window.location.origin}">${window.location.origin}</a></p>`,
+      })}).catch(()=>{}); // best-effort — the collaborator seat itself is already created either way
+    }
   };
   const removeCollaborator=async projectId=>{
     setCollaborators(p=>p.filter(c=>c.project_id!==projectId));
