@@ -1267,10 +1267,59 @@ function AuthProvider({children}){
   if(loading)return<div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',color:T.gold,fontFamily:'Fraunces,serif',fontSize:22}}>Loading…</div>;
   return<AuthCtx.Provider value={{user,signOut,recovery,clearRecovery:()=>setRecovery(false)}}>{children}</AuthCtx.Provider>;
 }
+const TERMS_TEXT=`Last updated: September 2026
+
+1. Acceptance of Terms
+By creating an account or using NKÒ ("the Service"), you agree to these Terms & Conditions. If you don't agree, please don't use the Service.
+
+2. What NKÒ Is
+NKÒ is a production finance tool for film, TV, and content productions — budgeting, script breakdown, cash reconciliation, and purchase order tracking. It is a tool to help you manage your production's finances; it does not provide accounting, legal, or tax advice, and you remain responsible for your production's financial and legal obligations.
+
+3. Your Account
+You're responsible for keeping your login credentials secure and for all activity under your account. Let us know right away if you believe your account has been compromised.
+
+4. Your Content
+Scripts, budgets, production data, and anything else you upload or enter remain yours. You're responsible for having the rights to any script, document, or material you upload.
+
+5. How We Use Your Data
+We use the data you enter to provide the Service to you — storing your budgets, generating breakdowns and reconciliation reports, and powering the AI features you use. We may also use aggregated or anonymized data (patterns across many productions, not your specific scripts or financial details) to improve NKÒ's features, including making our AI budgeting and extraction tools more accurate for African productions generally. We do not sell your personal data or your production's financial details to third parties.
+
+6. AI-Generated Content
+NKÒ uses AI to help generate budget lines, script breakdowns, and extract data from invoices. AI-generated output can contain errors or omissions. You're responsible for reviewing and confirming any AI-generated content before relying on it for real production decisions.
+
+7. Acceptable Use
+You agree not to use the Service for anything illegal, to attempt to access other users' data without authorization, or to interfere with the Service's normal operation.
+
+8. Fees and Free Trial
+NKÒ is currently offered under a free trial covering a limited number of productions per account. We may introduce paid plans or change trial terms going forward; we'll aim to give you reasonable notice of changes that affect your account.
+
+9. Termination
+You may stop using the Service and close your account at any time. We may suspend or terminate accounts that violate these terms.
+
+10. Disclaimer and Limitation of Liability
+The Service is provided "as is," without warranties of any kind. To the fullest extent permitted by law, NKÒ and its operators are not liable for indirect, incidental, or consequential damages arising from your use of the Service, including financial decisions made based on data or AI output within it.
+
+11. Changes to These Terms
+We may update these terms from time to time. Continued use of the Service after changes take effect means you accept the updated terms.
+
+12. Contact
+Questions about these terms can be directed to the NKÒ team.`;
+function TermsModal({onClose}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:200}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:28,maxWidth:520,maxHeight:'80vh',overflowY:'auto',width:'100%'}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:19,color:T.cream,marginBottom:14}}>Terms & Conditions</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',whiteSpace:'pre-wrap',lineHeight:1.6,marginBottom:18}}>{TERMS_TEXT}</div>
+        <Btn onClick={onClose} style={{width:'100%'}}>Close</Btn>
+      </div>
+    </div>
+  );
+}
 function AuthScreen(){
   const{t}=useLang();
-  const[mode,setMode]=useState('login');const[email,setEmail]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[ok,setOk]=useState('');const[showPass,setShowPass]=useState(false);
+  const[mode,setMode]=useState('login');const[email,setEmail]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[ok,setOk]=useState('');const[showPass,setShowPass]=useState(false);const[agreed,setAgreed]=useState(false);const[showTerms,setShowTerms]=useState(false);
   const submit=async()=>{setErr('');setOk('');
+    if(mode==='signup'&&!agreed){setErr('Please agree to the Terms & Conditions to create an account.');return;}
     const fn=mode==='login'?sb.auth.signInWithPassword:sb.auth.signUp;
     const{error}=await fn.call(sb.auth,{email,password:pass});
     if(error){
@@ -1286,6 +1335,7 @@ function AuthScreen(){
   };
   return(
     <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      {showTerms&&<TermsModal onClose={()=>setShowTerms(false)}/>}
       <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
         <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><LangToggle compact/></div>
         <div style={{display:'flex',justifyContent:'center',marginBottom:4}}><NkoLogo height={30}/></div>
@@ -1297,6 +1347,10 @@ function AuthScreen(){
             <button type="button" onClick={()=>setShowPass(s=>!s)} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.goldDim,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{showPass?t('hide'):t('show')}</button>
           </div>
           {mode==='login'&&<button onClick={forgotPassword} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',textAlign:'right',padding:0}}>{t('forgotPassword')}</button>}
+          {mode==='signup'&&<label style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>
+            <input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)} style={{marginTop:2}}/>
+            <span>I agree to the <button type="button" onClick={e=>{e.preventDefault();setShowTerms(true);}} style={{background:'none',border:'none',color:T.goldDim,fontWeight:700,cursor:'pointer',padding:0,fontSize:11,textDecoration:'underline'}}>Terms & Conditions</button></span>
+          </label>}
           {err&&<div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
           {ok&&<div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>{ok}</div>}
           <Btn onClick={submit}>{mode==='login'?t('signIn'):t('createAccount')}</Btn>
