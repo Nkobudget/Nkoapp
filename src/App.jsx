@@ -1383,7 +1383,7 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
 }
 
 /* ── Dashboard ── */
-function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency}){
+function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
@@ -1395,6 +1395,7 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
   return(
     <div>
       <div style={{marginBottom:22}}><NkoLogo height={32}/><div style={{fontSize:14,color:T.dim,marginTop:8,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
+      {typeof trialCount==='number'&&trialCount<trialLimit&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 14px',marginBottom:16,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{trialLimit-trialCount} of {trialLimit} free productions left</div>}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
         <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
         <StatCard label={t('statTotalSpend')} value={`≈ $${fmt(totalSpentUSD)}`} sub={t('statAcrossSlate')}/>
@@ -1436,6 +1437,14 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
               </>}
               <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
             </button>
+            {p.user_id===currentUserId&&(()=>{const collab=collaborators.find(c=>c.project_id===p.id);return(
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                {collab?<>
+                  <span style={{fontSize:10,color:T.sage}}>👤 Collaborator added</span>
+                  <button onClick={e=>{e.stopPropagation();if(window.confirm('Remove this collaborator from the production?'))onRemoveCollaborator(p.id);}} style={{background:'none',border:'none',color:T.faint,fontSize:10,cursor:'pointer'}}>Remove</button>
+                </>:<button onClick={e=>{e.stopPropagation();const email=window.prompt("Invite a collaborator by email — they'll need an NKÒ account already:");if(email)onInviteCollaborator(p.id,email);}} style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700}}>+ Invite collaborator</button>}
+              </div>
+            );})()}
             <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}}>🗑️</button>
           </div>;})}
         </div>
@@ -2810,7 +2819,7 @@ function MarketplaceView({onApplyTemplate}){
 function MainApp(){
   const{user,signOut}=useAuth();
   const[view,setView]=useState('dashboard');
-  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);
+  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
@@ -2818,31 +2827,61 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py,sc,ch,po]=await Promise.all([
-        sb.from('projects').select('*').eq('user_id',user.id).order('created_at',{ascending:false}),
-        sb.from('budget_items').select('*').eq('user_id',user.id),
-        sb.from('advances').select('*').eq('user_id',user.id),
-        sb.from('recon_entries').select('*').eq('user_id',user.id),
-        sb.from('payees').select('*').eq('user_id',user.id),
-        sb.from('scenes').select('*').eq('user_id',user.id),
-        sb.from('characters').select('*').eq('user_id',user.id),
-        sb.from('purchase_orders').select('*').eq('user_id',user.id),
+      const[pr,bi,ad,re,py,sc,ch,po,cb,ts]=await Promise.all([
+        sb.from('projects').select('*').order('created_at',{ascending:false}),
+        sb.from('budget_items').select('*'),
+        sb.from('advances').select('*'),
+        sb.from('recon_entries').select('*'),
+        sb.from('payees').select('*'),
+        sb.from('scenes').select('*'),
+        sb.from('characters').select('*'),
+        sb.from('purchase_orders').select('*'),
+        sb.from('project_collaborators').select('*'),
+        sb.from('user_trial_state').select('*').eq('user_id',user.id).maybeSingle(),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
       if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
       if(ch.data)setCharacters(ch.data);
       if(po.data)setPurchaseOrders(po.data);
+      if(cb.data)setCollaborators(cb.data);
+      setTrialCount(ts.data?.productions_created||0);
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
   const pBudget=budgetItems.filter(i=>i.project_id===currentId);
   const pAdvances=advances.filter(a=>a.project_id===currentId);
 
+  const TRIAL_LIMIT=2;
   const createProject=async d=>{
+    if(trialCount>=TRIAL_LIMIT){
+      alert(`You've used your ${TRIAL_LIMIT} free productions on NKÒ. To start another one, reach out to us — we'll get you set up.`);
+      return false;
+    }
     const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();
     if(error){alert(`Could not create production: ${error.message}`);return false;}
-    if(data){setProjects(p=>[data,...p]);setCurrentId(data.id);setView('budgets');return true;}
+    if(data){
+      setProjects(p=>[data,...p]);setCurrentId(data.id);setView('budgets');
+      const newCount=trialCount+1;
+      const{error:tErr}=await sb.from('user_trial_state').upsert({user_id:user.id,productions_created:newCount});
+      if(!tErr)setTrialCount(newCount);
+      return true;
+    }
     return false;
+  };
+  const inviteCollaborator=async(projectId,email)=>{
+    const{data:resolvedId,error:rErr}=await sb.rpc('resolve_user_by_email',{lookup_email:email.trim()});
+    if(rErr){alert(`Could not look up that email: ${rErr.message}`);return;}
+    if(!resolvedId){alert(`${email} doesn't have an NKÒ account yet — ask them to sign up first, then try again.`);return;}
+    if(resolvedId===user.id){alert("That's your own account — invite someone else to collaborate.");return;}
+    await sb.from('project_collaborators').delete().eq('project_id',projectId);
+    const{data,error}=await sb.from('project_collaborators').insert({id:Math.random().toString(36).slice(2,10),project_id:projectId,user_id:resolvedId,invited_by:user.id}).select().single();
+    if(error){alert(`Could not add collaborator: ${error.message}`);return;}
+    if(data)setCollaborators(p=>[...p.filter(c=>c.project_id!==projectId),data]);
+  };
+  const removeCollaborator=async projectId=>{
+    setCollaborators(p=>p.filter(c=>c.project_id!==projectId));
+    const{error}=await sb.from('project_collaborators').delete().eq('project_id',projectId);
+    if(error)alert(`Could not remove collaborator: ${error.message}`);
   };
   const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
@@ -3004,7 +3043,7 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&(project?
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
-            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
