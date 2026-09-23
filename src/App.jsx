@@ -2771,15 +2771,24 @@ const estimateShootDays=(scenes,projectType)=>{
   if(band)raw=Math.min(Math.max(raw,band[0]),band[1]);
   return raw;
 };
-function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene}){
+function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes}){
   const{t:tr}=useLang();
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const ps=sortScenes(scenes.filter(s=>s.project_id===project.id));
+  const seenNums={};let dupeCount=0;
+  ps.forEach(s=>{const k=String(s.sceneNumber);seenNums[k]=(seenNums[k]||0)+1;if(seenNums[k]>1)dupeCount++;});
   const filtered=ps.filter(s=>{const mf=filter==='ALL'||(filter==='INT'&&s.intExt==='INT')||(filter==='EXT'&&s.intExt==='EXT')||(filter==='DAY'&&s.dayNight==='DAY')||(filter==='NIGHT'&&s.dayNight==='NIGHT');const ms=!search||s.heading?.toLowerCase().includes(search.toLowerCase())||s.location?.toLowerCase().includes(search.toLowerCase());return mf&&ms;});
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?22:26,color:T.cream}}>{tr('breakdownHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div><div style={{marginTop:14}}><FS/></div></div>
+      {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+        <div>
+          <div style={{color:T.coral,fontSize:12,fontWeight:700}}>{dupeCount} duplicate scene{dupeCount!==1?'s':''} found</div>
+          <div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2}}>Likely from applying a breakdown twice. Cleanup keeps the first copy of each scene number and removes the rest — nothing else is touched.</div>
+        </div>
+        <Btn size="sm" variant="outline" onClick={()=>{if(window.confirm(`Remove ${dupeCount} duplicate scene${dupeCount!==1?'s':''}? This keeps one copy of each scene number and can't be undone.`))onDedupeScenes(project.id);}}>Clean up duplicates</Btn>
+      </div>}
       {ps.length>0&&(()=>{const est=estimateShootDays(ps,project.type);return est&&(
         <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
           <div>
@@ -3024,7 +3033,12 @@ function MainApp(){
     if(data)setScenes(p=>[...p,{...data.data,id:data.id,project_id:data.project_id}]);
   };
   const addScenesBatch=async scenesArr=>{
-    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:rest};});
+    const existingNumbers=new Set(scenes.filter(s=>s.project_id===currentId).map(s=>String(s.sceneNumber)));
+    const toInsert=scenesArr.filter(sc=>!existingNumbers.has(String(sc.sceneNumber)));
+    const skipped=scenesArr.length-toInsert.length;
+    if(skipped>0)alert(`${skipped} scene${skipped!==1?'s were':' was'} already saved for this production and ${skipped!==1?'were':'was'} skipped, so nothing got duplicated. ${toInsert.length} new scene${toInsert.length!==1?'s':''} added.`);
+    if(toInsert.length===0)return;
+    const rows=toInsert.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:rest};});
     const{data,error}=await sb.from('scenes').insert(rows).select();
     if(error){alert(`Could not save scenes: ${error.message}`);return;}
     if(data)setScenes(p=>[...p,...data.map(r=>({...r.data,id:r.id,project_id:r.project_id}))]);
@@ -3040,6 +3054,16 @@ function MainApp(){
     setScenes(p=>p.filter(s=>s.id!==id));
     const{error}=await sb.from('scenes').delete().eq('id',id);
     if(error)alert(`Could not delete scene: ${error.message}`);
+  };
+  const dedupeScenes=async projectId=>{
+    const pScenes=scenes.filter(s=>s.project_id===projectId);
+    const seen=new Set();const toRemove=[];
+    pScenes.forEach(s=>{const k=String(s.sceneNumber);if(seen.has(k))toRemove.push(s.id);else seen.add(k);});
+    if(toRemove.length===0)return;
+    setScenes(p=>p.filter(s=>!toRemove.includes(s.id)));
+    const{error}=await sb.from('scenes').delete().in('id',toRemove);
+    if(error){alert(`Could not remove duplicates: ${error.message}`);return;}
+    alert(`Removed ${toRemove.length} duplicate scene${toRemove.length!==1?'s':''}.`);
   };
   /* Character metadata (Age/Description, Role Notes) — upserts by project_id + name */
   const saveCharacterMeta=async(name,updates)=>{
@@ -3108,7 +3132,7 @@ function MainApp(){
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
