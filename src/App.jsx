@@ -1623,20 +1623,18 @@ const PI_FIELDS=[
   ['postStart','Post-production Start'],['postEnd','Post-production End'],
 ];
 /* ── Phase Cost Summary — manual input for pre/production/post totals ── */
-function PhaseCostPanel({project,items,onSetContingency}){
+const PHASE_COLORS=['#7F77DD','#FEED61','#5B9BD5','#D98BA8']; // Pre-Production, Production, Post-Production, PR/Marketing & Distribution — deliberately distinct from sage/coral, which already mean reconciled/over-budget elsewhere in the app
+function BudgetSummaryHeader({project,items,onSetContingency,onSetTarget}){
   const{t}=useLang();
-  const preDepts=['A - Research & Development','B - Script & Story','C - Pre-Production Expenses'];
-  const postDepts=['W - Post-Production Team','X - Post-Production Expenses'];
-  const prodDepts=PHASES[1].depts;
-  const prDepts=PHASES[3].depts;
-  let autoPre=0,autoProd=0,autoContingency=0,autoPost=0,autoPR=0;
+  const preDepts=PHASES[0].depts,prodDepts=PHASES[1].depts,postDepts=PHASES[2].depts,prDepts=PHASES[3].depts;
+  let phaseTotals=[0,0,0,0],autoContingency=0;
   items.forEach(i=>{
     const t=lTot(i);
     if(/contingency/i.test(i.description||'')){autoContingency+=t;return;}
-    if(preDepts.includes(i.dept))autoPre+=t;
-    else if(prodDepts.includes(i.dept))autoProd+=t;
-    else if(postDepts.includes(i.dept))autoPost+=t;
-    else if(prDepts.includes(i.dept))autoPR+=t;
+    if(preDepts.includes(i.dept))phaseTotals[0]+=t;
+    else if(prodDepts.includes(i.dept))phaseTotals[1]+=t;
+    else if(postDepts.includes(i.dept))phaseTotals[2]+=t;
+    else if(prDepts.includes(i.dept))phaseTotals[3]+=t;
   });
   const[contingencyInput,setContingencyInput]=useState(String(autoContingency||''));
   useEffect(()=>{setContingencyInput(String(autoContingency||''));},[autoContingency]);
@@ -1646,26 +1644,54 @@ function PhaseCostPanel({project,items,onSetContingency}){
     clearTimeout(debounceRef.current);
     debounceRef.current=setTimeout(()=>onSetContingency(v===''?0:v,items),500);
   };
-  const cols=[['pre',t('preProduction'),autoPre],['prod',t('productionPhase'),autoProd],['post',t('postProduction'),autoPost],['pr',t('prMarketing')||'PR & Marketing',autoPR]];
-  const total=autoPre+autoProd+autoContingency+autoPost+autoPR;
+  const[targetInput,setTargetInput]=useState(project.target_budget!=null?String(project.target_budget):'');
+  useEffect(()=>{setTargetInput(project.target_budget!=null?String(project.target_budget):'');},[project.id,project.target_budget]);
+  const targetDebounce=useRef(null);
+  const onTargetChange=v=>{
+    setTargetInput(v);
+    clearTimeout(targetDebounce.current);
+    targetDebounce.current=setTimeout(()=>onSetTarget(v===''?null:Number(v)),600);
+  };
+  const estimate=phaseTotals.reduce((a,b)=>a+b,0)+autoContingency;
+  const target=project.target_budget;
+  const headroom=target!=null?target-estimate:null;
+  const phaseTotalSum=phaseTotals.reduce((a,b)=>a+b,0)||1;
   return(
-    <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:12}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,flexWrap:'wrap',gap:6}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{t('phaseCostSummary')}</div>
-        <span style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Always live from your budget lines</span>
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
-        {cols.map(([k,label,val])=><div key={k}>
-          <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{label}</div>
-          <div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontFamily:'IBM Plex Mono,monospace',fontSize:13}}>{fmt(val)}</div>
-        </div>)}
-        <div>
-          <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('contingency')}</div>
-          <Inp type="number" placeholder="0" value={contingencyInput} onChange={e=>onContingencyChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+    <div style={{marginBottom:18}}>
+      <div style={{display:'grid',gridTemplateColumns:target!=null?'1fr 1fr 1fr':'1fr 1fr',gap:8,marginBottom:14}}>
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Target</div>
+          <Inp type="number" placeholder="Not set" value={targetInput} onChange={e=>onTargetChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,padding:'4px 6px'}}/>
         </div>
-        <div>
-          <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
-          <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(total)}</div>
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Estimate</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream,fontWeight:700,padding:'4px 0'}}>{fmt(estimate)}</div>
+        </div>
+        {target!=null&&<div style={{background:headroom<0?'rgba(224,107,82,.1)':'rgba(82,176,122,.1)',border:`1px solid ${headroom<0?T.coral:T.sage}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:headroom<0?T.coral:T.sage,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>{headroom<0?'Over target':'Headroom'}</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:headroom<0?T.coral:T.sage,fontWeight:700,padding:'4px 0'}}>{fmt(Math.abs(headroom))}</div>
+        </div>}
+      </div>
+      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>{t('phaseCostSummary')}</div>
+          <span style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Live from your budget lines</span>
+        </div>
+        <div style={{display:'flex',height:8,borderRadius:4,overflow:'hidden',marginBottom:8}}>
+          {phaseTotals.map((v,i)=>v>0&&<div key={i} style={{width:`${(v/phaseTotalSum)*100}%`,background:PHASE_COLORS[i]}}/>)}
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:12,marginBottom:12}}>
+          {PHASES.map((p,i)=>phaseTotals[i]>0&&<div key={p.name} style={{display:'flex',alignItems:'center',gap:5,fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}><span style={{width:7,height:7,borderRadius:2,background:PHASE_COLORS[i],display:'inline-block'}}/>{p.name} · {fmt(phaseTotals[i])}</div>)}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:10,paddingTop:10,borderTop:`1px solid ${T.line}`}}>
+          <div>
+            <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('contingency')}</div>
+            <Inp type="number" placeholder="0" value={contingencyInput} onChange={e=>onContingencyChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
+            <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(estimate)}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1884,29 +1910,24 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 
-function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency}){
+function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
   const[search,setSearch]=useState('');
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pItems=items.filter(i=>i.project_id===project.id);
-  const totals={};pItems.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const totalAdv=pAdv.reduce((s,a)=>s+a.amount,0);
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('budgetHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
-      <PhaseCostPanel project={project} items={pItems} onSetContingency={onSetContingency}/>
+      <BudgetSummaryHeader project={project} items={pItems} onSetContingency={onSetContingency} onSetTarget={onSetTarget}/>
       <ProductionInfoPanel project={project}/>
       <BrandPanel project={project}/>
-      {Object.keys(totals).length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:18}}>
-        <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>{tr('totalBudget')}</div>
-        <div style={{display:'flex',flexWrap:'wrap',gap:20}}>{Object.entries(totals).map(([c,a])=><div key={c}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:28,color:T.cream}}>{sym(c)}{fmt(a)}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{c}</div></div>)}</div>
-        {totalAdv>0&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:8}}>Advances issued: {sym(project.base_currency)}{fmt(totalAdv)}</div>}
-      </div>}
+      {totalAdv>0&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>Advances issued: {sym(project.base_currency)}{fmt(totalAdv)}</div>}
       <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
         <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
-        {pItems.length>0&&<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>}
+        {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>)}
       </div>
       {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
@@ -2064,7 +2085,7 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
     </div>
   );
 }
-function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp}){
+function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   const[showAll,setShowAll]=useState(false);
@@ -2094,7 +2115,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>By department</div>
-        <div style={{display:'flex',gap:8}}>{pAdv.length>0&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
+        <div style={{display:'flex',gap:8}}>{pAdv.length>0&&isOwner&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
       </div>
       {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
         activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} currency={project.base_currency}/>)}
@@ -2257,7 +2278,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
     </div>
   );
 }
-function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
+function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
@@ -2280,7 +2301,7 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment}){
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
           <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
-          {(p.payments||[]).map((pay,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:`1px solid ${T.line}`}}><span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span><button onClick={()=>receiptPDF(p,pay,project)} title="Generate PDF receipt" style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>🧾 Receipt</button><button onClick={()=>onRemovePayment(p.id,i)} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>)}
+          {(p.payments||[]).map((pay,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:`1px solid ${T.line}`}}><span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span>{isOwner&&<button onClick={()=>receiptPDF(p,pay,project)} title="Generate PDF receipt" style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>🧾 Receipt</button>}<button onClick={()=>onRemovePayment(p.id,i)} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>)}
           {bal>0&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>{const amt=window.prompt(`Amount to pay (${p.currency}):`);const method=window.prompt('Payment method:','Cash');if(amt&&method)onAddPayment(p.id,{amount:Number(amt),method,date:today()});}}>{tr('logPayment')}</Btn></div>}
         </div>;})}
     </div>
@@ -2771,7 +2792,7 @@ const estimateShootDays=(scenes,projectType)=>{
   if(band)raw=Math.min(Math.max(raw,band[0]),band[1]);
   return raw;
 };
-function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes}){
+function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner}){
   const{t:tr}=useLang();
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
@@ -2808,7 +2829,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
-        {ps.length>0&&<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>}
+        {ps.length>0&&(isOwner?<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>)}
       </div>
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
@@ -2965,6 +2986,11 @@ function MainApp(){
       if(error){alert(`Could not save contingency: ${error.message}`);return;}
       if(data)setBudgetItems(p=>[...p,data]);
     }
+  };
+  const updateProjectTarget=async value=>{
+    setProjects(p=>p.map(pr=>pr.id===currentId?{...pr,target_budget:value}:pr));
+    const{error}=await sb.from('projects').update({target_budget:value}).eq('id',currentId);
+    if(error)alert(`Could not save target: ${error.message}`);
   };
   const updateBudgetItem=async(id,upd)=>{
     setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));
@@ -3131,10 +3157,10 @@ function MainApp(){
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance}/>}
-          {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance} isOwner={project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
