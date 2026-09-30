@@ -1437,14 +1437,15 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
 }
 
 /* ── Dashboard ── */
-function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
+function DashboardView({projects,budgetItems,advances,reconEntries,purchaseOrders=[],payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
   const advCurrency=id=>advances.find(a=>a.id===id)?.currency||'NGN';
   const totalBudgetUSD=budgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const totalSpentUSD=reconEntries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
+  const paidPOs=purchaseOrders.filter(po=>po.status==='Paid');
+  const totalSpentUSD=reconEntries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0)+paidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
   const savedUSD=totalBudgetUSD-totalSpentUSD;
   return(
     <div>
@@ -1473,8 +1474,9 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
             const open=advances.filter(a=>a.project_id===p.id&&a.status!=='reconciled').length;const isSel=selected.has(p.id);
             const pAdvIds=advances.filter(a=>a.project_id===p.id).map(a=>a.id);
             const spentTotals={};reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).forEach(e=>{const c=advCurrency(e.advance_id);spentTotals[c]=(spentTotals[c]||0)+(Number(e.amount)||0);});
+            const pPaidPOs=paidPOs.filter(po=>po.project_id===p.id);pPaidPOs.forEach(po=>{spentTotals[po.currency]=(spentTotals[po.currency]||0)+(Number(po.amount)||0);});
             const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-            const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
+            const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0)+pPaidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
             const pct=budgetUSD>0?Math.min(100,(spentUSD/budgetUSD)*100):0;const over=spentUSD>budgetUSD;
           return<div key={p.id} style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?T.hi:T.panel,border:`1px solid ${isSel?T.coral:p.id===currentId?T.gold:T.line}`,borderRadius:10,padding:18,position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSel?T.coral:T.faint}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
@@ -1758,35 +1760,49 @@ function ScriptResultModal({result,currency,onApply,onClose}){
     </div>
   );
 }
+/* ── Invoice extraction — shared by the single uploader (Purchase Orders) and the batch uploader (Recon → Invoices).
+   Phone photos are downscaled before sending: Vercel caps request bodies at ~4.5MB, and a raw phone
+   photo base64-encoded easily exceeds that. PDFs can't be shrunk client-side, so large ones are rejected clearly. */
+const shrinkImageB64=file=>new Promise((resolve,reject)=>{
+  const url=URL.createObjectURL(file);const img=new Image();
+  img.onload=()=>{
+    const max=1600;const scale=Math.min(1,max/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    resolve(c.toDataURL('image/jpeg',0.85).split(',')[1]);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not open this image.'));};
+  img.src=url;
+});
+const extractInvoice=async(f,baseCurrency)=>{
+  const isPDF=f.type==='application/pdf';
+  const isImg=f.type.startsWith('image/');
+  if(!isPDF&&!isImg)throw new Error('Not a PDF, JPG or PNG.');
+  if(isImg&&f.size>25*1024*1024)throw new Error('Image is too large (max 25MB).');
+  if(isPDF&&f.size>3.2*1024*1024)throw new Error('PDF is over 3MB — re-save it smaller or upload a photo of it.');
+  const uc=isPDF
+    ?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:await readB64(f)}},{type:'text',text:INVOICE_PROMPT(baseCurrency)}]
+    :[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:await shrinkImageB64(f)}},{type:'text',text:INVOICE_PROMPT(baseCurrency)}];
+  const raw=await callClaude([{role:'user',content:uc}],INVOICE_SYS,4000);
+  const parsed=recoverInvoice(raw);
+  if(!parsed)throw new Error('Could not read this invoice. Try a clearer photo.');
+  return{
+    vendor:parsed.vendor||'',
+    dept:DEPTS.includes(parsed.suggestedDept)?parsed.suggestedDept:DEPTS[0],
+    description:(parsed.lineItems||[]).map(li=>li.description).filter(Boolean).join(', ')||'',
+    amount:String(parsed.totalAmount||''),
+    currency:CURRENCIES.some(c=>c.code===parsed.currency)?parsed.currency:baseCurrency,
+  };
+};
 function InvoiceUploader({project,onCreatePO}){
   const[state,setState]=useState('idle'); // idle | reading | analyzing | done | error
   const[err,setErr]=useState('');
   const[draft,setDraft]=useState(null);
   const fr=useRef();
   const process=async f=>{
-    const isPDF=f.type==='application/pdf';
-    const isImg=f.type.startsWith('image/');
-    if(!isPDF&&!isImg){setErr('Upload a PDF, JPG, or PNG invoice.');setState('error');return;}
-    if(f.size>15*1024*1024){setErr('File is too large (max 15MB).');setState('error');return;}
-    setState('reading');setErr('');
-    try{
-      const b=await readB64(f);
-      const uc=isPDF
-        ?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}]
-        :[{type:'image',source:{type:'base64',media_type:f.type,data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}];
-      setState('analyzing');
-      const raw=await callClaude([{role:'user',content:uc}],INVOICE_SYS,4000);
-      const parsed=recoverInvoice(raw);
-      if(!parsed)throw new Error('Could not read this invoice. Try a clearer photo or a different file.');
-      setDraft({
-        vendor:parsed.vendor||'',
-        dept:DEPTS.includes(parsed.suggestedDept)?parsed.suggestedDept:DEPTS[0],
-        description:(parsed.lineItems||[]).map(li=>li.description).filter(Boolean).join(', ')||'',
-        amount:String(parsed.totalAmount||''),
-        currency:parsed.currency||project.base_currency,
-      });
-      setState('done');
-    }catch(e){setErr(e.message);setState('error');}
+    setState('analyzing');setErr('');
+    try{setDraft(await extractInvoice(f,project.base_currency));setState('done');}
+    catch(e){setErr(e.message);setState('error');}
   };
   const reset=()=>{setState('idle');setDraft(null);setErr('');};
   return(
@@ -2027,21 +2043,29 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}
   );
 }
 /* ── Cost Report — budget vs actual by phase, using dept tag on advances ── */
-function CostReportPanel({project,items,advances,reconEntries}){
+/* One flat list of money actually spent — advance expenses (dept comes from the advance) plus
+   paid purchase orders / invoices (dept comes from the PO). Everything downstream reads this list. */
+const spendLedger=(advances,reconEntries,paidPOs,baseCurrency)=>{
+  const advById={};advances.forEach(a=>{advById[a.id]=a;});
+  const fromAdv=reconEntries.filter(e=>advById[e.advance_id]&&!e.description?.startsWith('[CASH-IN]')).map(e=>({amount:Number(e.amount)||0,currency:advById[e.advance_id].currency||baseCurrency,dept:advById[e.advance_id].dept||''}));
+  const fromPO=paidPOs.map(po=>({amount:Number(po.amount)||0,currency:po.currency||baseCurrency,dept:po.dept||''}));
+  return[...fromAdv,...fromPO];
+};
+function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
   const{t:tr}=useLang();
-  const advIds=advances.map(a=>a.id);
-  const advCur=id=>advances.find(a=>a.id===id)?.currency||project.base_currency;
-  const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]'));
+  const spend=spendLedger(advances,reconEntries,paidPOs,project.base_currency);
+  const byCur=list=>{const o={};list.forEach(x=>{o[x.currency]=(o[x.currency]||0)+x.amount;});return o;};
+  const usd=list=>list.reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
   const budgetByCur={};items.forEach(i=>{budgetByCur[i.currency]=(budgetByCur[i.currency]||0)+lTot(i);});
-  const spentByCur={};spendEntries.forEach(e=>{const c=advCur(e.advance_id);spentByCur[c]=(spentByCur[c]||0)+(Number(e.amount)||0);});
+  const spentByCur=byCur(spend);
   const budgetUSD=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+  const spentUSD=usd(spend);
   const remainUSD=budgetUSD-spentUSD;
   const curs=[...new Set([...Object.keys(budgetByCur),...Object.keys(spentByCur),project.base_currency])];
   const fmtCur=obj=>curs.filter(c=>obj[c]).map(c=>`${sym(c)}${fmt(obj[c])}`).join(' · ')||`${sym(project.base_currency)}0`;
   const remainingByCur={};curs.forEach(c=>{remainingByCur[c]=(budgetByCur[c]||0)-(spentByCur[c]||0);});
-  const untaggedSpentUSD=spendEntries.filter(e=>{const a=advances.find(x=>x.id===e.advance_id);return a&&!a.dept;}).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
-  if(items.length===0&&advances.length===0)return null;
+  const untaggedSpentUSD=usd(spend.filter(x=>!x.dept));
+  if(items.length===0&&advances.length===0&&paidPOs.length===0)return null;
   return(
     <div style={{marginBottom:22}}>
       <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:2}}>{tr('costReport')}</div>
@@ -2051,16 +2075,16 @@ function CostReportPanel({project,items,advances,reconEntries}){
         <StatCard label={tr('actualSpentLbl')} value={fmtCur(spentByCur)} sub={project.base_currency}/>
         <StatCard label={tr('remainingLbl')} value={fmtCur(remainingByCur)} sub={remainUSD<0?tr('statOverBudget'):tr('statUnderBudget')} accent={remainUSD<0?T.coral:T.sage}/>
       </div>
-      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent on advances with no department set — tag them when issuing an advance for an accurate phase breakdown.</div>}
+      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent with no department set — tag advances and invoices with a department for an accurate phase breakdown.</div>}
       <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>{tr('byPhase')}</div>
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {PHASES.map(ph=>{
           const bItems=items.filter(i=>ph.depts.includes(i.dept));
           const bByCur={};bItems.forEach(i=>{bByCur[i.currency]=(bByCur[i.currency]||0)+lTot(i);});
-          const advIdsPhase=advances.filter(a=>ph.depts.includes(a.dept)).map(a=>a.id);
-          const sByCur={};spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).forEach(e=>{const c=advCur(e.advance_id);sByCur[c]=(sByCur[c]||0)+(Number(e.amount)||0);});
+          const phSpend=spend.filter(x=>ph.depts.includes(x.dept));
+          const sByCur=byCur(phSpend);
           const bUSD=bItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+          const sUSD=usd(phSpend);
           const pct=bUSD>0?Math.min(100,(sUSD/bUSD)*100):0;const over=sUSD>bUSD;const diffUSD=sUSD-bUSD;
           return(
             <div key={ph.name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 16px'}}>
@@ -2116,21 +2140,104 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
     </div>
   );
 }
-function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp,isOwner}){
+/* ── Recon → Invoices: drop in several invoices at once as they're paid, across any phase.
+   Each is read by AI into an editable row; confirmed rows are saved as PAID purchase orders, so they
+   land in the department feed and the phase Cost Report with no extra step. */
+function InvoiceBatch({project,paidPOs,onCreatePOs}){
+  const[rows,setRows]=useState([]);const[saving,setSaving]=useState(false);const fr=useRef();const mob=useIsMobile();
+  const patch=(key,upd)=>setRows(rs=>rs.map(r=>r.key===key?{...r,...upd}:r));
+  const setDraft=(key,k,v)=>setRows(rs=>rs.map(r=>r.key===key?{...r,draft:{...r.draft,[k]:v}}:r));
+  const addFiles=async fileList=>{
+    const files=[...fileList].slice(0,20);
+    const fresh=files.map(f=>({key:Math.random().toString(36).slice(2,10),fileName:f.name,state:'reading',err:'',draft:null,file:f}));
+    setRows(rs=>[...rs,...fresh]);
+    let next=0;
+    const worker=async()=>{
+      while(next<fresh.length){
+        const r=fresh[next++];
+        try{patch(r.key,{state:'ready',draft:await extractInvoice(r.file,project.base_currency),file:null});}
+        catch(e){patch(r.key,{state:'error',err:e.message,file:null});}
+      }
+    };
+    await Promise.all([worker(),worker()]);
+  };
+  const ready=rows.filter(r=>r.state==='ready');
+  const reading=rows.filter(r=>r.state==='reading').length;
+  const save=async()=>{
+    setSaving(true);
+    const ok=await onCreatePOs(ready.map(r=>({...r.draft,amount:Number(r.draft.amount)||0,status:'Paid',project_id:project.id})));
+    setSaving(false);
+    if(ok){const done=new Set(ready.map(r=>r.key));setRows(rs=>rs.filter(r=>!done.has(r.key)));}
+  };
+  const paidTotal={};paidPOs.forEach(po=>{paidTotal[po.currency]=(paidTotal[po.currency]||0)+Number(po.amount||0);});
+  return(
+    <div>
+      <div onClick={()=>fr.current.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(e.dataTransfer.files?.length)addFiles(e.dataTransfer.files);}} style={{border:`2px dashed ${reading?T.gold:T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:'pointer',marginBottom:16}}>
+        <input ref={fr} type="file" multiple accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{if(e.target.files?.length)addFiles(e.target.files);e.target.value='';}}/>
+        <div style={{fontSize:24,marginBottom:8}}>🧾</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Upload invoices and receipts</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Select several at once (up to 20) — PDFs or photos. NKÒ reads each one; you check them, then add them to Recon as paid.</div>
+        <Btn variant="ghost" size="sm">Choose files</Btn>
+        {reading>0&&<div style={{color:T.gold,fontSize:12,marginTop:10,fontFamily:'Manrope,sans-serif'}}>Reading {reading} invoice{reading!==1?'s':''}…</div>}
+      </div>
+      {rows.length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:14,marginBottom:22}}>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Check each against the actual invoice — especially the department, which decides which phase it counts toward.</div>
+        {rows.map(r=><div key={r.key} style={{padding:'10px 0',borderBottom:`1px solid ${T.line}`}}>
+          <div style={{display:'flex',justifyContent:'space-between',gap:8,marginBottom:r.state==='ready'?8:0}}>
+            <span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.fileName}{r.state==='reading'&&<span style={{color:T.gold}}> · reading…</span>}{r.state==='error'&&<span style={{color:T.coral}}> · {r.err}</span>}</span>
+            <button onClick={()=>setRows(rs=>rs.filter(x=>x.key!==r.key))} aria-label="Remove" style={{background:'none',border:'none',color:T.faint,cursor:'pointer',fontSize:16,flexShrink:0}}>×</button>
+          </div>
+          {r.state==='ready'&&<div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'1.2fr 1.4fr 1.6fr 110px 80px',gap:6}}>
+            <Inp placeholder="Vendor" value={r.draft.vendor} onChange={e=>setDraft(r.key,'vendor',e.target.value)}/>
+            <Sel value={r.draft.dept} onChange={e=>setDraft(r.key,'dept',e.target.value)} style={{width:'100%'}}>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel>
+            <Inp placeholder="Description" value={r.draft.description} onChange={e=>setDraft(r.key,'description',e.target.value)} style={mob?{gridColumn:'span 2'}:{}}/>
+            <Inp type="number" placeholder="Amount" value={r.draft.amount} onChange={e=>setDraft(r.key,'amount',e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+            <Sel value={r.draft.currency} onChange={e=>setDraft(r.key,'currency',e.target.value)} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+          </div>}
+        </div>)}
+        <div style={{display:'flex',gap:8,marginTop:12,alignItems:'center',flexWrap:'wrap'}}>
+          <Btn variant="sage" onClick={save} disabled={!ready.length||saving} style={{opacity:!ready.length||saving?.5:1}}>{saving?'Saving…':`Add ${ready.length} to Recon as paid`}</Btn>
+          <Btn variant="ghost" onClick={()=>setRows([])}>Clear all</Btn>
+        </div>
+      </div>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Paid invoices ({paidPOs.length})</div>
+        <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{Object.entries(paidTotal).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')||'—'}</div>
+      </div>
+      {paidPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:24,textAlign:'center',color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13}}>No paid invoices yet. Purchase orders marked Paid also show here.</div>:
+      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden'}}>
+        {paidPOs.slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map((po,i)=><div key={po.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 14px',borderTop:i?`1px solid ${T.line}`:'none'}}>
+          <div style={{minWidth:0}}>
+            <div style={{color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{po.vendor||'Unnamed vendor'} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {po.dept||'No department'}</span></div>
+            <div style={{color:T.faint,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{po.po_number} · {(po.created_at||'').slice(0,10)}{po.description?` · ${po.description}`:''}</div>
+          </div>
+          <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:13,flexShrink:0}}>{sym(po.currency)}{fmt(po.amount)}</span>
+        </div>)}
+      </div>}
+    </div>
+  );
+}
+function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp,onCreatePOs,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   const[showAll,setShowAll]=useState(false);
+  const[tab,setTab]=useState('spend');
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const pPOsPaid=(purchaseOrders||[]).filter(po=>po.project_id===project.id&&po.status==='Paid');
-  const total=pAdv.reduce((s,a)=>s+a.amount,0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0)).reduce((a,b)=>a+b,0);
+  const total=pAdv.reduce((s,a)=>s+a.amount,0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+Number(e.amount),0)).reduce((a,b)=>a+b,0)+pPOsPaid.reduce((s,po)=>s+Number(po.amount||0),0);
   const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept)].filter(Boolean))];
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances and paid purchase orders, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
-      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries}/>
+      <div style={{display:'flex',gap:6,marginBottom:20}}>
+        {[['spend','Spend overview'],['invoices',`Invoices${pPOsPaid.length?` (${pPOsPaid.length})`:''}`]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:'7px 16px',borderRadius:20,border:`1px solid ${tab===k?T.gold:T.line}`,background:tab===k?T.goldGlow:'transparent',color:tab===k?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer'}}>{l}</button>)}
+      </div>
+      {tab==='invoices'&&<InvoiceBatch project={project} paidPOs={pPOsPaid} onCreatePOs={onCreatePOs}/>}
+      {tab==='spend'&&<>
+      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries} paidPOs={pPOsPaid}/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
-        <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
+        <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="advances + paid invoices"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
       </div>
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>{tr('newAdvance')}</div>
@@ -2154,6 +2261,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
         <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
       </div>
       {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onTopUp={onTopUp}/>))}
+      </>}
     </div>
   );
 }
@@ -2967,9 +3075,10 @@ function MainApp(){
   const pAdvances=advances.filter(a=>a.project_id===currentId);
 
   const TRIAL_LIMIT=2;
+  const SUPPORT_EMAIL='zestproductionco@gmail.com';
   const createProject=async d=>{
     if(trialCount>=TRIAL_LIMIT){
-      alert(`You've used your ${TRIAL_LIMIT} free productions on NKÒ. To start another one, reach out to us — we'll get you set up.`);
+      alert(`Oops, you have maxed out your free budget plans. Send us an email at ${SUPPORT_EMAIL}, and we will set you up.`);
       return false;
     }
     const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();
@@ -3165,6 +3274,14 @@ function MainApp(){
     if(error){alert(`Could not create purchase order: ${error.message}`);return;}
     if(data)setPurchaseOrders(p=>[...p,data]);
   };
+  const addPOsBatch=async list=>{
+    if(!list.length)return true;
+    const rows=list.map((po,i)=>({id:Math.random().toString(36).slice(2,10),po_number:`PO-${String(purchaseOrders.length+1+i).padStart(4,'0')}`,...po,user_id:user.id}));
+    const{data,error}=await sb.from('purchase_orders').insert(rows).select();
+    if(error){alert(`Could not save invoices: ${error.message}`);return false;}
+    if(data)setPurchaseOrders(p=>[...p,...data]);
+    return true;
+  };
   const updatePO=async(id,upd)=>{
     setPurchaseOrders(p=>p.map(po=>po.id===id?{...po,...upd}:po));
     const{error}=await sb.from('purchase_orders').update(upd).eq('id',id);
@@ -3186,11 +3303,11 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&(project?
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
-            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} purchaseOrders={purchaseOrders} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance} isOwner={project?.user_id===user.id}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance} onCreatePOs={addPOsBatch} isOwner={project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
