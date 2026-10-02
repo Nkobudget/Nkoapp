@@ -33,7 +33,7 @@ const PHASES=[
 ];
 
 const UNITS=['day','week','flat','person','item'];
-const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Animation / Cartoon','Other'];
+const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Creator Content','Podcast','Animation / Cartoon','Other'];
 const TRANSLATIONS={
   en:{
     tagline:'Budgets Tailored To Film',
@@ -565,20 +565,23 @@ const TEMPLATES=[
     {dept:'W - Post-Production Team',description:'Music licence / score',qty:1,unit:'flat',rate:60000},
     {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:90000},
   ]},
-  {id:'branded',label:'Branded Content (1-day)',type:'Branded Content',items:[
-    {dept:'F - Talents',description:'Host / presenter',qty:1,unit:'flat',rate:150000},
-    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:200000},
-    {dept:'E - Creative Team',description:'DOP',qty:1,unit:'flat',rate:120000},
-    {dept:'K - Sound Team',description:'Sound recordist',qty:1,unit:'flat',rate:50000},
-    {dept:'Q - Makeup & Hair',description:'Hair & make-up artist',qty:1,unit:'flat',rate:40000},
-    {dept:'S - Production Logistics',description:'Studio / location',qty:1,unit:'flat',rate:100000},
-    {dept:'T - Hospitality & Welfare',description:'Feeding',qty:1,unit:'day',rate:50000},
-    {dept:'P - Wardrobe',description:'Costume & styling',qty:1,unit:'flat',rate:30000},
-    {dept:'H - Camera & Grip Equipment',description:'Camera + lights',qty:1,unit:'day',rate:60000},
-    {dept:'T - Hospitality & Welfare',description:'Unit supplies — water, consumables',qty:1,unit:'day',rate:8000},
-    {dept:'W - Post-Production Team',description:'Edit & graphics / lower thirds',qty:1,unit:'flat',rate:100000},
-    {dept:'Y - PR & Marketing',description:'Social cutdowns (3)',qty:3,unit:'item',rate:20000},
-    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:90000},
+  {id:'branded',label:'TV / Online Commercial',type:'Branded Content',items:[
+    {dept:'C - Pre-Production Expenses',description:'Casting — principal talent',qty:1,unit:'flat',rate:80000},
+    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:300000},
+    {dept:'E - Creative Team',description:'DOP',qty:1,unit:'flat',rate:180000},
+    {dept:'F - Talents',description:'On-camera talent / spokesperson',qty:1,unit:'flat',rate:250000},
+    {dept:'K - Sound Team',description:'Sound recordist',qty:1,unit:'flat',rate:60000},
+    {dept:'Q - Makeup & Hair',description:'Hair & make-up artist',qty:1,unit:'flat',rate:50000},
+    {dept:'S - Production Logistics',description:'Studio / location',qty:1,unit:'flat',rate:150000},
+    {dept:'T - Hospitality & Welfare',description:'Feeding',qty:1,unit:'day',rate:60000},
+    {dept:'P - Wardrobe',description:'Costume & styling',qty:1,unit:'flat',rate:40000},
+    {dept:'H - Camera & Grip Equipment',description:'Camera + lights',qty:1,unit:'day',rate:100000},
+    {dept:'W - Post-Production Team',description:'Edit — :60/:30/:15 cutdowns',qty:3,unit:'item',rate:60000},
+    {dept:'X - Post-Production Expenses',description:'Music licensing / sync fee',qty:1,unit:'flat',rate:150000},
+    {dept:'U - Overhead & General Expenses',description:'Production insurance',qty:1,unit:'flat',rate:50000},
+    {dept:'D - Production Team',description:'Agency / production company fee',qty:1,unit:'flat',rate:300000},
+    {dept:'Z - Sales & Distribution',description:'Usage rights / media buyout (per agreed term)',qty:1,unit:'flat',rate:500000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:227000},
   ]},
   {id:'animation',label:'Animation / Cartoon',type:'Animation / Cartoon',items:[
     {dept:'F - Talents',description:'Lead voice actor',qty:1,unit:'flat',rate:150000},
@@ -599,6 +602,31 @@ const TEMPLATES=[
     {dept:'Y - PR & Marketing',description:'Promo art & trailer',qty:1,unit:'flat',rate:50000},
     {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:130000},
   ]},
+  {id:'creator',label:'Creator / Creative Studio — Brand Deal',type:'Creator Content',items:[
+    {dept:'E - Creative Team',description:'Creator / host fee',qty:1,unit:'flat',rate:150000},
+    {dept:'D - Production Team',description:'Videographer / second shooter',qty:1,unit:'day',rate:40000},
+    {dept:'D - Production Team',description:'Editor',qty:1,unit:'flat',rate:50000},
+    {dept:'H - Camera & Grip Equipment',description:'Camera & gear rental (if not owned)',qty:1,unit:'day',rate:25000},
+    {dept:'P - Wardrobe',description:'Styling for the shoot',qty:1,unit:'flat',rate:15000},
+    {dept:'S - Production Logistics',description:'Transport',qty:1,unit:'flat',rate:10000},
+    {dept:'X - Post-Production Expenses',description:'Editing software subscription (this project\'s share)',qty:1,unit:'flat',rate:8000},
+    {dept:'X - Post-Production Expenses',description:'Stock music / footage licensing',qty:1,unit:'flat',rate:10000},
+    {dept:'Y - PR & Marketing',description:'Paid promotion / boosting the content',qty:1,unit:'flat',rate:30000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:34000},
+  ]},
+  {id:'podcast',label:'Podcast — Per Episode',type:'Podcast',items:[
+    {dept:'F - Talents',description:'Host fee',qty:1,unit:'flat',rate:50000},
+    {dept:'F - Talents',description:'Co-host / guest fee',qty:1,unit:'flat',rate:30000},
+    {dept:'D - Production Team',description:'Audio engineer',qty:1,unit:'flat',rate:30000},
+    {dept:'S - Production Logistics',description:'Recording studio / room rental',qty:1,unit:'flat',rate:25000},
+    {dept:'L - Sound Equipment',description:'Mics, interface & soundproofing (owned gear share)',qty:1,unit:'flat',rate:10000},
+    {dept:'W - Post-Production Team',description:'Episode editing & mixing',qty:1,unit:'flat',rate:40000},
+    {dept:'X - Post-Production Expenses',description:'Intro / outro music licensing',qty:1,unit:'flat',rate:5000},
+    {dept:'X - Post-Production Expenses',description:'Transcription',qty:1,unit:'flat',rate:8000},
+    {dept:'X - Post-Production Expenses',description:'Hosting platform fee (monthly share)',qty:1,unit:'flat',rate:5000},
+    {dept:'Y - PR & Marketing',description:'Social clips / cutdowns for promotion',qty:2,unit:'item',rate:10000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:21300},
+  ]},
 ];
 
 /* ── Creators ── */
@@ -609,6 +637,16 @@ const CREATORS=[
   {id:'c4',name:'Pan-African Docs',role:'Documentary Studio',loc:'Accra',verified:false,downloads:63},
   {id:'c5',name:'Toon Studios NG',role:'Animation Studio',loc:'Lagos',verified:true,downloads:35},
   {id:'c6',name:'Indie Africa',role:'Independent Filmmaker',loc:'Nairobi',verified:false,downloads:41},
+];
+
+/* ── Vendor directory — service providers to hire, distinct from template-author Creators above ── */
+const VENDOR_CATEGORIES=['All','Hair & Makeup','Catering','Equipment Rental','Wardrobe & Costume','Location','Transport & Logistics','Security','Printing & Merchandise','Sound & Studio'];
+const VENDORS=[
+  {id:'v1',name:'Peculiar Taste Catering',category:'Catering',loc:'',contact:'+234 802 933 5102',verified:false},
+  {id:'v2',name:'Nkemdil Cooks',category:'Catering',loc:'',contact:'0806 287 3093',verified:false},
+  {id:'v3',name:'Abazee',category:'Equipment Rental',loc:'Lagos',contact:'+234 809 219 7797',verified:false},
+  {id:'v4',name:'Prints by H2H',category:'Printing & Merchandise',loc:'Abuja',contact:'0703 499 2881',verified:false,service:'Hardcover scripts, merch'},
+  {id:'v5',name:'Microom',category:'Sound & Studio',loc:'Lagos',contact:'+234 805 902 2131',verified:false,service:'Sound design / studio for hire'},
 ];
 
 /* ── Community templates with bundled breakdown scenes ── */
@@ -676,7 +714,7 @@ const COMMUNITY_TEMPLATES=[
      mkScene('Anim','INT. STUDIO - MULTI-DAY','INT','DAY',[],'Workstations, tablets','Block by character across all scenes — faster than scene-by-scene'),
    ]},
 ];
-const MKTCAT=['All','Feature Film','Vertical Series / Microdrama','Music Video','Documentary','Short Film','Branded Content','Animation / Cartoon'];
+const MKTCAT=['All','Feature Film','Vertical Series / Microdrama','Music Video','Documentary','Short Film','Branded Content','Creator Content','Podcast','Animation / Cartoon'];
 
 /* ── AI Prompts ── */
 const CHAT_SYS=`You are a production finance co-pilot for African film and TV productions. You know Lagos, Accra, Nairobi and Johannesburg market rates. Give practical, specific advice in Naira, Cedis, Shillings or Rand as appropriate. Keep responses concise and actionable. IMPORTANT: Do not use any Markdown formatting. No asterisks for bold, no # for headers, no | for tables, no bullet points with *. Write in plain conversational text only. Use line breaks to separate points.`;
@@ -2849,14 +2887,41 @@ function CreatorCard({creator,selected,onClick}){
     </button>
   );
 }
+function VendorCard({vendor}){
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:8}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{vendor.name}</div>
+        {vendor.verified&&<span style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,whiteSpace:'nowrap'}}>✓ Verified</span>}
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Pill>{vendor.category}</Pill>{vendor.loc&&<span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>{vendor.loc}</span>}</div>
+      {vendor.service&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{vendor.service}</div>}
+      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.goldDim,marginTop:4}}>{vendor.contact}</div>
+    </div>
+  );
+}
 function MarketplaceView({onApplyTemplate}){
   const{t:tr}=useLang();
+  const[tab,setTab]=useState('templates');
   const[cat,setCat]=useState('All');const[sel,setSel]=useState(null);const[search,setSearch]=useState('');const[applied,setApplied]=useState(null);const mob=useIsMobile();
+  const[vCat,setVCat]=useState('All');const[vSearch,setVSearch]=useState('');
   const filtered=COMMUNITY_TEMPLATES.filter(t=>(cat==='All'||t.type===cat)&&(!sel||t.author===sel)&&(!search||t.label.toLowerCase().includes(search.toLowerCase())||t.author.toLowerCase().includes(search.toLowerCase())));
+  const filteredVendors=VENDORS.filter(v=>(vCat==='All'||v.category===vCat)&&(!vSearch||v.name.toLowerCase().includes(vSearch.toLowerCase())||v.loc.toLowerCase().includes(vSearch.toLowerCase())));
   const featured=CREATORS[0];
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('marketplaceHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates — budget + archetypal scenes bundled together.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('marketplaceHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates, and vendors to hire for your production.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{display:'flex',gap:8,marginBottom:20,borderBottom:`1px solid ${T.line}`}}>
+        <button onClick={()=>setTab('templates')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='templates'?T.gold:'transparent'}`,color:tab==='templates'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Templates</button>
+        <button onClick={()=>setTab('vendors')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='vendors'?T.gold:'transparent'}`,color:tab==='vendors'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Vendors</button>
+      </div>
+      {tab==='vendors'?<div>
+        <Inp placeholder="Search vendors by name or city…" value={vSearch} onChange={e=>setVSearch(e.target.value)} style={{marginBottom:12}}/>
+        <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{VENDOR_CATEGORIES.map(c=><button key={c} onClick={()=>setVCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${vCat===c?T.gold:T.line}`,background:vCat===c?T.goldGlow:'transparent',color:vCat===c?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
+        {filteredVendors.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No vendors match.</div></div>:
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:14}}>{filteredVendors.map(v=><VendorCard key={v.id} vendor={v}/>)}</div>}
+        <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>List your business</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Reach producers actively budgeting for a shoot.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Vendor listing','_blank')}>List your business →</Btn></div>
+      </div>:<>
       {/* Featured creator hero */}
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:20,marginBottom:24,display:'flex',gap:16,alignItems:'center',flexWrap:mob?'wrap':'nowrap'}}>
         <div style={{width:52,height:52,borderRadius:'50%',background:T.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:T.ink,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{featured.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
@@ -2895,6 +2960,7 @@ function MarketplaceView({onApplyTemplate}){
         </div>;})}
       </div>}
       <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>Publish your template</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Share a budget that works and earn an NKÒ Verified badge.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Template submission','_blank')}>Submit a template →</Btn></div>
+      </>}
     </div>
   );
 }
