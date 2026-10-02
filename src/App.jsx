@@ -2003,9 +2003,18 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
 }
 
 /* ── Recon ── */
-function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}){
+function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp}){
   const{t:tr}=useLang();
   const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
+  const[editingId,setEditingId]=useState(null);const[editCat,setEditCat]=useState('');const[editDesc,setEditDesc]=useState('');const[editAmt,setEditAmt]=useState('');
+  const startEdit=en=>{
+    const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'Miscellaneous';
+    setEditingId(en.id);setEditCat(cat);setEditDesc((en.description||'').replace(/^\[[^\]]+\]\s*/,''));setEditAmt(String(en.amount));
+  };
+  const saveEdit=en=>{
+    if(editDesc&&editAmt)onUpdateEntry(en.id,{description:`[${editCat}] ${editDesc}`,amount:Number(editAmt)});
+    setEditingId(null);
+  };
   const cashIn=entries.filter(e=>e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
   const spent=entries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
   const funds=Number(advance.amount)+cashIn;const bal=funds-spent;const pct=funds>0?Math.min(100,(spent/funds)*100):0;
@@ -2018,7 +2027,17 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}
         <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div><Pill color={sc}>{advance.status==='reconciled'?'Reconciled':bal<0?'Overspent':bal===0?'Balanced':'Open'}</Pill></div>
       </div>
       <div style={{padding:'0 16px 10px'}}><div style={{height:6,borderRadius:3,background:T.ink,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:bal<0?T.coral:T.gold}}/></div><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}><span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span><span style={{color:bal<0?T.coral:T.dim}}>{bal<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(advance.currency)}${fmt(bal)}`}</span></div></div>
-      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{const isIn=en.description?.startsWith('[CASH-IN]');const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');return<div key={en.id} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:isIn?'rgba(82,176,122,.2)':T.hi,color:isIn?T.sage:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{isIn?'CASH IN':cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:isIn?T.sage:T.cream,fontSize:12}}>{isIn?'+':''}{sym(advance.currency)}{fmt(en.amount)}</span><button onClick={()=>onRemoveEntry(en.id)} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
+      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{
+        const isIn=en.description?.startsWith('[CASH-IN]');const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');
+        if(editingId===en.id)return(
+          <div key={en.id} style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`,display:'flex',flexDirection:'column',gap:6,background:T.hi}}>
+            {!isIn&&<Sel value={editCat} onChange={e=>setEditCat(e.target.value)} style={{width:'100%'}}>{expenseCatsForDept(advance.dept).map(c=><option key={c}>{c}</option>)}</Sel>}
+            <Inp value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="What was spent on?"/>
+            <Inp type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} placeholder="Amount"/>
+            <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>saveEdit(en)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditingId(null)}>Cancel</Btn></div>
+          </div>
+        );
+        return<div key={en.id} onClick={()=>startEdit(en)} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8,cursor:'pointer'}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:isIn?'rgba(82,176,122,.2)':T.hi,color:isIn?T.sage:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{isIn?'CASH IN':cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:isIn?T.sage:T.cream,fontSize:12}}>{isIn?'+':''}{sym(advance.currency)}{fmt(en.amount)}</span><span style={{color:T.faint,fontSize:12}}>✎</span><button onClick={e=>{e.stopPropagation();onRemoveEntry(en.id);}} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
         <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
       </div>}
       {show&&<div style={{padding:'10px 16px',borderTop:`1px solid ${T.line}`,background:T.hi,display:'flex',flexDirection:'column',gap:8}}>
@@ -2123,7 +2142,7 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
     </div>
   );
 }
-function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp,isOwner}){
+function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   const[showAll,setShowAll]=useState(false);
@@ -2160,7 +2179,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
       </div>
-      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onTopUp={onTopUp}/>))}
+      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onUpdateEntry={onUpdateEntry} onTopUp={onTopUp}/>))}
     </div>
   );
 }
@@ -3116,6 +3135,11 @@ function MainApp(){
     await sb.from('advances').update({status:'open'}).eq('id',id);
   };
   const removeReconEntry=async id=>{setReconEntries(p=>p.filter(e=>e.id!==id));await sb.from('recon_entries').delete().eq('id',id);};
+  const updateReconEntry=async(id,upd)=>{
+    setReconEntries(p=>p.map(e=>e.id===id?{...e,...upd}:e));
+    const{error}=await sb.from('recon_entries').update(upd).eq('id',id);
+    if(error)alert(`Could not save the change: ${error.message}`);
+  };
   /* Scene breakdown persistence — stores the full scene object in a JSONB 'data' column */
   const addScene=async sc=>{
     const id=sc.id||Math.random().toString(36).slice(2,10);
@@ -3225,7 +3249,7 @@ function MainApp(){
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance} isOwner={project?.user_id===user.id}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} isOwner={project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
