@@ -1437,15 +1437,14 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
 }
 
 /* ── Dashboard ── */
-function DashboardView({projects,budgetItems,advances,reconEntries,purchaseOrders=[],payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
+function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
   const advCurrency=id=>advances.find(a=>a.id===id)?.currency||'NGN';
   const totalBudgetUSD=budgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const paidPOs=purchaseOrders.filter(po=>po.status==='Paid');
-  const totalSpentUSD=reconEntries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0)+paidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
+  const totalSpentUSD=reconEntries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
   const savedUSD=totalBudgetUSD-totalSpentUSD;
   return(
     <div>
@@ -1474,9 +1473,8 @@ function DashboardView({projects,budgetItems,advances,reconEntries,purchaseOrder
             const open=advances.filter(a=>a.project_id===p.id&&a.status!=='reconciled').length;const isSel=selected.has(p.id);
             const pAdvIds=advances.filter(a=>a.project_id===p.id).map(a=>a.id);
             const spentTotals={};reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).forEach(e=>{const c=advCurrency(e.advance_id);spentTotals[c]=(spentTotals[c]||0)+(Number(e.amount)||0);});
-            const pPaidPOs=paidPOs.filter(po=>po.project_id===p.id);pPaidPOs.forEach(po=>{spentTotals[po.currency]=(spentTotals[po.currency]||0)+(Number(po.amount)||0);});
             const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-            const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0)+pPaidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
+            const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
             const pct=budgetUSD>0?Math.min(100,(spentUSD/budgetUSD)*100):0;const over=spentUSD>budgetUSD;
           return<div key={p.id} style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?T.hi:T.panel,border:`1px solid ${isSel?T.coral:p.id===currentId?T.gold:T.line}`,borderRadius:10,padding:18,position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSel?T.coral:T.faint}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
@@ -1535,165 +1533,85 @@ function ProductionDashboardView({project,items,advances,payees,onBack,onOpenBud
   );
 }
 /* ── Budgets ── */
-/* ── Budget ledger (v67) — layout follows the NKO Budget mockup: inline Target/Estimate/Headroom,
-   thin per-phase bars, departments grouped by phase as a ledger, totals block at the foot.
-   Talent lines no longer carry a Breakdown tier chip — the line description is the single
-   source of truth for a role in Budget; tiers live in Breakdown. */
-const isContingencyLine=i=>i.dept==='V - Production Support'&&String(i.description||'').trim().toLowerCase()==='contingency';
-const deptCode=d=>d.split(' - ')[0];
-const deptName=d=>d.split(' - ').slice(1).join(' - ')||d;
-const LEDGER_COLS='36px minmax(180px,1fr) 60px 84px 110px 128px 66px 28px';
-const LEDGER_CSS=`
-.nko-cell{width:100%;box-sizing:border-box;background:transparent;border:0;border-radius:4px;padding:6px 8px;color:${T.cream};font-family:Manrope,sans-serif;font-size:13px;outline:none;}
-.nko-cell:hover{background:${T.hi};}
-.nko-cell:focus{background:${T.ink};box-shadow:inset 0 0 0 1px ${T.gold};}
-.nko-num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
-.nko-sel{cursor:pointer;color:${T.dim};font-size:12px;padding:6px 4px;}
-.nko-sel option{background:${T.panel};color:${T.cream};}
-.nko-underline{background:transparent;border:0;border-bottom:1px dashed ${T.faint};padding:0 0 2px;color:${T.cream};outline:none;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
-.nko-underline:focus{border-bottom-color:${T.gold};}
-.nko-row-x{opacity:.35;}
-.nko-row:hover .nko-row-x{opacity:1;}
-`;
-const statLbl={fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600,letterSpacing:'0.04em'};
-const statVal={fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.cream,fontVariantNumeric:'tabular-nums'};
-
-function useDebouncedField(external,onCommit,delay){
-  const[val,setVal]=useState(external);
-  const timer=useRef(null);
-  useEffect(()=>{setVal(external);},[external]);
-  useEffect(()=>()=>clearTimeout(timer.current),[]);
-  const change=v=>{setVal(v);clearTimeout(timer.current);timer.current=setTimeout(()=>onCommit(v),delay);};
-  return[val,change];
-}
-
-function BudgetStatsBar({project,estimate,onSetTarget}){
-  const s=sym(project.base_currency);
-  const target=project.target_budget;
-  const[targetVal,changeTarget]=useDebouncedField(target!=null?String(target):'',v=>onSetTarget(v===''?null:Number(v)),600);
-  const head=target!=null?target-estimate:null;
-  return(
-    <div style={{display:'flex',flexWrap:'wrap',gap:28,alignItems:'flex-end'}}>
-      <div style={{display:'flex',flexDirection:'column',gap:4}}>
-        <span style={statLbl}>Target</span>
-        <div style={{display:'flex',alignItems:'baseline',gap:2}}>
-          <span style={{...statVal,color:T.dim}}>{s}</span>
-          <input className="nko-underline" type="number" min="0" placeholder="Set a target" value={targetVal} onChange={e=>changeTarget(e.target.value)} style={{fontSize:20,width:170}}/>
-        </div>
-      </div>
-      <div style={{display:'flex',flexDirection:'column',gap:4}}>
-        <span style={statLbl}>Estimate</span>
-        <span style={{...statVal,paddingBottom:3}}>{s}{fmt(estimate)}</span>
-      </div>
-      <div style={{display:'flex',flexDirection:'column',gap:4}}>
-        <span style={{...statLbl,color:head!=null&&head<0?T.coral:T.dim}}>{head!=null&&head<0?'Over target':'Headroom'}</span>
-        <span style={{...statVal,paddingBottom:3,color:head==null?T.faint:head<0?T.coral:T.sage}}>{head==null?'—':`${s}${fmt(Math.abs(head))}`}</span>
-      </div>
-    </div>
-  );
-}
-
-function PhaseStrip({phaseTotals,subtotal,currency}){
-  return(
-    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:16,marginBottom:22}}>
-      {PHASES.map((p,i)=>{
-        const pct=subtotal?Math.round(phaseTotals[i]/subtotal*100):0;
-        return(
-          <div key={p.name} style={{display:'flex',flexDirection:'column',gap:6}}>
-            <div style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
-              <span style={{color:T.dim}}>{p.name}</span>
-              <span style={{color:T.faint,fontFamily:'IBM Plex Mono,monospace'}}>{pct}%</span>
-            </div>
-            <div style={{height:2,background:T.line,borderRadius:1,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:T.gold}}/></div>
-            <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:phaseTotals[i]?T.cream:T.faint}}>{sym(currency)}{fmt(phaseTotals[i])}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function LedgerLine({item,onUpdate,onRemove,mob}){
-  const usd=toUSD(lTot(item),item.currency);
-  if(mob)return(
-    <div className="nko-row" style={{padding:'10px 0 12px 12px',borderBottom:`1px solid ${T.line}`}}>
-      <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
-        <input className="nko-cell" value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{flex:1}}/>
-        <button onClick={()=>onRemove(item.id)} aria-label="Delete line" style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none',width:28,flexShrink:0}}>×</button>
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'56px 1fr 1fr 70px',gap:4,alignItems:'center'}}>
-        <input className="nko-cell nko-num" type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})}/>
-        <select className="nko-cell nko-sel" value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})}>{UNITS.map(u=><option key={u}>{u}</option>)}</select>
-        <input className="nko-cell nko-num" type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})}/>
-        <select className="nko-cell nko-sel" value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select>
-      </div>
-      <div style={{textAlign:'right',marginTop:4,fontFamily:'IBM Plex Mono,monospace'}}>
-        <span style={{fontSize:13,color:T.cream}}>{sym(item.currency)}{fmt(lTot(item))}</span>
-        <span style={{fontSize:10,color:T.faint,marginLeft:8}}>≈ ${fmt(usd)}</span>
-      </div>
-    </div>
-  );
-  return(
-    <div className="nko-row" style={{display:'grid',gridTemplateColumns:LEDGER_COLS,alignItems:'center',minHeight:38,boxShadow:`inset 0 -1px 0 ${T.hi}`}}>
-      <span/>
-      <input className="nko-cell" value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
-      <input className="nko-cell nko-num" type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})}/>
-      <select className="nko-cell nko-sel" value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})}>{UNITS.map(u=><option key={u}>{u}</option>)}</select>
-      <input className="nko-cell nko-num" type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})}/>
-      <div style={{textAlign:'right',paddingRight:8,fontFamily:'IBM Plex Mono,monospace',lineHeight:1.25}}>
-        <div style={{fontSize:13,color:T.cream}}>{sym(item.currency)}{fmt(lTot(item))}</div>
-        <div style={{fontSize:10,color:T.faint}}>≈ ${fmt(usd)}</div>
-      </div>
-      <select className="nko-cell nko-sel" value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select>
-      <button className="nko-row-x" onClick={()=>onRemove(item.id)} aria-label="Delete line" style={{color:T.dim,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button>
-    </div>
-  );
-}
-
-function DeptSection({dept,items,onAdd,onUpdate,onRemove,forceOpen}){
+function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characters,onSaveCharacter}){
   const[open,setOpen]=useState(true);const mob=useIsMobile();
-  const isOpen=open||forceOpen;
+  const isTalent=dept==='F - Talents';
+  const tiers=isTalent&&project?getCastTiers(project,scenes||[],characters||[]):null;
+  const[tierEdit,setTierEdit]=useState(null);
+  const matchedCast=desc=>{
+    if(!tiers)return null;
+    const d=(desc||'').toLowerCase();
+    return tiers.ordered.find(name=>d.includes(name.toLowerCase()))||null;
+  };
+  const tierLabelOf=name=>{
+    for(let i=0;i<4;i++)if(tiers.byTier[i].includes(name))return{label:CAST_TIERS[i],idx:i};
+    return null;
+  };
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const ts=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')||'—';
+  const usdTotal=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
   return(
-    <div>
-      <button onClick={()=>setOpen(!open)} aria-expanded={isOpen} style={{width:'100%',display:'grid',gridTemplateColumns:mob?'36px 1fr auto':'36px 1fr auto',alignItems:'center',minHeight:42,background:T.panel,border:'none',boxShadow:`inset 0 -1px 0 ${T.line}`,cursor:'pointer',padding:'0 8px 0 0',textAlign:'left'}}>
-        <span style={{display:'flex',alignItems:'center',gap:5,paddingLeft:8}}>
-          <span style={{fontSize:8,color:T.faint}}>{isOpen?'▼':'▶'}</span>
-          <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold,fontWeight:600}}>{deptCode(dept)}</span>
-        </span>
-        <span style={{display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
-          <span style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,color:T.cream,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{deptName(dept)}</span>
-          <span style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,flexShrink:0}}>{items.length} line{items.length!==1?'s':''}</span>
-        </span>
-        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream,fontWeight:600,textAlign:'right',paddingLeft:12}}>{ts}</span>
-      </button>
-      {isOpen&&<div>
-        {items.map(item=><LedgerLine key={item.id} item={item} onUpdate={onUpdate} onRemove={onRemove} mob={mob}/>)}
-        <div style={{padding:'4px 0 10px 36px',boxShadow:`inset 0 -1px 0 ${T.line}`}}>
-          <button onClick={()=>onAdd(dept)} style={{color:T.goldDim,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',padding:'6px 0'}}>+ Add line to {deptCode(dept)}</button>
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden',marginBottom:8}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{dept}</span><span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>({items.length})</span></div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{ts}</div>
+          {items.length>0&&<div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usdTotal)}</div>}
         </div>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 12px 14px'}}>
+        {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span style={{textAlign:'right'}}>Line total</span><span>Cur</span><span/></div>}
+        {items.map(item=>{const usd=toUSD(lTot(item),item.currency);return<div key={item.id} style={{padding:mob?'14px 0':'8px 0',borderBottom:`1px solid ${T.line}`}}>
+          {mob?<>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{flex:1}}/>
+              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:20,cursor:'pointer',background:'none',border:'none',flexShrink:0,width:28}}>×</button>
+            </div>
+            {isTalent&&matchedCast(item.description)&&(()=>{const mc=matchedCast(item.description);const tl=tierLabelOf(mc);return(
+              <div style={{position:'relative',marginBottom:10}}>
+                <button onClick={()=>setTierEdit(tierEdit===item.id?null:item.id)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'4px 10px',fontSize:11,color:T.gold,cursor:'pointer'}}>{mc}: {tl?.label||'—'} ✎</button>
+                {tierEdit===item.id&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(mc,{tier:TIER_KEYS[i]});setTierEdit(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===tl?.idx?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})()}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit</div><Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:13}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel></div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit cost</div><Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Currency</div><Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:13}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,color:T.gold,fontWeight:700}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.dim}}>≈ ${fmt(usd)}</div>
+            </div>
+          </>:<>
+            <div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,alignItems:'center'}}>
+              <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
+              <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:12}}/>
+              <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:11}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
+              <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold,fontWeight:700}}>{sym(item.currency)}{fmt(lTot(item))}</div>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
+              </div>
+              <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none'}}>×</button>
+            </div>
+            {isTalent&&matchedCast(item.description)&&(()=>{const mc=matchedCast(item.description);const tl=tierLabelOf(mc);return(
+              <div style={{position:'relative',marginTop:5}}>
+                <button onClick={()=>setTierEdit(tierEdit===item.id?null:item.id)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'3px 9px',fontSize:10,color:T.gold,cursor:'pointer'}}>{mc}: {tl?.label||'—'} ✎</button>
+                {tierEdit===item.id&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(mc,{tier:TIER_KEYS[i]});setTierEdit(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===tl?.idx?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})()}
+          </>}
+        </div>;})}
+        <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Add line</button>
       </div>}
-    </div>
-  );
-}
-
-function BudgetTotals({subtotal,contingency,currency,onSetContingency,items}){
-  const s=sym(currency);
-  const[cVal,changeC]=useDebouncedField(contingency?String(contingency):'',v=>onSetContingency(v===''?0:v,items),500);
-  const row={display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 8px',fontFamily:'Manrope,sans-serif',fontSize:13};
-  const num={fontFamily:'IBM Plex Mono,monospace',fontVariantNumeric:'tabular-nums',color:T.cream};
-  return(
-    <div style={{display:'flex',flexDirection:'column',gap:2,marginTop:22,marginLeft:'auto',maxWidth:380}}>
-      <div style={row}><span style={{color:T.dim}}>Subtotal</span><span style={num}>{s}{fmt(subtotal)}</span></div>
-      <div style={row}>
-        <span style={{color:T.dim}}>Contingency</span>
-        <span style={{display:'flex',alignItems:'baseline',gap:2}}><span style={{...num,color:T.dim}}>{s}</span><input className="nko-underline" type="number" min="0" placeholder="0" value={cVal} onChange={e=>changeC(e.target.value)} style={{width:130,textAlign:'right',fontSize:13}}/></span>
-      </div>
-      <div style={{...row,alignItems:'baseline',padding:'12px 8px 0',marginTop:6,boxShadow:`inset 0 1px 0 ${T.line}`}}>
-        <span style={{color:T.cream,fontWeight:700}}>Grand total</span>
-        <span style={{...num,fontSize:20,color:T.gold,fontWeight:600}}>{s}{fmt(subtotal+(Number(contingency)||0))}</span>
-      </div>
     </div>
   );
 }
@@ -1704,6 +1622,82 @@ const PI_FIELDS=[
   ['shootStart','Shoot Commencement'],['shootEnd','Wrap Date'],
   ['postStart','Post-production Start'],['postEnd','Post-production End'],
 ];
+/* ── Phase Cost Summary — manual input for pre/production/post totals ── */
+const PHASE_COLORS=['#7F77DD','#FEED61','#5B9BD5','#D98BA8']; // Pre-Production, Production, Post-Production, PR/Marketing & Distribution — deliberately distinct from sage/coral, which already mean reconciled/over-budget elsewhere in the app
+function BudgetSummaryHeader({project,items,onSetContingency,onSetTarget}){
+  const{t}=useLang();
+  const preDepts=PHASES[0].depts,prodDepts=PHASES[1].depts,postDepts=PHASES[2].depts,prDepts=PHASES[3].depts;
+  let phaseTotals=[0,0,0,0],autoContingency=0;
+  items.forEach(i=>{
+    const t=lTot(i);
+    if(/contingency/i.test(i.description||'')){autoContingency+=t;return;}
+    if(preDepts.includes(i.dept))phaseTotals[0]+=t;
+    else if(prodDepts.includes(i.dept))phaseTotals[1]+=t;
+    else if(postDepts.includes(i.dept))phaseTotals[2]+=t;
+    else if(prDepts.includes(i.dept))phaseTotals[3]+=t;
+  });
+  const[contingencyInput,setContingencyInput]=useState(String(autoContingency||''));
+  useEffect(()=>{setContingencyInput(String(autoContingency||''));},[autoContingency]);
+  const debounceRef=useRef(null);
+  const onContingencyChange=v=>{
+    setContingencyInput(v);
+    clearTimeout(debounceRef.current);
+    debounceRef.current=setTimeout(()=>onSetContingency(v===''?0:v,items),500);
+  };
+  const[targetInput,setTargetInput]=useState(project.target_budget!=null?String(project.target_budget):'');
+  useEffect(()=>{setTargetInput(project.target_budget!=null?String(project.target_budget):'');},[project.id,project.target_budget]);
+  const targetDebounce=useRef(null);
+  const onTargetChange=v=>{
+    setTargetInput(v);
+    clearTimeout(targetDebounce.current);
+    targetDebounce.current=setTimeout(()=>onSetTarget(v===''?null:Number(v)),600);
+  };
+  const estimate=phaseTotals.reduce((a,b)=>a+b,0)+autoContingency;
+  const target=project.target_budget;
+  const headroom=target!=null?target-estimate:null;
+  const phaseTotalSum=phaseTotals.reduce((a,b)=>a+b,0)||1;
+  return(
+    <div style={{marginBottom:18}}>
+      <div style={{display:'grid',gridTemplateColumns:target!=null?'1fr 1fr 1fr':'1fr 1fr',gap:8,marginBottom:14}}>
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Target</div>
+          <Inp type="number" placeholder="Not set" value={targetInput} onChange={e=>onTargetChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,padding:'4px 6px'}}/>
+        </div>
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Estimate</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream,fontWeight:700,padding:'4px 0'}}>{fmt(estimate)}</div>
+        </div>
+        {target!=null&&<div style={{background:headroom<0?'rgba(224,107,82,.1)':'rgba(82,176,122,.1)',border:`1px solid ${headroom<0?T.coral:T.sage}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:headroom<0?T.coral:T.sage,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>{headroom<0?'Over target':'Headroom'}</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:headroom<0?T.coral:T.sage,fontWeight:700,padding:'4px 0'}}>{fmt(Math.abs(headroom))}</div>
+        </div>}
+      </div>
+      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>{t('phaseCostSummary')}</div>
+          <span style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Live from your budget lines</span>
+        </div>
+        <div style={{display:'flex',height:8,borderRadius:4,overflow:'hidden',marginBottom:8}}>
+          {phaseTotals.map((v,i)=>v>0&&<div key={i} style={{width:`${(v/phaseTotalSum)*100}%`,background:PHASE_COLORS[i]}}/>)}
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:12,marginBottom:12}}>
+          {PHASES.map((p,i)=>phaseTotals[i]>0&&<div key={p.name} style={{display:'flex',alignItems:'center',gap:5,fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}><span style={{width:7,height:7,borderRadius:2,background:PHASE_COLORS[i],display:'inline-block'}}/>{p.name} · {fmt(phaseTotals[i])}</div>)}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:10,paddingTop:10,borderTop:`1px solid ${T.line}`}}>
+          <div>
+            <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('contingency')}</div>
+            <Inp type="number" placeholder="0" value={contingencyInput} onChange={e=>onContingencyChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
+            <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(estimate)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProductionInfoPanel({project}){
   const{t}=useLang();
   const[open,setOpen]=useState(false);const[info,setInfo]=useState({});const[saved,setSaved]=useState(false);
@@ -1760,49 +1754,35 @@ function ScriptResultModal({result,currency,onApply,onClose}){
     </div>
   );
 }
-/* ── Invoice extraction — shared by the single uploader (Purchase Orders) and the batch uploader (Recon → Invoices).
-   Phone photos are downscaled before sending: Vercel caps request bodies at ~4.5MB, and a raw phone
-   photo base64-encoded easily exceeds that. PDFs can't be shrunk client-side, so large ones are rejected clearly. */
-const shrinkImageB64=file=>new Promise((resolve,reject)=>{
-  const url=URL.createObjectURL(file);const img=new Image();
-  img.onload=()=>{
-    const max=1600;const scale=Math.min(1,max/Math.max(img.width,img.height));
-    const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
-    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
-    resolve(c.toDataURL('image/jpeg',0.85).split(',')[1]);
-  };
-  img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not open this image.'));};
-  img.src=url;
-});
-const extractInvoice=async(f,baseCurrency)=>{
-  const isPDF=f.type==='application/pdf';
-  const isImg=f.type.startsWith('image/');
-  if(!isPDF&&!isImg)throw new Error('Not a PDF, JPG or PNG.');
-  if(isImg&&f.size>25*1024*1024)throw new Error('Image is too large (max 25MB).');
-  if(isPDF&&f.size>3.2*1024*1024)throw new Error('PDF is over 3MB — re-save it smaller or upload a photo of it.');
-  const uc=isPDF
-    ?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:await readB64(f)}},{type:'text',text:INVOICE_PROMPT(baseCurrency)}]
-    :[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:await shrinkImageB64(f)}},{type:'text',text:INVOICE_PROMPT(baseCurrency)}];
-  const raw=await callClaude([{role:'user',content:uc}],INVOICE_SYS,4000);
-  const parsed=recoverInvoice(raw);
-  if(!parsed)throw new Error('Could not read this invoice. Try a clearer photo.');
-  return{
-    vendor:parsed.vendor||'',
-    dept:DEPTS.includes(parsed.suggestedDept)?parsed.suggestedDept:DEPTS[0],
-    description:(parsed.lineItems||[]).map(li=>li.description).filter(Boolean).join(', ')||'',
-    amount:String(parsed.totalAmount||''),
-    currency:CURRENCIES.some(c=>c.code===parsed.currency)?parsed.currency:baseCurrency,
-  };
-};
 function InvoiceUploader({project,onCreatePO}){
   const[state,setState]=useState('idle'); // idle | reading | analyzing | done | error
   const[err,setErr]=useState('');
   const[draft,setDraft]=useState(null);
   const fr=useRef();
   const process=async f=>{
-    setState('analyzing');setErr('');
-    try{setDraft(await extractInvoice(f,project.base_currency));setState('done');}
-    catch(e){setErr(e.message);setState('error');}
+    const isPDF=f.type==='application/pdf';
+    const isImg=f.type.startsWith('image/');
+    if(!isPDF&&!isImg){setErr('Upload a PDF, JPG, or PNG invoice.');setState('error');return;}
+    if(f.size>15*1024*1024){setErr('File is too large (max 15MB).');setState('error');return;}
+    setState('reading');setErr('');
+    try{
+      const b=await readB64(f);
+      const uc=isPDF
+        ?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}]
+        :[{type:'image',source:{type:'base64',media_type:f.type,data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}];
+      setState('analyzing');
+      const raw=await callClaude([{role:'user',content:uc}],INVOICE_SYS,4000);
+      const parsed=recoverInvoice(raw);
+      if(!parsed)throw new Error('Could not read this invoice. Try a clearer photo or a different file.');
+      setDraft({
+        vendor:parsed.vendor||'',
+        dept:DEPTS.includes(parsed.suggestedDept)?parsed.suggestedDept:DEPTS[0],
+        description:(parsed.lineItems||[]).map(li=>li.description).filter(Boolean).join(', ')||'',
+        amount:String(parsed.totalAmount||''),
+        currency:parsed.currency||project.base_currency,
+      });
+      setState('done');
+    }catch(e){setErr(e.message);setState('error');}
   };
   const reset=()=>{setState('idle');setDraft(null);setErr('');};
   return(
@@ -1930,44 +1910,24 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 };
 
-function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,onSetContingency,onSetTarget,isOwner}){
+function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
   const[search,setSearch]=useState('');
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pItems=items.filter(i=>i.project_id===project.id);
-  const ledgerItems=pItems.filter(i=>!isContingencyLine(i));
-  const contingency=pItems.filter(isContingencyLine).reduce((s,i)=>s+lTot(i),0);
-  const phaseTotals=PHASES.map(ph=>ledgerItems.filter(i=>ph.depts.includes(i.dept)).reduce((s,i)=>s+lTot(i),0));
-  const subtotal=ledgerItems.reduce((s,i)=>s+lTot(i),0);
-  const estimate=subtotal+contingency;
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const totalAdv=pAdv.reduce((s,a)=>s+a.amount,0);
-  const q=search.trim().toLowerCase();
-  const activeDepts=DEPTS.filter(d=>ledgerItems.some(i=>i.dept===d));
-  const emptyDepts=DEPTS.filter(d=>!activeDepts.includes(d));
-  const shownFor=d=>{
-    const di=ledgerItems.filter(i=>i.dept===d);
-    if(!q||d.toLowerCase().includes(q))return di;
-    return di.filter(i=>(i.description||'').toLowerCase().includes(q));
-  };
-  const visibleDepts=activeDepts.filter(d=>shownFor(d).length>0);
-  const meta=[project.type,project.base_currency,`${ledgerItems.length} line${ledgerItems.length!==1?'s':''}`].filter(Boolean).join(' · ');
   return(
     <div>
-      <style>{LEDGER_CSS}</style>
-      <div style={{display:'flex',flexWrap:'wrap',gap:28,alignItems:'flex-end',marginBottom:22}}>
-        <div style={{flex:'1 1 280px',minWidth:0}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:mob?24:28,color:T.cream,lineHeight:1.1}}>{tr('budgetHeader')} — {project.name}</div>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginTop:6}}>{meta}{totalAdv>0?` · ${sym(project.base_currency)}${fmt(totalAdv)} in advances`:''}</div>
-        </div>
-        <BudgetStatsBar project={project} estimate={estimate} onSetTarget={onSetTarget}/>
-      </div>
-      <PhaseStrip phaseTotals={phaseTotals} subtotal={subtotal} currency={project.base_currency}/>
-      <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center'}}>
-        <Inp placeholder="Search lines or departments" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:'1 1 220px',width:'auto'}}/>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('budgetHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      <BudgetSummaryHeader project={project} items={pItems} onSetContingency={onSetContingency} onSetTarget={onSetTarget}/>
+      <ProductionInfoPanel project={project}/>
+      <BrandPanel project={project}/>
+      {totalAdv>0&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>Advances issued: {sym(project.base_currency)}{fmt(totalAdv)}</div>}
+      <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
         <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
-        {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Only the production owner can export</span>)}
+        {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>)}
       </div>
       {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
@@ -1975,38 +1935,31 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
           {TEMPLATES.map(tpl=><button key={tpl.id} onClick={()=>{onApplyTemplate(tpl);setShowTpl(false);}} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:12,cursor:'pointer',textAlign:'left'}}><div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream}}>{tpl.label}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:3}}>{tpl.items.length} line items</div></button>)}
         </div>
       </div>}
-      {ledgerItems.length===0&&<ScriptUploader project={project} onApplyBudget={onApplyScript}/>}
-      <div style={{overflowX:mob?'visible':'auto'}}>
-        <div style={{minWidth:mob?0:720}}>
-          {!mob&&ledgerItems.length>0&&<div style={{display:'grid',gridTemplateColumns:LEDGER_COLS,alignItems:'center',padding:'0 0 8px',fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',boxShadow:`inset 0 -1px 0 ${T.line}`}}>
-            <span style={{paddingLeft:8}}>Acct</span><span style={{paddingLeft:8}}>Description</span><span style={{textAlign:'right',paddingRight:8}}>Qty</span><span style={{paddingLeft:4}}>Unit</span><span style={{textAlign:'right',paddingRight:8}}>Rate</span><span style={{textAlign:'right',paddingRight:8}}>Total</span><span style={{paddingLeft:4}}>Cur</span><span/>
-          </div>}
-          {q&&!visibleDepts.length&&<div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',padding:'16px 8px'}}>Nothing matches "{search}".</div>}
-          {PHASES.map((ph,pi)=>{
-            const depts=visibleDepts.filter(d=>ph.depts.includes(d));
-            if(!depts.length)return null;
-            return(
-              <div key={ph.name}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'22px 8px 8px'}}>
-                  <span style={{fontSize:11,letterSpacing:'0.1em',textTransform:'uppercase',color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{ph.name}</span>
-                  <span style={{fontSize:12,color:T.dim,fontFamily:'IBM Plex Mono,monospace'}}>{sym(project.base_currency)}{fmt(phaseTotals[pi])}</span>
-                </div>
-                {depts.map(d=><DeptSection key={d} dept={d} items={shownFor(d)} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove} forceOpen={!!q}/>)}
-              </div>
-            );
-          })}
-          {!q&&<Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:14}}>
-            <option value="">{tr('addDepartment')}</option>
-            {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
-          </Sel>}
-          <BudgetTotals subtotal={subtotal} contingency={contingency} currency={project.base_currency} onSetContingency={onSetContingency} items={pItems}/>
-        </div>
+      <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
+      <div style={{marginBottom:14}}>
+        <Inp placeholder="🔍 Search line items or departments…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%'}}/>
       </div>
-      <div style={{marginTop:36}}>
-        {ledgerItems.length>0&&<ScriptUploader project={project} onApplyBudget={onApplyScript}/>}
-        <ProductionInfoPanel project={project}/>
-        <BrandPanel project={project}/>
-      </div>
+      {(()=>{
+        const activeDepts=DEPTS.filter(d=>pItems.some(i=>i.dept===d));
+        const emptyDepts=DEPTS.filter(d=>!activeDepts.includes(d));
+        const q=search.trim().toLowerCase();
+        const visibleDepts=q?activeDepts.filter(d=>d.toLowerCase().includes(q)||pItems.some(i=>i.dept===d&&(i.description||'').toLowerCase().includes(q))):activeDepts;
+        return(
+          <>
+            {q&&!visibleDepts.length&&<div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',padding:'12px 0'}}>No departments or line items match "{search}".</div>}
+            {visibleDepts.map(d=>{
+              const di=pItems.filter(i=>i.dept===d);
+              const deptNameMatches=d.toLowerCase().includes(q);
+              const shown=q&&!deptNameMatches?di.filter(i=>(i.description||'').toLowerCase().includes(q)):di;
+              return<DeptSection key={d} dept={d} items={shown} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove} project={project} scenes={scenes} characters={characters} onSaveCharacter={onSaveCharacter}/>;
+            })}
+            {!q&&<Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
+              <option value="">{tr('addDepartment')}</option>
+              {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
+            </Sel>}
+          </>
+        );
+      })()}
     </div>
   );
 }
@@ -2043,29 +1996,21 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onTopUp}
   );
 }
 /* ── Cost Report — budget vs actual by phase, using dept tag on advances ── */
-/* One flat list of money actually spent — advance expenses (dept comes from the advance) plus
-   paid purchase orders / invoices (dept comes from the PO). Everything downstream reads this list. */
-const spendLedger=(advances,reconEntries,paidPOs,baseCurrency)=>{
-  const advById={};advances.forEach(a=>{advById[a.id]=a;});
-  const fromAdv=reconEntries.filter(e=>advById[e.advance_id]&&!e.description?.startsWith('[CASH-IN]')).map(e=>({amount:Number(e.amount)||0,currency:advById[e.advance_id].currency||baseCurrency,dept:advById[e.advance_id].dept||''}));
-  const fromPO=paidPOs.map(po=>({amount:Number(po.amount)||0,currency:po.currency||baseCurrency,dept:po.dept||''}));
-  return[...fromAdv,...fromPO];
-};
-function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
+function CostReportPanel({project,items,advances,reconEntries}){
   const{t:tr}=useLang();
-  const spend=spendLedger(advances,reconEntries,paidPOs,project.base_currency);
-  const byCur=list=>{const o={};list.forEach(x=>{o[x.currency]=(o[x.currency]||0)+x.amount;});return o;};
-  const usd=list=>list.reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
+  const advIds=advances.map(a=>a.id);
+  const advCur=id=>advances.find(a=>a.id===id)?.currency||project.base_currency;
+  const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]'));
   const budgetByCur={};items.forEach(i=>{budgetByCur[i.currency]=(budgetByCur[i.currency]||0)+lTot(i);});
-  const spentByCur=byCur(spend);
+  const spentByCur={};spendEntries.forEach(e=>{const c=advCur(e.advance_id);spentByCur[c]=(spentByCur[c]||0)+(Number(e.amount)||0);});
   const budgetUSD=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const spentUSD=usd(spend);
+  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
   const remainUSD=budgetUSD-spentUSD;
   const curs=[...new Set([...Object.keys(budgetByCur),...Object.keys(spentByCur),project.base_currency])];
   const fmtCur=obj=>curs.filter(c=>obj[c]).map(c=>`${sym(c)}${fmt(obj[c])}`).join(' · ')||`${sym(project.base_currency)}0`;
   const remainingByCur={};curs.forEach(c=>{remainingByCur[c]=(budgetByCur[c]||0)-(spentByCur[c]||0);});
-  const untaggedSpentUSD=usd(spend.filter(x=>!x.dept));
-  if(items.length===0&&advances.length===0&&paidPOs.length===0)return null;
+  const untaggedSpentUSD=spendEntries.filter(e=>{const a=advances.find(x=>x.id===e.advance_id);return a&&!a.dept;}).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+  if(items.length===0&&advances.length===0)return null;
   return(
     <div style={{marginBottom:22}}>
       <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:2}}>{tr('costReport')}</div>
@@ -2075,16 +2020,16 @@ function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
         <StatCard label={tr('actualSpentLbl')} value={fmtCur(spentByCur)} sub={project.base_currency}/>
         <StatCard label={tr('remainingLbl')} value={fmtCur(remainingByCur)} sub={remainUSD<0?tr('statOverBudget'):tr('statUnderBudget')} accent={remainUSD<0?T.coral:T.sage}/>
       </div>
-      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent with no department set — tag advances and invoices with a department for an accurate phase breakdown.</div>}
+      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent on advances with no department set — tag them when issuing an advance for an accurate phase breakdown.</div>}
       <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>{tr('byPhase')}</div>
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {PHASES.map(ph=>{
           const bItems=items.filter(i=>ph.depts.includes(i.dept));
           const bByCur={};bItems.forEach(i=>{bByCur[i.currency]=(bByCur[i.currency]||0)+lTot(i);});
-          const phSpend=spend.filter(x=>ph.depts.includes(x.dept));
-          const sByCur=byCur(phSpend);
+          const advIdsPhase=advances.filter(a=>ph.depts.includes(a.dept)).map(a=>a.id);
+          const sByCur={};spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).forEach(e=>{const c=advCur(e.advance_id);sByCur[c]=(sByCur[c]||0)+(Number(e.amount)||0);});
           const bUSD=bItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-          const sUSD=usd(phSpend);
+          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
           const pct=bUSD>0?Math.min(100,(sUSD/bUSD)*100):0;const over=sUSD>bUSD;const diffUSD=sUSD-bUSD;
           return(
             <div key={ph.name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 16px'}}>
@@ -2140,104 +2085,21 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
     </div>
   );
 }
-/* ── Recon → Invoices: drop in several invoices at once as they're paid, across any phase.
-   Each is read by AI into an editable row; confirmed rows are saved as PAID purchase orders, so they
-   land in the department feed and the phase Cost Report with no extra step. */
-function InvoiceBatch({project,paidPOs,onCreatePOs}){
-  const[rows,setRows]=useState([]);const[saving,setSaving]=useState(false);const fr=useRef();const mob=useIsMobile();
-  const patch=(key,upd)=>setRows(rs=>rs.map(r=>r.key===key?{...r,...upd}:r));
-  const setDraft=(key,k,v)=>setRows(rs=>rs.map(r=>r.key===key?{...r,draft:{...r.draft,[k]:v}}:r));
-  const addFiles=async fileList=>{
-    const files=[...fileList].slice(0,20);
-    const fresh=files.map(f=>({key:Math.random().toString(36).slice(2,10),fileName:f.name,state:'reading',err:'',draft:null,file:f}));
-    setRows(rs=>[...rs,...fresh]);
-    let next=0;
-    const worker=async()=>{
-      while(next<fresh.length){
-        const r=fresh[next++];
-        try{patch(r.key,{state:'ready',draft:await extractInvoice(r.file,project.base_currency),file:null});}
-        catch(e){patch(r.key,{state:'error',err:e.message,file:null});}
-      }
-    };
-    await Promise.all([worker(),worker()]);
-  };
-  const ready=rows.filter(r=>r.state==='ready');
-  const reading=rows.filter(r=>r.state==='reading').length;
-  const save=async()=>{
-    setSaving(true);
-    const ok=await onCreatePOs(ready.map(r=>({...r.draft,amount:Number(r.draft.amount)||0,status:'Paid',project_id:project.id})));
-    setSaving(false);
-    if(ok){const done=new Set(ready.map(r=>r.key));setRows(rs=>rs.filter(r=>!done.has(r.key)));}
-  };
-  const paidTotal={};paidPOs.forEach(po=>{paidTotal[po.currency]=(paidTotal[po.currency]||0)+Number(po.amount||0);});
-  return(
-    <div>
-      <div onClick={()=>fr.current.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(e.dataTransfer.files?.length)addFiles(e.dataTransfer.files);}} style={{border:`2px dashed ${reading?T.gold:T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:'pointer',marginBottom:16}}>
-        <input ref={fr} type="file" multiple accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{if(e.target.files?.length)addFiles(e.target.files);e.target.value='';}}/>
-        <div style={{fontSize:24,marginBottom:8}}>🧾</div>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Upload invoices and receipts</div>
-        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Select several at once (up to 20) — PDFs or photos. NKÒ reads each one; you check them, then add them to Recon as paid.</div>
-        <Btn variant="ghost" size="sm">Choose files</Btn>
-        {reading>0&&<div style={{color:T.gold,fontSize:12,marginTop:10,fontFamily:'Manrope,sans-serif'}}>Reading {reading} invoice{reading!==1?'s':''}…</div>}
-      </div>
-      {rows.length>0&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:14,marginBottom:22}}>
-        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Check each against the actual invoice — especially the department, which decides which phase it counts toward.</div>
-        {rows.map(r=><div key={r.key} style={{padding:'10px 0',borderBottom:`1px solid ${T.line}`}}>
-          <div style={{display:'flex',justifyContent:'space-between',gap:8,marginBottom:r.state==='ready'?8:0}}>
-            <span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.fileName}{r.state==='reading'&&<span style={{color:T.gold}}> · reading…</span>}{r.state==='error'&&<span style={{color:T.coral}}> · {r.err}</span>}</span>
-            <button onClick={()=>setRows(rs=>rs.filter(x=>x.key!==r.key))} aria-label="Remove" style={{background:'none',border:'none',color:T.faint,cursor:'pointer',fontSize:16,flexShrink:0}}>×</button>
-          </div>
-          {r.state==='ready'&&<div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'1.2fr 1.4fr 1.6fr 110px 80px',gap:6}}>
-            <Inp placeholder="Vendor" value={r.draft.vendor} onChange={e=>setDraft(r.key,'vendor',e.target.value)}/>
-            <Sel value={r.draft.dept} onChange={e=>setDraft(r.key,'dept',e.target.value)} style={{width:'100%'}}>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel>
-            <Inp placeholder="Description" value={r.draft.description} onChange={e=>setDraft(r.key,'description',e.target.value)} style={mob?{gridColumn:'span 2'}:{}}/>
-            <Inp type="number" placeholder="Amount" value={r.draft.amount} onChange={e=>setDraft(r.key,'amount',e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
-            <Sel value={r.draft.currency} onChange={e=>setDraft(r.key,'currency',e.target.value)} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
-          </div>}
-        </div>)}
-        <div style={{display:'flex',gap:8,marginTop:12,alignItems:'center',flexWrap:'wrap'}}>
-          <Btn variant="sage" onClick={save} disabled={!ready.length||saving} style={{opacity:!ready.length||saving?.5:1}}>{saving?'Saving…':`Add ${ready.length} to Recon as paid`}</Btn>
-          <Btn variant="ghost" onClick={()=>setRows([])}>Clear all</Btn>
-        </div>
-      </div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Paid invoices ({paidPOs.length})</div>
-        <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{Object.entries(paidTotal).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')||'—'}</div>
-      </div>
-      {paidPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:24,textAlign:'center',color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13}}>No paid invoices yet. Purchase orders marked Paid also show here.</div>:
-      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden'}}>
-        {paidPOs.slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map((po,i)=><div key={po.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 14px',borderTop:i?`1px solid ${T.line}`:'none'}}>
-          <div style={{minWidth:0}}>
-            <div style={{color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{po.vendor||'Unnamed vendor'} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {po.dept||'No department'}</span></div>
-            <div style={{color:T.faint,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{po.po_number} · {(po.created_at||'').slice(0,10)}{po.description?` · ${po.description}`:''}</div>
-          </div>
-          <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:13,flexShrink:0}}>{sym(po.currency)}{fmt(po.amount)}</span>
-        </div>)}
-      </div>}
-    </div>
-  );
-}
-function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp,onCreatePOs,isOwner}){
+function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onTopUp,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   const[showAll,setShowAll]=useState(false);
-  const[tab,setTab]=useState('spend');
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const pPOsPaid=(purchaseOrders||[]).filter(po=>po.project_id===project.id&&po.status==='Paid');
-  const total=pAdv.reduce((s,a)=>s+a.amount,0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+Number(e.amount),0)).reduce((a,b)=>a+b,0)+pPOsPaid.reduce((s,po)=>s+Number(po.amount||0),0);
+  const total=pAdv.reduce((s,a)=>s+a.amount,0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0)).reduce((a,b)=>a+b,0);
   const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept)].filter(Boolean))];
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances and paid purchase orders, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
-      <div style={{display:'flex',gap:6,marginBottom:20}}>
-        {[['spend','Spend overview'],['invoices',`Invoices${pPOsPaid.length?` (${pPOsPaid.length})`:''}`]].map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{padding:'7px 16px',borderRadius:20,border:`1px solid ${tab===k?T.gold:T.line}`,background:tab===k?T.goldGlow:'transparent',color:tab===k?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer'}}>{l}</button>)}
-      </div>
-      {tab==='invoices'&&<InvoiceBatch project={project} paidPOs={pPOsPaid} onCreatePOs={onCreatePOs}/>}
-      {tab==='spend'&&<>
-      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries} paidPOs={pPOsPaid}/>
+      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries}/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
-        <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="advances + paid invoices"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
+        <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
       </div>
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>{tr('newAdvance')}</div>
@@ -2261,7 +2123,6 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
         <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
       </div>
       {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onTopUp={onTopUp}/>))}
-      </>}
     </div>
   );
 }
@@ -3075,10 +2936,9 @@ function MainApp(){
   const pAdvances=advances.filter(a=>a.project_id===currentId);
 
   const TRIAL_LIMIT=2;
-  const SUPPORT_EMAIL='zestproductionco@gmail.com';
   const createProject=async d=>{
     if(trialCount>=TRIAL_LIMIT){
-      alert(`Oops, you have maxed out your free budget plans. Send us an email at ${SUPPORT_EMAIL}, and we will set you up.`);
+      alert(`You've used your ${TRIAL_LIMIT} free productions on NKÒ. To start another one, reach out to us — we'll get you set up.`);
       return false;
     }
     const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();
@@ -3118,7 +2978,7 @@ function MainApp(){
   const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
   const setContingency=async(value,items)=>{
-    const existing=items.find(isContingencyLine);
+    const existing=items.find(i=>i.dept==='V - Production Support'&&i.description==='Contingency');
     if(existing){
       await updateBudgetItem(existing.id,{rate:value});
     }else if(Number(value)>0){
@@ -3274,14 +3134,6 @@ function MainApp(){
     if(error){alert(`Could not create purchase order: ${error.message}`);return;}
     if(data)setPurchaseOrders(p=>[...p,data]);
   };
-  const addPOsBatch=async list=>{
-    if(!list.length)return true;
-    const rows=list.map((po,i)=>({id:Math.random().toString(36).slice(2,10),po_number:`PO-${String(purchaseOrders.length+1+i).padStart(4,'0')}`,...po,user_id:user.id}));
-    const{data,error}=await sb.from('purchase_orders').insert(rows).select();
-    if(error){alert(`Could not save invoices: ${error.message}`);return false;}
-    if(data)setPurchaseOrders(p=>[...p,...data]);
-    return true;
-  };
   const updatePO=async(id,upd)=>{
     setPurchaseOrders(p=>p.map(po=>po.id===id?{...po,...upd}:po));
     const{error}=await sb.from('purchase_orders').update(upd).eq('id',id);
@@ -3303,11 +3155,11 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&(project?
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
-            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} purchaseOrders={purchaseOrders} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance} onCreatePOs={addPOsBatch} isOwner={project?.user_id===user.id}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onTopUp={topUpAdvance} isOwner={project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
