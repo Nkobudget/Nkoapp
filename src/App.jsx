@@ -25,6 +25,7 @@ const CURRENCIES=[
   {code:'XOF',symbol:'Fr'},{code:'ETB',symbol:'Br'},{code:'USD',symbol:'$'},{code:'GBP',symbol:'£'},
 ];
 const DEPTS=["A - Research & Development", "B - Script & Story", "C - Pre-Production Expenses", "D - Production Team", "E - Creative Team", "F - Talents", "G - Camera & Grip Team", "H - Camera & Grip Equipment", "I - Light & Power Team", "J - Light & Power Equipment", "K - Sound Team", "L - Sound Equipment", "M - Art Team", "N - Set & Prop Expenses", "O - Location", "P - Wardrobe", "Q - Makeup & Hair", "R - SFX & Stunts", "S - Production Logistics", "T - Hospitality & Welfare", "U - Overhead & General Expenses", "V - Production Support", "W - Post-Production Team", "X - Post-Production Expenses", "Y - PR & Marketing", "Z - Sales & Distribution"];
+const REVENUE_SOURCES=["Client fee","Funding","Grants","Investor contribution","Distribution","Sponsorship","Other"];
 const PHASES=[
   {name:'Pre-Production',depts:['A - Research & Development','B - Script & Story','C - Pre-Production Expenses']},
   {name:'Production',depts:['D - Production Team','E - Creative Team','F - Talents','G - Camera & Grip Team','H - Camera & Grip Equipment','I - Light & Power Team','J - Light & Power Equipment','K - Sound Team','L - Sound Equipment','M - Art Team','N - Set & Prop Expenses','O - Location','P - Wardrobe','Q - Makeup & Hair','R - SFX & Stunts','S - Production Logistics','T - Hospitality & Welfare','U - Overhead & General Expenses','V - Production Support']},
@@ -39,7 +40,7 @@ const TRANSLATIONS={
     tagline:'Budgets Tailored To Film',
     signOut:'Sign out',
     studio:'Studio',
-    navDashboard:'Dashboard',navBudgets:'Budgets',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navPO:'Purchase Orders',navMarketplace:'Marketplace',navAI:'AI Builder',
+    navDashboard:'Dashboard',navBudgets:'Budgets',navRevenue:'Revenue',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navPO:'Purchase Orders',navMarketplace:'Marketplace',navAI:'AI Builder',
     selectProduction:'Select production…',newBtn:'+ New',back:'← Back',
     emailPlaceholder:'Email',passwordPlaceholder:'Password',show:'Show',hide:'Hide',
     forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
@@ -80,7 +81,7 @@ const TRANSLATIONS={
     tagline:'Des budgets taillés pour le cinéma',
     signOut:'Se déconnecter',
     studio:'Studio',
-    navDashboard:'Tableau de bord',navBudgets:'Budgets',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navPO:'Bons de commande',navMarketplace:'Place de marché',navAI:'Assistant IA',
+    navDashboard:'Tableau de bord',navBudgets:'Budgets',navRevenue:'Revenus',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navPO:'Bons de commande',navMarketplace:'Place de marché',navAI:'Assistant IA',
     selectProduction:'Sélectionner une production…',newBtn:'+ Nouveau',back:'← Retour',
     emailPlaceholder:'E-mail',passwordPlaceholder:'Mot de passe',show:'Afficher',hide:'Masquer',
     forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
@@ -1175,7 +1176,7 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 };
 
 /* ── Atoms ── */
-const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
 const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
 const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
@@ -1400,7 +1401,7 @@ function AuthScreen(){
 }
 
 /* ── Navigation ── */
-const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',breakdown:'navBreakdown',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
+const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
 function LangToggle({compact}){
   const{lang,setLang}=useLang();
   return(
@@ -2335,6 +2336,63 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
     </div>
   );
 }
+function RevenueView({project,items,onAdd,onUpdate,onRemove,isOwner}){
+  const[showForm,setShowForm]=useState(false);
+  const[form,setForm]=useState({source:'Client fee',description:'',amount:'',currency:'NGN',status:'Expected',date:today()});
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const pItems=items.filter(i=>i.project_id===project.id);
+  const expected=pItems.reduce((s,i)=>s+Number(i.amount||0),0);
+  const received=pItems.filter(i=>i.status==='Received').reduce((s,i)=>s+Number(i.amount||0),0);
+  const outstanding=expected-received;
+  const submit=()=>{
+    if(!form.amount)return;
+    onAdd({...form,amount:Number(form.amount),project_id:project.id});
+    setForm({source:'Client fee',description:'',amount:'',currency:project.base_currency,status:'Expected',date:today()});
+    setShowForm(false);
+  };
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Revenue — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>What this production is expected to earn, and what's actually come in.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
+        <StatCard label="Expected revenue" value={`${sym(project.base_currency)}${fmt(expected)}`} sub="total projected"/>
+        <StatCard label="Received" value={`${sym(project.base_currency)}${fmt(received)}`} sub="actually in" accent={T.sage}/>
+        <StatCard label="Outstanding" value={`${sym(project.base_currency)}${fmt(outstanding)}`} sub="not yet received" accent={outstanding>0?T.gold:T.sage}/>
+      </div>
+      {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Add revenue line</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <Sel value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))} style={{width:'100%'}}>{REVENUE_SOURCES.map(s=><option key={s}>{s}</option>)}</Sel>
+          <Sel value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))} style={{width:'100%'}}><option>Expected</option><option>Received</option></Sel>
+          <Inp placeholder="Description (e.g. client name, deal)" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} style={{gridColumn:'span 2'}}/>
+          <Inp type="number" placeholder="Amount" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))}/>
+          <Sel value={form.currency} onChange={e=>setForm(f=>({...f,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+          <Inp type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={{gridColumn:'span 2'}}/>
+        </div>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={submit}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
+      </div>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pItems.length} revenue line{pItems.length!==1?'s':''}</div>
+        <Btn size="sm" onClick={()=>setShowForm(true)}>+ Add revenue</Btn>
+      </div>
+      {pItems.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No revenue logged yet for this production.</div></div>:
+      pItems.slice().reverse().map(i=>(
+        <div key={i.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <div>
+            <div style={{color:T.cream,fontSize:13,fontWeight:600}}>{i.description||i.source} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {i.source}</span></div>
+            <div style={{color:T.dim,fontSize:11,marginTop:2}}>{i.date}</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(i.currency)}{fmt(i.amount)}</span>
+            <Sel value={i.status} onChange={e=>onUpdate(i.id,{status:e.target.value})} style={{fontSize:11,padding:'4px 6px',color:i.status==='Received'?T.sage:T.goldDim,borderColor:i.status==='Received'?T.sage:T.goldDim}}>
+              <option>Expected</option><option>Received</option>
+            </Sel>
+            <button onClick={()=>{if(window.confirm('Delete this revenue line?'))onRemove(i.id);}} style={{background:'none',border:'none',color:T.faint,cursor:'pointer'}}>✕</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
@@ -2988,7 +3046,7 @@ function MarketplaceView({onApplyTemplate}){
 function MainApp(){
   const{user,signOut}=useAuth();
   const[view,setView]=useState('dashboard');
-  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);
+  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);const[revenueItems,setRevenueItems]=useState([]);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
@@ -2996,7 +3054,7 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py,sc,ch,po,cb,ts]=await Promise.all([
+      const[pr,bi,ad,re,py,sc,ch,po,cb,ts,rv]=await Promise.all([
         sb.from('projects').select('*').order('created_at',{ascending:false}),
         sb.from('budget_items').select('*'),
         sb.from('advances').select('*'),
@@ -3007,6 +3065,7 @@ function MainApp(){
         sb.from('purchase_orders').select('*'),
         sb.from('project_collaborators').select('*'),
         sb.from('user_trial_state').select('*').eq('user_id',user.id).maybeSingle(),
+        sb.from('revenue_items').select('*'),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
       if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
@@ -3014,6 +3073,7 @@ function MainApp(){
       if(po.data)setPurchaseOrders(po.data);
       if(cb.data)setCollaborators(cb.data);
       setTrialCount(ts.data?.productions_created||0);
+      if(rv.data)setRevenueItems(rv.data);
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
@@ -3062,6 +3122,21 @@ function MainApp(){
   };
   const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
+  const addRevenueItem=async item=>{
+    const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();
+    if(error){alert(`Could not add revenue line: ${error.message}`);return;}
+    if(data)setRevenueItems(p=>[...p,data]);
+  };
+  const updateRevenueItem=async(id,upd)=>{
+    setRevenueItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));
+    const{error}=await sb.from('revenue_items').update(upd).eq('id',id);
+    if(error)alert(`Could not update revenue line: ${error.message}`);
+  };
+  const removeRevenueItem=async id=>{
+    setRevenueItems(p=>p.filter(i=>i.id!==id));
+    const{error}=await sb.from('revenue_items').delete().eq('id',id);
+    if(error)alert(`Could not delete revenue line: ${error.message}`);
+  };
   const setContingency=async(value,items)=>{
     const existing=items.find(i=>i.dept==='V - Production Support'&&i.description==='Contingency');
     if(existing){
@@ -3248,6 +3323,7 @@ function MainApp(){
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
+          {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} isOwner={project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} isOwner={project?.user_id===user.id}/>}
