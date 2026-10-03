@@ -2054,15 +2054,17 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdate
   );
 }
 /* ── Cost Report — budget vs actual by phase, using dept tag on advances ── */
-function CostReportPanel({project,items,advances,reconEntries}){
+function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
   const{t:tr}=useLang();
   const advIds=advances.map(a=>a.id);
   const advCur=id=>advances.find(a=>a.id===id)?.currency||project.base_currency;
   const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]'));
   const budgetByCur={};items.forEach(i=>{budgetByCur[i.currency]=(budgetByCur[i.currency]||0)+lTot(i);});
-  const spentByCur={};spendEntries.forEach(e=>{const c=advCur(e.advance_id);spentByCur[c]=(spentByCur[c]||0)+(Number(e.amount)||0);});
+  const spentByCur={};
+  spendEntries.forEach(e=>{const c=advCur(e.advance_id);spentByCur[c]=(spentByCur[c]||0)+(Number(e.amount)||0);});
+  paidPOs.forEach(po=>{spentByCur[po.currency]=(spentByCur[po.currency]||0)+(Number(po.amount)||0);});
   const budgetUSD=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+paidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
   const remainUSD=budgetUSD-spentUSD;
   const curs=[...new Set([...Object.keys(budgetByCur),...Object.keys(spentByCur),project.base_currency])];
   const fmtCur=obj=>curs.filter(c=>obj[c]).map(c=>`${sym(c)}${fmt(obj[c])}`).join(' · ')||`${sym(project.base_currency)}0`;
@@ -2085,9 +2087,12 @@ function CostReportPanel({project,items,advances,reconEntries}){
           const bItems=items.filter(i=>ph.depts.includes(i.dept));
           const bByCur={};bItems.forEach(i=>{bByCur[i.currency]=(bByCur[i.currency]||0)+lTot(i);});
           const advIdsPhase=advances.filter(a=>ph.depts.includes(a.dept)).map(a=>a.id);
-          const sByCur={};spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).forEach(e=>{const c=advCur(e.advance_id);sByCur[c]=(sByCur[c]||0)+(Number(e.amount)||0);});
+          const poPhase=paidPOs.filter(po=>ph.depts.includes(po.dept));
+          const sByCur={};
+          spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).forEach(e=>{const c=advCur(e.advance_id);sByCur[c]=(sByCur[c]||0)+(Number(e.amount)||0);});
+          poPhase.forEach(po=>{sByCur[po.currency]=(sByCur[po.currency]||0)+(Number(po.amount)||0);});
           const bUSD=bItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+poPhase.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
           const pct=bUSD>0?Math.min(100,(sUSD/bUSD)*100):0;const over=sUSD>bUSD;const diffUSD=sUSD-bUSD;
           return(
             <div key={ph.name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 16px'}}>
@@ -2155,7 +2160,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances and paid purchase orders, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
-      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries}/>
+      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries} paidPOs={pPOsPaid}/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
       </div>
