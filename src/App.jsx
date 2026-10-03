@@ -26,6 +26,7 @@ const CURRENCIES=[
 ];
 const DEPTS=["A - Research & Development", "B - Script & Story", "C - Pre-Production Expenses", "D - Production Team", "E - Creative Team", "F - Talents", "G - Camera & Grip Team", "H - Camera & Grip Equipment", "I - Light & Power Team", "J - Light & Power Equipment", "K - Sound Team", "L - Sound Equipment", "M - Art Team", "N - Set & Prop Expenses", "O - Location", "P - Wardrobe", "Q - Makeup & Hair", "R - SFX & Stunts", "S - Production Logistics", "T - Hospitality & Welfare", "U - Overhead & General Expenses", "V - Production Support", "W - Post-Production Team", "X - Post-Production Expenses", "Y - PR & Marketing", "Z - Sales & Distribution"];
 const REVENUE_SOURCES=["Client fee","Funding","Grants","Investor contribution","Distribution","Sponsorship","Other"];
+const phaseForDept=dept=>PHASES.find(ph=>ph.depts.includes(dept))?.name||'—';
 const PHASES=[
   {name:'Pre-Production',depts:['A - Research & Development','B - Script & Story','C - Pre-Production Expenses']},
   {name:'Production',depts:['D - Production Team','E - Creative Team','F - Talents','G - Camera & Grip Team','H - Camera & Grip Equipment','I - Light & Power Team','J - Light & Power Equipment','K - Sound Team','L - Sound Equipment','M - Art Team','N - Set & Prop Expenses','O - Location','P - Wardrobe','Q - Makeup & Hair','R - SFX & Stunts','S - Production Logistics','T - Hospitality & Welfare','U - Overhead & General Expenses','V - Production Support']},
@@ -2326,6 +2327,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
         <div key={po.id} style={{background:T.panel,border:`1px solid ${justPaid[po.id]?T.sage:T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           <div>
             <div style={{color:T.cream,fontSize:13,fontWeight:600}}>{po.vendor||'Unnamed vendor'} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {po.dept}</span></div>
+            <div style={{color:T.faint,fontSize:10,marginTop:1}}>Counts toward {phaseForDept(po.dept)}</div>
             <div style={{color:T.dim,fontSize:11,marginTop:2}}>{po.description}</div>
             {justPaid[po.id]&&<div style={{color:T.sage,fontSize:10,marginTop:3}}>✓ added to Recon just now</div>}
           </div>
