@@ -2416,7 +2416,6 @@ const RECEIPT_BUCKET='payment-receipts';
 const RECEIPT_MAX=8*1024*1024;
 const RECEIPT_TYPES=['image/jpeg','image/png','image/webp','application/pdf'];
 const RECEIPT_ACCEPT=RECEIPT_TYPES.join(',');
-const PAY_METHODS=['Cash','Bank transfer','Mobile money','Card','Other'];
 const compressImage=file=>new Promise(resolve=>{
   if(!file.type.startsWith('image/')){resolve(file);return;}
   const url=URL.createObjectURL(file);const img=new Image();
