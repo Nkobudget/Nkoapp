@@ -2005,7 +2005,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
 }
 
 /* ── Recon ── */
-function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp}){
+function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,onDelete,isOwner}){
   const{t:tr}=useLang();
   const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
   const[editingId,setEditingId]=useState(null);const[editCat,setEditCat]=useState('');const[editDesc,setEditDesc]=useState('');const[editAmt,setEditAmt]=useState('');
@@ -2016,6 +2016,16 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdate
   const saveEdit=en=>{
     if(editDesc&&editAmt)onUpdateEntry(en.id,{description:`[${editCat}] ${editDesc}`,amount:Number(editAmt)});
     setEditingId(null);
+  };
+  const requestDelete=()=>{
+    const n=entries.length;
+    const spent=entries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+Number(e.amount||0),0);
+    const entryWord=`${n} logged entr${n===1?'y':'ies'}`;
+    if(advance.status==='reconciled'){
+      const typed=window.prompt(`This advance is RECONCILED. Deleting it permanently removes ${entryWord} (${sym(advance.currency)}${fmt(spent)} of confirmed spend), and that spend drops out of the Cost Report. Type DELETE to confirm.`);
+      if(typed!=='DELETE')return;
+    }else if(!window.confirm(`Delete this advance${n?` and its ${entryWord}`:''}? This can't be undone.`))return;
+    onDelete(advance.id);
   };
   const cashIn=entries.filter(e=>e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
   const spent=entries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
@@ -2051,6 +2061,7 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdate
       </div>}
       {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14,flexWrap:'wrap'}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('logExpense')}</button><button onClick={()=>{const extra=window.prompt(`Top up this advance — how much extra ${advance.currency} was given to ${advance.recipient}?`);if(extra&&Number(extra)>0)onTopUp(advance.id,Number(extra));}} style={{color:T.sapphire,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('topUp')}</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('reconcileBtn')}</button>}</div>}
       {advance.status!=='reconciled'&&!show&&bal<0&&<div style={{padding:'0 16px 12px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Overspent — top up with new cash received, or remove a logged expense with the × button above.</div>}
+      {isOwner&&!show&&<div style={{padding:'0 16px 12px',borderTop:advance.status==='reconciled'?`1px solid ${T.line}`:'none',paddingTop:advance.status==='reconciled'?10:0}}><button onClick={requestDelete} style={{color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',padding:0}}>Delete advance</button></div>}
     </div>
   );
 }
@@ -2149,7 +2160,7 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
     </div>
   );
 }
-function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,isOwner}){
+function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,onDeleteAdvance,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   const[showAll,setShowAll]=useState(false);
@@ -2186,7 +2197,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
       </div>
-      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onUpdateEntry={onUpdateEntry} onTopUp={onTopUp}/>))}
+      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onUpdateEntry={onUpdateEntry} onTopUp={onTopUp} onDelete={onDeleteAdvance} isOwner={isOwner}/>))}
     </div>
   );
 }
@@ -3217,6 +3228,15 @@ function MainApp(){
     await sb.from('advances').update({status:'open'}).eq('id',id);
   };
   const removeReconEntry=async id=>{setReconEntries(p=>p.filter(e=>e.id!==id));await sb.from('recon_entries').delete().eq('id',id);};
+  const removeAdvance=async id=>{
+    // Entries first, then the advance — nothing is removed from the screen unless the database accepted it.
+    const{error:eErr}=await sb.from('recon_entries').delete().eq('advance_id',id);
+    if(eErr){alert(`Could not delete this advance's logged expenses: ${eErr.message}`);return;}
+    const{error:aErr}=await sb.from('advances').delete().eq('id',id);
+    if(aErr){alert(`Could not delete the advance: ${aErr.message}`);return;}
+    setReconEntries(p=>p.filter(e=>e.advance_id!==id));
+    setAdvances(p=>p.filter(a=>a.id!==id));
+  };
   const updateReconEntry=async(id,upd)=>{
     setReconEntries(p=>p.map(e=>e.id===id?{...e,...upd}:e));
     const{error}=await sb.from('recon_entries').update(upd).eq('id',id);
@@ -3332,7 +3352,7 @@ function MainApp(){
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} isOwner={project?.user_id===user.id}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
