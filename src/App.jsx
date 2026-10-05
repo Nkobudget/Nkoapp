@@ -2411,14 +2411,83 @@ function RevenueView({project,items,onAdd,onUpdate,onRemove,isOwner}){
     </div>
   );
 }
-function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,isOwner}){
+/* ── Payment receipts: private storage, compressed photos, short-lived signed links ── */
+const RECEIPT_BUCKET='payment-receipts';
+const RECEIPT_MAX=8*1024*1024;
+const RECEIPT_TYPES=['image/jpeg','image/png','image/webp','application/pdf'];
+const RECEIPT_ACCEPT=RECEIPT_TYPES.join(',');
+const PAY_METHODS=['Cash','Bank transfer','Mobile money','Card','Other'];
+const compressImage=file=>new Promise(resolve=>{
+  if(!file.type.startsWith('image/')){resolve(file);return;}
+  const url=URL.createObjectURL(file);const img=new Image();
+  img.onload=()=>{
+    const max=1600;let w=img.naturalWidth,h=img.naturalHeight;
+    if(w>max||h>max){const r=Math.min(max/w,max/h);w=Math.round(w*r);h=Math.round(h*r);}
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+    c.toBlob(b=>{URL.revokeObjectURL(url);resolve(b&&b.size<file.size?new File([b],file.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):file);},'image/jpeg',0.82);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+  img.src=url;
+});
+const uploadReceipt=async(projectId,rawFile)=>{
+  if(!RECEIPT_TYPES.includes(rawFile.type))throw new Error('Receipts must be a photo (JPG, PNG or WebP) or a PDF.');
+  const file=await compressImage(rawFile);
+  if(file.size>RECEIPT_MAX)throw new Error('That file is too large (max 8MB).');
+  const ext=file.type==='application/pdf'?'pdf':file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+  const path=`${projectId}/${Math.random().toString(36).slice(2,12)}${Date.now().toString(36)}.${ext}`;
+  const{error}=await sb.storage.from(RECEIPT_BUCKET).upload(path,file,{contentType:file.type,upsert:false});
+  if(error)throw new Error(error.message);
+  return{path,name:rawFile.name,type:file.type,size:file.size};
+};
+const viewReceipt=async path=>{
+  const w=window.open('','_blank');
+  const{data,error}=await sb.storage.from(RECEIPT_BUCKET).createSignedUrl(path,120);
+  if(error||!data?.signedUrl){if(w)w.close();alert(`Could not open the receipt: ${error?.message||'please try again'}`);return;}
+  if(w)w.location.href=data.signedUrl;else window.open(data.signedUrl,'_blank');
+};
+const removeReceiptFile=path=>Promise.resolve(sb.storage.from(RECEIPT_BUCKET).remove([path])).catch(()=>{});
+const purgeReceipts=async projectId=>{
+  try{
+    const{data}=await sb.storage.from(RECEIPT_BUCKET).list(projectId,{limit:1000});
+    if(data&&data.length)await sb.storage.from(RECEIPT_BUCKET).remove(data.map(f=>`${projectId}/${f.name}`));
+  }catch{}
+};
+
+function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,onAttachReceipt,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
+  const[logFor,setLogFor]=useState(null);const[lAmt,setLAmt]=useState('');const[lMethod,setLMethod]=useState('Cash');const[lFile,setLFile]=useState(null);const[busy,setBusy]=useState(false);
+  const[attachTarget,setAttachTarget]=useState(null);const[attachBusy,setAttachBusy]=useState(null);
+  const attachRef=useRef();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pPayees=payees.filter(p=>p.project_id===project.id);
+  const missingTotal=pPayees.reduce((s,p)=>s+(p.payments||[]).filter(x=>!x.receipt).length,0);
+  const openLog=id=>{setLogFor(id);setLAmt('');setLMethod('Cash');setLFile(null);};
+  const submitLog=async p=>{
+    const amount=Number(lAmt);
+    if(!(amount>0)){alert('Enter the amount paid.');return;}
+    setBusy(true);
+    let receipt=null;
+    try{if(lFile)receipt=await uploadReceipt(project.id,lFile);}
+    catch(e){setBusy(false);alert(`The receipt did not upload, so this payment has not been logged yet: ${e.message}`);return;}
+    await onAddPayment(p.id,{amount,method:lMethod,date:today(),...(receipt?{receipt}:{})});
+    setBusy(false);setLogFor(null);setLFile(null);setLAmt('');
+  };
+  const onAttachPicked=async e=>{
+    const f=e.target.files[0];e.target.value='';
+    if(!f||!attachTarget)return;
+    const{pid,idx}=attachTarget;setAttachBusy(`${pid}-${idx}`);
+    try{const receipt=await uploadReceipt(project.id,f);await onAttachReceipt(pid,idx,receipt);}
+    catch(err){alert(`Could not attach the receipt: ${err.message}`);}
+    setAttachBusy(null);setAttachTarget(null);
+  };
+  const smallBtn=(color,border)=>({color,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${border}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'});
   return(
     <div>
+      <input ref={attachRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAttachPicked}/>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('paymentsHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      {missingTotal>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}>⚠ {missingTotal} logged payment{missingTotal!==1?'s have':' has'} no receipt attached. Tap <b>No receipt · Attach</b> on each one to add it.</div>}
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <Inp placeholder="Name" value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))}/>
@@ -2434,8 +2503,32 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,is
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
           <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
-          {(p.payments||[]).map((pay,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:`1px solid ${T.line}`}}><span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span><div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span>{isOwner&&<button onClick={()=>receiptPDF(p,pay,project)} title="Generate PDF receipt" style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>🧾 Receipt</button>}<button onClick={()=>onRemovePayment(p.id,i)} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>)}
-          {bal>0&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>{const amt=window.prompt(`Amount to pay (${p.currency}):`);const method=window.prompt('Payment method:','Cash');if(amt&&method)onAddPayment(p.id,{amount:Number(amt),method,date:today()});}}>{tr('logPayment')}</Btn></div>}
+          {(p.payments||[]).map((pay,i)=>{
+            const key=`${p.id}-${i}`;
+            return<div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6,fontSize:12,padding:'6px 0',borderBottom:`1px solid ${T.line}`}}>
+              <span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span>
+                {pay.receipt
+                  ?<button onClick={()=>viewReceipt(pay.receipt.path)} title={pay.receipt.name} style={smallBtn(T.sage,T.sage)}>📎 Receipt</button>
+                  :<button disabled={attachBusy===key} onClick={()=>{setAttachTarget({pid:p.id,idx:i});attachRef.current?.click();}} style={smallBtn(T.gold,T.goldDim)}>{attachBusy===key?'Uploading…':'No receipt · Attach'}</button>}
+                {isOwner&&<button onClick={()=>receiptPDF(p,pay,project)} title="Generate a payment slip PDF" style={smallBtn(T.dim,T.line)}>🧾 Payment slip</button>}
+                <button onClick={()=>{if(pay.receipt&&!window.confirm('Remove this payment and delete its attached receipt?'))return;onRemovePayment(p.id,i);}} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button>
+              </div>
+            </div>;})}
+          {bal>0&&logFor!==p.id&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>openLog(p.id)}>{tr('logPayment')}</Btn></div>}
+          {logFor===p.id&&<div style={{marginTop:10,padding:12,background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <Inp type="number" placeholder={`Amount (${p.currency})`} value={lAmt} onChange={e=>setLAmt(e.target.value)}/>
+              <Sel value={lMethod} onChange={e=>setLMethod(e.target.value)} style={{width:'100%'}}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</Sel>
+            </div>
+            <label style={{display:'block',border:`1px dashed ${lFile?T.sage:T.line}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',fontSize:12,color:lFile?T.sage:T.dim,fontFamily:'Manrope,sans-serif',wordBreak:'break-all'}}>
+              <input type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={e=>setLFile(e.target.files[0]||null)}/>
+              {lFile?`📎 ${lFile.name}`:'📎 Attach receipt — photo, transfer screenshot or PDF'}
+            </label>
+            <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>You can attach it later, but this payment will show as "No receipt" until you do.</div>
+            <div style={{display:'flex',gap:8}}><Btn size="sm" disabled={busy} onClick={()=>submitLog(p)}>{busy?'Saving…':'Save payment'}</Btn><Btn size="sm" variant="ghost" disabled={busy} onClick={()=>setLogFor(null)}>Cancel</Btn></div>
+          </div>}
         </div>;})}
     </div>
   );
@@ -3138,7 +3231,7 @@ function MainApp(){
     const{error}=await sb.from('project_collaborators').delete().eq('project_id',projectId);
     if(error)alert(`Could not remove collaborator: ${error.message}`);
   };
-  const deleteProjects=async ids=>{for(const id of ids)await sb.from('projects').delete().eq('id',id);setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
+  const deleteProjects=async ids=>{for(const id of ids){await purgeReceipts(id);await sb.from('projects').delete().eq('id',id);}setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
   const addRevenueItem=async item=>{
     const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();
@@ -3306,18 +3399,28 @@ function MainApp(){
     if(data)setPayees(prev=>[...prev,{...data,payments:data.payments||[]}]);
   };
   const addPayment=async(pid,pay)=>{
-    const payee=payees.find(x=>x.id===pid);if(!payee)return;
-    const newPayments=[...(payee.payments||[]),pay];
+    const payee=payees.find(x=>x.id===pid);if(!payee)return false;
+    const prev=payee.payments||[];const newPayments=[...prev,pay];
     setPayees(p=>p.map(x=>x.id===pid?{...x,payments:newPayments}:x));
     const{error}=await sb.from('payees').update({payments:newPayments}).eq('id',pid);
-    if(error)alert(`Could not save payment: ${error.message}`);
+    if(error){setPayees(p=>p.map(x=>x.id===pid?{...x,payments:prev}:x));alert(`Could not save payment: ${error.message}`);if(pay.receipt?.path)removeReceiptFile(pay.receipt.path);return false;}
+    return true;
+  };
+  const attachReceipt=async(pid,idx,receipt)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const prev=payee.payments||[];const next=prev.map((x,i)=>i===idx?{...x,receipt}:x);
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:next}:x));
+    const{error}=await sb.from('payees').update({payments:next}).eq('id',pid);
+    if(error){setPayees(p=>p.map(x=>x.id===pid?{...x,payments:prev}:x));removeReceiptFile(receipt.path);throw new Error(error.message);}
   };
   const removePayment=async(pid,idx)=>{
     const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const gone=(payee.payments||[])[idx];
     const newPayments=(payee.payments||[]).filter((_,i)=>i!==idx);
     setPayees(p=>p.map(x=>x.id===pid?{...x,payments:newPayments}:x));
     const{error}=await sb.from('payees').update({payments:newPayments}).eq('id',pid);
     if(error)alert(`Could not remove payment: ${error.message}`);
+    else if(gone?.receipt?.path)removeReceiptFile(gone.receipt.path);
   };
   const addPO=async po=>{
     const id=Math.random().toString(36).slice(2,10);
@@ -3353,7 +3456,7 @@ function MainApp(){
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
-          {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} isOwner={project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
