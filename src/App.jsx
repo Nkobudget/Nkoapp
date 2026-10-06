@@ -2167,7 +2167,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const pPOsPaid=(purchaseOrders||[]).filter(po=>po.project_id===project.id&&po.status==='Paid');
-  const total=pAdv.reduce((s,a)=>s+a.amount,0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0)).reduce((a,b)=>a+b,0);
+  const isTopUp=e=>!!e.description?.startsWith('[CASH-IN]');const total=pAdv.reduce((s,a)=>s+Number(a.amount)+reconEntries.filter(e=>e.advance_id===a.id&&isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0),0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id&&!isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0)).reduce((a,b)=>a+b,0);
   const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept)].filter(Boolean))];
   return(
     <div>
@@ -2190,7 +2190,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>By department</div>
-        <div style={{display:'flex',gap:8}}>{pAdv.length>0&&isOwner&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
+        <div style={{display:'flex',gap:8}}>{(pAdv.length>0||pPOsPaid.length>0)&&isOwner&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
       </div>
       {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
         activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} currency={project.base_currency}/>)}
@@ -2237,48 +2237,97 @@ const receiptPDF=(payee,payment,project)=>{
 };
 
 /* ── Recon Report PDF — full advances + expense log for a production ── */
-const reconReportPDF=(advances,reconEntries,project)=>{
+const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
-  const totalIssued=advances.reduce((s,a)=>s+a.amount,0);
-  let totalSpent=0;
-  const blocks=advances.map(a=>{
-    const entries=reconEntries.filter(e=>e.advance_id===a.id);
-    const spent=entries.reduce((s,e)=>s+Number(e.amount),0);totalSpent+=spent;
-    const bal=a.amount-spent;
-    const rows=entries.map(en=>{
-      const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';
-      const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');
-      return`<tr><td style="padding:6px 10px;font-size:11px;color:#9A9080;border-bottom:1px solid #3A3A3A">${escapeHtml(en.date)}</td><td style="padding:6px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${cat?`<span style="background:#242424;color:#8C852E;font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-right:5px">${escapeHtml(cat)}</span>`:''}${escapeHtml(desc)}</td><td style="padding:6px 10px;font-size:11px;text-align:right;font-family:monospace;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${sym(a.currency)}${fmt(en.amount)}</td></tr>`;
-    }).join('');
-    return`<div style="margin-bottom:22px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden;page-break-inside:avoid">
-      <div style="background:#1C1C1E;padding:10px 14px;display:flex;justify-content:space-between">
-        <div><span style="color:#F0E8D0;font-weight:700;font-size:13px">${escapeHtml(a.recipient)}</span>${a.dept?`<span style="color:#9A9080;font-size:11px"> · ${escapeHtml(a.dept)}</span>`:''}
-        <div style="color:#8C852E;font-size:10px;margin-top:2px">${escapeHtml(a.purpose)} · Issued ${escapeHtml(a.date_issued)}</div></div>
-        <div style="text-align:right"><div style="color:#FEED61;font-family:monospace;font-size:15px">${sym(a.currency)}${fmt(a.amount)}</div>
-        <div style="font-size:10px;color:${bal<0?'#E06B52':bal===0?'#52B07A':'#9A9080'}">${a.status==='reconciled'?'✓ Reconciled':bal<0?`Over by ${sym(a.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(a.currency)}${fmt(bal)}`}</div></div>
+  const cashIn=e=>!!e.description?.startsWith('[CASH-IN]');
+  const advIds=advances.map(a=>a.id);
+  const advOf=id=>advances.find(a=>a.id===id);
+  const curOf=id=>advOf(id)?.currency||project.base_currency;
+  const add=(o,c,v)=>{o[c]=(o[c]||0)+(Number(v)||0);};
+  const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!cashIn(e));
+  const budgetBy={},spentBy={},poBy={},issuedBy={},advSpentBy={};
+  items.forEach(i=>add(budgetBy,i.currency,lTot(i)));
+  spendEntries.forEach(e=>{add(spentBy,curOf(e.advance_id),e.amount);add(advSpentBy,curOf(e.advance_id),e.amount);});
+  paidPOs.forEach(po=>{add(spentBy,po.currency,po.amount);add(poBy,po.currency,po.amount);});
+  advances.forEach(a=>{add(issuedBy,a.currency,a.amount);reconEntries.filter(e=>e.advance_id===a.id&&cashIn(e)).forEach(e=>add(issuedBy,a.currency,e.amount));});
+  const curSet=[...new Set([...Object.keys(budgetBy),...Object.keys(spentBy),...Object.keys(issuedBy)])];
+  const curs=curSet.length?curSet:[project.base_currency];
+  const m1=(c,v)=>`${v<0?'−':''}${sym(c)}${fmt(Math.abs(v))}`;
+  const money=o=>curs.map(c=>m1(c,o[c]||0)).join('<br>');
+  const diff=(a,b)=>{const o={};curs.forEach(c=>{o[c]=(a[c]||0)-(b[c]||0);});return o;};
+  const remainBy=diff(budgetBy,spentBy);
+  const heldBy=diff(issuedBy,advSpentBy);
+  const anyOver=curs.some(c=>remainBy[c]<0);
+  const card=(label,val,color)=>`<div style="flex:1;min-width:130px;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${label}</div><div style="font-family:monospace;font-size:15px;color:${color||'#F0E8D0'}">${val}</div></div>`;
+  const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">${card('Total budget',money(budgetBy))}${card('Actual spent',money(spentBy),'#FEED61')}${card('Remaining',money(remainBy),anyOver?'#E06B52':'#52B07A')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">${card('Paid purchase orders',money(poBy))}${card('Spent from cash advances',money(advSpentBy))}${card('Cash still with recipients',money(heldBy))}</div>`;
+  const th=(t,r)=>`<th style="padding:7px 10px;font-size:9px;color:#9A9080;text-align:${r?'right':'left'};text-transform:uppercase;letter-spacing:.5px;background:#242424">${t}</th>`;
+  const td=(t,r,extra)=>`<td style="padding:7px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A;text-align:${r?'right':'left'};vertical-align:top;${extra||''}">${t}</td>`;
+  // ── by phase
+  const inPh=(ph,d)=>ph.depts.includes(d);
+  const phaseRows=PHASES.map(ph=>{
+    const b={},s={};
+    items.filter(i=>inPh(ph,i.dept)).forEach(i=>add(b,i.currency,lTot(i)));
+    spendEntries.filter(e=>inPh(ph,advOf(e.advance_id)?.dept)).forEach(e=>add(s,curOf(e.advance_id),e.amount));
+    paidPOs.filter(po=>inPh(ph,po.dept)).forEach(po=>add(s,po.currency,po.amount));
+    return{name:ph.name,b,s};
+  });
+  const unS={};
+  spendEntries.filter(e=>!PHASES.some(ph=>inPh(ph,advOf(e.advance_id)?.dept))).forEach(e=>add(unS,curOf(e.advance_id),e.amount));
+  const phaseHtml=phaseRows.filter(r=>curs.some(c=>r.b[c]||r.s[c])).map(r=>`<tr>${td(escapeHtml(r.name))}${td(money(r.b),1)}${td(money(r.s),1)}${td(money(diff(r.b,r.s)),1)}</tr>`).join('')
+    +(curs.some(c=>unS[c])?`<tr>${td('Not assigned to a department')}${td('—',1)}${td(money(unS),1)}${td('—',1)}</tr>`:'');
+  const phaseTable=phaseHtml?`<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">By phase</div>
+    <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A;margin-bottom:26px"><tr>${th('Phase')}${th('Budget',1)}${th('Spent',1)}${th('Remaining',1)}</tr>${phaseHtml}</table>`:'';
+  // ── by department (advance expenses + paid POs together)
+  const deptList=[...new Set([...advances.map(a=>a.dept),...paidPOs.map(po=>po.dept)])].filter(Boolean).sort((x,y)=>DEPTS.indexOf(x)-DEPTS.indexOf(y));
+  const deptKeys=advances.some(a=>!a.dept)?[...deptList,'']:deptList;
+  const badge=(t,po)=>`<span style="background:${po?'#1F3A2B':'#2A2A2A'};color:${po?'#52B07A':'#9A9080'};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;white-space:nowrap">${escapeHtml(t)}</span>`;
+  const deptBlocks=deptKeys.map(d=>{
+    const advs=advances.filter(a=>(a.dept||'')===d);
+    const rows=[
+      ...reconEntries.filter(e=>advs.some(a=>a.id===e.advance_id)&&!cashIn(e)).map(e=>{
+        const cat=e.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(e.description||'').replace(/^\[[^\]]+\]\s*/,'');
+        return{date:e.date||'',src:'ADVANCE',po:0,main:desc||cat,sub:[cat&&desc?cat:'',advOf(e.advance_id)?.recipient||''].filter(Boolean).join(' · '),amount:e.amount,currency:curOf(e.advance_id)};}),
+      ...paidPOs.filter(po=>(po.dept||'')===d).map(po=>({date:String(po.created_at||'').slice(0,10),src:po.po_number||'PO',po:1,main:po.vendor||'Vendor',sub:po.description||'',amount:po.amount,currency:po.currency})),
+    ].sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+    const spent={},bud={};rows.forEach(r=>add(spent,r.currency,r.amount));items.filter(i=>(i.dept||'')===d).forEach(i=>add(bud,i.currency,lTot(i)));
+    const cs=[...new Set([...Object.keys(spent),...Object.keys(bud)])];
+    const line=o=>cs.map(c=>m1(c,o[c]||0)).join(' · ');
+    return`<div style="margin-bottom:20px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden">
+      <div style="background:#1C1C1E;padding:10px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+        <div style="color:#F0E8D0;font-weight:700;font-size:13px">${escapeHtml(d||'No department set')}</div>
+        <div style="text-align:right"><span style="color:#FEED61;font-family:monospace;font-size:14px">${line(spent)}</span> <span style="color:#9A9080;font-size:10px">spent</span>${Object.keys(bud).length?`<div style="color:#9A9080;font-size:10px;margin-top:2px">Budget ${line(bud)}</div>`:''}</div>
       </div>
-      ${entries.length?`<table style="width:100%;border-collapse:collapse;background:#141414"><tr style="background:#242424"><th style="padding:6px 10px;font-size:9px;color:#9A9080;text-align:left;text-transform:uppercase">Date</th><th style="padding:6px 10px;font-size:9px;color:#9A9080;text-align:left;text-transform:uppercase">Expense</th><th style="padding:6px 10px;font-size:9px;color:#9A9080;text-align:right;text-transform:uppercase">Amount</th></tr>${rows}
-      <tr><td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:#F0E8D0;text-align:right">Total spent</td><td style="padding:8px 10px;font-size:12px;font-weight:700;color:#FEED61;text-align:right;font-family:monospace">${sym(a.currency)}${fmt(spent)}</td></tr></table>`:`<div style="padding:12px 14px;font-size:11px;color:#9A9080;background:#141414">No expenses logged against this advance yet.</div>`}
+      <table style="width:100%;border-collapse:collapse;background:#141414;table-layout:fixed"><colgroup><col style="width:84px"/><col style="width:84px"/><col/><col style="width:112px"/></colgroup>${rows.map(r=>`<tr style="page-break-inside:avoid">${td(escapeHtml(r.date),0,'color:#9A9080;white-space:nowrap')}${td(badge(r.src,r.po))}${td(`${escapeHtml(r.main)}${r.sub?`<div style="color:#9A9080;font-size:10px;margin-top:1px">${escapeHtml(r.sub)}</div>`:''}`)}${td(m1(r.currency,Number(r.amount)||0),1,'font-family:monospace;white-space:nowrap')}</tr>`).join('')}</table>
     </div>`;
   }).join('');
-  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${escapeHtml(project.name)}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+  // ── cash advances (top-ups add to funds, they are not spending)
+  const advRows=advances.map(a=>{
+    const ens=reconEntries.filter(e=>e.advance_id===a.id);
+    const topUps=ens.filter(cashIn).reduce((s,e)=>s+(Number(e.amount)||0),0);
+    const spent=ens.filter(e=>!cashIn(e)).reduce((s,e)=>s+(Number(e.amount)||0),0);
+    const funds=Number(a.amount)+topUps;const bal=funds-spent;
+    const status=a.status==='reconciled'?'<span style="color:#52B07A">✓ Reconciled</span>':bal<0?`<span style="color:#E06B52">Over by ${sym(a.currency)}${fmt(Math.abs(bal))}</span>`:'<span style="color:#FEED61">Open</span>';
+    return`<tr style="page-break-inside:avoid">${td(escapeHtml(a.recipient))}${td(escapeHtml(a.dept||'—'))}${td(escapeHtml(a.purpose||''))}${td(escapeHtml(a.date_issued||''),0,'white-space:nowrap')}${td(`${sym(a.currency)}${fmt(funds)}${topUps?`<div style="color:#9A9080;font-size:9px">incl. ${sym(a.currency)}${fmt(topUps)} top-up</div>`:''}`,1,'font-family:monospace')}${td(`${sym(a.currency)}${fmt(spent)}`,1,'font-family:monospace')}${td(m1(a.currency,bal),1,'font-family:monospace')}${td(status)}</tr>`;
+  }).join('');
+  const advTable=advRows?`<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin:6px 0 8px">Cash advances</div>
+    <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A"><tr>${th('Recipient')}${th('Department')}${th('Purpose')}${th('Issued')}${th('Funds',1)}${th('Spent',1)}${th('Balance',1)}${th('Status')}</tr>${advRows}</table>`:'';
+  const nothing=!advances.length&&!paidPOs.length;
+  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:10mm}@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
     <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
       <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
     </div>
-    <div style="max-width:680px;margin:0 auto;padding:26px;background:#141414">
+    <div style="max-width:760px;margin:0 auto;padding:22px 26px 10px;background:#141414">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
         <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${escapeHtml(project.name)}</div>
-        <div style="font-size:10px;color:#9A9080;margin-top:3px">Created ${new Date().getFullYear()}</div></div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Prepared ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · Cash advances and paid purchase orders</div></div>
         ${logoHtml}
       </div>
-      <div style="display:flex;gap:12px;margin-bottom:22px">
-        ${[['Advances issued',`${sym(project.base_currency)}${fmt(totalIssued)}`],['Total spent',`${sym(project.base_currency)}${fmt(totalSpent)}`],['Outstanding',`${sym(project.base_currency)}${fmt(totalIssued-totalSpent)}`]].map(([k,v])=>`<div style="flex:1;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:12px;text-align:center"><div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1px">${k}</div><div style="font-size:17px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${v}</div></div>`).join('')}
-      </div>
-      ${blocks||'<div style="color:#9A9080;font-size:12px">No advances issued yet.</div>'}
-      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:20px">Generated by NKÒ — Budgets Tailored To Film · nko-nko.vercel.app</div>
+      ${nothing?'<div style="color:#9A9080;font-size:12px">Nothing has been spent or issued yet.</div>':`${summary}${phaseTable}<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">By department</div>${deptBlocks}${advTable}`}
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:10px;page-break-inside:avoid">Generated by NKÒ — Budgets Tailored To Film · nko-nko.vercel.app</div>
     </div>
   </body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
