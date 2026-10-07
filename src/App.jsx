@@ -41,7 +41,7 @@ const TRANSLATIONS={
     tagline:'Budgets Tailored To Film',
     signOut:'Sign out',
     studio:'Studio',
-    navDashboard:'Dashboard',navBudgets:'Budgets',navRevenue:'Revenue',navBreakdown:'Breakdown',navRecon:'Recon',navPayments:'Payments',navPO:'Purchase Orders',navMarketplace:'Marketplace',navAI:'AI Builder',
+    navDashboard:'Dashboard',navBudgets:'Budgets',navRevenue:'Revenue',navBreakdown:'Breakdown',navSchedule:'Schedule',navRecon:'Recon',navPayments:'Payments',navPO:'Purchase Orders',navMarketplace:'Marketplace',navAI:'AI Builder',
     selectProduction:'Select production…',newBtn:'+ New',back:'← Back',
     emailPlaceholder:'Email',passwordPlaceholder:'Password',show:'Show',hide:'Hide',
     forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
@@ -82,7 +82,7 @@ const TRANSLATIONS={
     tagline:'Des budgets taillés pour le cinéma',
     signOut:'Se déconnecter',
     studio:'Studio',
-    navDashboard:'Tableau de bord',navBudgets:'Budgets',navRevenue:'Revenus',navBreakdown:'Découpage',navRecon:'Rapprochement',navPayments:'Paiements',navPO:'Bons de commande',navMarketplace:'Place de marché',navAI:'Assistant IA',
+    navDashboard:'Tableau de bord',navBudgets:'Budgets',navRevenue:'Revenus',navBreakdown:'Découpage',navSchedule:'Planning',navRecon:'Rapprochement',navPayments:'Paiements',navPO:'Bons de commande',navMarketplace:'Place de marché',navAI:'Assistant IA',
     selectProduction:'Sélectionner une production…',newBtn:'+ Nouveau',back:'← Retour',
     emailPlaceholder:'E-mail',passwordPlaceholder:'Mot de passe',show:'Afficher',hide:'Masquer',
     forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
@@ -567,23 +567,45 @@ const TEMPLATES=[
     {dept:'W - Post-Production Team',description:'Music licence / score',qty:1,unit:'flat',rate:60000},
     {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:90000},
   ]},
-  {id:'branded',label:'TV / Online Commercial',type:'Branded Content',items:[
-    {dept:'C - Pre-Production Expenses',description:'Casting — principal talent',qty:1,unit:'flat',rate:80000},
-    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:300000},
-    {dept:'E - Creative Team',description:'DOP',qty:1,unit:'flat',rate:180000},
-    {dept:'F - Talents',description:'On-camera talent / spokesperson',qty:1,unit:'flat',rate:250000},
-    {dept:'K - Sound Team',description:'Sound recordist',qty:1,unit:'flat',rate:60000},
-    {dept:'Q - Makeup & Hair',description:'Hair & make-up artist',qty:1,unit:'flat',rate:50000},
-    {dept:'S - Production Logistics',description:'Studio / location',qty:1,unit:'flat',rate:150000},
-    {dept:'T - Hospitality & Welfare',description:'Feeding',qty:1,unit:'day',rate:60000},
-    {dept:'P - Wardrobe',description:'Costume & styling',qty:1,unit:'flat',rate:40000},
-    {dept:'H - Camera & Grip Equipment',description:'Camera + lights',qty:1,unit:'day',rate:100000},
-    {dept:'W - Post-Production Team',description:'Edit — :60/:30/:15 cutdowns',qty:3,unit:'item',rate:60000},
-    {dept:'X - Post-Production Expenses',description:'Music licensing / sync fee',qty:1,unit:'flat',rate:150000},
-    {dept:'U - Overhead & General Expenses',description:'Production insurance',qty:1,unit:'flat',rate:50000},
-    {dept:'D - Production Team',description:'Agency / production company fee',qty:1,unit:'flat',rate:300000},
-    {dept:'Z - Sales & Distribution',description:'Usage rights / media buyout (per agreed term)',qty:1,unit:'flat',rate:500000},
-    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:227000},
+  {id:'branded',label:'TV / Online Commercial',type:'Branded Content',items:[ // built from NEW_BUDGET_TEMPLATE.xlsx — structure only, rates left at 0 for the producer to fill in
+    {dept:'D - Production Team',description:'Producer',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'1st Assistant Director',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Models',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Extras (background audience)',qty:1,unit:'day',rate:0},
+    {dept:'D - Production Team',description:'Production managers',qty:1,unit:'day',rate:0},
+    {dept:'D - Production Team',description:'Production coordinators',qty:1,unit:'day',rate:0},
+    {dept:'D - Production Team',description:'Runners',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'DOP',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Camera operators',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Camera assistants',qty:1,unit:'day',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera',qty:1,unit:'day',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera accessories (lens, track/dolly, steadicam, etc.)',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Grip',qty:1,unit:'day',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Grip accessories',qty:1,unit:'day',rate:0},
+    {dept:'K - Sound Team',description:'Sound engineer and equipment',qty:1,unit:'day',rate:0},
+    {dept:'I - Light & Power Team',description:'Gaffer + best boy',qty:1,unit:'day',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Lighting accessories',qty:1,unit:'day',rate:0},
+    {dept:'M - Art Team',description:'Art director, crew and set-up',qty:1,unit:'day',rate:0},
+    {dept:'P - Wardrobe',description:'Wardrobe for talent',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Hair and make-up',qty:1,unit:'day',rate:0},
+    {dept:'P - Wardrobe',description:'Stylist',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Protocol officers',qty:1,unit:'day',rate:0},
+    {dept:'O - Location',description:'Location 1',qty:1,unit:'day',rate:0},
+    {dept:'O - Location',description:'Location 2',qty:1,unit:'day',rate:0},
+    {dept:'S - Production Logistics',description:'Transportation — crew',qty:1,unit:'day',rate:0},
+    {dept:'S - Production Logistics',description:'Transportation — talent',qty:1,unit:'day',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Catering — crew and talent',qty:4,unit:'day',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Catering — client',qty:2,unit:'day',rate:0},
+    {dept:'W - Post-Production Team',description:'Graphics',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Title sequence',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Music',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Sound pack',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Photography (stills)',qty:1,unit:'day',rate:0},
+    {dept:'W - Post-Production Team',description:'Editor',qty:1,unit:'item',rate:0},
+    {dept:'W - Post-Production Team',description:'Colorist',qty:1,unit:'item',rate:0},
+    {dept:'W - Post-Production Team',description:'Final mix',qty:1,unit:'item',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Hard drives, etc.',qty:2,unit:'item',rate:0},
   ]},
   {id:'animation',label:'Animation / Cartoon',type:'Animation / Cartoon',items:[
     {dept:'F - Talents',description:'Lead voice actor',qty:1,unit:'flat',rate:150000},
@@ -886,6 +908,179 @@ const extractPdfText=async file=>{
 const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
 const readTxt=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
 const readImg=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+/* ── Scene length in eighths of a page (the stripboard standard) ── */
+const fmtPages8=e=>{e=Math.round(Number(e)||0);if(e<=0)return'—';const w=Math.floor(e/8),r=e%8;return w&&r?`${w} ${r}/8`:w?`${w}`:`${r}/8`;};
+const parsePages8=t=>{
+  const s=String(t??'').trim();if(!s)return null;
+  let m=s.match(/^(\d+)\s+(\d)\s*\/\s*8$/);if(m)return Number(m[1])*8+Number(m[2]);
+  m=s.match(/^(\d)\s*\/\s*8$/);if(m)return Number(m[1]);
+  if(/^\d+(?:\.\d+)?$/.test(s))return Math.round(parseFloat(s)*8);
+  return null;
+};
+const SCENE_HEAD=/^\s*(?:\d+[A-Z]{0,2}[\s.)-]+)?(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E|INT|EXT)\b[\s.\/-]/i;
+const normHead=t=>String(t||'').toUpperCase().replace(/^\s*\d+[A-Z]{0,2}[\s.)-]+/,'').replace(/[^A-Z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+/* lines: [{page, y, text, h}] — y is the distance DOWN from the top of the page body, in points.
+   pageBody is the height of one page of body text. A scene runs from its heading to the next heading. */
+const layoutScenePages=(lines,pageBody)=>{
+  const ordered=lines.slice().sort((a,b)=>a.page-b.page||a.y-b.y);
+  const heads=[];let last=0;
+  ordered.forEach(l=>{
+    const pos=(l.page-1)*pageBody+l.y;last=Math.max(last,pos+(l.h||12));
+    if(l.text.length<140&&SCENE_HEAD.test(l.text))heads.push({text:l.text.trim(),pos});
+  });
+  return heads.map((h,i)=>{const end=i+1<heads.length?heads[i+1].pos:last;return{heading:h.text,eighths:Math.max(1,Math.round((end-h.pos)/pageBody*8))};});
+};
+const ensurePdfJs=async()=>{
+  if(window.pdfjsLib)return;
+  await new Promise((resolve,reject)=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js';
+    sc.onload=resolve;sc.onerror=()=>reject(new Error('Could not load the PDF reader library.'));
+    document.head.appendChild(sc);
+  });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
+};
+/* Reads real line positions out of a script PDF, so page lengths are measured, not guessed. */
+const measureScenePages=async file=>{
+  await ensurePdfJs();
+  const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  const lines=[];let body=0;
+  for(let n=1;n<=pdf.numPages;n++){
+    const page=await pdf.getPage(n);const H=page.getViewport({scale:1}).height;
+    const top=72,bottom=72;body=H-top-bottom;
+    const tc=await page.getTextContent();const rows={};
+    tc.items.forEach(it=>{if(!it.str||!it.str.trim())return;const y=it.transform[5];const k=Math.round(y/2);(rows[k]=rows[k]||[]).push({x:it.transform[4],s:it.str,y});});
+    Object.values(rows).forEach(r=>{
+      r.sort((a,b)=>a.x-b.x);
+      const text=r.map(i=>i.s).join(' ').replace(/\s+/g,' ').trim();
+      const fromTop=H-r[0].y;
+      if(fromTop<top-8||fromTop>H-bottom+12)return;   // page numbers, running headers and footers
+      if(/^\d+\.?$/.test(text))return;
+      lines.push({page:n,y:fromTop-top,text,h:12});
+    });
+  }
+  return layoutScenePages(lines,body);
+};
+/* Plain-text scripts have no page layout, so this is an estimate (about 56 lines to a page). */
+const estimateTxtPages=text=>{
+  const lines=String(text||'').split(/\r?\n/);const heads=[];
+  lines.forEach((l,i)=>{if(l.length<140&&SCENE_HEAD.test(l))heads.push({text:l.trim(),pos:i});});
+  return heads.map((h,i)=>{const end=i+1<heads.length?heads[i+1].pos:lines.length;return{heading:h.text,eighths:Math.max(1,Math.round((end-h.pos)/56*8))};});
+};
+const attachPageLengths=(scenes,measured,source)=>{
+  if(!measured||!measured.length)return scenes;
+  const out=scenes.map(s=>({...s}));
+  if(measured.length===out.length){out.forEach((s,i)=>{s.pages8=measured[i].eighths;s.pages8Source=source;});return out;}
+  let cur=0;
+  out.forEach(s=>{const key=normHead(s.heading);for(let j=cur;j<measured.length;j++){if(normHead(measured[j].heading)===key){s.pages8=measured[j].eighths;s.pages8Source=source;cur=j+1;break;}}});
+  return out;
+};
+/* ── Cast numbering, like the cast legend on a stripboard ── */
+const TIER_RANK={lead:0,supporting:1,background:2,extra:3};
+const buildCastIndex=(sortedScenes,characters)=>{
+  const tierOf=n=>(characters||[]).find(c=>c.name===n)?.tier;
+  const count={},first={};
+  sortedScenes.forEach((sc,i)=>(sc.cast||[]).forEach(n=>{count[n]=(count[n]||0)+1;if(first[n]==null)first[n]=i;}));
+  const names=Object.keys(count).sort((a,b)=>(TIER_RANK[tierOf(a)]??1)-(TIER_RANK[tierOf(b)]??1)||count[b]-count[a]||first[a]-first[b]);
+  const idx={};names.forEach((n,i)=>{idx[n]=i+1;});
+  return{idx,list:names.map(n=>({id:idx[n],name:n,tier:tierOf(n)||'',scenes:count[n]}))};
+};
+/* ── Strip colours: white INT day · yellow EXT day · green INT night · blue EXT night · orange evening ── */
+const todClass=sc=>{const t=`${sc.dayNight||''} ${sc.timeNotes||''}`.toUpperCase();if(/EVEN|DUSK|DAWN|SUNSET|SUNRISE/.test(t))return'eve';if(/NIGHT/.test(t))return'night';return'day';};
+const isExtScene=sc=>/^EXT/i.test(String(sc.intExt||'').trim())||(!sc.intExt&&/^\s*\d*[A-Z]{0,2}[\s.)-]*EXT/i.test(sc.heading||''));
+const stripStyle=sc=>{
+  const c=todClass(sc),ext=isExtScene(sc);
+  if(c==='eve')return{bg:'#FF9933',fg:'#111111'};
+  if(c==='night')return ext?{bg:'#1F3BFF',fg:'#FFFFFF'}:{bg:'#0B9A2A',fg:'#FFFFFF'};
+  return ext?{bg:'#FFF35C',fg:'#111111'}:{bg:'#FFFFFF',fg:'#111111'};
+};
+/* ── Schedule: dates, auto-build, and the two printable documents ── */
+const addIsoDays=(iso,n)=>{const d=new Date(`${iso}T12:00:00`);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+const dowOf=iso=>new Date(`${iso}T12:00:00`).getDay();
+const longDate=iso=>iso?new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'No date set';
+const shortDate=iso=>iso?new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):'No date';
+const ordinal=n=>{const sfx=['th','st','nd','rd'],v=n%100;return n+(sfx[(v-20)%10]||sfx[v]||sfx[0]);};
+const stripDateBar=iso=>{if(!iso)return'NO DATE SET';const d=new Date(`${iso}T12:00:00`);return`${d.toLocaleDateString('en-GB',{weekday:'long'}).toUpperCase()} ${ordinal(d.getDate()).toUpperCase()} ${d.toLocaleDateString('en-GB',{month:'long'}).toUpperCase()} ${d.getFullYear()}`;};
+const nextMonday=()=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+((8-d.getDay())%7||7));return d.toISOString().slice(0,10);};
+const sceneLoc=sc=>sc.location||String(sc.heading||'').replace(/^\s*\d*[A-Z]{0,2}[\s.)-]*(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E|INT|EXT)\.?\s*/i,'').replace(/\s*[-–—]\s*(?:DAY|NIGHT|EVENING|MORNING|AFTERNOON|DUSK|DAWN|CONTINUOUS|LATER|SAME).*$/i,'').trim();
+const todLabel=sc=>{const c=todClass(sc);return c==='eve'?'Evening':c==='night'?'Night':'Day';};
+const bgText=sc=>{const p=[];if(Number(sc.backgroundActors)>0)p.push(`${sc.backgroundActors} extras`);(sc.talkingExtras||[]).forEach(t=>p.push(t));return p.join(', ');};
+/* Groups scenes by location (so a company is not moved around), keeps day scenes before night scenes at a location,
+   and fills each day up to the target page count. A scene with no page length counts as one page. */
+const suggestDays=({scenes,pagesPerDay,startDate,skipSundays})=>{
+  const target=Math.max(8,Math.round(pagesPerDay*8));
+  const order={day:0,eve:1,night:2};const groups=[],map={};
+  scenes.forEach((sc,i)=>{const k=normHead(sceneLoc(sc))||'?';if(!(k in map)){map[k]=groups.length;groups.push([]);}groups[map[k]].push({sc,i});});
+  const flat=[];groups.forEach(g=>{g.sort((a,b)=>order[todClass(a.sc)]-order[todClass(b.sc)]||a.i-b.i);g.forEach(x=>flat.push(x.sc));});
+  const buckets=[];let cur=null,load=0;
+  flat.forEach(sc=>{const e=sc.pages8>0?sc.pages8:8;if(!cur||(load+e>target&&cur.length)){cur=[];buckets.push(cur);load=0;}cur.push(sc.id);load+=e;});
+  const out=[];let date=startDate;
+  buckets.forEach(ids=>{
+    while(skipSundays&&dowOf(date)===0){out.push({kind:'off',date,title:'DAY OFF',scene_ids:[]});date=addIsoDays(date,1);}
+    out.push({kind:'shoot',date,scene_ids:ids});date=addIsoDays(date,1);
+  });
+  return out;
+};
+const openPrintable=html=>{const w=window.open('','_blank');if(!w){alert('Your browser blocked the new tab — allow pop-ups for NKÒ and try again.');return;}w.document.write(html);w.document.close();};
+const PRINT_BAR=`<div class="np" style="background:#f3f1ec;padding:12px;text-align:center;border-bottom:1px solid #ccc"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#666;font-size:11px;margin-top:6px">Save the PDF, then share it on WhatsApp or email</div></div>`;
+/* The strip schedule, laid out like a production stripboard: cast legend, then day by day. */
+const scheduleStripPDF=(project,days,scenes,characters)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const sorted=sortScenes(scenes);const castIdx=buildCastIndex(sorted,characters);
+  const byId=Object.fromEntries(sorted.map(s=>[s.id,s]));
+  const bar=(bg,txt)=>`<div style="background:${bg};color:#fff;text-align:center;font-weight:700;font-size:14px;padding:12px 8px;margin:10px 0 6px;page-break-inside:avoid">${txt}</div>`;
+  let n=0,grand=0;
+  const body=days.map(d=>{
+    if(d.kind!=='shoot')return bar('#111',escapeHtml(d.title||(d.kind==='off'?'DAY OFF':'NOTE'))+(d.kind==='off'&&d.date?` — ${escapeHtml(stripDateBar(d.date))}`:''));
+    n++;
+    const list=(d.scene_ids||[]).map(id=>byId[id]).filter(Boolean);
+    const tot=list.reduce((s,x)=>s+(Number(x.pages8)||0),0);grand+=tot;
+    const strips=list.map(sc=>{
+      const st=stripStyle(sc);const ids=(sc.cast||[]).map(c=>castIdx.idx[c]).filter(Boolean).sort((a,b)=>a-b);
+      return`<table style="width:100%;border-collapse:collapse;table-layout:fixed;background:${st.bg};color:${st.fg};border:1px solid #000;page-break-inside:avoid"><colgroup><col style="width:46px"/><col/><col style="width:72px"/><col style="width:34%"/></colgroup><tr>
+        <td style="padding:5px 6px;font-size:12px;font-weight:700;vertical-align:top;text-align:center">${escapeHtml(sc.sceneNumber)}</td>
+        <td style="padding:5px 6px;font-size:11px;vertical-align:top"><div style="font-weight:700">${escapeHtml((sc.intExt||'').toUpperCase())} ${escapeHtml(sceneLoc(sc))} — ${escapeHtml(todLabel(sc))}</div><div style="margin-top:2px">${escapeHtml(sc.synopsis||'')}</div></td>
+        <td style="padding:5px 6px;font-size:11px;vertical-align:top;white-space:nowrap">${escapeHtml(fmtPages8(sc.pages8))} pgs.</td>
+        <td style="padding:5px 6px;font-size:10px;vertical-align:top">CAST: ${ids.join(', ')||'—'}${bgText(sc)?`<br/>BG: ${escapeHtml(bgText(sc))}`:''}</td></tr></table>`;
+    }).join('');
+    return bar('#5A2E0E',escapeHtml(stripDateBar(d.date)))+(strips||'<div style="padding:10px;color:#777;font-size:11px">No scenes scheduled yet.</div>')+bar('#000',`End Day # ${n}${d.date?` ${escapeHtml(longDate(d.date))}`:''} -- Total Pages: ${tot?fmtPages8(tot):'0'}`);
+  }).join('');
+  const legend=castIdx.list.length?`<div style="margin-bottom:16px"><div style="font-weight:700;text-decoration:underline;font-size:12px;margin-bottom:4px">CAST MEMBERS</div><div style="columns:3;font-size:11px;line-height:1.55">${castIdx.list.map(c=>`<div>${c.id}. ${escapeHtml(c.name)}</div>`).join('')}</div></div>`:'';
+  openPrintable(`<!DOCTYPE html><html><head><title>Stripboard — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:10mm}@media print{.np{display:none}}body{margin:0;font-family:Arial,sans-serif;color:#111;background:#fff}</style></head><body>${PRINT_BAR}
+    <div style="max-width:760px;margin:0 auto;padding:18px"><div style="border:1px solid #000;padding:8px 10px;font-size:13px;margin-bottom:14px">${escapeHtml(brand.companyName?`${brand.companyName} — `:'')}${escapeHtml(project.name)} Stripboard</div>
+    ${legend}${body}<div style="text-align:center;font-size:11px;margin-top:14px">${n} shoot day${n!==1?'s':''} · ${fmtPages8(grand)==='—'?'0':fmtPages8(grand)} pages scheduled</div>
+    <div style="text-align:center;font-size:9px;color:#888;margin-top:10px">Generated by NKÒ — Budgets Tailored To Film</div></div></body></html>`);
+};
+/* The call sheet: only what the crew needs on the day — no department-head directory. */
+const callSheetPDF=(project,day,dayNo,totalDays,scenes,characters)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const sorted=sortScenes(scenes);const castIdx=buildCastIndex(sorted,characters);
+  const byId=Object.fromEntries(sorted.map(s=>[s.id,s]));
+  const list=(day.scene_ids||[]).map(id=>byId[id]).filter(Boolean);
+  const tot=list.reduce((s,x)=>s+(Number(x.pages8)||0),0);
+  const where=day.location||[...new Set(list.map(sceneLoc).filter(Boolean))].join(' · ')||'—';
+  const names=[...new Set(list.flatMap(sc=>sc.cast||[]))].sort((a,b)=>(castIdx.idx[a]||999)-(castIdx.idx[b]||999));
+  const calls=day.cast_calls||{};
+  const th=t=>`<th style="text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:#eee;border-bottom:1px solid #999">${t}</th>`;
+  const td=(t,x)=>`<td style="padding:6px 8px;font-size:12px;border-bottom:1px solid #ddd;vertical-align:top;${x||''}">${t}</td>`;
+  const key=(k,v)=>`<div style="flex:1;min-width:140px;border:1px solid #bbb;padding:8px 10px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666">${k}</div><div style="font-size:15px;font-weight:700;margin-top:2px">${v}</div></div>`;
+  const sceneRows=list.map(sc=>`<tr>${td(escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml((sc.intExt||'').toUpperCase()))}${td(`${escapeHtml(sceneLoc(sc))}<div style="color:#666;font-size:10px">${escapeHtml(sc.synopsis||'')}</div>`)}${td(escapeHtml(todLabel(sc)))}${td(escapeHtml(fmtPages8(sc.pages8)))}${td((sc.cast||[]).map(c=>castIdx.idx[c]).filter(Boolean).sort((a,b)=>a-b).join(', ')||'—')}</tr>`).join('');
+  const castRows=names.map(nm=>`<tr>${td(castIdx.idx[nm]||'')}${td(escapeHtml(nm))}${td(escapeHtml(calls[nm]||day.call_time||'—'),'font-weight:700')}</tr>`).join('');
+  const bgRows=list.filter(sc=>bgText(sc)).map(sc=>`<tr>${td('Sc '+escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml(bgText(sc)))}</tr>`).join('');
+  openPrintable(`<!DOCTYPE html><html><head><title>Call sheet — ${escapeHtml(project.name)}</title><style>@page{margin:12mm}@media print{.np{display:none}}body{margin:0;font-family:Arial,sans-serif;color:#111;background:#fff}table{width:100%;border-collapse:collapse}</style></head><body>${PRINT_BAR}
+    <div style="max-width:760px;margin:0 auto;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px">
+        <div><div style="font-size:11px;letter-spacing:2px;color:#666">${escapeHtml(brand.companyName||'')} CALL SHEET</div><div style="font-size:24px;font-weight:700;font-family:Georgia,serif">${escapeHtml(project.name)}</div></div>
+        <div style="text-align:right;font-size:13px"><b>Day ${dayNo} of ${totalDays}</b><br/>${escapeHtml(longDate(day.date))}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${key('Crew call',escapeHtml(day.call_time||'—'))}${key('Location',escapeHtml(where))}${key('Pages',tot?fmtPages8(tot):'—')}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:6px 0">Scenes</div>
+      <table><tr>${th('Sc')}${th('I/E')}${th('Set')}${th('D/N')}${th('Pgs')}${th('Cast')}</tr>${sceneRows||`<tr>${td('No scenes scheduled for this day.')}</tr>`}</table>
+      ${castRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Cast</div><table><tr>${th('#')}${th('Character')}${th('Call')}</tr>${castRows}</table>`:''}
+      ${bgRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Background and extras</div><table><tr>${th('Scene')}${th('Needed')}</tr>${bgRows}</table>`:''}
+      ${day.notes?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Notes</div><div style="font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #bbb;padding:10px">${escapeHtml(day.notes)}</div>`:''}
+      <div style="text-align:center;font-size:9px;color:#888;margin-top:22px">Generated by NKÒ — Budgets Tailored To Film</div>
+    </div></body></html>`);
+};
 /* Excel export — real structured data (SheetJS), separate from the PDF export which is a formatted
    document. Loaded from the official SheetJS CDN, same lazy-load pattern as the PDF.js reader above. */
 let xlsxLoadPromise=null;
@@ -1177,7 +1372,7 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 };
 
 /* ── Atoms ── */
-const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'schedule',e:'🗓️',l:'Schedule'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
 const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
 const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
@@ -1402,7 +1597,7 @@ function AuthScreen(){
 }
 
 /* ── Navigation ── */
-const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
+const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',schedule:'navSchedule',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
 function LangToggle({compact}){
   const{lang,setLang}=useLang();
   return(
@@ -2502,13 +2697,27 @@ const purgeReceipts=async projectId=>{
   }catch{}
 };
 
-function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,onAttachReceipt,isOwner}){
+function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,onAttachReceipt,onUpdatePayee,onUpdatePayment,onDeletePayee,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
   const[logFor,setLogFor]=useState(null);const[lAmt,setLAmt]=useState('');const[lMethod,setLMethod]=useState('Cash');const[lFile,setLFile]=useState(null);const[busy,setBusy]=useState(false);
   const[attachTarget,setAttachTarget]=useState(null);const[attachBusy,setAttachBusy]=useState(null);
   const attachRef=useRef();
+  const[editPayee,setEditPayee]=useState(null);const[ep,setEp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
+  const[editPay,setEditPay]=useState(null);const[epay,setEpay]=useState({amount:'',method:'Cash',date:''});
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const startEditPayee=p=>{setEditPay(null);setEditPayee(p.id);setEp({name:p.name||'',role:p.role||'',agreed_fee:String(p.agreed_fee??''),currency:p.currency||'NGN'});};
+  const saveEditPayee=async p=>{
+    if(!ep.name.trim()){alert('A payee needs a name.');return;}
+    await onUpdatePayee(p.id,{name:ep.name.trim(),role:ep.role,agreed_fee:Number(ep.agreed_fee)||0,currency:ep.currency});
+    setEditPayee(null);
+  };
+  const startEditPay=(p,i)=>{const pay=(p.payments||[])[i];setEditPayee(null);setEditPay(`${p.id}-${i}`);setEpay({amount:String(pay.amount),method:pay.method||'Cash',date:pay.date||today()});};
+  const saveEditPay=async(p,i)=>{
+    const a=Number(epay.amount);if(!(a>0)){alert('Enter the amount paid.');return;}
+    await onUpdatePayment(p.id,i,{amount:a,method:epay.method,date:epay.date});
+    setEditPay(null);
+  };
   const pPayees=payees.filter(p=>p.project_id===project.id);
   const missingTotal=pPayees.reduce((s,p)=>s+(p.payments||[]).filter(x=>!x.receipt).length,0);
   const openLog=id=>{setLogFor(id);setLAmt('');setLMethod('Cash');setLFile(null);};
@@ -2549,10 +2758,30 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,on
       {pPayees.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No payees yet.</div></div>:pPayees.map(p=>{
         const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);const bal=p.agreed_fee-paid;const pct=p.agreed_fee>0?Math.min(100,(paid/p.agreed_fee)*100):0;
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div><button onClick={()=>editPayee===p.id?setEditPayee(null):startEditPayee(p)} style={{...smallBtn(T.dim,T.line),marginTop:6}}>✎ Edit payee</button></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
+          {editPayee===p.id&&<div style={{margin:'0 0 10px',padding:12,background:T.hi,border:`1px solid ${T.gold}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <Inp placeholder="Name" value={ep.name} onChange={e=>setEp(v=>({...v,name:e.target.value}))}/>
+              <Inp placeholder="Role" value={ep.role} onChange={e=>setEp(v=>({...v,role:e.target.value}))}/>
+              <Inp type="number" placeholder="Agreed fee" value={ep.agreed_fee} onChange={e=>setEp(v=>({...v,agreed_fee:e.target.value}))}/>
+              <Sel value={ep.currency} onChange={e=>setEp(v=>({...v,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+              <Btn size="sm" onClick={()=>saveEditPayee(p)}>Save changes</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditPayee(null)}>Cancel</Btn>
+              {isOwner&&<button onClick={()=>{const n=(p.payments||[]).length;if(window.confirm(`Delete ${p.name}${n?` and their ${n} logged payment${n!==1?'s':''} (receipts included)`:''}? This cannot be undone.`)){setEditPayee(null);onDeletePayee(p.id);}}} style={{marginLeft:'auto',color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete payee</button>}
+            </div>
+          </div>}
           <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
           {(p.payments||[]).map((pay,i)=>{
             const key=`${p.id}-${i}`;
+            if(editPay===key)return<div key={i} style={{padding:10,margin:'6px 0',background:T.hi,border:`1px solid ${T.gold}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <Inp type="number" placeholder={`Amount (${p.currency})`} value={epay.amount} onChange={e=>setEpay(v=>({...v,amount:e.target.value}))}/>
+                <Sel value={epay.method} onChange={e=>setEpay(v=>({...v,method:e.target.value}))} style={{width:'100%'}}>{[...new Set([...PAY_METHODS,epay.method])].map(m=><option key={m}>{m}</option>)}</Sel>
+              </div>
+              <Inp type="date" value={epay.date} onChange={e=>setEpay(v=>({...v,date:e.target.value}))}/>
+              <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>saveEditPay(p,i)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditPay(null)}>Cancel</Btn></div>
+            </div>;
             return<div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6,fontSize:12,padding:'6px 0',borderBottom:`1px solid ${T.line}`}}>
               <span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
@@ -2561,6 +2790,7 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,on
                   ?<button onClick={()=>viewReceipt(pay.receipt.path)} title={pay.receipt.name} style={smallBtn(T.sage,T.sage)}>📎 Receipt</button>
                   :<button disabled={attachBusy===key} onClick={()=>{setAttachTarget({pid:p.id,idx:i});attachRef.current?.click();}} style={smallBtn(T.gold,T.goldDim)}>{attachBusy===key?'Uploading…':'No receipt · Attach'}</button>}
                 {isOwner&&<button onClick={()=>receiptPDF(p,pay,project)} title="Generate a payment slip PDF" style={smallBtn(T.dim,T.line)}>🧾 Payment slip</button>}
+                <button onClick={()=>startEditPay(p,i)} title="Edit this payment" style={{color:T.dim,fontSize:13,cursor:'pointer',background:'none',border:'none'}}>✎</button>
                 <button onClick={()=>{if(pay.receipt&&!window.confirm('Remove this payment and delete its attached receipt?'))return;onRemovePayment(p.id,i);}} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button>
               </div>
             </div>;})}
@@ -2657,6 +2887,24 @@ function AIView({project,budgetItems,advances}){
 
 /* ── Breakdown ── */
 const BKCAT=[{key:'location',label:'Location',icon:'📍'},{key:'timeNotes',label:'Time of Day',icon:'🕐'},{key:'cast',label:'Cast',icon:'👤'},{key:'talkingExtras',label:'Talking Extras',icon:'🗣️'},{key:'backgroundActors',label:'Background Actors',icon:'👥'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'Stunts / SFX / VFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'languageNotes',label:'Language Notes',icon:'🗣️'},{key:'notes',label:'Notes',icon:'📝'}];
+function PageLengthTool({scenes,onUpdateScene}){
+  const fr=useRef();const[busy,setBusy]=useState(false);
+  const run=async f=>{
+    setBusy(true);
+    try{
+      const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+      const measured=isPdf?await measureScenePages(f):estimateTxtPages(await readTxt(f));
+      if(!measured.length){alert('Could not find any scene headings in that file. If it is a scanned PDF, set page lengths by hand on each scene.');setBusy(false);return;}
+      const out=attachPageLengths(scenes.map(sc=>({...sc})),measured,isPdf?'measured':'estimated');
+      let n=0;
+      for(const sc of out){const old=scenes.find(x=>x.id===sc.id);if(sc.pages8&&sc.pages8!==old?.pages8&&old?.pages8Source!=='manual'){await onUpdateScene(sc.id,{pages8:sc.pages8,pages8Source:sc.pages8Source});n++;}}
+      const missed=scenes.length-out.filter(x=>x.pages8).length;
+      alert(`${n} scene${n!==1?'s':''} updated with page lengths. ${missed} scene${missed!==1?'s':''} could not be matched — set ${missed!==1?'those':'that one'} by hand.`);
+    }catch(e){alert(`Could not read page lengths: ${e.message}`);}
+    setBusy(false);
+  };
+  return<span><input ref={fr} type="file" accept=".pdf,.txt" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];e.target.value='';if(f)run(f);}}/><Btn size="sm" variant="outline" disabled={busy} onClick={()=>fr.current.click()}>{busy?'Reading…':'📏 Add page lengths from script'}</Btn></span>;
+}
 function SceneCard({scene,onDelete,onUpdate,index}){
   const[open,setOpen]=useState(false);const[editing,setEditing]=useState(false);const[draft,setDraft]=useState(null);const mob=useIsMobile();
   const startEdit=()=>{setDraft({...scene,cast:(scene.cast||[]).join(', '),props:(scene.props||[]).join(', '),vehicles:(scene.vehicles||[]).join(', '),wardrobe:(scene.wardrobe||[]).join(', '),specialEquip:(scene.specialEquip||[]).join(', '),talkingExtras:(scene.talkingExtras||[]).join(', ')});setEditing(true);setOpen(true);};
@@ -2669,6 +2917,8 @@ function SceneCard({scene,onDelete,onUpdate,index}){
       specialEquip:String(draft.specialEquip||'').split(',').map(x=>x.trim()).filter(Boolean),
       talkingExtras:String(draft.talkingExtras||'').split(',').map(x=>x.trim()).filter(Boolean),
     };
+    if(draft.pagesText!==undefined){const v=parsePages8(draft.pagesText);if(v!==null){upd.pages8=v;upd.pages8Source='manual';}else if(String(draft.pagesText).trim()===''){upd.pages8=null;}}
+    delete upd.pagesText;
     onUpdate(scene.id,upd);setEditing(false);setDraft(null);
   };
   const d=(k,v)=>setDraft(p=>({...p,[k]:v}));
@@ -2679,7 +2929,7 @@ function SceneCard({scene,onDelete,onUpdate,index}){
         <div style={{flex:1,minWidth:0}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?13:14,color:T.cream,wordBreak:'break-word'}}>{scene.heading||'No heading'}</div>{scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{scene.synopsis.slice(0,70)}{scene.synopsis.length>70?'…':''}</div>}</div>
         <div style={{display:'flex',gap:4,flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
           <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:scene.intExt==='INT'?T.sapphire:T.sage,color:T.ink}}>{scene.intExt||'INT'}</span>
-          <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:scene.dayNight==='DAY'?T.gold:'#7B68EE',color:T.ink}}>{scene.dayNight||'DAY'}</span>
+          <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:scene.dayNight==='DAY'?T.gold:'#7B68EE',color:T.ink}}>{scene.dayNight||'DAY'}</span>{scene.pages8>0&&<span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:T.hi,border:`1px solid ${T.line}`,color:T.dim}}>{fmtPages8(scene.pages8)} pg</span>}
           <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
         </div>
       </button>
@@ -2704,6 +2954,7 @@ function SceneCard({scene,onDelete,onUpdate,index}){
         </div>
         <Inp placeholder="Heading e.g. INT. MARKET - DAY" value={draft.heading||''} onChange={e=>d('heading',e.target.value)}/>
         <Inp placeholder="Synopsis" value={draft.synopsis||''} onChange={e=>d('synopsis',e.target.value)}/>
+        <Inp placeholder="Page length in eighths — e.g. 7/8, 2 or 1 2/8" value={draft.pagesText??(draft.pages8?fmtPages8(draft.pages8):'')} onChange={e=>d('pagesText',e.target.value)}/>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
           <Inp placeholder="Location" value={draft.location||''} onChange={e=>d('location',e.target.value)}/>
           <Inp placeholder="Time of day — e.g. Morning (9AM)" value={draft.timeNotes||''} onChange={e=>d('timeNotes',e.target.value)}/>
@@ -2822,8 +3073,9 @@ function BreakdownUploader({project,onApply,onSaveCharacter}){
     await askNotif();setState('reading');setErr('');
     try{
       const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?40:200;
-      let uc;
+      let uc;let measured=null,measuredSource='';
       if(isPDF){
+        try{measured=await measureScenePages(f);measuredSource='measured';}catch{measured=null;}
         let extracted='';
         try{extracted=await extractPdfText(f);}catch{extracted='';}
         if(extracted&&extracted.length>200){
@@ -2836,11 +3088,12 @@ function BreakdownUploader({project,onApply,onSaveCharacter}){
         }
       }else{
         const txt=await readTxt(f);
+        measured=estimateTxtPages(txt);measuredSource='estimated';
         uc=[{type:'text',text:`Script:\n\n${txt.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
       }
       setState('analyzing');
       const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS,32000);
-      const{scenes,characters}=recoverScenes(raw);if(!scenes.length)throw new Error('No scenes found — try TXT format');
+      const{scenes:scenesRaw,characters}=recoverScenes(raw);if(!scenesRaw.length)throw new Error('No scenes found — try TXT format');const scenes=attachPageLengths(scenesRaw,measured,measuredSource);
       characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
       sendNotif(scenes.length);
       try{localStorage.setItem(`nko_bk_${project?.id}`,JSON.stringify({scenes,ts:Date.now()}));}catch{}
@@ -3066,6 +3319,202 @@ const estimateShootDays=(scenes,projectType)=>{
   if(band)raw=Math.min(Math.max(raw,band[0]),band[1]);
   return raw;
 };
+const DayField=({value,onSave,...p})=>{
+  const[v,setV]=useState(value||'');
+  useEffect(()=>{setV(value||'');},[value]);
+  return<Inp {...p} value={v} onChange={e=>setV(e.target.value)} onBlur={()=>{if(v!==(value||''))onSave(v);}}/>;
+};
+function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onRemoveDay,onUpdateScene,isOwner}){
+  const mob=useIsMobile();
+  const[ppd,setPpd]=useState('5');const[start,setStart]=useState(nextMonday);const[skipSun,setSkipSun]=useState(true);
+  const[showBuild,setShowBuild]=useState(false);const[openDay,setOpenDay]=useState(null);
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const sorted=sortScenes(scenes);
+  const castIdx=buildCastIndex(sorted,characters);
+  const byId=Object.fromEntries(sorted.map(s=>[s.id,s]));
+  const placed=new Set(days.flatMap(d=>d.scene_ids||[]));
+  const unscheduled=sorted.filter(s=>!placed.has(s.id));
+  const shootDays=days.filter(d=>d.kind==='shoot');
+  const noPages=sorted.filter(s=>!(s.pages8>0)).length;
+  const sumPg=list=>list.reduce((s,x)=>s+(Number(x.pages8)||0),0);
+  const dayScenes=d=>(d.scene_ids||[]).map(id=>byId[id]).filter(Boolean);
+  const totalPages=sumPg(sorted),scheduledPages=sumPg(sorted.filter(s=>placed.has(s.id)));
+  const shootNo={};let c0=0;days.forEach(d=>{if(d.kind==='shoot'){c0++;shootNo[d.id]=c0;}});
+  const target=Math.round((parseFloat(ppd)||5)*8);
+  const pg=e=>e>0?fmtPages8(e):'0';
+  const moveScene=async(sceneId,toDayId)=>{
+    for(const d of days){if((d.scene_ids||[]).includes(sceneId)&&d.id!==toDayId)await onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)});}
+    if(toDayId){const t=days.find(d=>d.id===toDayId);if(t&&!(t.scene_ids||[]).includes(sceneId))await onUpdateDay(toDayId,{scene_ids:[...(t.scene_ids||[]),sceneId]});}
+  };
+  const shift=(d,sceneId,dir)=>{const a=[...(d.scene_ids||[])];const i=a.indexOf(sceneId),j=i+dir;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];onUpdateDay(d.id,{scene_ids:a});};
+  const shiftDay=async(d,dir)=>{const i=days.findIndex(x=>x.id===d.id),o=days[i+dir];if(!o)return;await onUpdateDay(d.id,{position:o.position});await onUpdateDay(o.id,{position:d.position});};
+  const addDay=kind=>{const last=[...days].reverse().find(d=>d.date);onAddDays([{kind,date:last?addIsoDays(last.date,1):start,title:kind==='off'?'DAY OFF':kind==='note'?'NOTE':'',scene_ids:[]}]);};
+  const build=async()=>{
+    if(!unscheduled.length){alert('Every scene is already on the schedule.');return;}
+    const plan=suggestDays({scenes:unscheduled,pagesPerDay:parseFloat(ppd)||5,startDate:start,skipSundays:skipSun});
+    if(await onAddDays(plan))setShowBuild(false);
+  };
+  const editPages=sc=>{
+    const v=window.prompt(`Page length for scene ${sc.sceneNumber} — in eighths, e.g. 7/8, 2 or 1 2/8`,sc.pages8>0?fmtPages8(sc.pages8):'');
+    if(v===null)return;const p=parsePages8(v);if(p===null){alert('Use a format like 7/8, 2 or 1 2/8.');return;}
+    onUpdateScene(sc.id,{pages8:p,pages8Source:'manual'});
+  };
+  const mini={color:T.dim,fontSize:12,cursor:'pointer',background:'none',border:`1px solid ${T.line}`,borderRadius:5,padding:'2px 7px',fontFamily:'Manrope,sans-serif'};
+  const dateStyle={background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.3)',borderRadius:5,color:'#fff',fontSize:11,padding:'3px 5px',fontFamily:'Manrope,sans-serif'};
+  const barBtn={color:'#fff',fontSize:11,cursor:'pointer',background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.3)',borderRadius:5,padding:'3px 8px',fontFamily:'Manrope,sans-serif'};
+  const strip=(sc,d)=>{
+    const st=stripStyle(sc);const ids=(sc.cast||[]).map(n=>castIdx.idx[n]).filter(Boolean).sort((a,b)=>a-b);
+    const light=st.fg==='#111111';const edge=light?'rgba(0,0,0,.35)':'rgba(255,255,255,.45)';
+    return<div key={sc.id} style={{background:st.bg,color:st.fg,borderRadius:6,padding:'8px 10px',marginBottom:4,border:`1px solid ${light?'rgba(0,0,0,.3)':'rgba(0,0,0,.5)'}`,fontFamily:'Manrope,sans-serif'}}>
+      <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+        <div style={{fontWeight:800,fontSize:13,minWidth:34,textAlign:'center'}}>{sc.sceneNumber}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:12,wordBreak:'break-word'}}>{String(sc.intExt||'').toUpperCase()} {sceneLoc(sc)} — {todLabel(sc)}</div>
+          {sc.synopsis&&<div style={{fontSize:11,marginTop:1,opacity:.9}}>{sc.synopsis}</div>}
+          <div style={{fontSize:10,marginTop:3,opacity:.9}}>CAST: {ids.join(', ')||'—'}{bgText(sc)?`  ·  BG: ${bgText(sc)}`:''}</div>
+        </div>
+        <button onClick={()=>editPages(sc)} title="Tap to change the page length" style={{color:st.fg,background:'none',border:`1px dashed ${edge}`,borderRadius:5,fontSize:11,fontWeight:700,padding:'2px 6px',cursor:'pointer',whiteSpace:'nowrap'}}>{sc.pages8>0?fmtPages8(sc.pages8):'set pgs'}</button>
+      </div>
+      <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center',flexWrap:'wrap'}}>
+        {d&&<><button onClick={()=>shift(d,sc.id,-1)} style={{...mini,color:st.fg,borderColor:edge}}>↑</button><button onClick={()=>shift(d,sc.id,1)} style={{...mini,color:st.fg,borderColor:edge}}>↓</button></>}
+        <select value="" onChange={e=>{if(e.target.value==='__none')moveScene(sc.id,null);else if(e.target.value)moveScene(sc.id,e.target.value);}} style={{fontSize:11,padding:'3px 6px',borderRadius:5,border:`1px solid ${edge}`,background:'rgba(255,255,255,.85)',color:'#111',fontFamily:'Manrope,sans-serif'}}>
+          <option value="">{d?'Move…':'Add to day…'}</option>
+          {d&&<option value="__none">Unschedule</option>}
+          {shootDays.filter(x=>!d||x.id!==d.id).map(x=><option key={x.id} value={x.id}>Day {shootNo[x.id]} · {shortDate(x.date)}</option>)}
+        </select>
+      </div>
+    </div>;
+  };
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Schedule — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Your scenes, laid out day by day. Page lengths are in eighths, and day totals add up from them.</div><div style={{marginTop:14}}><FS/></div></div>
+      {sorted.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.6}}>The schedule is built from your scenes.<br/>Run a script breakdown first (Breakdown tab), then come back here.</div></div>:<>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:16}}>
+        <StatCard label="Shoot days" value={shootDays.length} sub="scheduled"/>
+        <StatCard label="Pages scheduled" value={`${pg(scheduledPages)} / ${pg(totalPages)}`} sub="of the whole script" accent={scheduledPages===totalPages&&totalPages>0?T.sage:T.gold}/>
+        <StatCard label="Not scheduled" value={unscheduled.length} sub={unscheduled.length===1?'scene':'scenes'} accent={unscheduled.length?T.coral:T.sage}/>
+      </div>
+      {noPages>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}><span>⚠ {noPages} scene{noPages!==1?'s have':' has'} no page length, so day totals are incomplete.</span><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
+        <Btn size="sm" onClick={()=>addDay('shoot')}>+ Shoot day</Btn>
+        <Btn size="sm" variant="outline" onClick={()=>addDay('off')}>+ Day off</Btn>
+        <Btn size="sm" variant="outline" onClick={()=>addDay('note')}>+ Note</Btn>
+        <Btn size="sm" variant="outline" onClick={()=>setShowBuild(!showBuild)}>✨ Suggest a schedule</Btn>
+        {isOwner&&days.length>0&&<Btn size="sm" variant="outline" onClick={()=>scheduleStripPDF(project,days,scenes,characters)}>📄 Strip schedule</Btn>}
+        {!isOwner&&days.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>}
+      </div>
+      {showBuild&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Suggest a schedule</div>
+        <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12,lineHeight:1.6}}>Scenes at the same location are kept together, day scenes before night scenes, and each day is filled up to your page target. It only places scenes that aren't scheduled yet, and you can change anything afterwards.</div>
+        <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'1fr 1fr 1fr',gap:10,marginBottom:10}}>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Pages per day</div><Inp type="number" min="1" step="0.5" value={ppd} onChange={e=>setPpd(e.target.value)}/></div>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>First shoot day</div><Inp type="date" value={start} onChange={e=>setStart(e.target.value)}/></div>
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',alignSelf:'end',paddingBottom:8}}><input type="checkbox" checked={skipSun} onChange={e=>setSkipSun(e.target.checked)}/> Sundays off</label>
+        </div>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={build}>Build {unscheduled.length} scene{unscheduled.length!==1?'s':''}</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowBuild(false)}>Cancel</Btn></div>
+      </div>}
+      {days.map((d,di)=>{
+        if(d.kind!=='shoot')return<div key={d.id} style={{background:d.kind==='off'?'#111':'#2a2a2a',border:`1px solid ${T.line}`,borderRadius:8,padding:'10px 12px',marginBottom:14,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          <div style={{flex:1,minWidth:140}}><DayField value={d.title||''} placeholder={d.kind==='off'?'DAY OFF':'Note — e.g. Travel back to Lagos'} onSave={v=>onUpdateDay(d.id,{title:v})} style={{background:'transparent',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}/></div>
+          <input type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})} style={dateStyle}/>
+          <button onClick={()=>shiftDay(d,-1)} style={mini}>↑</button><button onClick={()=>shiftDay(d,1)} style={mini}>↓</button>
+          <button onClick={()=>onRemoveDay(d.id)} style={{...mini,color:T.coral}}>✕</button>
+        </div>;
+        const n=shootNo[d.id],list=dayScenes(d),tot=sumPg(list),calls=d.cast_calls||{};
+        const names=[...new Set(list.flatMap(sc=>sc.cast||[]))].sort((a,b)=>(castIdx.idx[a]||999)-(castIdx.idx[b]||999));
+        return<div key={d.id} style={{marginBottom:18}}>
+          <div style={{background:'#5A2E0E',borderRadius:'8px 8px 0 0',padding:'10px 12px',display:'flex',flexWrap:'wrap',gap:8,alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{color:'#fff',fontWeight:800,fontSize:13,fontFamily:'Manrope,sans-serif'}}>DAY {n} · {longDate(d.date)}</div>
+            <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+              <input type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})} style={dateStyle}/>
+              <button onClick={()=>shiftDay(d,-1)} style={barBtn}>↑</button><button onClick={()=>shiftDay(d,1)} style={barBtn}>↓</button>
+              <button onClick={()=>setOpenDay(openDay===d.id?null:d.id)} style={barBtn}>⚙ Details</button>
+              {isOwner&&<button onClick={()=>callSheetPDF(project,d,n,shootDays.length,scenes,characters)} style={barBtn}>📄 Call sheet</button>}
+              <button onClick={()=>{if(!list.length||window.confirm(`Remove Day ${n}? Its ${list.length} scene${list.length!==1?'s':''} go back to "not scheduled".`))onRemoveDay(d.id);}} style={{...barBtn,color:'#ffb4a8'}}>✕</button>
+            </div>
+          </div>
+          {openDay===d.id&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderTop:'none',padding:12,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 2fr',gap:8}}>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Crew call</div><Inp type="time" value={d.call_time||''} onChange={e=>onUpdateDay(d.id,{call_time:e.target.value})}/></div>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Location (name and address) — leave blank to use the scene locations</div><DayField value={d.location||''} placeholder="e.g. Nnaji family house, 14 Okigwe Rd, Owerri" onSave={v=>onUpdateDay(d.id,{location:v})}/></div>
+            </div>
+            <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Notes for the call sheet</div><DayField value={d.notes||''} placeholder="Anything the crew must know that day" onSave={v=>onUpdateDay(d.id,{notes:v})}/></div>
+            {names.length>0&&<div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Cast call times — blank means the crew call</div>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{names.map(nm=><div key={nm} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{castIdx.idx[nm]}. {nm}</span><input type="time" value={calls[nm]||''} onChange={e=>onUpdateDay(d.id,{cast_calls:{...calls,[nm]:e.target.value}})} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>)}</div></div>}
+          </div>}
+          <div style={{background:'#1a1a1a',padding:'6px 6px 2px',border:`1px solid ${T.line}`,borderTop:'none'}}>
+            {list.length?list.map(sc=>strip(sc,d)):<div style={{color:T.dim,fontSize:12,padding:'12px 6px',fontFamily:'Manrope,sans-serif'}}>No scenes yet. Add some from "Not scheduled" below, or use ✨ Suggest a schedule.</div>}
+          </div>
+          <div style={{background:'#000',borderRadius:'0 0 8px 8px',color:'#fff',textAlign:'center',fontWeight:700,fontSize:12,padding:'9px 8px',fontFamily:'Manrope,sans-serif'}}>End Day # {n} — Total pages: {pg(tot)}{tot>target*1.25&&<span style={{color:'#ffb4a8',fontWeight:600}}>  ·  heavy day</span>}</div>
+        </div>;
+      })}
+      {days.length>0&&<div style={{textAlign:'center',color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',margin:'6px 0 18px'}}>{shootDays.length} shoot day{shootDays.length!==1?'s':''} · {pg(scheduledPages)} pages scheduled</div>}
+      <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,margin:'8px 0 8px'}}>Not scheduled {unscheduled.length>0&&<span style={{color:T.coral,fontSize:13}}>({unscheduled.length})</span>}</div>
+      {unscheduled.length===0?<div style={{color:T.sage,fontSize:12,fontFamily:'Manrope,sans-serif'}}>✓ Every scene is on the schedule.</div>:unscheduled.map(sc=>strip(sc,null))}
+      <div style={{marginTop:22,background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.9}}>
+        <b style={{color:T.cream}}>Strip colours</b> &nbsp;<span style={{background:'#fff',color:'#111',padding:'1px 6px',borderRadius:3}}>INT day</span> <span style={{background:'#FFF35C',color:'#111',padding:'1px 6px',borderRadius:3}}>EXT day</span> <span style={{background:'#0B9A2A',color:'#fff',padding:'1px 6px',borderRadius:3}}>INT night</span> <span style={{background:'#1F3BFF',color:'#fff',padding:'1px 6px',borderRadius:3}}>EXT night</span> <span style={{background:'#FF9933',color:'#111',padding:'1px 6px',borderRadius:3}}>Evening</span>
+      </div></>}
+    </div>
+  );
+}
+function ScriptInsights({scenes,characters,onUpdateScene}){
+  const[open,setOpen]=useState(false);const[tab,setTab]=useState('locations');
+  const sorted=sortScenes(scenes);
+  if(!sorted.length)return null;
+  const castIdx=buildCastIndex(sorted,characters);
+  const sumPg=l=>l.reduce((s,x)=>s+(Number(x.pages8)||0),0);
+  const total=sumPg(sorted);
+  const estimated=sorted.some(s=>s.pages8Source==='estimated');
+  const locMap={};
+  sorted.forEach(sc=>{const k=normHead(sceneLoc(sc))||'UNKNOWN';const o=locMap[k]=locMap[k]||{name:sceneLoc(sc)||'Unknown location',nums:[],pages:0,int:0,ext:0,day:0,night:0};o.nums.push(sc.sceneNumber);o.pages+=Number(sc.pages8)||0;if(isExtScene(sc))o.ext++;else o.int++;if(todClass(sc)==='day')o.day++;else o.night++;});
+  const locs=Object.values(locMap).sort((a,b)=>b.pages-a.pages||b.nums.length-a.nums.length);
+  const nightN=sorted.filter(s=>todClass(s)!=='day').length;
+  const elems=key=>{const m={};sorted.forEach(sc=>(sc[key]||[]).forEach(it=>{const k=String(it).trim();if(k)(m[k]=m[k]||[]).push(sc.sceneNumber);}));return Object.entries(m).sort((a,b)=>b[1].length-a[1].length);};
+  const tx={};sorted.forEach(sc=>(sc.talkingExtras||[]).forEach(t=>{const k=String(t).trim();if(k)(tx[k]=tx[k]||[]).push(sc.sceneNumber);}));
+  const peak=sorted.reduce((m,sc)=>(Number(sc.backgroundActors)||0)>(m?.n||0)?{n:Number(sc.backgroundActors),sc:sc.sceneNumber}:m,null);
+  const castPages=name=>sumPg(sorted.filter(sc=>(sc.cast||[]).includes(name)));
+  const noPages=sorted.filter(s=>!(s.pages8>0)),noCast=sorted.filter(s=>!(s.cast||[]).length),noLoc=sorted.filter(s=>!sceneLoc(s)),noIE=sorted.filter(s=>!s.intExt);
+  const issues=noPages.length+noCast.length+noLoc.length+noIE.length;
+  const d5=Math.max(1,Math.ceil(total/40)),d6=Math.max(1,Math.ceil(total/48)),d4=Math.max(1,Math.ceil(total/32));
+  const sc4=l=>l.join(', ');
+  const row=(a,b,c)=><div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'baseline'}}><div style={{color:T.cream,fontSize:13,fontWeight:600,fontFamily:'Manrope,sans-serif',minWidth:0}}>{a}</div><div style={{color:T.gold,fontSize:11,fontFamily:'IBM Plex Mono,monospace',whiteSpace:'nowrap'}}>{b}</div></div>{c&&<div style={{color:T.dim,fontSize:10,marginTop:2,fontFamily:'Manrope,sans-serif',lineHeight:1.5}}>{c}</div>}</div>;
+  const tabBtn=(id,label)=><button key={id} onClick={()=>setTab(id)} style={{padding:'6px 12px',borderRadius:20,border:`1px solid ${tab===id?T.gold:T.line}`,background:tab===id?T.goldGlow:'transparent',color:tab===id?T.gold:T.dim,fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:'pointer',whiteSpace:'nowrap'}}>{label}{id==='checks'&&issues>0?` (${issues})`:''}</button>;
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'12px 14px',background:'none',border:'none',cursor:'pointer',textAlign:'left'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📊 Script analysis</span>
+        <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{sorted.length} scenes · {total?fmtPages8(total):'no page lengths'} pgs · {locs.length} locations {open?'▴':'▾'}</span>
+      </button>
+      {open&&<div style={{padding:'0 14px 14px',borderTop:`1px solid ${T.line}`}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:8,margin:'12px 0'}}>
+          <StatCard label="Script length" value={total?fmtPages8(total):'—'} sub={estimated?'pages (estimated from text)':'pages'}/>
+          <StatCard label="Locations" value={locs.length} sub="to secure"/>
+          <StatCard label="Cast" value={castIdx.list.length} sub={`${castIdx.list.filter(c=>c.tier==='lead').length} lead`}/>
+          <StatCard label="Night / evening" value={`${Math.round(nightN/sorted.length*100)}%`} sub={`${nightN} of ${sorted.length} scenes`}/>
+        </div>
+        {total>0&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',lineHeight:1.6}}>At <b>5 pages a day</b> this is about <b>{d5} shoot days</b> ({d6} at 6 pages a day, {d4} at 4). Real days vary with location moves, night work and large casts — use it as a starting point for the schedule and budget.</div>}
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:6,marginBottom:6}}>{tabBtn('locations','Locations')}{tabBtn('cast','Cast')}{tabBtn('elements','Elements')}{tabBtn('checks','Checks')}</div>
+        {tab==='locations'&&<div>{locs.map(l=><div key={l.name}>{row(l.name,`${l.pages?fmtPages8(l.pages):'—'} pgs`,`${l.nums.length} scene${l.nums.length!==1?'s':''} · INT ${l.int} / EXT ${l.ext} · day ${l.day} / night-evening ${l.night} · sc ${sc4(l.nums)}`)}</div>)}</div>}
+        {tab==='cast'&&<div>{castIdx.list.map(c=><div key={c.id}>{row(`${c.id}. ${c.name}`,`${fmtPages8(castPages(c.name))==='—'?'—':fmtPages8(castPages(c.name))+' pgs'}`,`${c.tier||'tier not set'} · ${c.scenes} scene${c.scenes!==1?'s':''} · first appears sc ${(sorted.find(sc=>(sc.cast||[]).includes(c.name))||{}).sceneNumber}`)}</div>)}
+          <div style={{fontSize:10,color:T.faint,marginTop:8,fontFamily:'Manrope,sans-serif'}}>These numbers are the cast IDs used on the Schedule tab and call sheets.</div></div>}
+        {tab==='elements'&&<div>
+          {[['props','Props'],['vehicles','Vehicles'],['wardrobe','Wardrobe'],['specialEquip','Special equipment']].map(([k,label])=>{const e=elems(k);return<div key={k} style={{marginBottom:12}}><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'8px 0 2px'}}>{label} ({e.length})</div>{e.length===0?<div style={{fontSize:11,color:T.faint}}>None found in the script.</div>:e.map(([it,nums])=><div key={it}>{row(it,`${nums.length}×`,`sc ${sc4(nums)}`)}</div>)}</div>;})}
+          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'8px 0 2px'}}>Extras</div>
+          {peak?row('Biggest crowd',`${peak.n}`,`Scene ${peak.sc} — plan for at least this many background actors on the day`):<div style={{fontSize:11,color:T.faint}}>No background crowds found.</div>}
+          {Object.entries(tx).map(([it,nums])=><div key={it}>{row(`${it} (talking)`,`${nums.length}×`,`sc ${sc4(nums)}`)}</div>)}
+        </div>}
+        {tab==='checks'&&<div style={{fontFamily:'Manrope,sans-serif'}}>
+          {issues===0?<div style={{color:T.sage,fontSize:13,padding:'8px 0'}}>✓ Every scene has a page length, a location, INT/EXT and cast.</div>:<>
+            {noPages.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noPages.length} scene{noPages.length!==1?'s have':' has'} no page length</div><div style={{color:T.dim,fontSize:10,margin:'2px 0 8px'}}>Scenes: {sc4(noPages.map(s=>s.sceneNumber))}. The schedule's day totals will be short until these are set.</div><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
+            {noCast.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noCast.length} scene{noCast.length!==1?'s have':' has'} no cast listed</div><div style={{color:T.dim,fontSize:10,marginTop:2}}>Scenes: {sc4(noCast.map(s=>s.sceneNumber))}. Check these — an empty scene won't appear on any call sheet.</div></div>}
+            {noLoc.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noLoc.length} scene{noLoc.length!==1?'s have':' has'} no location</div><div style={{color:T.dim,fontSize:10,marginTop:2}}>Scenes: {sc4(noLoc.map(s=>s.sceneNumber))}.</div></div>}
+            {noIE.length>0&&<div style={{padding:'8px 0'}}><div style={{color:T.cream,fontSize:13}}>{noIE.length} scene{noIE.length!==1?'s have':' has'} no INT/EXT</div><div style={{color:T.dim,fontSize:10,marginTop:2}}>Scenes: {sc4(noIE.map(s=>s.sceneNumber))}. Strip colours on the schedule depend on this.</div></div>}
+          </>}
+        </div>}
+      </div>}
+    </div>
+  );
+}
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner}){
   const{t:tr}=useLang();
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
@@ -3097,6 +3546,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
       </div>
       <CastSummaryPanel project={project} scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onSaveCharacter={onSaveCharacter}/>
+      <ScriptInsights scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onUpdateScene={onUpdateScene}/>
       <LocationsSummaryPanel scenes={ps}/>
       <ProductionElementsPanel scenes={ps}/>
       <BreakdownUploader project={project} onApply={ns=>onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})))} onSaveCharacter={onSaveCharacter}/>
@@ -3205,7 +3655,7 @@ function MarketplaceView({onApplyTemplate}){
 function MainApp(){
   const{user,signOut}=useAuth();
   const[view,setView]=useState('dashboard');
-  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);const[revenueItems,setRevenueItems]=useState([]);
+  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);const[revenueItems,setRevenueItems]=useState([]);const[scheduleDays,setScheduleDays]=useState([]);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
@@ -3213,7 +3663,7 @@ function MainApp(){
 
   useEffect(()=>{if(!user)return;
     const loadAll=async()=>{
-      const[pr,bi,ad,re,py,sc,ch,po,cb,ts,rv]=await Promise.all([
+      const[pr,bi,ad,re,py,sc,ch,po,cb,ts,rv,sdy]=await Promise.all([
         sb.from('projects').select('*').order('created_at',{ascending:false}),
         sb.from('budget_items').select('*'),
         sb.from('advances').select('*'),
@@ -3225,6 +3675,7 @@ function MainApp(){
         sb.from('project_collaborators').select('*'),
         sb.from('user_trial_state').select('*').eq('user_id',user.id).maybeSingle(),
         sb.from('revenue_items').select('*'),
+        sb.from('schedule_days').select('*'),
       ]);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
       if(sc.data)setScenes(sc.data.map(r=>({...r.data,id:r.id,project_id:r.project_id})));
@@ -3233,15 +3684,17 @@ function MainApp(){
       if(cb.data)setCollaborators(cb.data);
       setTrialCount(ts.data?.productions_created||0);
       if(rv.data)setRevenueItems(rv.data);
+      if(sdy.data)setScheduleDays(sdy.data);
     };loadAll();},[user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
   const pBudget=budgetItems.filter(i=>i.project_id===currentId);
   const pAdvances=advances.filter(a=>a.project_id===currentId);
 
+  const TRIAL_WALL_ENABLED=false; // paywall switched off for now — set to true to bring the 2-production cap back
   const TRIAL_LIMIT=2;
   const createProject=async d=>{
-    if(trialCount>=TRIAL_LIMIT){
+    if(TRIAL_WALL_ENABLED&&trialCount>=TRIAL_LIMIT){
       alert(`You've used your ${TRIAL_LIMIT} free productions on NKÒ. To start another one, reach out to us — we'll get you set up.`);
       return false;
     }
@@ -3279,7 +3732,7 @@ function MainApp(){
     const{error}=await sb.from('project_collaborators').delete().eq('project_id',projectId);
     if(error)alert(`Could not remove collaborator: ${error.message}`);
   };
-  const deleteProjects=async ids=>{for(const id of ids){await purgeReceipts(id);await sb.from('projects').delete().eq('id',id);}setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
+  const deleteProjects=async ids=>{for(const id of ids){await purgeReceipts(id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
   const addRevenueItem=async item=>{
     const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();
@@ -3461,6 +3914,44 @@ function MainApp(){
     const{error}=await sb.from('payees').update({payments:next}).eq('id',pid);
     if(error){setPayees(p=>p.map(x=>x.id===pid?{...x,payments:prev}:x));removeReceiptFile(receipt.path);throw new Error(error.message);}
   };
+  const addScheduleDays=async rows=>{
+    const base=scheduleDays.filter(d=>d.project_id===currentId).reduce((m,d)=>Math.max(m,d.position??0),-1);
+    const payload=rows.map((r,i)=>({id:Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,position:base+1+i,kind:'shoot',scene_ids:[],cast_calls:{},...r}));
+    const{data,error}=await sb.from('schedule_days').insert(payload).select();
+    if(error){alert(`Could not save the schedule: ${error.message}${/schedule_days/i.test(error.message)?' — run add_schedule_days.sql in Supabase first.':''}`);return false;}
+    setScheduleDays(p=>[...p,...data]);return true;
+  };
+  const updateScheduleDay=async(id,upd)=>{
+    const prev=scheduleDays.find(d=>d.id===id);if(!prev)return;
+    setScheduleDays(p=>p.map(d=>d.id===id?{...d,...upd}:d));
+    const{error}=await sb.from('schedule_days').update(upd).eq('id',id);
+    if(error){setScheduleDays(p=>p.map(d=>d.id===id?prev:d));alert(`Could not save the change: ${error.message}`);}
+  };
+  const removeScheduleDay=async id=>{
+    const{error}=await sb.from('schedule_days').delete().eq('id',id);
+    if(error){alert(`Could not remove that day: ${error.message}`);return;}
+    setScheduleDays(p=>p.filter(d=>d.id!==id));
+  };
+  const updatePayee=async(id,upd)=>{
+    const prev=payees.find(x=>x.id===id);if(!prev)return;
+    setPayees(p=>p.map(x=>x.id===id?{...x,...upd}:x));
+    const{error}=await sb.from('payees').update(upd).eq('id',id);
+    if(error){setPayees(p=>p.map(x=>x.id===id?prev:x));alert(`Could not save the change: ${error.message}`);}
+  };
+  const updatePayment=async(pid,idx,upd)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const prev=payee.payments||[];const next=prev.map((x,i)=>i===idx?{...x,...upd}:x);
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:next}:x));
+    const{error}=await sb.from('payees').update({payments:next}).eq('id',pid);
+    if(error){setPayees(p=>p.map(x=>x.id===pid?{...x,payments:prev}:x));alert(`Could not save the change: ${error.message}`);}
+  };
+  const deletePayee=async id=>{
+    const payee=payees.find(x=>x.id===id);if(!payee)return;
+    const{error}=await sb.from('payees').delete().eq('id',id);
+    if(error){alert(`Could not delete this payee: ${error.message}`);return;}
+    setPayees(p=>p.filter(x=>x.id!==id));
+    (payee.payments||[]).forEach(pay=>{if(pay.receipt?.path)removeReceiptFile(pay.receipt.path);});
+  };
   const removePayment=async(pid,idx)=>{
     const payee=payees.find(x=>x.id===pid);if(!payee)return;
     const gone=(payee.payments||[])[idx];
@@ -3498,13 +3989,14 @@ function MainApp(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&(project?
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
-            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_LIMIT}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
+          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
-          {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} isOwner={project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
