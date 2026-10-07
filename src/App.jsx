@@ -3343,8 +3343,16 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
   const target=Math.round((parseFloat(ppd)||5)*8);
   const pg=e=>e>0?fmtPages8(e):'0';
   const moveScene=async(sceneId,toDayId)=>{
-    for(const d of days){if((d.scene_ids||[]).includes(sceneId)&&d.id!==toDayId)await onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)});}
-    if(toDayId){const t=days.find(d=>d.id===toDayId);if(t&&!(t.scene_ids||[]).includes(sceneId))await onUpdateDay(toDayId,{scene_ids:[...(t.scene_ids||[]),sceneId]});}
+    const jobs=[];
+    for(const d of days){if((d.scene_ids||[]).includes(sceneId)&&d.id!==toDayId)jobs.push(onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)}));}
+    if(toDayId){const t=days.find(d=>d.id===toDayId);if(t&&!(t.scene_ids||[]).includes(sceneId))jobs.push(onUpdateDay(toDayId,{scene_ids:[...(t.scene_ids||[]),sceneId]}));}
+    await Promise.all(jobs);
+  };
+  const moveToNewDay=async sceneId=>{
+    const last=[...days].reverse().find(d=>d.date);
+    const jobs=days.filter(d=>(d.scene_ids||[]).includes(sceneId)).map(d=>onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)}));
+    jobs.push(onAddDays([{kind:'shoot',date:last?addIsoDays(last.date,1):start,scene_ids:[sceneId]}]));
+    await Promise.all(jobs);
   };
   const shift=(d,sceneId,dir)=>{const a=[...(d.scene_ids||[])];const i=a.indexOf(sceneId),j=i+dir;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];onUpdateDay(d.id,{scene_ids:a});};
   const shiftDay=async(d,dir)=>{const i=days.findIndex(x=>x.id===d.id),o=days[i+dir];if(!o)return;await onUpdateDay(d.id,{position:o.position});await onUpdateDay(o.id,{position:d.position});};
@@ -3377,10 +3385,11 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
       </div>
       <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center',flexWrap:'wrap'}}>
         {d&&<><button onClick={()=>shift(d,sc.id,-1)} style={{...mini,color:st.fg,borderColor:edge}}>↑</button><button onClick={()=>shift(d,sc.id,1)} style={{...mini,color:st.fg,borderColor:edge}}>↓</button></>}
-        <select value="" onChange={e=>{if(e.target.value==='__none')moveScene(sc.id,null);else if(e.target.value)moveScene(sc.id,e.target.value);}} style={{fontSize:11,padding:'3px 6px',borderRadius:5,border:`1px solid ${edge}`,background:'rgba(255,255,255,.85)',color:'#111',fontFamily:'Manrope,sans-serif'}}>
+        <select value="" onChange={e=>{const v=e.target.value;if(v==='__none')moveScene(sc.id,null);else if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}} style={{fontSize:11,padding:'3px 6px',borderRadius:5,border:`1px solid ${edge}`,background:'rgba(255,255,255,.85)',color:'#111',fontFamily:'Manrope,sans-serif'}}>
           <option value="">{d?'Move…':'Add to day…'}</option>
           {d&&<option value="__none">Unschedule</option>}
           {shootDays.filter(x=>!d||x.id!==d.id).map(x=><option key={x.id} value={x.id}>Day {shootNo[x.id]} · {shortDate(x.date)}</option>)}
+          <option value="__new">＋ New shoot day</option>
         </select>
       </div>
     </div>;
@@ -3400,8 +3409,14 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
         <Btn size="sm" variant="outline" onClick={()=>addDay('off')}>+ Day off</Btn>
         <Btn size="sm" variant="outline" onClick={()=>addDay('note')}>+ Note</Btn>
         <Btn size="sm" variant="outline" onClick={()=>setShowBuild(!showBuild)}>✨ Suggest a schedule</Btn>
-        {isOwner&&days.length>0&&<Btn size="sm" variant="outline" onClick={()=>scheduleStripPDF(project,days,scenes,characters)}>📄 Strip schedule</Btn>}
-        {!isOwner&&days.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>}
+        {isOwner&&shootDays.length>0&&<Btn size="sm" variant="outline" onClick={()=>scheduleStripPDF(project,days,scenes,characters)}>📄 Strip schedule</Btn>}
+        {!isOwner&&shootDays.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>}
+      </div>
+      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{fontSize:11,color:T.dim,lineHeight:1.7,marginBottom:8}}><b style={{color:T.cream}}>Strip schedule</b> — the whole shoot on paper, scene by scene and day by day, for you and the department heads. <b style={{color:T.cream}}>Call sheet</b> — one day's instructions for the crew: call time, location, scenes and cast.</div>
+        {shootDays.length===0?<div style={{fontSize:11,color:T.coral}}>You don't have a shoot day yet. Tap “+ Shoot day” or “✨ Suggest a schedule” and a call sheet button for each day will appear here.</div>
+        :isOwner?<div><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Print a call sheet</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{shootDays.map(d=><button key={d.id} onClick={()=>callSheetPDF(project,d,shootNo[d.id],shootDays.length,scenes,characters)} style={{...mini,color:T.cream}}>📄 Day {shootNo[d.id]} · {shortDate(d.date)}</button>)}</div></div>
+        :<div style={{fontSize:11,color:T.faint}}>Only the production owner can print call sheets and the strip schedule.</div>}
       </div>
       {showBuild&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Suggest a schedule</div>
