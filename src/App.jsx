@@ -1003,6 +1003,8 @@ const ordinal=n=>{const sfx=['th','st','nd','rd'],v=n%100;return n+(sfx[(v-20)%1
 const stripDateBar=iso=>{if(!iso)return'NO DATE SET';const d=new Date(`${iso}T12:00:00`);return`${d.toLocaleDateString('en-GB',{weekday:'long'}).toUpperCase()} ${ordinal(d.getDate()).toUpperCase()} ${d.toLocaleDateString('en-GB',{month:'long'}).toUpperCase()} ${d.getFullYear()}`;};
 const nextMonday=()=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+((8-d.getDay())%7||7));return d.toISOString().slice(0,10);};
 const sceneLoc=sc=>sc.location||String(sc.heading||'').replace(/^\s*\d*[A-Z]{0,2}[\s.)-]*(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E|INT|EXT)\.?\s*/i,'').replace(/\s*[-–—]\s*(?:DAY|NIGHT|EVENING|MORNING|AFTERNOON|DUSK|DAWN|CONTINUOUS|LATER|SAME).*$/i,'').trim();
+const DEPT_CALLS=['Art','Camera & Grip','Lighting & Power','Sound','Wardrobe','Makeup & Hair'];
+const MEALS=['Breakfast','Lunch','Dinner'];
 const todLabel=sc=>{const c=todClass(sc);return c==='eve'?'Evening':c==='night'?'Night':'Day';};
 const bgText=sc=>{const p=[];if(Number(sc.backgroundActors)>0)p.push(`${sc.backgroundActors} extras`);(sc.talkingExtras||[]).forEach(t=>p.push(t));return p.join(', ');};
 /* Groups scenes by location (so a company is not moved around), keeps day scenes before night scenes at a location,
@@ -1040,7 +1042,7 @@ const scheduleStripPDF=(project,days,scenes,characters)=>{
       return`<table style="width:100%;border-collapse:collapse;table-layout:fixed;background:${st.bg};color:${st.fg};border:1px solid #000;page-break-inside:avoid"><colgroup><col style="width:46px"/><col/><col style="width:72px"/><col style="width:34%"/></colgroup><tr>
         <td style="padding:5px 6px;font-size:12px;font-weight:700;vertical-align:top;text-align:center">${escapeHtml(sc.sceneNumber)}</td>
         <td style="padding:5px 6px;font-size:11px;vertical-align:top"><div style="font-weight:700">${escapeHtml((sc.intExt||'').toUpperCase())} ${escapeHtml(sceneLoc(sc))} — ${escapeHtml(todLabel(sc))}</div><div style="margin-top:2px">${escapeHtml(sc.synopsis||'')}</div></td>
-        <td style="padding:5px 6px;font-size:11px;vertical-align:top;white-space:nowrap">${escapeHtml(fmtPages8(sc.pages8))} pgs.</td>
+        <td style="padding:5px 6px;font-size:11px;vertical-align:top;white-space:nowrap">${sc.pages8>0?escapeHtml(fmtPages8(sc.pages8))+' pgs.':''}</td>
         <td style="padding:5px 6px;font-size:10px;vertical-align:top">CAST: ${ids.join(', ')||'—'}${bgText(sc)?`<br/>BG: ${escapeHtml(bgText(sc))}`:''}</td></tr></table>`;
     }).join('');
     return bar('#5A2E0E',escapeHtml(stripDateBar(d.date)))+(strips||'<div style="padding:10px;color:#777;font-size:11px">No scenes scheduled yet.</div>')+bar('#000',`End Day # ${n}${d.date?` ${escapeHtml(longDate(d.date))}`:''} -- Total Pages: ${tot?fmtPages8(tot):'0'}`);
@@ -1064,7 +1066,8 @@ const callSheetPDF=(project,day,dayNo,totalDays,scenes,characters)=>{
   const th=t=>`<th style="text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:#eee;border-bottom:1px solid #999">${t}</th>`;
   const td=(t,x)=>`<td style="padding:6px 8px;font-size:12px;border-bottom:1px solid #ddd;vertical-align:top;${x||''}">${t}</td>`;
   const key=(k,v)=>`<div style="flex:1;min-width:140px;border:1px solid #bbb;padding:8px 10px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666">${k}</div><div style="font-size:15px;font-weight:700;margin-top:2px">${v}</div></div>`;
-  const sceneRows=list.map(sc=>`<tr>${td(escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml((sc.intExt||'').toUpperCase()))}${td(`${escapeHtml(sceneLoc(sc))}<div style="color:#666;font-size:10px">${escapeHtml(sc.synopsis||'')}</div>`)}${td(escapeHtml(todLabel(sc)))}${td(escapeHtml(fmtPages8(sc.pages8)))}${td((sc.cast||[]).map(c=>castIdx.idx[c]).filter(Boolean).sort((a,b)=>a-b).join(', ')||'—')}</tr>`).join('');
+  const sceneRows=list.map(sc=>`<tr>${td(escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml((sc.intExt||'').toUpperCase()))}${td(`${escapeHtml(sceneLoc(sc))}<div style="color:#666;font-size:10px">${escapeHtml(sc.synopsis||'')}</div>`)}${td(escapeHtml(todLabel(sc)))}${td((sc.cast||[]).map(c=>castIdx.idx[c]).filter(Boolean).sort((a,b)=>a-b).join(', ')||'—')}</tr>`).join('');
+  const deptRows=DEPT_CALLS.filter(n=>calls['dept:'+n]).map(n=>`<tr>${td(escapeHtml(n))}${td(escapeHtml(calls['dept:'+n]),'font-weight:700')}</tr>`).join('');
   const castRows=names.map(nm=>`<tr>${td(castIdx.idx[nm]||'')}${td(escapeHtml(nm))}${td(escapeHtml(calls[nm]||day.call_time||'—'),'font-weight:700')}</tr>`).join('');
   const bgRows=list.filter(sc=>bgText(sc)).map(sc=>`<tr>${td('Sc '+escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml(bgText(sc)))}</tr>`).join('');
   openPrintable(`<!DOCTYPE html><html><head><title>Call sheet — ${escapeHtml(project.name)}</title><style>@page{margin:12mm}@media print{.np{display:none}}body{margin:0;font-family:Arial,sans-serif;color:#111;background:#fff}table{width:100%;border-collapse:collapse}</style></head><body>${PRINT_BAR}
@@ -1072,9 +1075,10 @@ const callSheetPDF=(project,day,dayNo,totalDays,scenes,characters)=>{
       <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px">
         <div><div style="font-size:11px;letter-spacing:2px;color:#666">${escapeHtml(brand.companyName||'')} CALL SHEET</div><div style="font-size:24px;font-weight:700;font-family:Georgia,serif">${escapeHtml(project.name)}</div></div>
         <div style="text-align:right;font-size:13px"><b>Day ${dayNo} of ${totalDays}</b><br/>${escapeHtml(longDate(day.date))}</div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${key('Crew call',escapeHtml(day.call_time||'—'))}${key('Location',escapeHtml(where))}${key('Pages',tot?fmtPages8(tot):'—')}</div>
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:6px 0">Scenes</div>
-      <table><tr>${th('Sc')}${th('I/E')}${th('Set')}${th('D/N')}${th('Pgs')}${th('Cast')}</tr>${sceneRows||`<tr>${td('No scenes scheduled for this day.')}</tr>`}</table>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${key('Crew call',escapeHtml(day.call_time||'—'))}${MEALS.filter(m=>calls['meal:'+m]).map(m=>key(m,escapeHtml(calls['meal:'+m]))).join('')}${key('Location',escapeHtml(where))}</div>
+      ${deptRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:6px 0">Department calls</div><table><tr>${th('Department')}${th('Call')}</tr>${deptRows}</table>`:''}
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:20px 0 6px">Scenes</div>
+      <table><tr>${th('Sc')}${th('I/E')}${th('Set')}${th('D/N')}${th('Cast')}</tr>${sceneRows||`<tr>${td('No scenes scheduled for this day.')}</tr>`}</table>
       ${castRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Cast</div><table><tr>${th('#')}${th('Character')}${th('Call')}</tr>${castRows}</table>`:''}
       ${bgRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Background and extras</div><table><tr>${th('Scene')}${th('Needed')}</tr>${bgRows}</table>`:''}
       ${day.notes?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Notes</div><div style="font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #bbb;padding:10px">${escapeHtml(day.notes)}</div>`:''}
@@ -3324,10 +3328,51 @@ const DayField=({value,onSave,...p})=>{
   useEffect(()=>{setV(value||'');},[value]);
   return<Inp {...p} value={v} onChange={e=>setV(e.target.value)} onBlur={()=>{if(v!==(value||''))onSave(v);}}/>;
 };
+function ScheduleGuide({onClose}){
+  const steps=[
+    ['1','Get your scenes','Run a script breakdown on the Breakdown tab. Every scene becomes a coloured strip on this page.'],
+    ['2','Build your days','Tap ✨ Suggest a schedule and NKÒ groups scenes by location. Or tap + Shoot day, then use “Add to day…” on any strip.'],
+    ['3','Fine-tune','Use ↑ ↓ to reorder and “Move…” to change day. Page lengths are optional; they only sharpen the day totals.'],
+    ['4','Fill in each day','Tap ⚙ Details on a day: crew call, location, department call times (Art, Camera…), meals, cast calls and notes.'],
+    ['5','Print','Under “Print a call sheet”, tap a day for the crew. The Strip schedule is the whole shoot on paper. Each opens a page: tap Save as PDF.'],
+  ];
+  return<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16,fontFamily:'Manrope,sans-serif'}}>
+    <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,marginBottom:10}}>How the schedule works</div>
+    {steps.map(([n,t,d])=><div key={n} style={{display:'flex',gap:10,marginBottom:9}}><div style={{width:22,height:22,borderRadius:'50%',background:T.gold,color:T.ink,fontWeight:800,fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{n}</div><div><div style={{color:T.cream,fontSize:13,fontWeight:700}}>{t}</div><div style={{color:T.dim,fontSize:12,lineHeight:1.55}}>{d}</div></div></div>)}
+    <div style={{fontSize:11,color:T.dim,lineHeight:2,margin:'4px 0 12px'}}><b style={{color:T.cream}}>Strip colours:</b> <span style={{background:'#fff',color:'#111',padding:'1px 6px',borderRadius:3}}>INT day</span> <span style={{background:'#FFF35C',color:'#111',padding:'1px 6px',borderRadius:3}}>EXT day</span> <span style={{background:'#0B9A2A',color:'#fff',padding:'1px 6px',borderRadius:3}}>INT night</span> <span style={{background:'#1F3BFF',color:'#fff',padding:'1px 6px',borderRadius:3}}>EXT night</span> <span style={{background:'#FF9933',color:'#111',padding:'1px 6px',borderRadius:3}}>Evening</span></div>
+    <Btn size="sm" onClick={onClose}>Got it</Btn>
+  </div>;
+}
+function GettingStarted({projects,budgetItems,scenes,scheduleDays,advances,purchaseOrders,payees,userId,onGo}){
+  const key=`nko_gs_hidden_${userId}`;
+  const[hidden,setHidden]=useState(()=>{try{return localStorage.getItem(key)==='1';}catch{return false;}});
+  const steps=[
+    {done:projects.length>0,title:'Create your production',hint:'Tap “New production” below.',go:null},
+    {done:budgetItems.length>0,title:'Turn your script into a budget',hint:'Upload your script for a first budget, or start from a template.',go:'budgets',label:'Open Budgets'},
+    {done:scenes.length>0,title:'Break your script into scenes',hint:'Cast, locations, props and extras, scene by scene.',go:'breakdown',label:'Open Breakdown'},
+    {done:scheduleDays.length>0,title:'Plan your shoot days',hint:'Build the schedule, then print a call sheet for each day.',go:'schedule',label:'Open Schedule'},
+    {done:advances.length>0||purchaseOrders.length>0||payees.length>0,title:'Track what you spend',hint:'Cash advances, invoices and crew payments, reconciled against the budget.',go:'recon',label:'Open Recon'},
+  ];
+  const doneN=steps.filter(s=>s.done).length;
+  if(hidden||doneN===steps.length)return null;
+  const hide=()=>{setHidden(true);try{localStorage.setItem(key,'1');}catch{}};
+  return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18,fontFamily:'Manrope,sans-serif'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:4}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Getting started</div><div style={{fontSize:11,color:T.dim}}>{doneN} of {steps.length} done</div></div>
+    <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:12}}><div style={{height:'100%',width:`${doneN/steps.length*100}%`,background:T.sage}}/></div>
+    {steps.map(st=><div key={st.title} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'7px 0',borderTop:`1px solid ${T.line}`}}>
+      <div style={{width:20,height:20,borderRadius:'50%',border:`1.5px solid ${st.done?T.sage:T.line}`,background:st.done?T.sage:'transparent',color:T.ink,fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1}}>{st.done?'✓':''}</div>
+      <div style={{flex:1,minWidth:0}}><div style={{color:st.done?T.dim:T.cream,fontSize:13,fontWeight:700,textDecoration:st.done?'line-through':'none'}}>{st.title}</div><div style={{color:T.dim,fontSize:11,lineHeight:1.5}}>{st.hint}</div></div>
+      {!st.done&&st.go&&<button onClick={()=>onGo(st.go)} style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'3px 8px',whiteSpace:'nowrap',fontFamily:'Manrope,sans-serif'}}>{st.label}</button>}
+    </div>)}
+    <div style={{marginTop:8}}><button onClick={hide} style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'Manrope,sans-serif'}}>Hide this</button></div>
+  </div>;
+}
 function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onRemoveDay,onUpdateScene,isOwner}){
   const mob=useIsMobile();
   const[ppd,setPpd]=useState('5');const[start,setStart]=useState(nextMonday);const[skipSun,setSkipSun]=useState(true);
   const[showBuild,setShowBuild]=useState(false);const[openDay,setOpenDay]=useState(null);
+  const[guide,setGuide]=useState(()=>{try{return localStorage.getItem('nko_guide_schedule_v1')!=='1';}catch{return true;}});
+  const closeGuide=()=>{setGuide(false);try{localStorage.setItem('nko_guide_schedule_v1','1');}catch{}};
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const sorted=sortScenes(scenes);
   const castIdx=buildCastIndex(sorted,characters);
@@ -3341,7 +3386,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
   const totalPages=sumPg(sorted),scheduledPages=sumPg(sorted.filter(s=>placed.has(s.id)));
   const shootNo={};let c0=0;days.forEach(d=>{if(d.kind==='shoot'){c0++;shootNo[d.id]=c0;}});
   const target=Math.round((parseFloat(ppd)||5)*8);
-  const pg=e=>e>0?fmtPages8(e):'0';
+  const pg=e=>e>0?fmtPages8(e):'—';
   const moveScene=async(sceneId,toDayId)=>{
     const jobs=[];
     for(const d of days){if((d.scene_ids||[]).includes(sceneId)&&d.id!==toDayId)jobs.push(onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)}));}
@@ -3381,7 +3426,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
           {sc.synopsis&&<div style={{fontSize:11,marginTop:1,opacity:.9}}>{sc.synopsis}</div>}
           <div style={{fontSize:10,marginTop:3,opacity:.9}}>CAST: {ids.join(', ')||'—'}{bgText(sc)?`  ·  BG: ${bgText(sc)}`:''}</div>
         </div>
-        <button onClick={()=>editPages(sc)} title="Tap to change the page length" style={{color:st.fg,background:'none',border:`1px dashed ${edge}`,borderRadius:5,fontSize:11,fontWeight:700,padding:'2px 6px',cursor:'pointer',whiteSpace:'nowrap'}}>{sc.pages8>0?fmtPages8(sc.pages8):'set pgs'}</button>
+        <button onClick={()=>editPages(sc)} title="Tap to change the page length" style={{color:st.fg,background:'none',border:`1px dashed ${edge}`,borderRadius:5,fontSize:11,fontWeight:700,padding:'2px 6px',cursor:'pointer',whiteSpace:'nowrap'}}>{sc.pages8>0?fmtPages8(sc.pages8):'+ pgs'}</button>
       </div>
       <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center',flexWrap:'wrap'}}>
         {d&&<><button onClick={()=>shift(d,sc.id,-1)} style={{...mini,color:st.fg,borderColor:edge}}>↑</button><button onClick={()=>shift(d,sc.id,1)} style={{...mini,color:st.fg,borderColor:edge}}>↓</button></>}
@@ -3397,18 +3442,20 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Schedule — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Your scenes, laid out day by day. Page lengths are in eighths, and day totals add up from them.</div><div style={{marginTop:14}}><FS/></div></div>
+      {guide&&<ScheduleGuide onClose={closeGuide}/>}
       {sorted.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.6}}>The schedule is built from your scenes.<br/>Run a script breakdown first (Breakdown tab), then come back here.</div></div>:<>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:16}}>
         <StatCard label="Shoot days" value={shootDays.length} sub="scheduled"/>
-        <StatCard label="Pages scheduled" value={`${pg(scheduledPages)} / ${pg(totalPages)}`} sub="of the whole script" accent={scheduledPages===totalPages&&totalPages>0?T.sage:T.gold}/>
+        <StatCard label="Pages scheduled" value={totalPages>0?`${pg(scheduledPages)} / ${pg(totalPages)}`:'—'} sub={totalPages>0?'of the whole script':'page lengths not set (optional)'} accent={scheduledPages===totalPages&&totalPages>0?T.sage:T.gold}/>
         <StatCard label="Not scheduled" value={unscheduled.length} sub={unscheduled.length===1?'scene':'scenes'} accent={unscheduled.length?T.coral:T.sage}/>
       </div>
-      {noPages>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}><span>⚠ {noPages} scene{noPages!==1?'s have':' has'} no page length, so day totals are incomplete.</span><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
+      {noPages>0&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',lineHeight:1.6}}><span style={{flex:1,minWidth:200}}><b style={{color:T.cream}}>Page lengths are optional.</b> They only make the day totals and ✨ Suggest more accurate. {noPages===sorted.length?'None are set, so each scene counts as 1 page.':`${noPages} scene${noPages!==1?'s are':' is'} missing one and count${noPages!==1?'':'s'} as 1 page.`}</span><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
         <Btn size="sm" onClick={()=>addDay('shoot')}>+ Shoot day</Btn>
         <Btn size="sm" variant="outline" onClick={()=>addDay('off')}>+ Day off</Btn>
         <Btn size="sm" variant="outline" onClick={()=>addDay('note')}>+ Note</Btn>
         <Btn size="sm" variant="outline" onClick={()=>setShowBuild(!showBuild)}>✨ Suggest a schedule</Btn>
+        <Btn size="sm" variant="ghost" onClick={()=>(guide?closeGuide():setGuide(true))}>❓ How this works</Btn>
         {isOwner&&shootDays.length>0&&<Btn size="sm" variant="outline" onClick={()=>scheduleStripPDF(project,days,scenes,characters)}>📄 Strip schedule</Btn>}
         {!isOwner&&shootDays.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>}
       </div>
@@ -3420,7 +3467,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
       </div>
       {showBuild&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Suggest a schedule</div>
-        <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12,lineHeight:1.6}}>Scenes at the same location are kept together, day scenes before night scenes, and each day is filled up to your page target. It only places scenes that aren't scheduled yet, and you can change anything afterwards.</div>
+        <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12,lineHeight:1.6}}>Scenes at the same location are kept together, day scenes before night scenes, and each day is filled up to your page target (a scene with no page length counts as 1 page). It only places scenes that aren't scheduled yet, and you can change anything afterwards.</div>
         <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'1fr 1fr 1fr',gap:10,marginBottom:10}}>
           <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Pages per day</div><Inp type="number" min="1" step="0.5" value={ppd} onChange={e=>setPpd(e.target.value)}/></div>
           <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>First shoot day</div><Inp type="date" value={start} onChange={e=>setStart(e.target.value)}/></div>
@@ -3437,6 +3484,10 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
         </div>;
         const n=shootNo[d.id],list=dayScenes(d),tot=sumPg(list),calls=d.cast_calls||{};
         const names=[...new Set(list.flatMap(sc=>sc.cast||[]))].sort((a,b)=>(castIdx.idx[a]||999)-(castIdx.idx[b]||999));
+        const prevShoot=shootDays.filter(x=>shootNo[x.id]<n).pop();
+        const setTime=(k,v)=>onUpdateDay(d.id,{cast_calls:{...calls,[k]:v}});
+        const timeBox=(label,k)=><div key={k} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0}}>{label}</span><input type="time" value={calls[k]||''} onChange={e=>setTime(k,e.target.value)} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>;
+        const copyPrev=()=>{const keep=Object.fromEntries(Object.entries(prevShoot.cast_calls||{}).filter(([k])=>/^(dept|meal):/.test(k)));onUpdateDay(d.id,{call_time:prevShoot.call_time||d.call_time||'',location:d.location||prevShoot.location||'',cast_calls:{...calls,...keep}});};
         return<div key={d.id} style={{marginBottom:18}}>
           <div style={{background:'#5A2E0E',borderRadius:'8px 8px 0 0',padding:'10px 12px',display:'flex',flexWrap:'wrap',gap:8,alignItems:'center',justifyContent:'space-between'}}>
             <div style={{color:'#fff',fontWeight:800,fontSize:13,fontFamily:'Manrope,sans-serif'}}>DAY {n} · {longDate(d.date)}</div>
@@ -3454,6 +3505,9 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
               <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Location (name and address) — leave blank to use the scene locations</div><DayField value={d.location||''} placeholder="e.g. Nnaji family house, 14 Okigwe Rd, Owerri" onSave={v=>onUpdateDay(d.id,{location:v})}/></div>
             </div>
             <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Notes for the call sheet</div><DayField value={d.notes||''} placeholder="Anything the crew must know that day" onSave={v=>onUpdateDay(d.id,{notes:v})}/></div>
+            <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Department call times — a department shows on the call sheet only if you fill it in</div><div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{DEPT_CALLS.map(nm=>timeBox(nm,'dept:'+nm))}</div></div>
+            <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Meals</div><div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{MEALS.map(nm=>timeBox(nm,'meal:'+nm))}</div></div>
+            {prevShoot&&<div><button onClick={copyPrev} style={{...mini,color:T.cream}}>↧ Copy call times, meals and location from Day {shootNo[prevShoot.id]}</button></div>}
             {names.length>0&&<div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Cast call times — blank means the crew call</div>
               <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{names.map(nm=><div key={nm} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{castIdx.idx[nm]}. {nm}</span><input type="time" value={calls[nm]||''} onChange={e=>onUpdateDay(d.id,{cast_calls:{...calls,[nm]:e.target.value}})} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>)}</div></div>}
           </div>}
@@ -3466,8 +3520,10 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
       {days.length>0&&<div style={{textAlign:'center',color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',margin:'6px 0 18px'}}>{shootDays.length} shoot day{shootDays.length!==1?'s':''} · {pg(scheduledPages)} pages scheduled</div>}
       <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,margin:'8px 0 8px'}}>Not scheduled {unscheduled.length>0&&<span style={{color:T.coral,fontSize:13}}>({unscheduled.length})</span>}</div>
       {unscheduled.length===0?<div style={{color:T.sage,fontSize:12,fontFamily:'Manrope,sans-serif'}}>✓ Every scene is on the schedule.</div>:unscheduled.map(sc=>strip(sc,null))}
-      <div style={{marginTop:22,background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.9}}>
-        <b style={{color:T.cream}}>Strip colours</b> &nbsp;<span style={{background:'#fff',color:'#111',padding:'1px 6px',borderRadius:3}}>INT day</span> <span style={{background:'#FFF35C',color:'#111',padding:'1px 6px',borderRadius:3}}>EXT day</span> <span style={{background:'#0B9A2A',color:'#fff',padding:'1px 6px',borderRadius:3}}>INT night</span> <span style={{background:'#1F3BFF',color:'#fff',padding:'1px 6px',borderRadius:3}}>EXT night</span> <span style={{background:'#FF9933',color:'#111',padding:'1px 6px',borderRadius:3}}>Evening</span>
+      <div style={{marginTop:22,background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:2}}>
+        <b style={{color:T.cream}}>Strip colours and how many of your scenes use each</b><br/>
+        {[['INT day','#FFFFFF','#111111'],['EXT day','#FFF35C','#111111'],['INT night','#0B9A2A','#FFFFFF'],['EXT night','#1F3BFF','#FFFFFF'],['Evening','#FF9933','#111111']].map(([l,bg,fg])=>{const c=sorted.filter(sc=>stripStyle(sc).bg===bg).length;return<span key={l} style={{background:bg,color:fg,padding:'2px 7px',borderRadius:3,marginRight:5,opacity:c?1:.35,whiteSpace:'nowrap'}}>{l} · {c}</span>;})}
+        <div style={{marginTop:4,lineHeight:1.6}}>A colour showing 0 means none of your scenes are that type. If that looks wrong, check the scene's INT/EXT and time of day on the Breakdown tab.</div>
       </div></>}
     </div>
   );
@@ -4002,6 +4058,7 @@ function MainApp(){
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
         <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}}/>
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
+          {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
           {view==='dashboard'&&(project?
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
