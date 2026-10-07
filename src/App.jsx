@@ -1003,7 +1003,6 @@ const ordinal=n=>{const sfx=['th','st','nd','rd'],v=n%100;return n+(sfx[(v-20)%1
 const stripDateBar=iso=>{if(!iso)return'NO DATE SET';const d=new Date(`${iso}T12:00:00`);return`${d.toLocaleDateString('en-GB',{weekday:'long'}).toUpperCase()} ${ordinal(d.getDate()).toUpperCase()} ${d.toLocaleDateString('en-GB',{month:'long'}).toUpperCase()} ${d.getFullYear()}`;};
 const nextMonday=()=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+((8-d.getDay())%7||7));return d.toISOString().slice(0,10);};
 const sceneLoc=sc=>sc.location||String(sc.heading||'').replace(/^\s*\d*[A-Z]{0,2}[\s.)-]*(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E|INT|EXT)\.?\s*/i,'').replace(/\s*[-–—]\s*(?:DAY|NIGHT|EVENING|MORNING|AFTERNOON|DUSK|DAWN|CONTINUOUS|LATER|SAME).*$/i,'').trim();
-const DEPT_CALLS=['Art','Camera & Grip','Lighting & Power','Sound','Wardrobe','Makeup & Hair'];
 const MEALS=['Breakfast','Lunch','Dinner'];
 const todLabel=sc=>{const c=todClass(sc);return c==='eve'?'Evening':c==='night'?'Night':'Day';};
 const bgText=sc=>{const p=[];if(Number(sc.backgroundActors)>0)p.push(`${sc.backgroundActors} extras`);(sc.talkingExtras||[]).forEach(t=>p.push(t));return p.join(', ');};
@@ -1067,7 +1066,6 @@ const callSheetPDF=(project,day,dayNo,totalDays,scenes,characters)=>{
   const td=(t,x)=>`<td style="padding:6px 8px;font-size:12px;border-bottom:1px solid #ddd;vertical-align:top;${x||''}">${t}</td>`;
   const key=(k,v)=>`<div style="flex:1;min-width:140px;border:1px solid #bbb;padding:8px 10px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666">${k}</div><div style="font-size:15px;font-weight:700;margin-top:2px">${v}</div></div>`;
   const sceneRows=list.map(sc=>`<tr>${td(escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml((sc.intExt||'').toUpperCase()))}${td(`${escapeHtml(sceneLoc(sc))}<div style="color:#666;font-size:10px">${escapeHtml(sc.synopsis||'')}</div>`)}${td(escapeHtml(todLabel(sc)))}${td((sc.cast||[]).map(c=>castIdx.idx[c]).filter(Boolean).sort((a,b)=>a-b).join(', ')||'—')}</tr>`).join('');
-  const deptRows=DEPT_CALLS.filter(n=>calls['dept:'+n]).map(n=>`<tr>${td(escapeHtml(n))}${td(escapeHtml(calls['dept:'+n]),'font-weight:700')}</tr>`).join('');
   const castRows=names.map(nm=>`<tr>${td(castIdx.idx[nm]||'')}${td(escapeHtml(nm))}${td(escapeHtml(calls[nm]||day.call_time||'—'),'font-weight:700')}</tr>`).join('');
   const bgRows=list.filter(sc=>bgText(sc)).map(sc=>`<tr>${td('Sc '+escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml(bgText(sc)))}</tr>`).join('');
   openPrintable(`<!DOCTYPE html><html><head><title>Call sheet — ${escapeHtml(project.name)}</title><style>@page{margin:12mm}@media print{.np{display:none}}body{margin:0;font-family:Arial,sans-serif;color:#111;background:#fff}table{width:100%;border-collapse:collapse}</style></head><body>${PRINT_BAR}
@@ -1075,8 +1073,8 @@ const callSheetPDF=(project,day,dayNo,totalDays,scenes,characters)=>{
       <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px">
         <div><div style="font-size:11px;letter-spacing:2px;color:#666">${escapeHtml(brand.companyName||'')} CALL SHEET</div><div style="font-size:24px;font-weight:700;font-family:Georgia,serif">${escapeHtml(project.name)}</div></div>
         <div style="text-align:right;font-size:13px"><b>Day ${dayNo} of ${totalDays}</b><br/>${escapeHtml(longDate(day.date))}</div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${key('Crew call',escapeHtml(day.call_time||'—'))}${MEALS.filter(m=>calls['meal:'+m]).map(m=>key(m,escapeHtml(calls['meal:'+m]))).join('')}${key('Location',escapeHtml(where))}</div>
-      ${deptRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:6px 0">Department calls</div><table><tr>${th('Department')}${th('Call')}</tr>${deptRows}</table>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${key('Crew call',escapeHtml(day.call_time||'—'))}${calls['dept:Art']?key('Art call',escapeHtml(calls['dept:Art'])):''}${MEALS.filter(m=>calls['meal:'+m]).map(m=>key(m,escapeHtml(calls['meal:'+m]))).join('')}${key('Location',escapeHtml(where))}</div>
+      ${calls['info:hospital']?`<div style="border:1px solid #bbb;border-left:5px solid #c0392b;padding:8px 12px;margin-bottom:16px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666">Nearest hospital</div><div style="font-size:14px;font-weight:700;margin-top:2px">${escapeHtml(calls['info:hospital'])}</div></div>`:''}
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:20px 0 6px">Scenes</div>
       <table><tr>${th('Sc')}${th('I/E')}${th('Set')}${th('D/N')}${th('Cast')}</tr>${sceneRows||`<tr>${td('No scenes scheduled for this day.')}</tr>`}</table>
       ${castRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Cast</div><table><tr>${th('#')}${th('Character')}${th('Call')}</tr>${castRows}</table>`:''}
@@ -3333,7 +3331,7 @@ function ScheduleGuide({onClose}){
     ['1','Get your scenes','Run a script breakdown on the Breakdown tab. Every scene becomes a coloured strip on this page.'],
     ['2','Build your days','Tap ✨ Suggest a schedule and NKÒ groups scenes by location. Or tap + Shoot day, then use “Add to day…” on any strip.'],
     ['3','Fine-tune','Use ↑ ↓ to reorder and “Move…” to change day. Page lengths are optional; they only sharpen the day totals.'],
-    ['4','Fill in each day','Tap ⚙ Details on a day: crew call, location, department call times (Art, Camera…), meals, cast calls and notes.'],
+    ['4','Fill in each day','Tap ⚙ Details on a day: crew call, Art call, meals, location, nearest hospital, cast calls and notes.'],
     ['5','Print','Under “Print a call sheet”, tap a day for the crew. The Strip schedule is the whole shoot on paper. Each opens a page: tap Save as PDF.'],
   ];
   return<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16,fontFamily:'Manrope,sans-serif'}}>
@@ -3487,7 +3485,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
         const prevShoot=shootDays.filter(x=>shootNo[x.id]<n).pop();
         const setTime=(k,v)=>onUpdateDay(d.id,{cast_calls:{...calls,[k]:v}});
         const timeBox=(label,k)=><div key={k} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0}}>{label}</span><input type="time" value={calls[k]||''} onChange={e=>setTime(k,e.target.value)} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>;
-        const copyPrev=()=>{const keep=Object.fromEntries(Object.entries(prevShoot.cast_calls||{}).filter(([k])=>/^(dept|meal):/.test(k)));onUpdateDay(d.id,{call_time:prevShoot.call_time||d.call_time||'',location:d.location||prevShoot.location||'',cast_calls:{...calls,...keep}});};
+        const copyPrev=()=>{const keep=Object.fromEntries(Object.entries(prevShoot.cast_calls||{}).filter(([k])=>/^(dept|meal|info):/.test(k)));onUpdateDay(d.id,{call_time:prevShoot.call_time||d.call_time||'',location:d.location||prevShoot.location||'',cast_calls:{...calls,...keep}});};
         return<div key={d.id} style={{marginBottom:18}}>
           <div style={{background:'#5A2E0E',borderRadius:'8px 8px 0 0',padding:'10px 12px',display:'flex',flexWrap:'wrap',gap:8,alignItems:'center',justifyContent:'space-between'}}>
             <div style={{color:'#fff',fontWeight:800,fontSize:13,fontFamily:'Manrope,sans-serif'}}>DAY {n} · {longDate(d.date)}</div>
@@ -3505,9 +3503,12 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
               <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Location (name and address) — leave blank to use the scene locations</div><DayField value={d.location||''} placeholder="e.g. Nnaji family house, 14 Okigwe Rd, Owerri" onSave={v=>onUpdateDay(d.id,{location:v})}/></div>
             </div>
             <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Notes for the call sheet</div><DayField value={d.notes||''} placeholder="Anything the crew must know that day" onSave={v=>onUpdateDay(d.id,{notes:v})}/></div>
-            <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Department call times — a department shows on the call sheet only if you fill it in</div><div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{DEPT_CALLS.map(nm=>timeBox(nm,'dept:'+nm))}</div></div>
+            <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1fr',gap:10}}>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Art department call — they often leave before the rest of the crew. Shown on the call sheet only if you fill it in.</div>{timeBox('Art call','dept:Art')}</div>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Nearest hospital — name, address and phone. Recommended on every call sheet, for crew safety.</div><DayField value={calls['info:hospital']||''} placeholder="e.g. Federal Medical Centre, Owerri · 0801 234 5678" onSave={v=>setTime('info:hospital',v)}/></div>
+            </div>
             <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Meals</div><div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{MEALS.map(nm=>timeBox(nm,'meal:'+nm))}</div></div>
-            {prevShoot&&<div><button onClick={copyPrev} style={{...mini,color:T.cream}}>↧ Copy call times, meals and location from Day {shootNo[prevShoot.id]}</button></div>}
+            {prevShoot&&<div><button onClick={copyPrev} style={{...mini,color:T.cream}}>↧ Copy call times, meals, hospital and location from Day {shootNo[prevShoot.id]}</button></div>}
             {names.length>0&&<div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Cast call times — blank means the crew call</div>
               <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{names.map(nm=><div key={nm} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{castIdx.idx[nm]}. {nm}</span><input type="time" value={calls[nm]||''} onChange={e=>onUpdateDay(d.id,{cast_calls:{...calls,[nm]:e.target.value}})} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>)}</div></div>}
           </div>}
