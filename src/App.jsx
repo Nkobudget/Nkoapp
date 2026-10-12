@@ -1,6 +1,8 @@
 import Header from "./components/Header";
 import HeroSection from "./components/HeroSection";
 import ImageDiagram from "./components/ImageDiagram";
+import ProductionComplexitySection from "./components/ProductionComplexitySection";
+import ProductionFeatures from "./components/ProductionFeatures";
 
 const App = () => {
   return (
@@ -11,6 +13,13 @@ const App = () => {
         <HeroSection />
         <ImageDiagram />
         <hr className="my-8 border-t border-palette-stone"/>
+        <ProductionFeatures id="features" />
+        <ProductionComplexitySection
+          productionImage="/assets/product-complex2.png"
+          workspaceImage="/assets/product-complex1.png"
+          productionImageAlt="Film crew working on set"
+          workspaceImageAlt="Production planning workspace"
+         />
       </main>
     </div>
   );

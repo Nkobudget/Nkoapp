@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "./header-theme.css";
+
 
 @theme {
   --color-palette-stone: #9B978D;
