@@ -1,5 +1,8 @@
 import { useId, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowUp, Check, LoaderCircle, RotateCcw } from 'lucide-react';
+import { DURATION, EASE_OUT } from '../lib/motion';
+import { Reveal, Stagger, StaggerItem } from './motion/Reveal';
 
 const features = [
   {
@@ -19,7 +22,7 @@ const features = [
   },
 ];
 
-// Sample illustration data from the reference, not a generated production quote.
+
 const budgetTotal = 25_000_000;
 const budgetLines = [
   { name: 'Above the line', detail: 'Director, producer, 1st AD', share: 15 },
@@ -48,11 +51,15 @@ const formatNaira = (amount) => `₦${numberFormat.format(amount)}`;
 const maxShare = Math.max(...budgetLines.map((line) => line.share));
 
 function ActionButton({ children, onClick, primary = false }) {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <button
+    <motion.button
       type="button"
       disabled={!onClick}
       onClick={onClick}
+      whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+      transition={{ duration: DURATION.fast, ease: EASE_OUT }}
       className={`inline-flex min-h-11 items-center justify-center rounded-md border px-3 py-2 text-[11px] leading-snug font-medium focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-apricot disabled:cursor-default sm:min-h-8 ${
         primary
           ? 'border-palette-apricot bg-palette-apricot text-palette-black enabled:hover:bg-palette-apricot/90'
@@ -60,7 +67,7 @@ function ActionButton({ children, onClick, primary = false }) {
       }`}
     >
       {children}
-    </button>
+    </motion.button>
   );
 }
 
@@ -77,6 +84,7 @@ export default function ProductionIntelligenceSection({
   const panelId = useId();
   const messageId = useId();
   const errorId = useId();
+  const reduceMotion = useReducedMotion();
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState('');
@@ -109,7 +117,8 @@ export default function ProductionIntelligenceSection({
       <div className="mx-auto max-w-[1320px] border-b border-palette-charcoal/60 py-16 sm:py-24 lg:py-36">
         <div className="mx-auto grid max-w-[1200px] items-start gap-12 lg:grid-cols-[0.73fr_1fr] lg:gap-9">
           <div className="min-w-0 lg:pt-6">
-            <h2
+            <Reveal
+              as="h2"
               id={headingId}
               className="text-[clamp(2.25rem,4.2vw,3.75rem)] leading-[1.02] font-normal tracking-[-0.045em]"
             >
@@ -117,15 +126,19 @@ export default function ProductionIntelligenceSection({
               <span className="block">intelligence{' '}</span>
               <span className="block">behind your{' '}</span>
               <span className="block">production.</span>
-            </h2>
-            <p className="mt-8 max-w-[29rem] text-sm leading-relaxed text-palette-stone sm:text-base lg:mt-10">
+            </Reveal>
+            <Reveal
+              as="p"
+              delay={0.08}
+              className="mt-8 max-w-[29rem] text-sm leading-relaxed text-palette-stone sm:text-base lg:mt-10"
+            >
               The NKO assistant understands production departments, shoot days,
               rates and reserves. Ask for a budget and get a structured draft you
               can actually work from.
-            </p>
-            <dl className="mt-8 max-w-[30rem] sm:mt-10">
+            </Reveal>
+            <Stagger as="dl" stagger={0.06} className="mt-8 max-w-[30rem] sm:mt-10">
               {features.map(({ title, description }) => (
-                <div
+                <StaggerItem
                   key={title}
                   className="border-t border-palette-charcoal py-5"
                 >
@@ -133,12 +146,17 @@ export default function ProductionIntelligenceSection({
                   <dd className="mt-2 text-[13px] leading-relaxed text-palette-stone">
                     {description}
                   </dd>
-                </div>
+                </StaggerItem>
               ))}
-            </dl>
+            </Stagger>
           </div>
 
-          <div className="relative isolate min-w-0">
+          <Reveal
+            className="relative isolate min-w-0"
+            delay={0.12}
+            distance={24}
+            duration={DURATION.slow}
+          >
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -inset-x-8 -inset-y-10 -z-10 rounded-[40%] bg-palette-apricot/10 blur-3xl"
@@ -159,16 +177,18 @@ export default function ProductionIntelligenceSection({
                 <span className="font-mono text-[10px] text-palette-stone">
                   · New production
                 </span>
-                <button
+                <motion.button
                   type="button"
                   onClick={onReplay}
                   disabled={!onReplay}
                   aria-label="Replay the budget example"
+                  whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+                  transition={{ duration: DURATION.fast, ease: EASE_OUT }}
                   className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-sm px-1 font-mono text-[10px] text-palette-stone enabled:hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-apricot disabled:cursor-default sm:min-h-8"
                 >
                   <RotateCcw aria-hidden="true" size={12} strokeWidth={1.5} />
                   Replay
-                </button>
+                </motion.button>
               </div>
 
               <div className="space-y-5 p-3 sm:p-6">
@@ -177,13 +197,21 @@ export default function ProductionIntelligenceSection({
                   a ₦25M production budget.
                 </p>
 
-                <ul className="space-y-2 font-mono text-[10px] leading-relaxed text-palette-stone sm:text-[11px]">
+                <Stagger
+                  as="ul"
+                  stagger={0.1}
+                  className="space-y-2 font-mono text-[10px] leading-relaxed text-palette-stone sm:text-[11px]"
+                >
                   {[
                     'Reading parameters: Commercial · 10 shoot days · ₦25,000,000',
                     'Applying Lagos day rates for crew, camera and grip',
                     'Reserving 5% contingency and allocating post',
                   ].map((step) => (
-                    <li key={step} className="flex items-start gap-2.5">
+                    <StaggerItem
+                      as="li"
+                      key={step}
+                      className="flex items-start gap-2.5"
+                    >
                       <Check
                         aria-hidden="true"
                         size={14}
@@ -191,9 +219,9 @@ export default function ProductionIntelligenceSection({
                         className="mt-0.5 shrink-0 text-palette-apricot"
                       />
                       <span>{step}</span>
-                    </li>
+                    </StaggerItem>
                   ))}
-                </ul>
+                </Stagger>
 
                 <div className="overflow-hidden rounded-lg border border-palette-graphite bg-palette-black">
                   <div className="flex items-center justify-between gap-3 border-b border-palette-charcoal px-3 py-3 sm:px-4">
@@ -329,10 +357,12 @@ export default function ProductionIntelligenceSection({
                       placeholder="Ask NKO to change anything…"
                       className="min-h-11 min-w-0 flex-1 bg-transparent px-2 text-xs text-palette-ivory outline-none placeholder:text-palette-stone sm:min-h-9"
                     />
-                    <button
+                    <motion.button
                       type="submit"
                       disabled={!onSendMessage || !message.trim() || isSending}
                       aria-label={isSending ? 'Sending message' : 'Send message'}
+                      whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+                      transition={{ duration: DURATION.fast, ease: EASE_OUT }}
                       className="flex size-11 shrink-0 items-center justify-center rounded-md bg-palette-charcoal text-palette-stone enabled:hover:bg-palette-apricot enabled:hover:text-palette-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-apricot disabled:cursor-default sm:size-7"
                     >
                       {isSending ? (
@@ -344,7 +374,7 @@ export default function ProductionIntelligenceSection({
                       ) : (
                         <ArrowUp aria-hidden="true" size={15} strokeWidth={2} />
                       )}
-                    </button>
+                    </motion.button>
                   </div>
                   <p className="sr-only" role="status">
                     {isSending ? 'Sending message…' : ''}
@@ -361,7 +391,7 @@ export default function ProductionIntelligenceSection({
                 </form>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

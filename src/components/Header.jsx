@@ -1,3 +1,7 @@
+import { motion } from "framer-motion";
+import { DURATION, EASE_OUT } from "../lib/motion";
+import Pressable from "./motion/Pressable";
+
 const Header = () => {
   const navLinks = [
     { label: "Products", href: "#products" },
@@ -8,7 +12,12 @@ const Header = () => {
   ];
 
   return (
-    <header className="w-[95%] mx-auto flex items-center justify-between gap-8 py-4">
+    <motion.header
+      initial={{ opacity: 0, y: -12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: DURATION.base, ease: EASE_OUT }}
+      className="w-[95%] mx-auto flex items-center justify-between gap-8 py-4"
+    >
      
       <a href="/" className="shrink-0">
         <img
@@ -40,18 +49,20 @@ const Header = () => {
           Login
         </button>
         
-        <button
-          type="button"
-          className="rounded-full bg-palette-apricot px-5 py-2 text-sm font-semibold text-black 
-                     transition-all duration-300 
-                     shadow-[0_8px_20px_rgba(255,179,71,0.5)] 
-                     hover:bg-amber-400 
-                     hover:shadow-[0_8px_30px_rgba(255,179,71,0.8)]"
-        >
-          Get Started
-        </button>
+        <Pressable hover>
+          <button
+            type="button"
+            className="rounded-full bg-palette-apricot px-5 py-2 text-sm font-semibold text-black 
+                       transition-all duration-300 
+                       shadow-[0_8px_20px_rgba(255,179,71,0.5)] 
+                       hover:bg-amber-400 
+                       hover:shadow-[0_8px_30px_rgba(255,179,71,0.8)]"
+          >
+            Get Started
+          </button>
+        </Pressable>
       </div>
-    </header>
+    </motion.header>
   );
 };
 

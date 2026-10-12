@@ -1,5 +1,8 @@
 import { useId } from 'react';
+import { motion } from 'framer-motion';
 import { FileSpreadsheet, Image as ImageIcon, MessageSquare } from 'lucide-react';
+import { DURATION, EASE_OUT, VIEWPORT } from '../lib/motion';
+import { Reveal, Stagger, StaggerItem } from './motion/Reveal';
 
 const painPoints = [
   {
@@ -62,7 +65,8 @@ export default function ProductionComplexitySection({
       <div className="mx-auto max-w-[1320px] border-y border-palette-charcoal/60 py-16 sm:py-24 lg:py-36">
         <div className="mx-auto max-w-[1200px]">
           <div className="grid items-center gap-6 lg:grid-cols-[1.42fr_1fr] lg:gap-8">
-            <h2
+            <Reveal
+              as="h2"
               id={headingId}
               className="text-[clamp(1.875rem,4.1vw,3.625rem)] leading-[1.14] font-normal tracking-[-0.045em]"
             >
@@ -70,18 +74,24 @@ export default function ProductionComplexitySection({
               <span className="block text-palette-stone">
                 Your tools shouldn’t be.
               </span>
-            </h2>
-            <p className="max-w-[29rem] text-sm leading-relaxed text-palette-stone sm:text-base">
+            </Reveal>
+            <Reveal
+              as="p"
+              delay={0.08}
+              className="max-w-[29rem] text-sm leading-relaxed text-palette-stone sm:text-base"
+            >
               Most productions run on a patchwork of spreadsheets, shared docs,
               chat threads and banking apps. Every handoff is a chance for
               information to go stale, and on a shoot, stale information costs
               real money.
-            </p>
+            </Reveal>
           </div>
 
           <div className="mt-10 grid items-start gap-10 sm:mt-14 lg:mt-20 lg:grid-cols-[1.42fr_1fr] lg:gap-6">
-            <figure
+            <Stagger
+              as="figure"
               aria-labelledby={illustrationId}
+              stagger={0.09}
               className="relative isolate m-0 min-w-0 pb-3"
             >
               <figcaption id={illustrationId} className="sr-only">
@@ -89,7 +99,10 @@ export default function ProductionComplexitySection({
                 separate budget files, spend totals and team messages.
               </figcaption>
 
-              <div className="relative aspect-[10/11] min-h-[380px] w-full overflow-hidden rounded-lg border border-palette-charcoal sm:min-h-0">
+              <StaggerItem
+                as="div"
+                className="relative aspect-[10/11] min-h-[380px] w-full overflow-hidden rounded-lg border border-palette-charcoal sm:min-h-0"
+              >
                 {productionImage ? (
                   <img
                     src={productionImage}
@@ -103,9 +116,9 @@ export default function ProductionComplexitySection({
                 ) : (
                   <ImagePlaceholder label="Production image" alignLeft />
                 )}
-              </div>
+              </StaggerItem>
 
-              <div
+              <StaggerItem
                 className={`absolute top-4 left-4 w-[min(64%,15.5rem)] sm:top-6 sm:left-6 ${cardStyle}`}
               >
                 <div className="flex items-center gap-3">
@@ -131,9 +144,10 @@ export default function ProductionComplexitySection({
                   />
                   BUDGET LOCKED
                 </p>
-              </div>
+              </StaggerItem>
 
-              <dl
+              <StaggerItem
+                as="dl"
                 className={`absolute top-[45%] right-4 w-[min(46%,12.5rem)] sm:right-6 ${cardStyle}`}
               >
                 <dt className="text-[10px] leading-snug tracking-[0.06em] text-palette-stone sm:text-[11px]">
@@ -145,9 +159,9 @@ export default function ProductionComplexitySection({
                 <dd className="mt-2 text-[11px] leading-snug text-palette-stone">
                   Awaiting reconciliation
                 </dd>
-              </dl>
+              </StaggerItem>
 
-              <div
+              <StaggerItem
                 className={`absolute right-4 bottom-0 w-[min(68%,15.5rem)] sm:right-6 ${cardStyle}`}
               >
                 <div className="flex items-center gap-2 text-[11px] text-palette-stone">
@@ -159,19 +173,23 @@ export default function ProductionComplexitySection({
                   Still waiting on approval for Day 3 meals. Who do I confirm
                   numbers with?
                 </p>
-              </div>
-            </figure>
+              </StaggerItem>
+            </Stagger>
 
             <div className="min-w-0">
               <div className="relative aspect-[3/2] overflow-hidden rounded-lg border border-palette-charcoal">
                 {workspaceImage ? (
-                  <img
+                  <motion.img
                     src={workspaceImage}
                     alt={workspaceImageAlt}
                     width={480}
                     height={320}
                     loading="lazy"
                     decoding="async"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={VIEWPORT}
+                    transition={{ duration: DURATION.slow, ease: EASE_OUT }}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : (
@@ -179,9 +197,9 @@ export default function ProductionComplexitySection({
                 )}
               </div>
 
-              <dl className="mt-6">
+              <Stagger as="dl" stagger={0.06} className="mt-6">
                 {painPoints.map(({ category, title, description }) => (
-                  <div
+                  <StaggerItem
                     key={category}
                     className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 border-t border-palette-charcoal py-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-x-5"
                   >
@@ -196,9 +214,9 @@ export default function ProductionComplexitySection({
                         {description}
                       </p>
                     </dd>
-                  </div>
+                  </StaggerItem>
                 ))}
-              </dl>
+              </Stagger>
             </div>
           </div>
         </div>
