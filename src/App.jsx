@@ -3,6 +3,7 @@ import HeroSection from "./components/HeroSection";
 import ImageDiagram from "./components/ImageDiagram";
 import ProductionComplexitySection from "./components/ProductionComplexitySection";
 import ProductionFeatures from "./components/ProductionFeatures";
+import ProductionIntelligenceSection from "./components/ProductionIntelligenceSection";
 
 const App = () => {
   return (
@@ -20,6 +21,7 @@ const App = () => {
           productionImageAlt="Film crew working on set"
           workspaceImageAlt="Production planning workspace"
          />
+         <ProductionIntelligenceSection/>
       </main>
     </div>
   );

@@ -41,11 +41,7 @@ function ImagePlaceholder({ label, alignLeft = false }) {
   );
 }
 
-/**
- * Drop-in section. Keep your existing Tailwind v4 stylesheet and theme imports.
- * Empty image props render local, CSS-only placeholders; no remote assets.
- * The three status cards are static illustration content, not live account data.
- */
+
 export default function ProductionComplexitySection({
   productionImage = '',
   workspaceImage = '',
