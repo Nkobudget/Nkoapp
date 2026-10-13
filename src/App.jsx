@@ -2914,8 +2914,6 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
   slots.forEach(sl=>{addTo(budM,sl.item.currency,sl.budget);const p=occ[`${sl.item.id}:${sl.k}`];if(!p)addTo(oweM,sl.item.currency,sl.budget);});
   pPayees.forEach(p=>{const paid=(p.payments||[]).reduce((x,y)=>x+(Number(y.amount)||0),0);addTo(paidM,p.currency,paid);addTo(oweM,p.currency,Math.max(0,(Number(p.agreed_fee)||0)-paid));});
   const money=o=>{const ks=Object.keys(o).filter(k=>o[k]);return ks.length?ks.map(k=>`${sym(k)}${fmt(o[k])}`).join(' · '):`${sym(project.base_currency)}0`;};
-  const roleRows=kind=>{const m={};slots.filter(sl=>sl.kind===kind).forEach(sl=>{const k=String(sl.item.description).trim();m[k]=(m[k]||0)+1;});return Object.entries(m);};
-  const crewRows=roleRows('crew'),castRows=roleRows('cast');
   const doAssign=async sl=>{
     if(!assignName.trim()){alert('Enter the person’s name.');return;}
     await onAddPayee({name:assignName.trim(),role:sl.item.description,agreed_fee:sl.budget,currency:sl.item.currency,project_id:project.id,payments:[],budget_item_id:String(sl.item.id),slot:sl.k,dept:sl.item.dept});
@@ -2979,10 +2977,6 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
           </div>}
         </div>;
   };
-  const dg=(label,list)=>list.length>0&&<div style={{marginBottom:6}}>
-    <div style={{fontSize:11,color:T.gold,fontWeight:800,letterSpacing:'.06em',margin:'6px 0 4px'}}>{label}</div>
-    {list.map(([r,n])=><div key={r} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,fontSize:12,color:T.cream}}><span>{r}</span><span style={{color:T.dim}}>{n}</span></div>)}
-  </div>;
   const slotDepts=[...new Set(slots.map(sl=>sl.item.dept))].sort((x,y)=>DEPTS.indexOf(x)-DEPTS.indexOf(y));
   return(
     <div>
@@ -2994,10 +2988,6 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
         <StatCard label="Paid so far" value={money(paidM)} sub="all payments" accent={T.gold}/>
         <StatCard label="Still to pay" value={money(oweM)} sub="owed" accent={T.coral}/>
       </div>
-      {slots.length>0&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 14px',marginBottom:18}}>
-        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Who should be on payments (from your budget)</div>
-        {dg('CREW',crewRows)}{dg('CAST',castRows)}
-      </div>}
       {slots.length===0&&<div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:20,marginBottom:18,textAlign:'center',color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif'}}>No crew or cast in the budget yet. Add them in the Budget (Production Team, Talents, Camera &amp; Grip Team…) and they appear here ready to pay.</div>}
       {slotDepts.map(dept=><div key={dept}>
         <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',margin:'18px 0 8px'}}>{dept}</div>
