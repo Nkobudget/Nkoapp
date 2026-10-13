@@ -2303,7 +2303,32 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdate
   );
 }
 /* ── Cost Report — budget vs actual by phase, using dept tag on advances ── */
-function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
+/* ── People slots: crew & cast lines in the Budget become slots on the Payments tab ── */
+const isPeopleLine=i=>{
+  if(!String(i.description||'').trim())return false;
+  if(i.unit==='person')return true;
+  const d=String(i.dept||'');
+  return d==='F - Talents'||/ Team$/.test(d);
+};
+const personSlots=items=>{
+  const out=[];
+  (items||[]).filter(isPeopleLine).forEach(i=>{
+    const headcount=i.unit==='person'?Math.max(1,Math.round(Number(i.qty)||1)):1;
+    const budget=i.unit==='person'?(Number(i.rate)||0):lTot(i);
+    for(let k=0;k<headcount;k++)out.push({item:i,k,of:headcount,budget,kind:i.dept==='F - Talents'?'cast':'crew'});
+  });
+  return out;
+};
+const payeeSpend=(payees,items,projectId)=>{
+  const out=[];
+  (payees||[]).filter(p=>p.project_id===projectId).forEach(p=>{
+    const it=(items||[]).find(i=>String(i.id)===String(p.budget_item_id));
+    const dept=p.dept||it?.dept||'';
+    (p.payments||[]).forEach((pay,i)=>out.push({id:`${p.id}-${i}`,amount:Number(pay.amount)||0,currency:p.currency,dept,name:p.name,role:p.role,date:pay.date,method:pay.method,receipt:pay.receipt}));
+  });
+  return out;
+};
+function CostReportPanel({project,items,advances,reconEntries,paidPOs=[],payeePays=[]}){
   const{t:tr}=useLang();
   const advIds=advances.map(a=>a.id);
   const advCur=id=>advances.find(a=>a.id===id)?.currency||project.base_currency;
@@ -2312,14 +2337,16 @@ function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
   const spentByCur={};
   spendEntries.forEach(e=>{const c=advCur(e.advance_id);spentByCur[c]=(spentByCur[c]||0)+(Number(e.amount)||0);});
   paidPOs.forEach(po=>{spentByCur[po.currency]=(spentByCur[po.currency]||0)+(Number(po.amount)||0);});
+  payeePays.forEach(x=>{spentByCur[x.currency]=(spentByCur[x.currency]||0)+x.amount;});
   const budgetUSD=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+paidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
+  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+paidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0)+payeePays.reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
   const remainUSD=budgetUSD-spentUSD;
   const curs=[...new Set([...Object.keys(budgetByCur),...Object.keys(spentByCur),project.base_currency])];
   const fmtCur=obj=>curs.filter(c=>obj[c]).map(c=>`${sym(c)}${fmt(obj[c])}`).join(' · ')||`${sym(project.base_currency)}0`;
   const remainingByCur={};curs.forEach(c=>{remainingByCur[c]=(budgetByCur[c]||0)-(spentByCur[c]||0);});
   const untaggedSpentUSD=spendEntries.filter(e=>{const a=advances.find(x=>x.id===e.advance_id);return a&&!a.dept;}).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
-  if(items.length===0&&advances.length===0)return null;
+  const untaggedPayUSD=payeePays.filter(x=>!x.dept).reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
+  if(items.length===0&&advances.length===0&&payeePays.length===0)return null;
   return(
     <div style={{marginBottom:22}}>
       <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:2}}>{tr('costReport')}</div>
@@ -2329,6 +2356,7 @@ function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
         <StatCard label={tr('actualSpentLbl')} value={fmtCur(spentByCur)} sub={project.base_currency}/>
         <StatCard label={tr('remainingLbl')} value={fmtCur(remainingByCur)} sub={remainUSD<0?tr('statOverBudget'):tr('statUnderBudget')} accent={remainUSD<0?T.coral:T.sage}/>
       </div>
+      {untaggedPayUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedPayUSD)} paid to people with no department set — they count toward Actual spend, but not any phase. Set a department on the payee.</div>}
       {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent on advances with no department set — tag them when issuing an advance for an accurate phase breakdown.</div>}
       <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>{tr('byPhase')}</div>
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -2340,8 +2368,10 @@ function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
           const sByCur={};
           spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).forEach(e=>{const c=advCur(e.advance_id);sByCur[c]=(sByCur[c]||0)+(Number(e.amount)||0);});
           poPhase.forEach(po=>{sByCur[po.currency]=(sByCur[po.currency]||0)+(Number(po.amount)||0);});
+          const payPhase=payeePays.filter(x=>ph.depts.includes(x.dept));
+          payPhase.forEach(x=>{sByCur[x.currency]=(sByCur[x.currency]||0)+x.amount;});
           const bUSD=bItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+poPhase.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0);
+          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+poPhase.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0)+payPhase.reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
           const pct=bUSD>0?Math.min(100,(sUSD/bUSD)*100):0;const over=sUSD>bUSD;const diffUSD=sUSD-bUSD;
           return(
             <div key={ph.name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 16px'}}>
@@ -2360,11 +2390,12 @@ function CostReportPanel({project,items,advances,reconEntries,paidPOs=[]}){
     </div>
   );
 }
-function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
+function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency,payments=[]}){
   const openAdv=advances.filter(a=>a.status!=='reconciled'&&(a.amount-reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0))>0);
   const feed=[
     ...reconEntries.filter(e=>advances.some(a=>a.id===e.advance_id)).map(e=>({...e,_source:'ADVANCE',_label:advances.find(a=>a.id===e.advance_id)?.recipient||'Advance',_date:e.date})),
     ...paidPOs.map(po=>({id:po.id,amount:po.amount,_source:po.po_number||'PO',_label:po.vendor||'Vendor',_date:po.created_at,_po:po})),
+    ...payments.map(x=>({id:x.id,amount:x.amount,_source:'PAYMENT',_label:`${x.name}${x.role?` · ${x.role}`:''}`,_date:x.date,_pay:x})),
   ].sort((a,b)=>new Date(b._date||0)-new Date(a._date||0));
   const total=feed.reduce((s,f)=>s+Number(f.amount||0),0);
   return(
@@ -2389,6 +2420,7 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{background:f._source==='ADVANCE'?T.hi:'rgba(82,176,122,.15)',color:f._source==='ADVANCE'?T.dim:T.sage,fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:5}}>{f._source}</span>
               <span style={{color:T.cream,fontSize:12}}>{f.description||f._label}</span>
+              {f._pay?.receipt?.path&&<button onClick={()=>viewReceipt(f._pay.receipt.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Receipt</button>}
               {f._po&&<span style={{display:'inline-flex',gap:4}}>
                 {f._po.invoice_file?.path&&<button onClick={()=>viewReceipt(f._po.invoice_file.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Invoice</button>}
                 {f._po.receipt_file?.path&&<button onClick={()=>viewReceipt(f._po.receipt_file.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Receipt</button>}
@@ -2401,7 +2433,7 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
     </div>
   );
 }
-function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,onDeleteAdvance,isOwner}){
+function ReconView({project,items,advances,reconEntries,purchaseOrders,payees=[],onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,onDeleteAdvance,isOwner}){
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   const[showAll,setShowAll]=useState(false);
@@ -2409,11 +2441,12 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const pPOsPaid=(purchaseOrders||[]).filter(po=>po.project_id===project.id&&po.status==='Paid');
   const isTopUp=e=>!!e.description?.startsWith('[CASH-IN]');const total=pAdv.reduce((s,a)=>s+Number(a.amount)+reconEntries.filter(e=>e.advance_id===a.id&&isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0),0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id&&!isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0)).reduce((a,b)=>a+b,0);
-  const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept)].filter(Boolean))];
+  const payList=payeeSpend(payees,items,project.id);
+  const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept),...payList.map(x=>x.dept)].filter(Boolean))];
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances and paid purchase orders, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
-      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries} paidPOs={pPOsPaid}/>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances, paid purchase orders and payments to crew and cast, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
+      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries} paidPOs={pPOsPaid} payeePays={payList}/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
       </div>
@@ -2431,10 +2464,10 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,onAddAdva
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>By department</div>
-        <div style={{display:'flex',gap:8}}>{(pAdv.length>0||pPOsPaid.length>0)&&isOwner&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
+        <div style={{display:'flex',gap:8}}>{(pAdv.length>0||pPOsPaid.length>0||payList.length>0)&&isOwner&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid,payList)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
       </div>
       {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
-        activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} currency={project.base_currency}/>)}
+        activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} payments={payList.filter(x=>x.dept===dept)} currency={project.base_currency}/>)}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
       </div>
@@ -2501,7 +2534,7 @@ const poRegisterPDF=(pos,project)=>{
   </body></html>`;
   openThemed(html,'dark');
 };
-const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
+const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[],payeePays=[])=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
   const cashIn=e=>!!e.description?.startsWith('[CASH-IN]');
@@ -2510,10 +2543,11 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   const curOf=id=>advOf(id)?.currency||project.base_currency;
   const add=(o,c,v)=>{o[c]=(o[c]||0)+(Number(v)||0);};
   const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!cashIn(e));
-  const budgetBy={},spentBy={},poBy={},issuedBy={},advSpentBy={};
+  const budgetBy={},spentBy={},poBy={},issuedBy={},advSpentBy={},peopleBy={};
   items.forEach(i=>add(budgetBy,i.currency,lTot(i)));
   spendEntries.forEach(e=>{add(spentBy,curOf(e.advance_id),e.amount);add(advSpentBy,curOf(e.advance_id),e.amount);});
   paidPOs.forEach(po=>{add(spentBy,po.currency,po.amount);add(poBy,po.currency,po.amount);});
+  payeePays.forEach(x=>{add(spentBy,x.currency,x.amount);add(peopleBy,x.currency,x.amount);});
   advances.forEach(a=>{add(issuedBy,a.currency,a.amount);reconEntries.filter(e=>e.advance_id===a.id&&cashIn(e)).forEach(e=>add(issuedBy,a.currency,e.amount));});
   const curSet=[...new Set([...Object.keys(budgetBy),...Object.keys(spentBy),...Object.keys(issuedBy)])];
   const curs=curSet.length?curSet:[project.base_currency];
@@ -2525,7 +2559,7 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   const anyOver=curs.some(c=>remainBy[c]<0);
   const card=(label,val,color)=>`<div style="flex:1;min-width:130px;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${label}</div><div style="font-family:monospace;font-size:15px;color:${color||'#F0E8D0'}">${val}</div></div>`;
   const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">${card('Total budget',money(budgetBy))}${card('Actual spent',money(spentBy),'#FEED61')}${card('Remaining',money(remainBy),anyOver?'#E06B52':'#52B07A')}</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">${card('Paid purchase orders',money(poBy))}${card('Spent from cash advances',money(advSpentBy))}${card('Cash still with recipients',money(heldBy))}</div>`;
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">${card('Paid purchase orders',money(poBy))}${card('Paid to crew &amp; cast',money(peopleBy))}${card('Spent from cash advances',money(advSpentBy))}${card('Cash still with recipients',money(heldBy))}</div>`;
   const th=(t,r)=>`<th style="padding:7px 10px;font-size:9px;color:#9A9080;text-align:${r?'right':'left'};text-transform:uppercase;letter-spacing:.5px;background:#242424">${t}</th>`;
   const td=(t,r,extra)=>`<td style="padding:7px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A;text-align:${r?'right':'left'};vertical-align:top;${extra||''}">${t}</td>`;
   // ── by phase
@@ -2535,6 +2569,7 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
     items.filter(i=>inPh(ph,i.dept)).forEach(i=>add(b,i.currency,lTot(i)));
     spendEntries.filter(e=>inPh(ph,advOf(e.advance_id)?.dept)).forEach(e=>add(s,curOf(e.advance_id),e.amount));
     paidPOs.filter(po=>inPh(ph,po.dept)).forEach(po=>add(s,po.currency,po.amount));
+    payeePays.filter(x=>inPh(ph,x.dept)).forEach(x=>add(s,x.currency,x.amount));
     return{name:ph.name,b,s};
   });
   const unS={};
@@ -2544,8 +2579,8 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   const phaseTable=phaseHtml?`<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">By phase</div>
     <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A;margin-bottom:26px"><tr>${th('Phase')}${th('Budget',1)}${th('Spent',1)}${th('Remaining',1)}</tr>${phaseHtml}</table>`:'';
   // ── by department (advance expenses + paid POs together)
-  const deptList=[...new Set([...advances.map(a=>a.dept),...paidPOs.map(po=>po.dept)])].filter(Boolean).sort((x,y)=>DEPTS.indexOf(x)-DEPTS.indexOf(y));
-  const deptKeys=advances.some(a=>!a.dept)?[...deptList,'']:deptList;
+  const deptList=[...new Set([...advances.map(a=>a.dept),...paidPOs.map(po=>po.dept),...payeePays.map(x=>x.dept)])].filter(Boolean).sort((x,y)=>DEPTS.indexOf(x)-DEPTS.indexOf(y));
+  const deptKeys=(advances.some(a=>!a.dept)||payeePays.some(x=>!x.dept))?[...deptList,'']:deptList;
   const badge=(t,po)=>`<span style="background:${po?'#1F3A2B':'#2A2A2A'};color:${po?'#52B07A':'#9A9080'};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;white-space:nowrap">${escapeHtml(t)}</span>`;
   const deptBlocks=deptKeys.map(d=>{
     const advs=advances.filter(a=>(a.dept||'')===d);
@@ -2553,6 +2588,7 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
       ...reconEntries.filter(e=>advs.some(a=>a.id===e.advance_id)&&!cashIn(e)).map(e=>{
         const cat=e.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(e.description||'').replace(/^\[[^\]]+\]\s*/,'');
         return{date:e.date||'',src:'ADVANCE',po:0,main:desc||cat,sub:[cat&&desc?cat:'',advOf(e.advance_id)?.recipient||''].filter(Boolean).join(' · '),amount:e.amount,currency:curOf(e.advance_id)};}),
+      ...payeePays.filter(x=>(x.dept||'')===d).map(x=>({date:String(x.date||'').slice(0,10),src:'PAYMENT',po:1,main:x.name||'Payee',sub:[x.role||'',x.method||'',x.receipt?.path?'Receipt ✓ on file':'No receipt'].filter(Boolean).join(' · '),amount:x.amount,currency:x.currency})),
       ...paidPOs.filter(po=>(po.dept||'')===d).map(po=>({date:String(po.created_at||'').slice(0,10),src:po.po_number||'PO',po:1,main:po.vendor||'Vendor',sub:[po.description||'',`Invoice ${po.invoice_file?.path?'✓ on file':'— none'} · Receipt ${po.receipt_file?.path?'✓ on file':'— none'}`].filter(Boolean).join(' · '),amount:po.amount,currency:po.currency})),
     ].sort((x,y)=>String(x.date).localeCompare(String(y.date)));
     const spent={},bud={};rows.forEach(r=>add(spent,r.currency,r.amount));items.filter(i=>(i.dept||'')===d).forEach(i=>add(bud,i.currency,lTot(i)));
@@ -2577,7 +2613,7 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   }).join('');
   const advTable=advRows?`<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin:6px 0 8px">Cash advances</div>
     <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A"><tr>${th('Recipient')}${th('Department')}${th('Purpose')}${th('Issued')}${th('Funds',1)}${th('Spent',1)}${th('Balance',1)}${th('Status')}</tr>${advRows}</table>`:'';
-  const nothing=!advances.length&&!paidPOs.length;
+  const nothing=!advances.length&&!paidPOs.length&&!payeePays.length;
   const html=`<!DOCTYPE html><html><head><title>Recon Report — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
     <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A">
       <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
@@ -2587,7 +2623,7 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
         <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
         <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${escapeHtml(project.name)}</div>
-        <div style="font-size:10px;color:#9A9080;margin-top:3px">Prepared ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · Cash advances and paid purchase orders</div></div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Prepared ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · Cash advances, paid purchase orders and crew &amp; cast payments</div></div>
         ${logoHtml}
       </div>
       ${nothing?'<div style="color:#9A9080;font-size:12px">Nothing has been spent or issued yet.</div>':`${summary}${phaseTable}<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">By department</div>${deptBlocks}${advTable}`}
@@ -2823,9 +2859,10 @@ const purgeReceipts=async projectId=>{
   }catch{}
 };
 
-function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,onAttachReceipt,onUpdatePayee,onUpdatePayment,onDeletePayee,isOwner}){
+function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemovePayment,onAttachReceipt,onUpdatePayee,onUpdatePayment,onDeletePayee,isOwner}){
   const{t:tr}=useLang();
-  const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
+  const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN',dept:''});
+  const[assignKey,setAssignKey]=useState(null);const[assignName,setAssignName]=useState('');
   const[logFor,setLogFor]=useState(null);const[lAmt,setLAmt]=useState('');const[lMethod,setLMethod]=useState('Cash');const[lFile,setLFile]=useState(null);const[busy,setBusy]=useState(false);
   const[attachTarget,setAttachTarget]=useState(null);const[attachBusy,setAttachBusy]=useState(null);
   const attachRef=useRef();
@@ -2866,22 +2903,29 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,on
     setAttachBusy(null);setAttachTarget(null);
   };
   const smallBtn=(color,border)=>({color,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${border}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'});
-  return(
-    <div>
-      <input ref={attachRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAttachPicked}/>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('paymentsHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
-      {missingTotal>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}>⚠ {missingTotal} logged payment{missingTotal!==1?'s have':' has'} no receipt attached. Tap <b>No receipt · Attach</b> on each one to add it.</div>}
-      {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
-          <Inp placeholder="Name" value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))}/>
-          <Inp placeholder="Role" value={np.role} onChange={e=>setNp(p=>({...p,role:e.target.value}))}/>
-          <Inp type="number" placeholder="Agreed fee" value={np.agreed_fee} onChange={e=>setNp(p=>({...p,agreed_fee:e.target.value}))}/>
-          <Sel value={np.currency} onChange={e=>setNp(p=>({...p,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
-        </div>
-        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(np.name){onAddPayee({...np,agreed_fee:Number(np.agreed_fee),project_id:project.id,payments:[]});setNp({name:'',role:'',agreed_fee:'',currency:'NGN'});setShowForm(false);}}}>Add</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
-      </div>}
-      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}><Btn size="sm" onClick={()=>setShowForm(true)}>{tr('addPayee')}</Btn></div>
-      {pPayees.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No payees yet.</div></div>:pPayees.map(p=>{
+  const slots=personSlots(items);
+  const occ={};const occIds=new Set();
+  slots.forEach(sl=>{const key=`${sl.item.id}:${sl.k}`;const p=pPayees.find(x=>String(x.budget_item_id)===String(sl.item.id)&&(Number(x.slot)||0)===sl.k&&!occIds.has(x.id));if(p){occ[key]=p;occIds.add(p.id);}});
+  const unlinked=pPayees.filter(p=>!occIds.has(p.id));
+  const freeSlots=slots.filter(sl=>!occ[`${sl.item.id}:${sl.k}`]);
+  const slotLabel=sl=>`${sl.item.description}${sl.of>1?` (${sl.k+1} of ${sl.of})`:''}`;
+  const addTo=(o,c,v)=>{o[c]=(o[c]||0)+(Number(v)||0);};
+  const budM={},paidM={},oweM={};
+  slots.forEach(sl=>{addTo(budM,sl.item.currency,sl.budget);const p=occ[`${sl.item.id}:${sl.k}`];if(!p)addTo(oweM,sl.item.currency,sl.budget);});
+  pPayees.forEach(p=>{const paid=(p.payments||[]).reduce((x,y)=>x+(Number(y.amount)||0),0);addTo(paidM,p.currency,paid);addTo(oweM,p.currency,Math.max(0,(Number(p.agreed_fee)||0)-paid));});
+  const money=o=>{const ks=Object.keys(o).filter(k=>o[k]);return ks.length?ks.map(k=>`${sym(k)}${fmt(o[k])}`).join(' · '):`${sym(project.base_currency)}0`;};
+  const roleRows=kind=>{const m={};slots.filter(sl=>sl.kind===kind).forEach(sl=>{const k=String(sl.item.description).trim();m[k]=(m[k]||0)+1;});return Object.entries(m);};
+  const crewRows=roleRows('crew'),castRows=roleRows('cast');
+  const doAssign=async sl=>{
+    if(!assignName.trim()){alert('Enter the person’s name.');return;}
+    await onAddPayee({name:assignName.trim(),role:sl.item.description,agreed_fee:sl.budget,currency:sl.item.currency,project_id:project.id,payments:[],budget_item_id:String(sl.item.id),slot:sl.k,dept:sl.item.dept});
+    setAssignKey(null);setAssignName('');
+  };
+  const budgetNote=(p,sl)=>sl&&<div style={{margin:'0 0 8px'}}>
+    <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif'}}>from Budget · {sl.item.description} · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div>
+    {Math.round(Number(p.agreed_fee)||0)!==Math.round(sl.budget)&&<div style={{fontSize:11,color:T.gold,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Budget is now {sym(sl.item.currency)}{fmt(sl.budget)}, agreed fee is {sym(p.currency)}{fmt(p.agreed_fee)}. <button onClick={()=>onUpdatePayee(p.id,{agreed_fee:sl.budget,currency:sl.item.currency})} style={{color:T.gold,fontWeight:700,textDecoration:'underline',background:'none',border:'none',cursor:'pointer',fontSize:11,padding:0}}>Update to budget</button></div>}
+  </div>;
+  const payeeCard=(p,note)=>{
         const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);const bal=p.agreed_fee-paid;const pct=p.agreed_fee>0?Math.min(100,(paid/p.agreed_fee)*100):0;
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div><button onClick={()=>editPayee===p.id?setEditPayee(null):startEditPayee(p)} style={{...smallBtn(T.dim,T.line),marginTop:6}}>✎ Edit payee</button></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
@@ -2897,7 +2941,7 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,on
               {isOwner&&<button onClick={()=>{const n=(p.payments||[]).length;if(window.confirm(`Delete ${p.name}${n?` and their ${n} logged payment${n!==1?'s':''} (receipts included)`:''}? This cannot be undone.`)){setEditPayee(null);onDeletePayee(p.id);}}} style={{marginLeft:'auto',color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete payee</button>}
             </div>
           </div>}
-          <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
+          {note}<div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
           {(p.payments||[]).map((pay,i)=>{
             const key=`${p.id}-${i}`;
             if(editPay===key)return<div key={i} style={{padding:10,margin:'6px 0',background:T.hi,border:`1px solid ${T.gold}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
@@ -2933,7 +2977,63 @@ function PaymentsView({project,payees,onAddPayee,onAddPayment,onRemovePayment,on
             <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>You can attach it later, but this payment will show as "No receipt" until you do.</div>
             <div style={{display:'flex',gap:8}}><Btn size="sm" disabled={busy} onClick={()=>submitLog(p)}>{busy?'Saving…':'Save payment'}</Btn><Btn size="sm" variant="ghost" disabled={busy} onClick={()=>setLogFor(null)}>Cancel</Btn></div>
           </div>}
-        </div>;})}
+        </div>;
+  };
+  const dg=(label,list)=>list.length>0&&<div style={{marginBottom:6}}>
+    <div style={{fontSize:11,color:T.gold,fontWeight:800,letterSpacing:'.06em',margin:'6px 0 4px'}}>{label}</div>
+    {list.map(([r,n])=><div key={r} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,fontSize:12,color:T.cream}}><span>{r}</span><span style={{color:T.dim}}>{n}</span></div>)}
+  </div>;
+  const slotDepts=[...new Set(slots.map(sl=>sl.item.dept))].sort((x,y)=>DEPTS.indexOf(x)-DEPTS.indexOf(y));
+  return(
+    <div>
+      <input ref={attachRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAttachPicked}/>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('paymentsHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everyone here comes straight from your budget. Nothing is typed twice.</div><div style={{marginTop:14}}><FS/></div></div>
+      {missingTotal>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}>⚠ {missingTotal} logged payment{missingTotal!==1?'s have':' has'} no receipt attached. Tap <b>No receipt · Attach</b> on each one to add it.</div>}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:18}}>
+        <StatCard label="Budgeted (people)" value={money(budM)} sub="crew & cast"/>
+        <StatCard label="Paid so far" value={money(paidM)} sub="all payments" accent={T.gold}/>
+        <StatCard label="Still to pay" value={money(oweM)} sub="owed" accent={T.coral}/>
+      </div>
+      {slots.length>0&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 14px',marginBottom:18}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Who should be on payments (from your budget)</div>
+        {dg('CREW',crewRows)}{dg('CAST',castRows)}
+      </div>}
+      {slots.length===0&&<div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:20,marginBottom:18,textAlign:'center',color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif'}}>No crew or cast in the budget yet. Add them in the Budget (Production Team, Talents, Camera &amp; Grip Team…) and they appear here ready to pay.</div>}
+      {slotDepts.map(dept=><div key={dept}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',margin:'18px 0 8px'}}>{dept}</div>
+        {slots.filter(sl=>sl.item.dept===dept).map(sl=>{
+          const key=`${sl.item.id}:${sl.k}`;const p=occ[key];
+          if(p)return<div key={key}>{payeeCard(p,budgetNote(p,sl))}</div>;
+          return<div key={key} style={{background:'transparent',border:`1px dashed ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+              <div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.dim}}>Name not set yet</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{slotLabel(sl)}</div><div style={{fontSize:10,color:T.goldDim,marginTop:2,fontFamily:'Manrope,sans-serif'}}>from Budget · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div></div>
+              <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(sl.item.currency)}{fmt(sl.budget)}</div><Pill color={T.dim}>Unassigned</Pill></div>
+            </div>
+            {assignKey===key
+              ?<div style={{marginTop:10,display:'flex',gap:8,flexWrap:'wrap'}}><div style={{flex:'1 1 200px'}}><Inp placeholder="Full name" value={assignName} onChange={e=>setAssignName(e.target.value)}/></div><Btn size="sm" onClick={()=>doAssign(sl)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>{setAssignKey(null);setAssignName('');}}>Cancel</Btn></div>
+              :<div style={{marginTop:10}}><Btn size="sm" onClick={()=>{setAssignKey(key);setAssignName('');}}>Assign a person</Btn></div>}
+          </div>;})}
+      </div>)}
+      {unlinked.length>0&&<div>
+        <div style={{fontSize:10,color:T.coral,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',margin:'22px 0 4px'}}>Not linked to a budget line</div>
+        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Manrope,sans-serif'}}>Their payments count as spend, but with no budget line to compare against. Link them to a slot above, or leave them as unbudgeted.</div>
+        {unlinked.map(p=><div key={p.id}>{payeeCard(p,<div style={{margin:'0 0 8px'}}>
+          <div style={{fontSize:10,color:T.coral,fontFamily:'Manrope,sans-serif'}}>Unbudgeted{p.dept?` · ${p.dept}`:''}</div>
+          {freeSlots.length>0&&<Sel value="" onChange={e=>{const sl=freeSlots.find(x=>`${x.item.id}:${x.k}`===e.target.value);if(sl)onUpdatePayee(p.id,{budget_item_id:String(sl.item.id),slot:sl.k,dept:sl.item.dept});}} style={{fontSize:11,padding:'4px 6px',marginTop:6,maxWidth:'100%'}}><option value="">Link to a budget slot…</option>{freeSlots.map(sl=><option key={`${sl.item.id}:${sl.k}`} value={`${sl.item.id}:${sl.k}`}>{slotLabel(sl)} · {sl.item.dept.split(' - ')[1]||sl.item.dept}</option>)}</Sel>}
+        </div>)}</div>)}
+      </div>}
+      {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,margin:'18px 0 0'}}>
+        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Manrope,sans-serif'}}>For someone who isn’t in the budget (a last-minute driver, say). Their payments show as unbudgeted spend.</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <Inp placeholder="Name" value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))}/>
+          <Inp placeholder="Role" value={np.role} onChange={e=>setNp(p=>({...p,role:e.target.value}))}/>
+          <Inp type="number" placeholder="Agreed fee" value={np.agreed_fee} onChange={e=>setNp(p=>({...p,agreed_fee:e.target.value}))}/>
+          <Sel value={np.currency} onChange={e=>setNp(p=>({...p,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+        </div>
+        <Sel value={np.dept} onChange={e=>setNp(p=>({...p,dept:e.target.value}))} style={{width:'100%',marginBottom:8}}><option value="">Department (so it counts in the right phase)…</option>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(np.name){onAddPayee({...np,agreed_fee:Number(np.agreed_fee),project_id:project.id,payments:[]});setNp({name:'',role:'',agreed_fee:'',currency:project.base_currency||'NGN',dept:''});setShowForm(false);}}}>Add</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
+      </div>}
+      <div style={{display:'flex',justifyContent:'flex-start',margin:'18px 0 4px'}}><Btn size="sm" variant="ghost" onClick={()=>setShowForm(true)}>＋ Add someone not in the budget</Btn></div>
     </div>
   );
 }
@@ -4203,8 +4303,8 @@ function MainApp(){
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
-          {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>p.project_id===currentId)} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={project?.user_id===user.id}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
