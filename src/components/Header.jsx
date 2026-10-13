@@ -16,7 +16,7 @@ const Header = () => {
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: DURATION.base, ease: EASE_OUT }}
-      className="w-[95%] mx-auto flex items-center justify-between gap-8 py-4"
+      className="w-[90%] mx-auto flex items-center justify-between gap-8 py-4"
     >
      
       <a href="/" className="shrink-0">
@@ -41,7 +41,7 @@ const Header = () => {
       </nav>
 
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-5">
         <button
           type="button"
           className="text-white text-sm font-medium hover:text-amber-400 transition-colors"

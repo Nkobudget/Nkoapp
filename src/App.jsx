@@ -4,6 +4,12 @@ import ImageDiagram from "./components/ImageDiagram";
 import ProductionComplexitySection from "./components/ProductionComplexitySection";
 import ProductionFeatures from "./components/ProductionFeatures";
 import ProductionIntelligenceSection from "./components/ProductionIntelligenceSection";
+import ProductionOverviewSection from "./components/ProductionOverviewSection";
+import ProductionWorkflowSection from "./components/ProductionWorkflowSection"
+import ProductionRolesSection from "./components/ProductionRolesSection"
+import AIControlSection from "./components/AIControlSection"
+import ProductionCTASection from "./components/ProductionCTASection"
+import Footer from "./components/Footer"
 
 const App = () => {
   return (
@@ -22,6 +28,22 @@ const App = () => {
           workspaceImageAlt="Production planning workspace"
          />
          <ProductionIntelligenceSection/>
+         <ProductionWorkflowSection
+          images={{
+            budgeting: "/assets/budget.png",
+            breakdown: "/assets/planning.png",
+            schedule: "/assets/knowing.png",
+            reconciliation: "/assets/money.png",
+            payments: "/assets/control.png",
+          }}
+        />
+        <ProductionOverviewSection/>
+        <ProductionRolesSection />
+        <AIControlSection />
+        <ProductionCTASection
+         backgroundImage="/assets/studio.png" 
+         />
+        <Footer/> 
       </main>
     </div>
   );
