@@ -2597,21 +2597,21 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   openThemed(html,'dark');
 };
 
-function PoFiles({po,isOwner,onRemove}){
+function PoFiles({po,isOwner,onRemove,onAdd}){
   const chip=(label,f,kind)=>f?.path
     ?<span style={{display:'inline-flex',alignItems:'center',gap:4,marginRight:6}}>
       <button onClick={()=>viewReceipt(f.path)} title={f.name} style={{color:T.sage,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>📎 {label}</button>
       <button onClick={()=>downloadReceipt(f.path,f.name)} title={`Download ${label.toLowerCase()}`} style={{color:T.dim,fontSize:11,cursor:'pointer',background:'none',border:`1px solid ${T.line}`,borderRadius:6,padding:'2px 6px'}}>⬇</button>
       {isOwner&&onRemove&&<button onClick={()=>{if(window.confirm(`Remove the ${label.toLowerCase()} file from this PO? This cannot be undone.`))onRemove(kind);}} title="Remove file" style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none'}}>✕</button>}
     </span>
-    :<span style={{color:T.faint,fontSize:10,marginRight:10,fontStyle:'italic'}}>No {label.toLowerCase()} on file</span>;
+    :<span style={{color:T.faint,fontSize:10,marginRight:10,fontStyle:'italic'}}>No {label.toLowerCase()} on file{onAdd&&<> · <button onClick={()=>onAdd(kind)} style={{color:T.gold,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:'none',padding:0,fontStyle:'normal'}}>＋ Add</button></>}</span>;
   return<div style={{marginTop:6}}>{chip('Invoice',po.invoice_file,'invoice_file')}{chip('Receipt',po.receipt_file,'receipt_file')}</div>;
 }
 function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,onDeletePO,isOwner}){
   const{t:tr}=useLang();
   const[payFor,setPayFor]=useState(null);const[payFile,setPayFile]=useState(null);const[payMethod,setPayMethod]=useState('Bank Transfer');const[payBusy,setPayBusy]=useState(false);const[payErr,setPayErr]=useState('');
   const payRef=useRef();
-  const[addRcptFor,setAddRcptFor]=useState(null);const addRcptRef=useRef();
+  const[addRcptFor,setAddRcptFor]=useState(null);const addRcptRef=useRef();const addKind=useRef('receipt_file');
   const closePay=()=>{setPayFor(null);setPayFile(null);setPayErr('');};
   const confirmPaid=async po=>{
     if(!payFile){setPayErr('Upload the payment receipt first.');return;}
@@ -2628,7 +2628,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
   const onAddRcptPicked=async e=>{
     const f=e.target.files[0];e.target.value='';const poId=addRcptFor;setAddRcptFor(null);
     if(!f||!poId)return;
-    try{const r=await uploadReceipt(project.id,f);const ok=await onUpdatePO(poId,{receipt_file:r});if(!ok)removeReceiptFile(r.path);}catch(err){alert(err.message);}
+    try{const r=await uploadReceipt(project.id,f);const ok=await onUpdatePO(poId,{[addKind.current]:r});if(!ok)removeReceiptFile(r.path);}catch(err){alert(`Could not store the file: ${err.message}`);}
   };
   const removePoFile=(po,kind)=>{const f=po[kind];if(f?.path)removeReceiptFile(f.path);onUpdatePO(po.id,{[kind]:null});};
   const[justPaid,setJustPaid]=useState({}); // {poId: true} — cleared after a few seconds, purely a transient confirmation
@@ -2693,8 +2693,8 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
             <div style={{color:T.faint,fontSize:10,marginTop:1}}>Counts toward {phaseForDept(po.dept)}</div>
             <div style={{color:T.dim,fontSize:11,marginTop:2}}>{po.description}</div>
             {justPaid[po.id]&&<div style={{color:T.sage,fontSize:10,marginTop:3}}>✓ added to Recon just now</div>}
-            <PoFiles po={po} isOwner={isOwner} onRemove={kind=>removePoFile(po,kind)}/>
-            {po.status==='Paid'&&!po.receipt_file?.path&&isOwner&&<button onClick={()=>{setAddRcptFor(po.id);addRcptRef.current&&addRcptRef.current.click();}} style={{marginTop:4,color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'Manrope,sans-serif'}}>＋ Add payment receipt</button>}
+            <PoFiles po={po} isOwner={isOwner} onRemove={kind=>removePoFile(po,kind)} onAdd={isOwner?(kind=>{addKind.current=kind;setAddRcptFor(po.id);setTimeout(()=>addRcptRef.current&&addRcptRef.current.click(),0);}):null}/>
+            
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(po.currency)}{fmt(po.amount)}</span>
@@ -2801,7 +2801,7 @@ const uploadReceipt=async(projectId,rawFile)=>{
   const ext=file.type==='application/pdf'?'pdf':file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
   const path=`${projectId}/${Math.random().toString(36).slice(2,12)}${Date.now().toString(36)}.${ext}`;
   const{error}=await sb.storage.from(RECEIPT_BUCKET).upload(path,file,{contentType:file.type,upsert:false});
-  if(error)throw new Error(error.message);
+  if(error)throw new Error(`${error.message||'upload failed'}${error.statusCode||error.status?` (code ${error.statusCode||error.status})`:''}${error.error&&error.error!==error.message?` [${error.error}]`:''}`);
   return{path,name:rawFile.name,type:file.type,size:file.size};
 };
 const viewReceipt=async path=>{
@@ -4165,7 +4165,7 @@ function MainApp(){
     const id=Math.random().toString(36).slice(2,10);
     const po_number=`PO-${String(purchaseOrders.length+1).padStart(4,'0')}`;
     let invoice_file=null;
-    if(file){try{invoice_file=await uploadReceipt(po.project_id,file);}catch(e){alert(`The PO will be created, but the invoice file could not be stored: ${e.message}`);}}
+    if(file){try{invoice_file=await uploadReceipt(po.project_id,file);}catch(e){alert(`The PO will be created, but the invoice file could not be stored: ${e.message}\n\nYou can retry from the PO card with “＋ Add” next to Invoice.`);}}
     const{data,error}=await sb.from('purchase_orders').insert({id,po_number,...po,...(invoice_file?{invoice_file}:{}),user_id:user.id}).select().single();
     if(error){if(invoice_file)removeReceiptFile(invoice_file.path);alert(`Could not create purchase order: ${error.message}`);return;}
     if(data)setPurchaseOrders(p=>[...p,data]);
