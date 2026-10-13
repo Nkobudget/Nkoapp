@@ -2032,6 +2032,7 @@ function ScriptResultModal({result,currency,onApply,onClose}){
 }
 function InvoiceUploader({project,onCreatePO}){
   const[state,setState]=useState('idle'); // idle | reading | analyzing | done | error
+  const[file,setFile]=useState(null); // the original invoice, kept with the PO
   const[err,setErr]=useState('');
   const[draft,setDraft]=useState(null);
   const fr=useRef();
@@ -2040,7 +2041,7 @@ function InvoiceUploader({project,onCreatePO}){
     const isImg=f.type.startsWith('image/');
     if(!isPDF&&!isImg){setErr('Upload a PDF, JPG, or PNG invoice.');setState('error');return;}
     if(f.size>15*1024*1024){setErr('File is too large (max 15MB).');setState('error');return;}
-    setState('reading');setErr('');
+    setState('reading');setErr('');setFile(f);
     try{
       const b=await readB64(f);
       const uc=isPDF
@@ -2060,14 +2061,14 @@ function InvoiceUploader({project,onCreatePO}){
       setState('done');
     }catch(e){setErr(e.message);setState('error');}
   };
-  const reset=()=>{setState('idle');setDraft(null);setErr('');};
+  const reset=()=>{setState('idle');setDraft(null);setErr('');setFile(null);};
   return(
     <div style={{marginBottom:18}}>
       {(state==='idle'||state==='error')&&<div onClick={()=>fr.current.click()} style={{border:`2px dashed ${T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:'pointer'}}>
         <input ref={fr} type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
         <div style={{fontSize:24,marginBottom:8}}>🧾</div>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Drop an invoice or receipt</div>
-        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, or a photo of a paper receipt — NKÒ reads it and drafts a PO</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, or a photo of a paper invoice — NKÒ reads it, drafts a PO, and keeps the original on file</div>
         <Btn variant="ghost" size="sm">Choose file</Btn>
         {err&&<div style={{color:T.coral,fontSize:12,marginTop:10}}>{err}</div>}
       </div>}
@@ -2086,7 +2087,7 @@ function InvoiceUploader({project,onCreatePO}){
           <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Currency</div><Sel value={draft.currency} onChange={e=>setDraft(d=>({...d,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <Btn variant="sage" onClick={()=>{onCreatePO({...draft,amount:Number(draft.amount)||0});reset();}}>Create Purchase Order</Btn>
+          <Btn variant="sage" onClick={()=>{onCreatePO({...draft,amount:Number(draft.amount)||0},file);reset();}}>Create Purchase Order</Btn>
           <Btn variant="ghost" onClick={reset}>Cancel</Btn>
         </div>
       </div>}
@@ -2363,7 +2364,7 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
   const openAdv=advances.filter(a=>a.status!=='reconciled'&&(a.amount-reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0))>0);
   const feed=[
     ...reconEntries.filter(e=>advances.some(a=>a.id===e.advance_id)).map(e=>({...e,_source:'ADVANCE',_label:advances.find(a=>a.id===e.advance_id)?.recipient||'Advance',_date:e.date})),
-    ...paidPOs.map(po=>({id:po.id,amount:po.amount,_source:po.po_number||'PO',_label:po.vendor||'Vendor',_date:po.created_at})),
+    ...paidPOs.map(po=>({id:po.id,amount:po.amount,_source:po.po_number||'PO',_label:po.vendor||'Vendor',_date:po.created_at,_po:po})),
   ].sort((a,b)=>new Date(b._date||0)-new Date(a._date||0));
   const total=feed.reduce((s,f)=>s+Number(f.amount||0),0);
   return(
@@ -2388,6 +2389,10 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency}){
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{background:f._source==='ADVANCE'?T.hi:'rgba(82,176,122,.15)',color:f._source==='ADVANCE'?T.dim:T.sage,fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:5}}>{f._source}</span>
               <span style={{color:T.cream,fontSize:12}}>{f.description||f._label}</span>
+              {f._po&&<span style={{display:'inline-flex',gap:4}}>
+                {f._po.invoice_file?.path&&<button onClick={()=>viewReceipt(f._po.invoice_file.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Invoice</button>}
+                {f._po.receipt_file?.path&&<button onClick={()=>viewReceipt(f._po.receipt_file.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Receipt</button>}
+              </span>}
             </div>
             <span style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{fmt(f.amount)}</span>
           </div>
@@ -2473,6 +2478,29 @@ const receiptPDF=(payee,payment,project)=>{
 };
 
 /* ── Recon Report PDF — full advances + expense log for a production ── */
+const poRegisterPDF=(pos,project)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const th=(t,r)=>`<th style="padding:7px 10px;font-size:9px;color:#8C852E;text-transform:uppercase;letter-spacing:1px;text-align:${r?'right':'left'};border-bottom:1px solid #3A3A3A;background:#1C1C1E">${t}</th>`;
+  const td=(t,r,x)=>`<td style="padding:7px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A;text-align:${r?'right':'left'};vertical-align:top;${x||''}">${t}</td>`;
+  const doc=(f,l)=>f?.path?`<span style="color:#52B07A">✓ ${l}</span>`:`<span style="color:#9A9080">— ${l}</span>`;
+  const rows=pos.slice().sort((a,b)=>String(a.po_number||'').localeCompare(String(b.po_number||''))).map(po=>`<tr style="page-break-inside:avoid">${td(escapeHtml(po.po_number||''),0,'white-space:nowrap;font-family:monospace')}${td(`${escapeHtml(po.vendor||'Vendor')}<div style="color:#9A9080;font-size:10px;margin-top:1px">${escapeHtml(po.description||'')}</div>`)}${td(escapeHtml(po.dept||'—'))}${td(escapeHtml(po.status||''))}${td(`${doc(po.invoice_file,'Invoice')}<br>${doc(po.receipt_file,'Receipt')}`)}${td(`${sym(po.currency)}${fmt(po.amount)}`,1,'font-family:monospace;white-space:nowrap')}</tr>`).join('');
+  const tot={};pos.forEach(po=>{tot[po.currency]=(tot[po.currency]||0)+(Number(po.amount)||0);});
+  const totTxt=Object.keys(tot).map(c=>`${sym(c)}${fmt(tot[c])}`).join(' · ');
+  const html=`<!DOCTYPE html><html><head><title>PO Register — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button></div>
+    <div style="max-width:760px;margin:0 auto;padding:22px 26px 10px;background:#141414">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Purchase Order Register — ${escapeHtml(project.name)}</div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Prepared ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · ${pos.length} purchase order${pos.length!==1?'s':''} · ${totTxt}</div></div>${logoHtml}
+      </div>
+      <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A"><tr>${th('PO')}${th('Vendor')}${th('Dept')}${th('Status')}${th('Documents')}${th('Amount',1)}</tr>${rows}</table>
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:14px">Generated by NKÒ — Budgets Tailored To Film · Invoices and receipts are kept in the app and can be opened from each PO</div>
+    </div>
+  </body></html>`;
+  openThemed(html,'dark');
+};
 const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
   const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
@@ -2525,7 +2553,7 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
       ...reconEntries.filter(e=>advs.some(a=>a.id===e.advance_id)&&!cashIn(e)).map(e=>{
         const cat=e.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(e.description||'').replace(/^\[[^\]]+\]\s*/,'');
         return{date:e.date||'',src:'ADVANCE',po:0,main:desc||cat,sub:[cat&&desc?cat:'',advOf(e.advance_id)?.recipient||''].filter(Boolean).join(' · '),amount:e.amount,currency:curOf(e.advance_id)};}),
-      ...paidPOs.filter(po=>(po.dept||'')===d).map(po=>({date:String(po.created_at||'').slice(0,10),src:po.po_number||'PO',po:1,main:po.vendor||'Vendor',sub:po.description||'',amount:po.amount,currency:po.currency})),
+      ...paidPOs.filter(po=>(po.dept||'')===d).map(po=>({date:String(po.created_at||'').slice(0,10),src:po.po_number||'PO',po:1,main:po.vendor||'Vendor',sub:[po.description||'',`Invoice ${po.invoice_file?.path?'✓ on file':'— none'} · Receipt ${po.receipt_file?.path?'✓ on file':'— none'}`].filter(Boolean).join(' · '),amount:po.amount,currency:po.currency})),
     ].sort((x,y)=>String(x.date).localeCompare(String(y.date)));
     const spent={},bud={};rows.forEach(r=>add(spent,r.currency,r.amount));items.filter(i=>(i.dept||'')===d).forEach(i=>add(bud,i.currency,lTot(i)));
     const cs=[...new Set([...Object.keys(spent),...Object.keys(bud)])];
@@ -2569,8 +2597,40 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[])=>{
   openThemed(html,'dark');
 };
 
-function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,onDeletePO}){
+function PoFiles({po,isOwner,onRemove}){
+  const chip=(label,f,kind)=>f?.path
+    ?<span style={{display:'inline-flex',alignItems:'center',gap:4,marginRight:6}}>
+      <button onClick={()=>viewReceipt(f.path)} title={f.name} style={{color:T.sage,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>📎 {label}</button>
+      <button onClick={()=>downloadReceipt(f.path,f.name)} title={`Download ${label.toLowerCase()}`} style={{color:T.dim,fontSize:11,cursor:'pointer',background:'none',border:`1px solid ${T.line}`,borderRadius:6,padding:'2px 6px'}}>⬇</button>
+      {isOwner&&onRemove&&<button onClick={()=>{if(window.confirm(`Remove the ${label.toLowerCase()} file from this PO? This cannot be undone.`))onRemove(kind);}} title="Remove file" style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none'}}>✕</button>}
+    </span>
+    :<span style={{color:T.faint,fontSize:10,marginRight:10,fontStyle:'italic'}}>No {label.toLowerCase()} on file</span>;
+  return<div style={{marginTop:6}}>{chip('Invoice',po.invoice_file,'invoice_file')}{chip('Receipt',po.receipt_file,'receipt_file')}</div>;
+}
+function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,onDeletePO,isOwner}){
   const{t:tr}=useLang();
+  const[payFor,setPayFor]=useState(null);const[payFile,setPayFile]=useState(null);const[payMethod,setPayMethod]=useState('Bank Transfer');const[payBusy,setPayBusy]=useState(false);const[payErr,setPayErr]=useState('');
+  const payRef=useRef();
+  const[addRcptFor,setAddRcptFor]=useState(null);const addRcptRef=useRef();
+  const closePay=()=>{setPayFor(null);setPayFile(null);setPayErr('');};
+  const confirmPaid=async po=>{
+    if(!payFile){setPayErr('Upload the payment receipt first.');return;}
+    setPayBusy(true);setPayErr('');
+    let receipt=null;
+    try{receipt=await uploadReceipt(project.id,payFile);}catch(e){setPayErr(e.message);setPayBusy(false);return;}
+    const ok=await onUpdatePO(po.id,{status:'Paid',receipt_file:receipt,pay_method:payMethod,paid_at:new Date().toISOString().slice(0,10)});
+    setPayBusy(false);
+    if(!ok){removeReceiptFile(receipt.path);return;}
+    closePay();
+    setJustPaid(p=>({...p,[po.id]:true}));
+    setTimeout(()=>setJustPaid(p=>{const n={...p};delete n[po.id];return n;}),6000);
+  };
+  const onAddRcptPicked=async e=>{
+    const f=e.target.files[0];e.target.value='';const poId=addRcptFor;setAddRcptFor(null);
+    if(!f||!poId)return;
+    try{const r=await uploadReceipt(project.id,f);const ok=await onUpdatePO(poId,{receipt_file:r});if(!ok)removeReceiptFile(r.path);}catch(err){alert(err.message);}
+  };
+  const removePoFile=(po,kind)=>{const f=po[kind];if(f?.path)removeReceiptFile(f.path);onUpdatePO(po.id,{[kind]:null});};
   const[justPaid,setJustPaid]=useState({}); // {poId: true} — cleared after a few seconds, purely a transient confirmation
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
   const pPOs=purchaseOrders.filter(po=>po.project_id===project.id);
@@ -2585,7 +2645,10 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
   const deptCommitted=dept=>pPOs.filter(po=>po.dept===dept).reduce((s,po)=>s+Number(po.amount||0),0);
   const statusColor=st=>st==='Paid'?T.sage:st==='Approved'?T.gold:T.dim;
   const changeStatus=(po,newStatus)=>{
-    onUpdatePO(po.id,{status:newStatus});
+    if(newStatus===po.status)return;
+    // Marking Paid needs proof of payment on file first (unless this PO already has a receipt attached)
+    if(newStatus==='Paid'&&!po.receipt_file?.path){setPayFor(po.id);setPayFile(null);setPayErr('');return;}
+    onUpdatePO(po.id,{status:newStatus,...(newStatus==='Paid'?{paid_at:new Date().toISOString().slice(0,10)}:{})});
     if(newStatus==='Paid'){
       setJustPaid(p=>({...p,[po.id]:true}));
       setTimeout(()=>setJustPaid(p=>{const n={...p};delete n[po.id];return n;}),6000);
@@ -2594,7 +2657,8 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Purchase Orders — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Drop in an invoice — NKÒ detects the department and plots it against what's left there.</div></div>
-      <InvoiceUploader project={project} onCreatePO={draft=>onCreatePO({...draft,project_id:project.id})}/>
+      <input ref={addRcptRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAddRcptPicked}/>
+      <InvoiceUploader project={project} onCreatePO={(draft,file)=>onCreatePO({...draft,project_id:project.id},file)}/>
       {deptsByRecency.length>0&&<div style={{marginBottom:20}}>
         <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Departments in this production</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
@@ -2617,23 +2681,39 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
         </div>
         <div style={{color:T.faint,fontSize:10,textAlign:'center',marginTop:8,fontStyle:'italic'}}>Other departments appear here the moment an invoice is detected for them.</div>
       </div>}
-      <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>All Purchase Orders ({pPOs.length})</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>All Purchase Orders ({pPOs.length})</div>
+        {pPOs.length>0&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>{try{poRegisterPDF(pPOs,project);}catch(e){alert(`Could not build the PDF: ${e.message}`);}}}>📄 Export PO register</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Only the production owner can export</span>)}
+      </div>
       {pPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No purchase orders yet — drop in an invoice above to create your first one.</div></div>:
       pPOs.slice().reverse().map(po=>(
-        <div key={po.id} style={{background:T.panel,border:`1px solid ${justPaid[po.id]?T.sage:T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <div key={po.id} style={{background:T.panel,border:`1px solid ${justPaid[po.id]?T.sage:payFor===po.id?T.gold:T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           <div>
             <div style={{color:T.cream,fontSize:13,fontWeight:600}}>{po.vendor||'Unnamed vendor'} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {po.dept}</span></div>
             <div style={{color:T.faint,fontSize:10,marginTop:1}}>Counts toward {phaseForDept(po.dept)}</div>
             <div style={{color:T.dim,fontSize:11,marginTop:2}}>{po.description}</div>
             {justPaid[po.id]&&<div style={{color:T.sage,fontSize:10,marginTop:3}}>✓ added to Recon just now</div>}
+            <PoFiles po={po} isOwner={isOwner} onRemove={kind=>removePoFile(po,kind)}/>
+            {po.status==='Paid'&&!po.receipt_file?.path&&isOwner&&<button onClick={()=>{setAddRcptFor(po.id);addRcptRef.current&&addRcptRef.current.click();}} style={{marginTop:4,color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'Manrope,sans-serif'}}>＋ Add payment receipt</button>}
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(po.currency)}{fmt(po.amount)}</span>
             <Sel value={po.status} onChange={e=>changeStatus(po,e.target.value)} style={{fontSize:11,padding:'4px 6px',color:statusColor(po.status),borderColor:statusColor(po.status)}}>
               <option>Pending</option><option>Approved</option><option>Paid</option>
             </Sel>
-            <button onClick={()=>{if(window.confirm('Delete this purchase order?'))onDeletePO(po.id);}} style={{background:'none',border:'none',color:T.faint,cursor:'pointer'}}>✕</button>
+            <button onClick={()=>{if(window.confirm('Delete this purchase order? Its invoice and receipt files will be deleted too.'))onDeletePO(po.id);}} style={{background:'none',border:'none',color:T.faint,cursor:'pointer'}}>✕</button>
           </div>
+          {payFor===po.id&&<div style={{flexBasis:'100%',borderTop:`1px solid ${T.line}`,paddingTop:12,marginTop:2}}>
+            <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Upload the payment receipt to mark this PO as Paid</div>
+            <input ref={payRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={e=>{setPayFile(e.target.files[0]||null);setPayErr('');}}/>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+              <Btn variant="ghost" size="sm" onClick={()=>payRef.current&&payRef.current.click()}>{payFile?`📎 ${payFile.name}`:'📎 Choose receipt (photo or PDF)'}</Btn>
+              <Sel value={payMethod} onChange={e=>setPayMethod(e.target.value)} style={{fontSize:11,padding:'4px 6px'}}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</Sel>
+              <Btn variant="sage" size="sm" onClick={()=>confirmPaid(po)} disabled={!payFile||payBusy}>{payBusy?'Saving…':'Mark as Paid'}</Btn>
+              <Btn variant="ghost" size="sm" onClick={closePay}>Cancel</Btn>
+            </div>
+            {payErr&&<div style={{color:T.coral,fontSize:11,marginTop:6}}>{payErr}</div>}
+          </div>}
         </div>
       ))}
     </div>
@@ -2729,6 +2809,11 @@ const viewReceipt=async path=>{
   const{data,error}=await sb.storage.from(RECEIPT_BUCKET).createSignedUrl(path,120);
   if(error||!data?.signedUrl){if(w)w.close();alert(`Could not open the receipt: ${error?.message||'please try again'}`);return;}
   if(w)w.location.href=data.signedUrl;else window.open(data.signedUrl,'_blank');
+};
+const downloadReceipt=async(path,name)=>{
+  const{data,error}=await sb.storage.from(RECEIPT_BUCKET).createSignedUrl(path,120,{download:name||true});
+  if(error||!data?.signedUrl){alert(`Could not download the file: ${error?.message||'please try again'}`);return;}
+  const a=document.createElement('a');a.href=data.signedUrl;a.download=name||'';document.body.appendChild(a);a.click();a.remove();
 };
 const removeReceiptFile=path=>Promise.resolve(sb.storage.from(RECEIPT_BUCKET).remove([path])).catch(()=>{});
 const purgeReceipts=async projectId=>{
@@ -4076,22 +4161,29 @@ function MainApp(){
     if(error)alert(`Could not remove payment: ${error.message}`);
     else if(gone?.receipt?.path)removeReceiptFile(gone.receipt.path);
   };
-  const addPO=async po=>{
+  const addPO=async(po,file)=>{
     const id=Math.random().toString(36).slice(2,10);
     const po_number=`PO-${String(purchaseOrders.length+1).padStart(4,'0')}`;
-    const{data,error}=await sb.from('purchase_orders').insert({id,po_number,...po,user_id:user.id}).select().single();
-    if(error){alert(`Could not create purchase order: ${error.message}`);return;}
+    let invoice_file=null;
+    if(file){try{invoice_file=await uploadReceipt(po.project_id,file);}catch(e){alert(`The PO will be created, but the invoice file could not be stored: ${e.message}`);}}
+    const{data,error}=await sb.from('purchase_orders').insert({id,po_number,...po,...(invoice_file?{invoice_file}:{}),user_id:user.id}).select().single();
+    if(error){if(invoice_file)removeReceiptFile(invoice_file.path);alert(`Could not create purchase order: ${error.message}`);return;}
     if(data)setPurchaseOrders(p=>[...p,data]);
   };
   const updatePO=async(id,upd)=>{
+    const prev=purchaseOrders.find(po=>po.id===id);
     setPurchaseOrders(p=>p.map(po=>po.id===id?{...po,...upd}:po));
     const{error}=await sb.from('purchase_orders').update(upd).eq('id',id);
-    if(error)alert(`Could not update purchase order: ${error.message}`);
+    if(error){if(prev)setPurchaseOrders(p=>p.map(po=>po.id===id?prev:po));alert(`Could not update purchase order: ${error.message}`);return false;}
+    return true;
   };
   const deletePO=async id=>{
+    const gone=purchaseOrders.find(po=>po.id===id);
     setPurchaseOrders(p=>p.filter(po=>po.id!==id));
     const{error}=await sb.from('purchase_orders').delete().eq('id',id);
-    if(error)alert(`Could not delete purchase order: ${error.message}`);
+    if(error){if(gone)setPurchaseOrders(p=>[...p,gone]);alert(`Could not delete purchase order: ${error.message}`);return;}
+    if(gone?.invoice_file?.path)removeReceiptFile(gone.invoice_file.path);
+    if(gone?.receipt_file?.path)removeReceiptFile(gone.receipt_file.path);
   };
 
   const pReconEntries=reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id));
@@ -4113,7 +4205,7 @@ function MainApp(){
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
-          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO}/>}
+          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={project?.user_id===user.id}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
         </div>
