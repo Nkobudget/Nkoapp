@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+
+@theme {
+  --color-palette-stone: #9B978D;
+  --color-palette-gray: #6B6862;
+  --color-palette-apricot: #FFB347;
+  --color-palette-ivory: #F5F5F0;
+  --color-palette-charcoal: #1E1E1E;
+  --color-palette-near-black: #171717;
+  --color-palette-dark-gray: #1F1F1F;
+  --color-palette-black: #000000;
+  --color-palette-graphite: #292929;
+  --color-palette-warm-gray: #5A5852;
+  --color-palette-gold: #D4AF37;
+}
