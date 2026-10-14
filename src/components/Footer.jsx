@@ -1,5 +1,5 @@
-import { useId, useState } from 'react';
-import { Circle } from 'lucide-react';
+import { useId } from 'react';
+import BrandLogo from './BrandLogo';
 import { Reveal, Stagger, StaggerItem } from './motion/Reveal';
 
 const navigationGroups = [
@@ -39,53 +39,13 @@ const navigationGroups = [
   },
 ];
 
-function BrandLogo({ src }) {
-  const [status, setStatus] = useState(src ? 'loading' : 'missing');
-  const showPlaceholder = !src || status === 'error';
-
-  return (
-    <span className="relative block h-8 w-16" aria-hidden="true">
-      {src && status !== 'error' && (
-        <img
-          src={src}
-          alt=""
-          width={64}
-          height={32}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setStatus('loaded')}
-          onError={() => setStatus('error')}
-          className={`size-full object-contain object-left ${status === 'loaded' ? '' : 'invisible'}`}
-        />
-      )}
-
-      {showPlaceholder && (
-        <span
-          data-logo-placeholder="nko"
-          className="flex h-full items-center gap-1 font-serif text-2xl leading-none font-bold tracking-[-0.04em] text-palette-ivory"
-        >
-          NK
-          <span className="relative mt-0.5 inline-flex text-palette-gold">
-            <span className="absolute -top-1 left-0 h-0.5 w-3 rotate-12 bg-palette-gold" />
-            <Circle size={16} strokeWidth={2.5} />
-          </span>
-        </span>
-      )}
-    </span>
-  );
-}
-
-
-
 export default function Footer({
-  logoSrc = '',
   homeHref = '/',
   linkHrefs = {},
   year = new Date().getFullYear(),
   className = '',
 }) {
   const footerId = useId();
-  const imageSrc = typeof logoSrc === 'string' ? logoSrc.trim() : '';
   const focusClass =
     'rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-apricot';
 
@@ -106,7 +66,9 @@ export default function Footer({
               aria-label="NKO home"
               className={`inline-flex ${focusClass}`}
             >
-              <BrandLogo key={imageSrc} src={imageSrc} />
+              <span className="flex h-8 w-16 items-center" aria-hidden="true">
+                <BrandLogo alt="" loading="lazy" className="h-auto w-16" />
+              </span>
             </a>
             <p className="mt-5 max-w-sm text-xl leading-snug tracking-[-0.015em] text-palette-ivory sm:text-[22px]">
               Production, intelligently managed.
