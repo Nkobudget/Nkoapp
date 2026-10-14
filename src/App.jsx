@@ -10,9 +10,30 @@ import ProductionRolesSection from "./components/ProductionRolesSection"
 import AIControlSection from "./components/AIControlSection"
 import ProductionCTASection from "./components/ProductionCTASection"
 import Footer from "./components/Footer"
-import { Navigate, Route, Routes, useNavigate } from "react-router";
+import { Component, useEffect, useState } from "react";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import SignInPage from "./auth/SignInPage";
 import OnboardingWelcome from "./onboarding/OnboardingWelcome";
+import { useAuth } from "./auth/AuthContext";
+import AuthGate from "./auth/AuthGate";
+import AuthProvider from "./auth/AuthProvider";
+import LangProvider from "./i18n/LangProvider";
+import { isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
+import AuthStatus from "./auth/AuthStatus";
+
+
+class DashboardBoundary extends Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    return this.state.failed ? <main className="min-h-svh bg-palette-black p-8 text-palette-ivory">
+      <h1 className="text-2xl">The workspace could not load.</h1>
+      <p className="mt-3">Please reload the page and try again.</p>
+      <button type="button" className="mt-5 rounded bg-palette-gold px-4 py-3 text-palette-black" onClick={() => window.location.reload()}>Reload workspace</button>
+      <Link to="/" className="ml-4 underline">Return home</Link>
+    </main> : this.props.children;
+  }
+}
 
 const LandingPage = () => {
   return (
@@ -54,9 +75,17 @@ const LandingPage = () => {
 
 function SignInRoute() {
   const navigate = useNavigate();
+  const { status, error, retry } = useAuth();
+
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+  if (status === "loading") return <AuthStatus />;
+  if (status === "error") return <AuthStatus error={error} onRetry={retry} />;
 
   return (
     <SignInPage
+      introText="Sign in to your NKŌ workspace and keep your production moving."
+      onEmailContinue={() => navigate("/app")}
+      googleUnavailableMessage="Google sign-in is not enabled yet. Please continue with email."
       accountPrompt="New to NKO?"
       accountLinkLabel="Get started"
       onAccountClick={() => navigate("/onboarding")}
@@ -66,6 +95,9 @@ function SignInRoute() {
 
 function OnboardingRoute() {
   const navigate = useNavigate();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
 
   return (
     <OnboardingWelcome
@@ -76,13 +108,29 @@ function OnboardingRoute() {
   );
 }
 
-const App = () => (
-  <Routes>
+function AppRoutes() {
+  const { recovery, status } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [rootCallback, setRootCallback] = useState(() => location.pathname === "/" && (isRecoveryCallback || isSessionCallback || !!authCallbackError));
+  useEffect(() => {
+    // Old emailed root URLs still work; wait until the SDK has consumed tokens.
+    if (rootCallback && status !== "loading") {
+      setRootCallback(false);
+      navigate("/app", { replace: true });
+    }
+  }, [rootCallback, status, navigate]);
+  if (rootCallback || recovery) return <DashboardBoundary><AuthGate /></DashboardBoundary>;
+  return <Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/sign-in" element={<SignInRoute />} />
     <Route path="/onboarding" element={<OnboardingRoute />} />
+    <Route path="/app/*" element={<DashboardBoundary><AuthGate /></DashboardBoundary>} />
+    <Route path="/dashboard" element={<Navigate to="/app" replace />} />
     <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes>
-);
+  </Routes>;
+}
 
-export default App;
+export default function App() {
+  return <LangProvider><AuthProvider><AppRoutes /></AuthProvider></LangProvider>;
+}

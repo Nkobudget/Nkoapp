@@ -72,6 +72,7 @@ function ProductionPreview({ imageSrc, imageAlt, project }) {
 export default function SignInPage({
   onGoogleContinue,
   onEmailContinue,
+  googleUnavailableMessage,
   accountHref,
   onAccountClick,
   termsHref,
@@ -153,6 +154,8 @@ export default function SignInPage({
                   </button>
                 ))}
               </div>
+
+              {googleUnavailableMessage && <p className="mt-3 text-xs leading-5 text-palette-stone">{googleUnavailableMessage}</p>}
 
               <p role="status" className="sr-only">{pending ? "Please wait while we continue." : ""}</p>
               {error && <p id={errorId} role="alert" className="mt-4 text-sm leading-6 text-palette-apricot">{error}</p>}

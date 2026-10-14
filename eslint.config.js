@@ -26,6 +26,14 @@ export default [
         FormData: 'readonly',
         FileReader: 'readonly',
         process: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        URLSearchParams: 'readonly',
+        alert: 'readonly',
+        Image: 'readonly',
+        File: 'readonly',
+        Notification: 'readonly',
+        Intl: 'readonly',
       },
     },
     plugins: {
@@ -38,6 +46,7 @@ export default [
       'react/react-in-jsx-scope': 'off',       // Not needed with React 17+
       'react/prop-types': 'off',               // Opt-in when you add PropTypes
       'react/display-name': 'off',
+      'react/jsx-uses-vars': 'error',
 
       // React Hooks
       'react-hooks/rules-of-hooks': 'error',
@@ -49,6 +58,7 @@ export default [
       // General
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off',
+      'no-undef': 'error',
     },
     settings: {
       react: { version: 'detect' },

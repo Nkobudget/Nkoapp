@@ -68,6 +68,8 @@ export default function OnboardingWelcome({
   workspacePreview,
   durationText = "About 3 minutes",
   sections = setupSections,
+  headerActions,
+  copy = {},
   className = "",
 }) {
   const headingId = useId();
@@ -75,6 +77,11 @@ export default function OnboardingWelcome({
   const busyRef = useRef(false);
   const [pending, setPending] = useState(null);
   const [error, setError] = useState("");
+  const content = {
+    heading: "Welcome to NKO.", tagline: "Let's set up your first production.",
+    body: "NKO uses the information you provide to help organise your production, build smarter budgets, and keep everything connected from planning to payment.",
+    back: "Back", setup: "Set Up My Production", skip: "I'll do this later", ...copy,
+  };
 
   async function runAction(action, handler) {
     if (busyRef.current || typeof handler !== "function") return;
@@ -98,8 +105,9 @@ export default function OnboardingWelcome({
       <div className="flex min-h-svh items-center justify-center bg-palette-near-black/35 px-5 py-10 sm:px-8 lg:px-12">
         <div className="grid w-full max-w-[80rem] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
           <div className="min-w-0">
-            <header className="flex items-center justify-between gap-2 border-b border-palette-graphite/50 px-4 py-3 sm:px-10 lg:px-14">
+            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-palette-graphite/50 px-4 py-3 sm:px-10 lg:px-14">
               <BrandLogo className="h-6 w-auto lg:h-7" />
+              {headerActions}
               <button
                 type="button"
                 onClick={() => runAction("back", onBack)}
@@ -108,17 +116,15 @@ export default function OnboardingWelcome({
                 className="flex min-h-11 min-w-0 items-center gap-1 rounded-sm px-1 text-xs leading-5 text-palette-stone enabled:hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:cursor-not-allowed"
               >
                 <ArrowLeft aria-hidden="true" focusable="false" strokeWidth={1.5} className="size-3.5 shrink-0" />
-                <span className="min-w-0">Back</span>
+                <span className="min-w-0">{content.back}</span>
               </button>
             </header>
 
             <div className="@container px-6 pt-10 pb-12 sm:px-10 lg:px-16 lg:pt-14 lg:pb-16">
-              <h1 id={headingId} className="text-[2.25rem] leading-[1.08] font-medium tracking-[-0.05em] sm:text-[2.75rem] lg:text-[clamp(2.75rem,4.4vw,4rem)]">Welcome to NKO.</h1>
-              <p className="mt-4 text-lg leading-7 text-palette-stone lg:text-[1.75rem] lg:leading-9">Let's set up your first production.</p>
+              <h1 id={headingId} className="text-[2.25rem] leading-[1.08] font-medium tracking-[-0.05em] sm:text-[2.75rem] lg:text-[clamp(2.75rem,4.4vw,4rem)]">{content.heading}</h1>
+              <p className="mt-4 text-lg leading-7 text-palette-stone lg:mt-4 lg:text-[1.75rem] lg:leading-9">{content.tagline}</p>
               <p className="mt-8 text-sm leading-6 text-palette-stone lg:mt-10 lg:text-base">
-                NKO uses the information you provide to help organise your production,
-                build smarter budgets, and keep everything connected from planning
-                to payment.
+                {content.body}
               </p>
 
               <dl className="mt-8 border-t border-palette-graphite/60">
@@ -143,7 +149,7 @@ export default function OnboardingWelcome({
                   aria-describedby={error ? errorId : undefined}
                   className="flex min-h-12 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-palette-apricot bg-palette-apricot px-4 py-3 text-sm leading-6 font-medium text-palette-near-black shadow-[0_0_2rem_0] shadow-palette-apricot/20 enabled:hover:bg-palette-apricot/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:cursor-not-allowed sm:w-auto sm:px-6 sm:text-base"
                 >
-                  <span className="min-w-0">{pending === "setup" ? "Starting…" : "Set Up My Production"}</span>
+                  <span className="min-w-0">{pending === "setup" ? "Starting…" : content.setup}</span>
                   {pending === "setup" ? <LoaderCircle aria-hidden="true" focusable="false" className="size-4 shrink-0 motion-safe:animate-spin" /> : <ArrowRight aria-hidden="true" focusable="false" strokeWidth={1.75} className="size-4 shrink-0" />}
                 </button>
                 <button
@@ -154,7 +160,7 @@ export default function OnboardingWelcome({
                   aria-describedby={error ? errorId : undefined}
                   className="min-h-12 w-full min-w-0 rounded-xl border border-palette-graphite bg-palette-black px-4 py-3 text-sm leading-6 font-medium enabled:hover:border-palette-stone enabled:hover:bg-palette-near-black focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:cursor-not-allowed sm:w-auto sm:px-5 sm:text-base"
                 >
-                  {pending === "skip" ? "Continuing…" : "I'll do this later"}
+                  {pending === "skip" ? "Continuing…" : content.skip}
                 </button>
               </div>
               <p role="status" className="sr-only">{isBusy ? "Please wait while we continue." : ""}</p>
