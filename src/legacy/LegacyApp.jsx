@@ -1,0 +1,4408 @@
+/*
+  NKÒ — Budgets Tailored To Film
+  Single-file React + Vite + Supabase
+*/
+import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+
+/* ── Supabase ── */
+const SUPABASE_URL      = 'https://pvyrfjgrfmuvivdflcgg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZUv';
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ── Theme ── */
+const T = {
+  ink:'#141414', panel:'#1C1C1E', hi:'#242424', line:'#3A3A3A',
+  gold:'#FEED61', goldDim:'#8C852E', goldGlow:'rgba(254,237,97,0.12)',
+  cream:'#F0E8D0', dim:'#9A9080', faint:'#5A5A5A',
+  coral:'#E06B52', sage:'#52B07A', sapphire:'#4A90D9',
+};
+
+/* ── Constants ── */
+const CURRENCIES=[
+  {code:'NGN',symbol:'₦'},{code:'GHS',symbol:'₵'},{code:'KES',symbol:'KSh'},
+  {code:'ZAR',symbol:'R'},{code:'UGX',symbol:'USh'},{code:'TZS',symbol:'TSh'},
+  {code:'XOF',symbol:'Fr'},{code:'ETB',symbol:'Br'},{code:'USD',symbol:'$'},{code:'GBP',symbol:'£'},
+];
+const DEPTS=["A - Research & Development", "B - Script & Story", "C - Pre-Production Expenses", "D - Production Team", "E - Creative Team", "F - Talents", "G - Camera & Grip Team", "H - Camera & Grip Equipment", "I - Light & Power Team", "J - Light & Power Equipment", "K - Sound Team", "L - Sound Equipment", "M - Art Team", "N - Set & Prop Expenses", "O - Location", "P - Wardrobe", "Q - Makeup & Hair", "R - SFX & Stunts", "S - Production Logistics", "T - Hospitality & Welfare", "U - Overhead & General Expenses", "V - Production Support", "W - Post-Production Team", "X - Post-Production Expenses", "Y - PR & Marketing", "Z - Sales & Distribution"];
+const REVENUE_SOURCES=["Client fee","Funding","Grants","Investor contribution","Distribution","Sponsorship","Other"];
+const phaseForDept=dept=>PHASES.find(ph=>ph.depts.includes(dept))?.name||'—';
+const PHASES=[
+  {name:'Pre-Production',depts:['A - Research & Development','B - Script & Story','C - Pre-Production Expenses']},
+  {name:'Production',depts:['D - Production Team','E - Creative Team','F - Talents','G - Camera & Grip Team','H - Camera & Grip Equipment','I - Light & Power Team','J - Light & Power Equipment','K - Sound Team','L - Sound Equipment','M - Art Team','N - Set & Prop Expenses','O - Location','P - Wardrobe','Q - Makeup & Hair','R - SFX & Stunts','S - Production Logistics','T - Hospitality & Welfare','U - Overhead & General Expenses','V - Production Support']},
+  {name:'Post-Production',depts:['W - Post-Production Team','X - Post-Production Expenses']},
+  {name:'PR, Marketing & Distribution',depts:['Y - PR & Marketing','Z - Sales & Distribution']},
+];
+
+const UNITS=['day','week','flat','person','item'];
+const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Creator Content','Podcast','Animation / Cartoon','Other'];
+const TRANSLATIONS={
+  en:{
+    tagline:'Budgets Tailored To Film',
+    signOut:'Sign out',
+    studio:'Studio',
+    navDashboard:'Dashboard',navBudgets:'Budgets',navRevenue:'Revenue',navBreakdown:'Breakdown',navSchedule:'Schedule',navRecon:'Recon',navPayments:'Payments',navPO:'Purchase Orders',navMarketplace:'Marketplace',navAI:'AI Builder',
+    selectProduction:'Select production…',newBtn:'+ New',back:'← Back',
+    emailPlaceholder:'Email',passwordPlaceholder:'Password',show:'Show',hide:'Hide',
+    forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
+    noAccountSignUp:'No account? Sign up',haveAccountSignIn:'Have an account? Sign in',
+    getStarted:'Get started',continueBtn:'Continue',backBtn:'Back',finishBtn:'Finish',
+    onboardTagline:'Budgets Tailored To Film.',
+    step1Of2:'Step 1 of 2',whatsYourRole:"What's your role?",roleSubtitle:"We'll tailor the workspace to what you manage day to day.",
+    step2Of2:'Step 2 of 2',baseCurrency:'Base currency?',currencySubtitle:'Sets the default currency for budgets and payments.',
+    dashHeaderTagline:'Budgets Tailored To Film.',
+    statProductions:'Productions',statActive:'active',statBudgetLines:'Budget lines',statAllProjects:'all projects',
+    statOpenAdvances:'Open advances',statPending:'pending',statUnpaid:'Unpaid',statCastCrew:'cast & crew',
+    statTotalSpend:'Total spend',statAcrossSlate:'across all productions',statTotalSaved:'Total saved',statOverBudget:'over budget',statUnderBudget:'under budget',
+    statTotalBudget:'Total budget',statOpenAdv:'open',statUnpaidCrew:'Unpaid crew',allProductions:'← All productions',productionDashboard:'Production dashboard',statThisProduction:'this production',
+    costReport:'Cost report',costReportSub:'Budget vs actual, pre-production through distribution',byPhase:'By phase',notStarted:'not started',totalBudgetLbl:'Total budget',actualSpentLbl:'Actual spent',remainingLbl:'Remaining',
+    noProductionsYet:'No productions yet',createFirstDesc:'Create a production and start building your budget.',
+    createFirstBtn:'Create your first production',productionsHeader:'Productions',
+    selectAll:'Select all',clear:'Clear',deleteBtn:'🗑️ Delete',
+    budgetHeader:'Budget',templates:'📋 Templates',shareBudgetPdf:'📄 Share Budget PDF',exportExcel:'📊 Export Excel',
+    addDepartment:'+ Add a department…',totalBudget:'Total budget',
+    phaseCostSummary:'Phase Cost Summary',preProduction:'Pre-Production',productionPhase:'Production',
+    contingency:'Contingency',postProduction:'Post-Production',total:'Total',prMarketing:'PR & Marketing',
+    productionInfo:'Production Info',brandPanel:'Brand Panel',
+    uploadScript:'Upload your script',chooseFile:'Choose file',
+    breakdownHeader:'Breakdown',castSceneBreakdown:'Character Scene Breakdown',
+    outlineSchedule:'Outline Schedule',locationsSummary:'Locations Summary',productionElements:'Production Elements',
+    aiScriptBreakdown:'AI Script Breakdown',chooseScript:'Choose script',
+    keepScreenOpen:'You can switch screens — results apply automatically when you come back',
+    notifOn:'🔔 Notifications on — you can switch apps',
+    analyzing:'Analyzing your script…',breakdownComplete:'Breakdown complete',
+    reconHeader:'Recon',issueAdvance:'+ Issue advance',newAdvance:'New advance',
+    logExpense:'+ Log expense',topUp:'💰 Top up',reconcileBtn:'✓ Reconcile',
+    paymentsHeader:'Payments',addPayee:'+ Add payee',logPayment:'+ Log payment',
+    marketplaceHeader:'Marketplace',useTemplate:'Use template',applied:'✓ Applied',
+    aiBuilderHeader:'AI Builder',askPlaceholder:'Ask about rates, budgets, recon… or attach an image',send:'Send',
+    save:'Save',cancel:'Cancel',deleteWord:'Delete',edit:'✏️ Edit',create:'Create',
+  },
+  fr:{
+    tagline:'Des budgets taillés pour le cinéma',
+    signOut:'Se déconnecter',
+    studio:'Studio',
+    navDashboard:'Tableau de bord',navBudgets:'Budgets',navRevenue:'Revenus',navBreakdown:'Découpage',navSchedule:'Planning',navRecon:'Rapprochement',navPayments:'Paiements',navPO:'Bons de commande',navMarketplace:'Place de marché',navAI:'Assistant IA',
+    selectProduction:'Sélectionner une production…',newBtn:'+ Nouveau',back:'← Retour',
+    emailPlaceholder:'E-mail',passwordPlaceholder:'Mot de passe',show:'Afficher',hide:'Masquer',
+    forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
+    noAccountSignUp:'Pas de compte ? Inscrivez-vous',haveAccountSignIn:'Déjà un compte ? Connectez-vous',
+    getStarted:'Commencer',continueBtn:'Continuer',backBtn:'Retour',finishBtn:'Terminer',
+    onboardTagline:'Des budgets taillés pour le cinéma.',
+    step1Of2:'Étape 1 sur 2',whatsYourRole:'Quel est votre rôle ?',roleSubtitle:"Nous adapterons l'espace de travail à vos tâches quotidiennes.",
+    step2Of2:'Étape 2 sur 2',baseCurrency:'Devise de base ?',currencySubtitle:'Définit la devise par défaut pour les budgets et paiements.',
+    dashHeaderTagline:'Des budgets taillés pour le cinéma.',
+    statProductions:'Productions',statActive:'actives',statBudgetLines:'Lignes budgétaires',statAllProjects:'tous projets',
+    statOpenAdvances:'Avances ouvertes',statPending:'en attente',statUnpaid:'Impayés',statCastCrew:'acteurs et équipe',
+    statTotalSpend:'Total dépensé',statAcrossSlate:'toutes productions',statTotalSaved:'Total économisé',statOverBudget:'dépassement',statUnderBudget:'sous le budget',
+    statTotalBudget:'Budget total',statOpenAdv:'ouvertes',statUnpaidCrew:'Équipe impayée',allProductions:'← Toutes les productions',productionDashboard:'Tableau de bord de production',statThisProduction:'cette production',
+    costReport:'Rapport de coûts',costReportSub:'Budget vs réel, de la pré-production à la distribution',byPhase:'Par phase',notStarted:'non commencé',totalBudgetLbl:'Budget total',actualSpentLbl:'Dépenses réelles',remainingLbl:'Restant',
+    noProductionsYet:'Aucune production pour le moment',createFirstDesc:'Créez une production et commencez votre budget.',
+    createFirstBtn:'Créer votre première production',productionsHeader:'Productions',
+    selectAll:'Tout sélectionner',clear:'Effacer',deleteBtn:'🗑️ Supprimer',
+    budgetHeader:'Budget',templates:'📋 Modèles',shareBudgetPdf:'📄 Partager le PDF du budget',exportExcel:'📊 Exporter Excel',
+    addDepartment:'+ Ajouter un département…',totalBudget:'Budget total',
+    phaseCostSummary:'Résumé des coûts par phase',preProduction:'Pré-production',productionPhase:'Production',
+    contingency:'Imprévus',postProduction:'Post-production',total:'Total',prMarketing:'RP et marketing',
+    productionInfo:'Infos production',brandPanel:'Panneau de marque',
+    uploadScript:'Téléversez votre scénario',chooseFile:'Choisir un fichier',
+    breakdownHeader:'Découpage',castSceneBreakdown:'Répartition des personnages par scène',
+    outlineSchedule:'Calendrier de tournage',locationsSummary:'Résumé des lieux',productionElements:'Éléments de production',
+    aiScriptBreakdown:'Découpage du scénario par IA',chooseScript:'Choisir un scénario',
+    keepScreenOpen:'Vous pouvez changer d’écran — les résultats s’appliquent à votre retour',
+    notifOn:'🔔 Notifications activées — vous pouvez changer d\u2019application',
+    analyzing:'Analyse de votre scénario…',breakdownComplete:'Découpage terminé',
+    reconHeader:'Rapprochement',issueAdvance:'+ Émettre une avance',newAdvance:'Nouvelle avance',
+    logExpense:'+ Enregistrer une dépense',topUp:'💰 Recharger',reconcileBtn:'✓ Rapprocher',
+    paymentsHeader:'Paiements',addPayee:'+ Ajouter un bénéficiaire',logPayment:'+ Enregistrer un paiement',
+    marketplaceHeader:'Place de marché',useTemplate:'Utiliser le modèle',applied:'✓ Appliqué',
+    aiBuilderHeader:'Assistant IA',askPlaceholder:'Posez une question sur les tarifs, budgets, rapprochements… ou joignez une image',send:'Envoyer',
+    save:'Enregistrer',cancel:'Annuler',deleteWord:'Supprimer',edit:'✏️ Modifier',create:'Créer',
+  },
+};
+const LangCtx=createContext(null);
+const useLang=()=>useContext(LangCtx);
+function LangProvider({children}){
+  const[lang,setLangState]=useState(()=>{try{return localStorage.getItem('nko_lang')||'en';}catch{return'en';}});
+  const setLang=l=>{try{localStorage.setItem('nko_lang',l);}catch{}setLangState(l);};
+  const t=useCallback(key=>TRANSLATIONS[lang]?.[key]??TRANSLATIONS.en[key]??key,[lang]);
+  return<LangCtx.Provider value={{lang,setLang,t}}>{children}</LangCtx.Provider>;
+}
+const ROLES=[
+  {id:'line_producer',label:'Line Producer',sub:'Owns the top sheet and daily cost tracking'},
+  {id:'production_manager',label:'Production Manager',sub:'Runs logistics, crew and locations'},
+  {id:'producer',label:'Producer',sub:'Oversees the whole production'},
+  {id:'production_accountant',label:'Production Accountant',sub:'Reconciles actuals and processes payments'},
+];
+const MARKETS=[
+  {country:'Nigeria',code:'NGN',symbol:'₦'},
+  {country:'Ghana',code:'GHS',symbol:'₵'},
+  {country:'Kenya',code:'KES',symbol:'KSh'},
+  {country:'South Africa',code:'ZAR',symbol:'R'},
+  {country:'Uganda',code:'UGX',symbol:'USh'},
+  {country:'Tanzania',code:'TZS',symbol:'TSh'},
+];
+const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
+const EXPENSE_CATS_UNIVERSAL=['Transport','Feeding','Fuel','Communication','Accommodation','Labour'];
+const EXPENSE_CATS_BY_DEPT={
+  'A - Research & Development':['Research materials','Reference footage','Location scouting'],
+  'B - Script & Story':['Script printing','Writer fees','Script consultation'],
+  'C - Pre-Production Expenses':['Permits & licenses','Casting expenses','Rehearsal space'],
+  'F - Talents':['Cast per diem','Costume fitting','Talent transport'],
+  'H - Camera & Grip Equipment':['Equipment rental','Media & storage','Batteries & consumables','Insurance'],
+  'J - Light & Power Equipment':['Generator fuel','Equipment rental','Power & electrical supplies'],
+  'L - Sound Equipment':['Equipment rental','Batteries & consumables','Post-sync / ADR'],
+  'N - Set & Prop Expenses':['Set construction materials','Props purchase','Props rental','Set dressing'],
+  'O - Location':['Location fee','Location permit','Security deposit','Site preparation'],
+  'P - Wardrobe':['Fabric & materials','Tailoring','Costume rental','Alterations','Dry cleaning'],
+  'Q - Makeup & Hair':['Makeup supplies','Hair supplies & wigs','SFX makeup materials'],
+  'R - SFX & Stunts':['Stunt equipment','SFX materials','Safety equipment'],
+  'S - Production Logistics':['Vehicle hire','Equipment transport'],
+  'T - Hospitality & Welfare':['Medical & first aid','Water & refreshments'],
+  'U - Overhead & General Expenses':['Office supplies','Bank charges'],
+  'X - Post-Production Expenses':['Editing software / license','Color grading','VFX','Sound mix','Data storage'],
+  'Y - PR & Marketing':['Poster & key art design','Social media ads','Press kit printing','Publicity materials'],
+  'Z - Sales & Distribution':['Festival submission fees','Distribution & legal fees','DCP / delivery costs'],
+};
+const expenseCatsForDept=dept=>{
+  const specific=EXPENSE_CATS_BY_DEPT[dept]||[];
+  return[...specific,...EXPENSE_CATS_UNIVERSAL.filter(c=>!specific.includes(c)),'Miscellaneous'];
+};
+const ACCENT_COLORS=['#FEED61','#E06B52','#52B07A','#4A90D9','#9B7FD4','#F5A623','#2ABFBF','#E8527A'];
+/* Approximate local-currency-to-USD conversion rates, for the dual currency display on each budget line.
+   These are illustrative rates and should be treated as approximate — update RATES_TO_USD as real rates move. */
+const RATES_TO_USD={NGN:1/1550,GHS:1/15.5,KES:1/129,ZAR:1/18.2,UGX:1/3700,TZS:1/2500,XOF:1/605,ETB:1/128,USD:1,GBP:1.27};
+const toUSD=(amount,code)=>Number(amount||0)*(RATES_TO_USD[code]??0);
+
+/* ── Templates ── */
+const TEMPLATES=[
+  {id:'feature',label:'Feature Film — Full A-Z Top Sheet',type:'Feature Film',items:[
+    {dept:'A - Research & Development',description:'Researcher',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Research support & gratis',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Research materials / archival footages',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Research logistics',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'IP, rights & licensing',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Brainstorming sessions venue & meals',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Brainstorming sessions sitting allowance',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Deck creation',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Title art creation',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script conference venue & meals',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script conference sitting allowance',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script writer',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script revision venue & meals',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script revision sitting allowance',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script editor',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Copyright registration',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Idea patenting',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Logo trademarking',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script printing',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Script breakdown',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Budget prep & revision',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Scheduling',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Production calendar / timeline',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Auditions announcement',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Auditions venue & coordination',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Closed audition / table casting',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Table read',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Cast rehearsals',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Technical rehearsals',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Test shoot',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Production meetings',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Equipment check',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Costume fitting',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Makeup test',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Location scouting',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Recce logistics — flights',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Recce logistics — accommodation',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Recce logistics — interstate travel',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Recce allowance — feeding',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Production office set-up',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Production office equipment rental',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Production office consumables',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Communication allowance / calls & data',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Pre-production logistics',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Special cast trainings',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Cast reveal',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Casting director',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Content creation',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Press conference',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Producer / Creative Producer',qty:1,unit:'flat',rate:400000},
+    {dept:'D - Production Team',description:'Executive Producer',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Studio Executive Producer allowance',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Line Producer',qty:1,unit:'flat',rate:250000},
+    {dept:'D - Production Team',description:'Co-Producer',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Associate Producer',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Assistant Producer',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:"Producer's Assistant",qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Manager',qty:1,unit:'flat',rate:100000},
+    {dept:'D - Production Team',description:'Production Coordinator',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Unit Production Manager / Fixer',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Unit Manager / Runner',qty:1,unit:'flat',rate:30000},
+    {dept:'D - Production Team',description:'Accountant',qty:1,unit:'flat',rate:80000},
+    {dept:'D - Production Team',description:'Cast Chaperone',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Assistant',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Admin / Secretariat',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Interns',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:500000},
+    {dept:'E - Creative Team',description:'Director of Photography',qty:1,unit:'flat',rate:300000},
+    {dept:'E - Creative Team',description:'1st AD',qty:1,unit:'flat',rate:150000},
+    {dept:'E - Creative Team',description:'2nd AD',qty:1,unit:'flat',rate:80000},
+    {dept:'E - Creative Team',description:'3rd AD',qty:1,unit:'flat',rate:50000},
+    {dept:'E - Creative Team',description:'Script Supervisor / Continuity',qty:1,unit:'flat',rate:60000},
+    {dept:'E - Creative Team',description:'Assistant Script Supervisor',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:"Director's Assistant",qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:"Director's Intern",qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Technical Director',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Cultural / Language Consultant',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Extras Coordinator',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Lead cast',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Supporting cast',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Extras / background talent',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'1st AC / Focus Puller',qty:1,unit:'flat',rate:80000},
+    {dept:'G - Camera & Grip Team',description:'2nd AC / Clapper Board Loader',qty:1,unit:'flat',rate:50000},
+    {dept:'G - Camera & Grip Team',description:'3rd AC / Cam Assistant',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Camera Technician',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Drone Operator',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Steadicam Operator',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'2nd Cam Operator',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Cam B 1st AC',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Key Grip',qty:1,unit:'flat',rate:80000},
+    {dept:'G - Camera & Grip Team',description:'Best Boy Grip',qty:1,unit:'flat',rate:50000},
+    {dept:'G - Camera & Grip Team',description:'Grip Technician',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'DIT',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Data Wrangler',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera',qty:1,unit:'flat',rate:300000},
+    {dept:'H - Camera & Grip Equipment',description:'Set of lenses',qty:1,unit:'flat',rate:150000},
+    {dept:'H - Camera & Grip Equipment',description:'Video village',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera accessories',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Follow focus',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Tripod',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Hi-hat, tall legs & baby legs',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Track & dolly',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Mini jib',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Crane',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Car mount',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Drone',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Steadicam',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Easy rig',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Ronin',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Dana dolly',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Apple boxes',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Go-Pro',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Black cloth',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Sand bags',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Shoulder rig',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera consumables',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Grip consumables',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Grip intercity travel',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Lighting Designer',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Gaffer',qty:1,unit:'flat',rate:80000},
+    {dept:'I - Light & Power Team',description:'Best Boy Electric',qty:1,unit:'flat',rate:50000},
+    {dept:'I - Light & Power Team',description:'Spark',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Riggers',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Loaders',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Genny Operator',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Genny Technician',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Genny Truck Driver',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Genny Truck Loader',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Set of lights',qty:1,unit:'flat',rate:150000},
+    {dept:'J - Light & Power Equipment',description:'Light grip',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Light accessories',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Generator & truck',qty:1,unit:'flat',rate:80000},
+    {dept:'J - Light & Power Equipment',description:'Light consumables',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Practical light support',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Generator & truck diesel',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Haze machine',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Fog machine',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Smoke machine',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Power bill',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Servicing & maintenance',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Light support — C-stands, autopole etc',qty:1,unit:'flat',rate:0},
+    {dept:'K - Sound Team',description:'Sound Engineer / Mixer',qty:1,unit:'flat',rate:100000},
+    {dept:'K - Sound Team',description:'Boom Swinger',qty:1,unit:'flat',rate:50000},
+    {dept:'K - Sound Team',description:'Sound Assistant',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Mixer / Recorder',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Lapel mics',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Boom mic & fish poles',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Headphones',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Monitors',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Sound consumables',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Time code kit',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Production Designer',qty:1,unit:'flat',rate:150000},
+    {dept:'M - Art Team',description:'Art Director',qty:1,unit:'flat',rate:100000},
+    {dept:'M - Art Team',description:'Set Dresser',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Swing Gang',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Props Master',qty:1,unit:'flat',rate:60000},
+    {dept:'M - Art Team',description:'Assistant Props Master',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Buyer',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Artisans',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Armourer',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Animal Handler',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Graphic Designer',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Artist',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Set construction',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Set dressing purchases',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Set dressing rentals',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Vehicle props',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Special sets & props',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Armoury / weaponry',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Props purchases',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Props rental',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Animals',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Art logistics',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Art consumables',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Art logistics intercity travel',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Location lease',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Location logistics',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Location scout',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Location manager',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Gratis',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Location cleaning',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Painting',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Caution fee',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Fixer',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Stylist',qty:1,unit:'flat',rate:80000},
+    {dept:'P - Wardrobe',description:'Wardrobe Manager',qty:1,unit:'flat',rate:60000},
+    {dept:'P - Wardrobe',description:'Buyer',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Wardrobe Assistant',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Tailor',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Dry cleaner',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Costume purchase',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Costume rentals',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Costume consumables',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Accessories',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Dry cleaning',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Makeup Artist',qty:1,unit:'flat',rate:80000},
+    {dept:'Q - Makeup & Hair',description:'Assistant Makeup Artist',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Hair Stylist',qty:1,unit:'flat',rate:60000},
+    {dept:'Q - Makeup & Hair',description:'Assistant Hair Stylist',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Barber',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Makeup supplies',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Makeup equipment',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Makeup consumables',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Hair supplies',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Hair equipment',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Hair consumables',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Makeup SFX',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Fight Choreographer',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Stunt Coordinator',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Stunt people',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Body double',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Pyrotechnics',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Special effects coach',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Intimacy coordinator',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Air travel (local)',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Air travel (international)',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Visas',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Airport pick-up / drop off',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Inter-city travel',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Security — personnel & transportation',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Production bus — Coaster',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Production bus — Hiace',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Camera truck — Sienna',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Cast vehicle — Sienna',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Costume truck',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Grip van',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Production utility vehicle — unit bus',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Art department van',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Fuel',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Parking & toll',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Servicing & maintenance',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'RV caravans',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Excess luggage',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Diesel',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Pre-production camp accommodation',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Pre-production camp welfare',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Accommodation — cast',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Accommodation — crew',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Food — cast',qty:1,unit:'flat',rate:30000},
+    {dept:'T - Hospitality & Welfare',description:'Food — crew',qty:1,unit:'flat',rate:180000},
+    {dept:'T - Hospitality & Welfare',description:'Food — extras',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Water',qty:1,unit:'flat',rate:10000},
+    {dept:'T - Hospitality & Welfare',description:'Craft services — cast',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Craft services — crew',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'First aid',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Medic',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Hospital bills',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Ice',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Unit supplies purchases',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Unit supplies rentals',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Holding area',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Canopies & chairs',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Mobile toilet',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Wrap party',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Insurance',qty:1,unit:'flat',rate:100000},
+    {dept:'U - Overhead & General Expenses',description:'Shoot permit',qty:1,unit:'flat',rate:50000},
+    {dept:'U - Overhead & General Expenses',description:'Gratis',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Bank charges',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Courier charges',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Police permit',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Other permits',qty:1,unit:'flat',rate:0},
+    {dept:'V - Production Support',description:'Audit',qty:1,unit:'flat',rate:0},
+    {dept:'V - Production Support',description:'Tax',qty:1,unit:'flat',rate:0},
+    {dept:'V - Production Support',description:'Legal support',qty:1,unit:'flat',rate:0},
+    {dept:'V - Production Support',description:'Safety',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Post Producer',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Post-Production Supervisor',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Editor',qty:1,unit:'flat',rate:300000},
+    {dept:'W - Post-Production Team',description:'Offline Editor',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Colorist',qty:1,unit:'flat',rate:150000},
+    {dept:'W - Post-Production Team',description:'Sound Designer & Foley',qty:1,unit:'flat',rate:150000},
+    {dept:'W - Post-Production Team',description:'Music Score',qty:1,unit:'flat',rate:150000},
+    {dept:'W - Post-Production Team',description:'Dialogue Editor',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'ADR Sound Engineer',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Final Mix',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Subtitler & Translator',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Quality Control',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'PR Content Editor — teaser, trailer',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'VFX Supervisor',qty:1,unit:'flat',rate:200000},
+    {dept:'W - Post-Production Team',description:'VFX Artist',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Music Supervisor',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Animator',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Post-production studio',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Editing suite',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Sound studio space',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Visual test',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Storage hard drive',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Back-up hard drive',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:"Producer's back-up hard drive",qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'BTS hard drive',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Transport hard drive',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Post-production logistics',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Music license',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Footage license',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Soundtrack album production',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Dolby sound export',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Poster photoshoot',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Poster design',qty:1,unit:'flat',rate:60000},
+    {dept:'Y - PR & Marketing',description:'BTS photos',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'BTS videos',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'BTS phone reels',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Cast & key crew gift item',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Merch',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Online promotions',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'OOH advertising',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Traditional media',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Publicist / PR consultant',qty:1,unit:'flat',rate:150000},
+    {dept:'Y - PR & Marketing',description:'Premiere(s)',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Media screening',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Exhibitor screening',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Social media & website promotion — in-house',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Road shows & activations',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Meet & greet',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Fans challenge & activation',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Press conference',qty:1,unit:'flat',rate:0},
+    {dept:'Z - Sales & Distribution',description:'DCP generation — cinema',qty:1,unit:'flat',rate:0},
+    {dept:'Z - Sales & Distribution',description:'Packaging & handling — streaming',qty:1,unit:'flat',rate:0},
+    {dept:'Z - Sales & Distribution',description:"Distributor's marketing fund",qty:1,unit:'flat',rate:0},
+    {dept:'Z - Sales & Distribution',description:'Festival runs',qty:1,unit:'flat',rate:0},
+  ]},
+  {id:'vertical',label:'Vertical Series (7-day)',type:'Vertical Series / Microdrama',items:[
+    {dept:'F - Talents',description:'Lead actor',qty:1,unit:'flat',rate:120000},
+    {dept:'F - Talents',description:'Supporting cast (2)',qty:2,unit:'person',rate:40000},
+    {dept:'E - Creative Team',description:'Director / DOP combo',qty:1,unit:'flat',rate:180000},
+    {dept:'G - Camera & Grip Team',description:'Camera operator',qty:1,unit:'flat',rate:60000},
+    {dept:'K - Sound Team',description:'Sound (boom & lav)',qty:1,unit:'flat',rate:50000},
+    {dept:'E - Creative Team',description:'Script supervisor / continuity',qty:1,unit:'flat',rate:30000},
+    {dept:'Q - Makeup & Hair',description:'Hair & make-up artist',qty:1,unit:'flat',rate:40000},
+    {dept:'S - Production Logistics',description:'Location fees',qty:4,unit:'day',rate:20000},
+    {dept:'T - Hospitality & Welfare',description:'Feeding (15 crew)',qty:7,unit:'day',rate:60000},
+    {dept:'P - Wardrobe',description:'Costume & wardrobe items',qty:1,unit:'flat',rate:40000},
+    {dept:'T - Hospitality & Welfare',description:'Unit supplies — water, consumables',qty:7,unit:'day',rate:5000},
+    {dept:'S - Production Logistics',description:'Cast & crew transport',qty:7,unit:'day',rate:15000},
+    {dept:'H - Camera & Grip Equipment',description:'Camera + gimbal package',qty:7,unit:'day',rate:20000},
+    {dept:'J - Light & Power Equipment',description:'Lighting (LED panels)',qty:7,unit:'day',rate:10000},
+    {dept:'W - Post-Production Team',description:'Edit (all episodes)',qty:1,unit:'flat',rate:100000},
+    {dept:'W - Post-Production Team',description:'Subtitles & captions',qty:1,unit:'flat',rate:20000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:70000},
+  ]},
+  {id:'shortfilm',label:'Short Film (2-day)',type:'Short Film',items:[
+    {dept:'F - Talents',description:'Lead cast (2)',qty:2,unit:'person',rate:50000},
+    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:80000},
+    {dept:'E - Creative Team',description:'DOP',qty:1,unit:'flat',rate:60000},
+    {dept:'K - Sound Team',description:'Sound recordist',qty:1,unit:'flat',rate:30000},
+    {dept:'I - Light & Power Team',description:'Gaffer / lighting',qty:1,unit:'flat',rate:25000},
+    {dept:'Q - Makeup & Hair',description:'Hair & make-up artist',qty:1,unit:'flat',rate:20000},
+    {dept:'P - Wardrobe',description:'Costume & wardrobe',qty:1,unit:'flat',rate:15000},
+    {dept:'T - Hospitality & Welfare',description:'Unit supplies — water, consumables',qty:2,unit:'day',rate:5000},
+    {dept:'S - Production Logistics',description:'Location fee',qty:1,unit:'flat',rate:30000},
+    {dept:'T - Hospitality & Welfare',description:'Feeding (10 crew)',qty:2,unit:'day',rate:30000},
+    {dept:'H - Camera & Grip Equipment',description:'Camera package',qty:2,unit:'day',rate:25000},
+    {dept:'J - Light & Power Equipment',description:'Lighting',qty:2,unit:'day',rate:15000},
+    {dept:'W - Post-Production Team',description:'Edit & grade',qty:1,unit:'flat',rate:60000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:40000},
+  ]},
+  {id:'musicvideo',label:'Music Video (1-day)',type:'Music Video',items:[
+    {dept:'F - Talents',description:'Artist fee',qty:1,unit:'flat',rate:200000},
+    {dept:'F - Talents',description:'Dancers / background (6)',qty:6,unit:'person',rate:20000},
+    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:300000},
+    {dept:'E - Creative Team',description:'DOP',qty:1,unit:'flat',rate:150000},
+    {dept:'Q - Makeup & Hair',description:'Hair & make-up artist',qty:1,unit:'flat',rate:60000},
+    {dept:'P - Wardrobe',description:'Wardrobe stylist',qty:1,unit:'flat',rate:50000},
+    {dept:'S - Production Logistics',description:'Location fee',qty:1,unit:'flat',rate:50000},
+    {dept:'T - Hospitality & Welfare',description:'Feeding',qty:1,unit:'day',rate:80000},
+    {dept:'P - Wardrobe',description:'Costume purchases',qty:1,unit:'flat',rate:60000},
+    {dept:'T - Hospitality & Welfare',description:'Unit supplies — water, consumables',qty:1,unit:'day',rate:10000},
+    {dept:'H - Camera & Grip Equipment',description:'Camera + crane / drone',qty:1,unit:'day',rate:80000},
+    {dept:'J - Light & Power Equipment',description:'Lighting package',qty:1,unit:'day',rate:40000},
+    {dept:'W - Post-Production Team',description:'Edit & grade',qty:1,unit:'flat',rate:150000},
+    {dept:'Y - PR & Marketing',description:'Thumbnail & promo',qty:1,unit:'flat',rate:30000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:120000},
+  ]},
+  {id:'documentary',label:'Documentary (5-day)',type:'Documentary',items:[
+    {dept:'F - Talents',description:'Principal subjects (2)',qty:2,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:200000},
+    {dept:'E - Creative Team',description:'DOP / camera',qty:1,unit:'flat',rate:150000},
+    {dept:'K - Sound Team',description:'Sound recordist',qty:1,unit:'flat',rate:80000},
+    {dept:'D - Production Team',description:'Researcher / producer',qty:1,unit:'flat',rate:100000},
+    {dept:'S - Production Logistics',description:'Location permits',qty:3,unit:'item',rate:20000},
+    {dept:'S - Production Logistics',description:'Field transport',qty:5,unit:'day',rate:25000},
+    {dept:'T - Hospitality & Welfare',description:'Feeding (6 crew)',qty:5,unit:'day',rate:36000},
+    {dept:'T - Hospitality & Welfare',description:'Field accommodation',qty:4,unit:'day',rate:40000},
+    {dept:'Q - Makeup & Hair',description:'Hair & make-up (interview days)',qty:2,unit:'day',rate:10000},
+    {dept:'T - Hospitality & Welfare',description:'Unit supplies — water, consumables',qty:5,unit:'day',rate:5000},
+    {dept:'H - Camera & Grip Equipment',description:'Camera (run-and-gun)',qty:5,unit:'day',rate:30000},
+    {dept:'L - Sound Equipment',description:'Lapel & boom mics',qty:5,unit:'day',rate:10000},
+    {dept:'W - Post-Production Team',description:'Edit & grade',qty:1,unit:'flat',rate:200000},
+    {dept:'W - Post-Production Team',description:'Music licence / score',qty:1,unit:'flat',rate:60000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:90000},
+  ]},
+  {id:'branded',label:'TV / Online Commercial',type:'Branded Content',items:[ // built from NEW_BUDGET_TEMPLATE.xlsx — structure only, rates left at 0 for the producer to fill in
+    {dept:'D - Production Team',description:'Producer',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Director',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'1st Assistant Director',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Models',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Extras (background audience)',qty:1,unit:'day',rate:0},
+    {dept:'D - Production Team',description:'Production managers',qty:1,unit:'day',rate:0},
+    {dept:'D - Production Team',description:'Production coordinators',qty:1,unit:'day',rate:0},
+    {dept:'D - Production Team',description:'Runners',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'DOP',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Camera operators',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Camera assistants',qty:1,unit:'day',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera',qty:1,unit:'day',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera accessories (lens, track/dolly, steadicam, etc.)',qty:1,unit:'day',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Grip',qty:1,unit:'day',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Grip accessories',qty:1,unit:'day',rate:0},
+    {dept:'K - Sound Team',description:'Sound engineer and equipment',qty:1,unit:'day',rate:0},
+    {dept:'I - Light & Power Team',description:'Gaffer + best boy',qty:1,unit:'day',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Lighting accessories',qty:1,unit:'day',rate:0},
+    {dept:'M - Art Team',description:'Art director, crew and set-up',qty:1,unit:'day',rate:0},
+    {dept:'P - Wardrobe',description:'Wardrobe for talent',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Hair and make-up',qty:1,unit:'day',rate:0},
+    {dept:'P - Wardrobe',description:'Stylist',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Protocol officers',qty:1,unit:'day',rate:0},
+    {dept:'O - Location',description:'Location 1',qty:1,unit:'day',rate:0},
+    {dept:'O - Location',description:'Location 2',qty:1,unit:'day',rate:0},
+    {dept:'S - Production Logistics',description:'Transportation — crew',qty:1,unit:'day',rate:0},
+    {dept:'S - Production Logistics',description:'Transportation — talent',qty:1,unit:'day',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Catering — crew and talent',qty:4,unit:'day',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Catering — client',qty:2,unit:'day',rate:0},
+    {dept:'W - Post-Production Team',description:'Graphics',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Title sequence',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Music',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Sound pack',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Photography (stills)',qty:1,unit:'day',rate:0},
+    {dept:'W - Post-Production Team',description:'Editor',qty:1,unit:'item',rate:0},
+    {dept:'W - Post-Production Team',description:'Colorist',qty:1,unit:'item',rate:0},
+    {dept:'W - Post-Production Team',description:'Final mix',qty:1,unit:'item',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Hard drives, etc.',qty:2,unit:'item',rate:0},
+  ]},
+  {id:'animation',label:'Animation / Cartoon',type:'Animation / Cartoon',items:[
+    {dept:'F - Talents',description:'Lead voice actor',qty:1,unit:'flat',rate:150000},
+    {dept:'F - Talents',description:'Supporting voice cast (3)',qty:3,unit:'person',rate:50000},
+    {dept:'W - Post-Production Team',description:'Animation director',qty:1,unit:'flat',rate:300000},
+    {dept:'W - Post-Production Team',description:'Lead character animator',qty:1,unit:'flat',rate:200000},
+    {dept:'W - Post-Production Team',description:'Background / environment artist',qty:1,unit:'flat',rate:100000},
+    {dept:'W - Post-Production Team',description:'Storyboard artist',qty:1,unit:'flat',rate:80000},
+    {dept:'W - Post-Production Team',description:'Colourist / compositor',qty:1,unit:'flat',rate:120000},
+    {dept:'W - Post-Production Team',description:'Sound designer & composer',qty:1,unit:'flat',rate:100000},
+    {dept:'X - Post-Production Expenses',description:'Animation workstations (2)',qty:2,unit:'item',rate:50000},
+    {dept:'X - Post-Production Expenses',description:'Software licences',qty:1,unit:'flat',rate:80000},
+    {dept:'X - Post-Production Expenses',description:'Drawing tablets',qty:2,unit:'item',rate:30000},
+    {dept:'X - Post-Production Expenses',description:'Recording studio (voice)',qty:1,unit:'day',rate:60000},
+    {dept:'T - Hospitality & Welfare',description:'Feeding — studio and voice days',qty:5,unit:'day',rate:15000},
+    {dept:'W - Post-Production Team',description:'Episode render & assembly',qty:1,unit:'flat',rate:80000},
+    {dept:'W - Post-Production Team',description:'Sound mix & subtitles',qty:1,unit:'flat',rate:40000},
+    {dept:'Y - PR & Marketing',description:'Promo art & trailer',qty:1,unit:'flat',rate:50000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:130000},
+  ]},
+  {id:'creator',label:'Creator / Creative Studio — Brand Deal',type:'Creator Content',items:[
+    {dept:'E - Creative Team',description:'Creator / host fee',qty:1,unit:'flat',rate:150000},
+    {dept:'D - Production Team',description:'Videographer / second shooter',qty:1,unit:'day',rate:40000},
+    {dept:'D - Production Team',description:'Editor',qty:1,unit:'flat',rate:50000},
+    {dept:'H - Camera & Grip Equipment',description:'Camera & gear rental (if not owned)',qty:1,unit:'day',rate:25000},
+    {dept:'P - Wardrobe',description:'Styling for the shoot',qty:1,unit:'flat',rate:15000},
+    {dept:'S - Production Logistics',description:'Transport',qty:1,unit:'flat',rate:10000},
+    {dept:'X - Post-Production Expenses',description:'Editing software subscription (this project\'s share)',qty:1,unit:'flat',rate:8000},
+    {dept:'X - Post-Production Expenses',description:'Stock music / footage licensing',qty:1,unit:'flat',rate:10000},
+    {dept:'Y - PR & Marketing',description:'Paid promotion / boosting the content',qty:1,unit:'flat',rate:30000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:34000},
+  ]},
+  {id:'podcast',label:'Podcast — Per Episode',type:'Podcast',items:[
+    {dept:'F - Talents',description:'Host fee',qty:1,unit:'flat',rate:50000},
+    {dept:'F - Talents',description:'Co-host / guest fee',qty:1,unit:'flat',rate:30000},
+    {dept:'D - Production Team',description:'Audio engineer',qty:1,unit:'flat',rate:30000},
+    {dept:'S - Production Logistics',description:'Recording studio / room rental',qty:1,unit:'flat',rate:25000},
+    {dept:'L - Sound Equipment',description:'Mics, interface & soundproofing (owned gear share)',qty:1,unit:'flat',rate:10000},
+    {dept:'W - Post-Production Team',description:'Episode editing & mixing',qty:1,unit:'flat',rate:40000},
+    {dept:'X - Post-Production Expenses',description:'Intro / outro music licensing',qty:1,unit:'flat',rate:5000},
+    {dept:'X - Post-Production Expenses',description:'Transcription',qty:1,unit:'flat',rate:8000},
+    {dept:'X - Post-Production Expenses',description:'Hosting platform fee (monthly share)',qty:1,unit:'flat',rate:5000},
+    {dept:'Y - PR & Marketing',description:'Social clips / cutdowns for promotion',qty:2,unit:'item',rate:10000},
+    {dept:'V - Production Support',description:'Contingency (10%)',qty:1,unit:'flat',rate:21300},
+  ]},
+];
+
+/* ── Creators ── */
+const CREATORS=[
+  {id:'c1',name:'Zestyn Media',role:'Production Company',loc:'Lagos',verified:true,downloads:196},
+  {id:'c2',name:'Lagos Digital Lab',role:'Digital Studio',loc:'Lagos',verified:true,downloads:98},
+  {id:'c3',name:'Rhythm House',role:'Music Video Director',loc:'Abuja',verified:true,downloads:87},
+  {id:'c4',name:'Pan-African Docs',role:'Documentary Studio',loc:'Accra',verified:false,downloads:63},
+  {id:'c5',name:'Toon Studios NG',role:'Animation Studio',loc:'Lagos',verified:true,downloads:35},
+  {id:'c6',name:'Indie Africa',role:'Independent Filmmaker',loc:'Nairobi',verified:false,downloads:41},
+];
+
+/* ── Vendor directory — service providers to hire, distinct from template-author Creators above ── */
+const VENDOR_CATEGORIES=['All','Hair & Makeup','Catering','Equipment Rental','Wardrobe & Costume','Location','Transport & Logistics','Security','Printing & Merchandise','Sound & Studio'];
+const VENDORS=[
+  {id:'v1',name:'Peculiar Taste Catering',category:'Catering',loc:'',contact:'+234 802 933 5102',verified:false},
+  {id:'v2',name:'Nkemdil Cooks',category:'Catering',loc:'',contact:'0806 287 3093',verified:false},
+  {id:'v3',name:'Abazee',category:'Equipment Rental',loc:'Lagos',contact:'+234 809 219 7797',verified:false},
+  {id:'v4',name:'Prints by H2H',category:'Printing & Merchandise',loc:'Abuja',contact:'0703 499 2881',verified:false,service:'Hardcover scripts, merch'},
+  {id:'v5',name:'Microom',category:'Sound & Studio',loc:'Lagos',contact:'+234 805 902 2131',verified:false,service:'Sound design / studio for hire'},
+];
+
+/* ── Community templates with bundled breakdown scenes ── */
+const mkScene=(num,heading,ie,dn,cast,props,notes)=>({
+  sceneNumber:num,heading,intExt:ie,dayNight:dn,timeNotes:'',
+  cast:cast||[],extras:'',location:heading.split(' - ')[0].replace(/INT\.|EXT\./,'').trim(),
+  props:props||[],vehicles:[],wardrobe:[],hairMakeup:'Per character brief',
+  specialEquip:[],vfxSfx:'None',sound:'Location sound',languageNotes:'',notes:notes||''
+});
+
+const COMMUNITY_TEMPLATES=[
+  {id:'ct1',label:'Nollywood TV Drama',author:'Zestyn Media',type:'Feature Film',
+   sub:'13-episode primetime drama',downloads:142,
+   items:TEMPLATES.find(t=>t.id==='feature').items,
+   scenes:[
+     mkScene('1','INT. HOUSE - DAY','INT','DAY',['Lead','Mother'],'Phone, documents','Establish character world before conflict'),
+     mkScene('2','EXT. STREET - DAY','EXT','DAY',['Lead','Antagonist'],'Car, bag','Traffic control permit required'),
+     mkScene('3','INT. OFFICE - DAY','INT','DAY',['Lead','Boss','Secretary'],'Files, laptop','Lock location night before'),
+     mkScene('4','EXT. COMPOUND - NIGHT','EXT','NIGHT',['Lead','Antagonist'],'Torch','Night shoot — budget extra feeding and transport'),
+   ]},
+  {id:'ct2',label:'Vertical Thriller Series',author:'Lagos Digital Lab',type:'Vertical Series / Microdrama',
+   sub:'Social media vertical, 60-90 sec episodes',downloads:98,
+   items:TEMPLATES.find(t=>t.id==='vertical').items,
+   scenes:[
+     mkScene('Ep 1','INT. SITTING ROOM - DAY','INT','DAY',['Lead','Mother-in-law'],'Phone, food items','Shoot multiple scenes per location per day'),
+     mkScene('Ep 2','EXT. COMPOUND - DAY','EXT','DAY',['Lead','Neighbour'],'Luggage, broom','Compound scenes — drone for establishing shot'),
+     mkScene('Ep 3-5','INT / EXT. VARIOUS - DAY','INT','DAY',['All main cast'],'Per scene','Block shoot by location to save time and budget'),
+   ]},
+  {id:'ct3',label:'Afrobeats Music Video',author:'Rhythm House',type:'Music Video',
+   sub:'Performance and narrative hybrid, 2-day shoot',downloads:87,
+   items:TEMPLATES.find(t=>t.id==='musicvideo').items,
+   scenes:[
+     mkScene('Perf','EXT. HERO LOCATION - DAY','EXT','DAY',['Artist','Dancers x6'],'Mic prop, branded items','Shoot performance first while energy is high'),
+     mkScene('Narr','INT. STORY LOCATION - DAY','INT','DAY',['Artist','Co-star'],'Story props','Keep narrative and performance on separate halves of the day'),
+   ]},
+  {id:'ct4',label:'Documentary Dispatch',author:'Pan-African Docs',type:'Documentary',
+   sub:'Field journalism, East African rates',downloads:63,
+   items:TEMPLATES.find(t=>t.id==='documentary').items,
+   scenes:[
+     mkScene('OTV','EXT. ESTABLISHING - DAY','EXT','DAY',[],'None','Record 5 min of wild track on arrival'),
+     mkScene('INT','INT. INTERVIEW SETUP - DAY','INT','DAY',['Subject'],'Background items','Turn off AC before rolling'),
+     mkScene('OBS','EXT. OBSERVATIONAL - DAY','EXT','DAY',['Subject'],'Whatever is naturally there','Disappear — do not direct the subject'),
+   ]},
+  {id:'ct5',label:'Brand Content Series',author:'Zestyn Media',type:'Branded Content',
+   sub:'Branded episodic, corporate client',downloads:54,
+   items:TEMPLATES.find(t=>t.id==='branded').items,
+   scenes:[
+     mkScene('Hero','INT. STUDIO - DAY','INT','DAY',['Host'],'Product prominently placed','Send shot list to client before shoot day'),
+     mkScene('Test','INT. CLEAN INTERIOR - DAY','INT','DAY',['Customer / talent'],'Product natural in frame','Get 5 takes minimum — clients always want variations'),
+   ]},
+  {id:'ct6',label:'Festival Short Film',author:'Indie Africa',type:'Short Film',
+   sub:'15-minute short, festival circuit',downloads:41,
+   items:TEMPLATES.find(t=>t.id==='shortfilm').items,
+   scenes:[
+     mkScene('1','INT. ROOM - DAY','INT','DAY',['Lead'],'Letter, phone','This scene sets the entire film — spend time on it'),
+     mkScene('2','EXT. STREET - DAY','EXT','DAY',['Lead','Stranger'],'The letter from scene 1','Guerrilla shoot if possible'),
+     mkScene('3','INT. LOCATION - DUSK','INT','DUSK',['Lead'],'Minimal','End on an image not a speech'),
+   ]},
+  {id:'ct7',label:'African Cartoon Episode',author:'Toon Studios NG',type:'Animation / Cartoon',
+   sub:'2D animated episode, African studio pipeline',downloads:35,
+   items:TEMPLATES.find(t=>t.id==='animation').items,
+   scenes:[
+     mkScene('Rec','INT. RECORDING STUDIO - DAY','INT','DAY',['Lead VA','Supporting VAs'],'Scripts, water, snacks','Record characters separately where possible'),
+     mkScene('Board','INT. ANIMATION STUDIO - DAY','INT','DAY',['Director','Lead Animator'],'Storyboards, monitor','Do not animate until animatic is approved'),
+     mkScene('Anim','INT. STUDIO - MULTI-DAY','INT','DAY',[],'Workstations, tablets','Block by character across all scenes — faster than scene-by-scene'),
+   ]},
+];
+const MKTCAT=['All','Feature Film','Vertical Series / Microdrama','Music Video','Documentary','Short Film','Branded Content','Creator Content','Podcast','Animation / Cartoon'];
+
+/* ── AI Prompts ── */
+const CHAT_SYS=`You are a production finance co-pilot for African film and TV productions. You know Lagos, Accra, Nairobi and Johannesburg market rates. Give practical, specific advice in Naira, Cedis, Shillings or Rand as appropriate. Keep responses concise and actionable. IMPORTANT: Do not use any Markdown formatting. No asterisks for bold, no # for headers, no | for tables, no bullet points with *. Write in plain conversational text only. Use line breaks to separate points.`;
+const INVOICE_SYS=`You are a production accounting AI reading a raw vendor invoice or receipt for an African film production. Return ONLY valid JSON. No markdown. No code fences.
+
+Read the invoice exactly as given — extract the actual vendor name, actual line items and their real amounts, and the actual total as printed. Do not invent, round, or estimate a number that isn't on the document. If a field genuinely isn't present (no visible date, no vendor name), leave it as an empty string rather than guessing.
+
+For suggestedDept, pick the single best-fitting department from this exact list based on what the invoice is actually for: ${DEPTS.join(', ')}. This is a suggestion the producer will confirm or change, not a final answer — pick your best read, but don't agonize if the invoice is ambiguous.`;
+const INVOICE_PROMPT=cur=>`Extract this invoice as JSON: {"vendor":"string","date":"string","lineItems":[{"description":"string","amount":number}],"totalAmount":number,"currency":"${cur}","suggestedDept":"string"}`;
+const recoverInvoice=raw=>{
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+  const start=s.indexOf('{');if(start===-1)return null;
+  try{return JSON.parse(s.slice(start));}catch{}
+  return null;
+};
+const SCRIPT_SYS_LIVE_ACTION=`You are a script budget AI for African film productions. Return ONLY valid JSON. No markdown. No code fences. No apostrophes in strings.
+
+You must classify every budget line into exactly one of these 26 department codes. Use the string EXACTLY as written below, including the letter prefix. Never invent a new department name.
+
+A - Research & Development
+B - Script & Story
+C - Pre-Production Expenses
+D - Production Team
+E - Creative Team
+F - Talents
+G - Camera & Grip Team
+H - Camera & Grip Equipment
+I - Light & Power Team
+J - Light & Power Equipment
+K - Sound Team
+L - Sound Equipment
+M - Art Team
+N - Set & Prop Expenses
+O - Location
+P - Wardrobe
+Q - Makeup & Hair
+R - SFX & Stunts
+S - Production Logistics
+T - Hospitality & Welfare
+U - Overhead & General Expenses
+V - Production Support
+W - Post-Production Team
+X - Post-Production Expenses
+Y - PR & Marketing
+Z - Sales & Distribution
+
+Classification rules, follow these closely:
+- Producer, Line Producer, Production Manager, Unit Manager, Accountant, Production Assistant, Production Coordinator -> D - Production Team
+- Director, DOP, 1st/2nd/3rd AD, Script Supervisor, Continuity Supervisor, dialect or cultural consultants working with the director -> E - Creative Team
+- Any actor, cast member, lead or supporting performer, background extras, on-camera performers of any kind including ritual performers, musical guest performers, wrestling or fight performers appearing on camera -> F - Talents
+- Camera operators, focus pullers, camera assistants, drone or steadicam operators, key grip, gaffers grip crew -> G - Camera & Grip Team
+- Cameras, lenses, tripods, cranes, drones, camera consumables -> H - Camera & Grip Equipment
+- Gaffer, best boy electric, lighting technicians, electricians -> I - Light & Power Team
+- Lights, generators, power equipment -> J - Light & Power Equipment
+- Sound recordist, boom operator, sound mixer, sound assistant -> K - Sound Team
+- Microphones, recorders, sound equipment -> L - Sound Equipment
+- Production designer, art director, props master, set dressers, artisans -> M - Art Team
+- Set construction, prop purchases or rentals, set materials -> N - Set & Prop Expenses
+- Location fees, location manager, location scouting, location permits -> O - Location
+- Costume designer, wardrobe manager or stylist, costume purchase, rental or dry cleaning -> P - Wardrobe
+- Makeup artist, hair stylist, body paint or traditional makeup specialists, makeup and hair supplies -> Q - Makeup & Hair
+- Stunt coordinator, stunt performers acting purely as stunt doubles or riggers, fight choreographer, special effects supervisor, pyrotechnics, practical FX, SFX makeup, prop fabrication tied to stunts or effects such as masks or weapons -> R - SFX & Stunts
+- Vehicles, fuel, transport, travel, security -> S - Production Logistics
+- Feeding, accommodation, welfare, medical, water, craft services -> T - Hospitality & Welfare
+- Insurance, general permits, bank charges -> U - Overhead & General Expenses
+- Legal, audit, tax, safety consulting -> V - Production Support
+- Editor, colorist, sound designer, VFX artist, composer -> W - Post-Production Team
+- Editing suite, hard drives, music or footage licensing -> X - Post-Production Expenses
+- Posters, publicity, social media, press -> Y - PR & Marketing
+- Distribution, festival runs, DCP generation -> Z - Sales & Distribution
+
+If an item does not obviously fit, choose the single closest department from the list above. Never return a department that is not in this list, and never leave dept blank.`;
+const SCRIPT_SYS_ANIMATION=`You are a script budget AI for African ANIMATED productions specifically. Return ONLY valid JSON. No markdown. No code fences. No apostrophes in strings.
+
+This is an animated production. There is no physical set, no camera crew, no on-set lighting crew, no physical location, no on-camera wardrobe or makeup for characters, and no physical stunts — do NOT invent live-action production costs just because the script reads like a normal screenplay with scene descriptions and action lines. Read it as a story to be animated, not a shoot to be filmed.
+
+You must classify every budget line into exactly one of these 26 department codes. Use the string EXACTLY as written below, including the letter prefix. Never invent a new department name, and never use a physical-production department this list rules out below.
+
+A - Research & Development
+B - Script & Story
+C - Pre-Production Expenses
+D - Production Team
+E - Creative Team
+F - Talents
+T - Hospitality & Welfare
+U - Overhead & General Expenses
+V - Production Support
+W - Post-Production Team
+X - Post-Production Expenses
+Y - PR & Marketing
+Z - Sales & Distribution
+
+Classification rules for animation, follow these closely:
+- Writer, story consultant, script development -> B - Script & Story
+- Character design, concept art, style frames, world-building art done before production begins -> C - Pre-Production Expenses
+- Producer, Line Producer, Production Manager, Production Coordinator -> D - Production Team
+- Director, animation supervisor working with the director on creative direction -> E - Creative Team
+- Voice actors, voice cast, ADR performers -> F - Talents
+- Animation director, supervising animator, character animator, layout artist, background/environment artist, storyboard artist, rigger, colorist/compositor, VFX artist, render wrangler, editor, sound designer, composer, foley artist -> W - Post-Production Team
+- Animation workstations, drawing tablets, rigging/animation/compositing software licenses, render farm or cloud rendering costs, recording studio time for voice sessions, hard drives, asset storage -> X - Post-Production Expenses
+- Feeding, welfare, or accommodation for studio days or voice recording sessions -> T - Hospitality & Welfare
+- Studio rent, general overhead, insurance, bank charges -> U - Overhead & General Expenses
+- Legal, audit, contingency -> V - Production Support
+- Promo art, trailer, key art, social media, press -> Y - PR & Marketing
+- Festival submission, distribution, delivery -> Z - Sales & Distribution
+
+Never use G, H, I, J, K, L, M, N, O, P, Q, R, or S for an animated production — those departments describe physical-set production (camera, lighting, sound recording on set, art department construction, locations, wardrobe, makeup, stunts, logistics) that does not exist here. If an item does not obviously fit the departments above, choose the single closest one from this animation-specific list — never fall back to a physical-production department.`;
+const SCRIPT_SYS=projectType=>projectType==='Animation / Cartoon'?SCRIPT_SYS_ANIMATION:SCRIPT_SYS_LIVE_ACTION;
+const SCRIPT_PROMPT=(cur)=>`Analyze this script and return a production budget as JSON: {"title":"string","budget":[{"dept":"string","description":"string","qty":number,"unit":"string","rate":number,"currency":"${cur}"}],"summary":"string"}`;
+const BREAKDOWN_SYS=`You are a script breakdown AI for African film productions. Return ONLY valid JSON. No markdown. No apostrophes. Keep values short and clean.
+
+When classifying cast tier, judge by NARRATIVE ROLE — dialogue volume, plot centrality, whether the story revolves around them — not by how many scenes they physically appear in. A character can appear in few scenes but be a lead (a pivotal late-story reveal); a character can appear in many short scenes and still be background (a recurring extra with no dialogue). Use these four tiers only: "lead", "supporting", "background", "extra". If you're genuinely unsure, prefer "supporting" over guessing lead or extra at the extremes.
+
+For vehicles, extract PICTURE VEHICLES — any vehicle actually used in the story, including taxis, trains, buses, military vehicles, motorcycles, and vehicles involved in accidents or action, not just personal cars. If the script indicates a vehicle is present, used, ridden in, or involved in an event (a character takes a taxi, boards a train, is thrown into a military van, a car crashes), extract it. Do not extract vehicles that are purely incidental background traffic with no story involvement, and do not invent a vehicle that isn't actually indicated by the scene text.
+
+For crowd sizes: talkingExtras and backgroundActors are handled differently, because a talking extra has a line and needs to be identifiable for continuity and payment, while a silent background person doesn't.
+- talkingExtras: an ARRAY of names or functional labels for people who have a line, a reaction beat, or featured business in THIS scene but aren't a main named character — e.g. ["Vendor", "Guard 1"]. Use whatever the script calls them (a script often labels a minor speaking part like "WOMAN AT MARKET" or "GUARD 1" even without a proper name) — that label IS their identity for scheduling purposes. If the same label has lines in multiple scenes, use the identical label each time so it's clear it's the same role recurring.
+- backgroundActors: a NUMBER — silent atmosphere people only, a crowd, a queue, bystanders with no line. Read actual scale language in the scene ("the hall is packed", "fifty recruits line up", "a handful of onlookers") and give your best real number based on what the text describes — a packed hall or a stated crowd is not 2 or 3 people.
+If a scene has neither, use an empty array for talkingExtras and 0 for backgroundActors — do not invent people or a number where the script gives no basis for one.`;
+const BREAKDOWN_PROMPT=(ep,max)=>`${ep?`Multi-episode script: ONE entry per episode.`:`Extract EVERY scene in the script, however many there are — do not stop early or cap the count to match some expected length. If the script genuinely has 70, 90, or 120+ scenes, extract all of them.`} (Hard safety ceiling, should not normally apply: ${max} ${ep?'episodes':'scenes'} max.) If dialogue is in a specific language (e.g. Yoruba, Igbo, Hausa, Pidgin) or needs subtitles, note it in languageNotes. If the script states a specific time (e.g. "Morning (9AM)", "Same time as previous scene", "5PM"), capture it in timeNotes — otherwise leave timeNotes blank.
+Return ONLY this JSON shape, with "characters" FIRST and "scenes" SECOND — this order matters, characters must be complete even if the scenes list is very long: {"characters":[{"name":"Name","tier":"lead"}],"scenes":[{"sceneNumber":"1","heading":"INT. LOCATION - DAY","intExt":"INT","dayNight":"DAY","timeNotes":"","synopsis":"Brief description","cast":["Name"],"talkingExtras":[],"backgroundActors":0,"location":"Place","props":["Prop"],"vehicles":[],"wardrobe":[],"hairMakeup":"","specialEquip":[],"vfxSfx":"None","sound":"","languageNotes":"","notes":""}]} — the "characters" array must include every named cast member across all scenes, exactly once each, with your judged tier.`;
+const QUICK=['Day rate for DOP in Lagos?','Estimate 1-day music video in Naira','Structure cash advances for crew','Contingency % for Nollywood?','Post costs for 5-episode vertical?','Mobile money payments in Kenya?'];
+
+/* ── Helpers ── */
+const today=()=>new Date().toISOString().slice(0,10);
+const fmt=n=>Number(n||0).toLocaleString('en',{maximumFractionDigits:0});
+/* Every PDF export builds an HTML string from user-typed fields (descriptions, synopses,
+   notes, names) and renders it via document.write(). Without escaping, a producer typing
+   e.g. <script>...</script> into a budget line or scene synopsis would have it EXECUTE when
+   the generated document opens — a real stored-XSS path, not a theoretical one. Every piece
+   of user-supplied text interpolated into any exported HTML must go through this first. */
+const callClaude=async(msgs,sys,maxTokens=8000)=>{
+  const r=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,messages:msgs,max_tokens:maxTokens})});
+  if(!r.ok){
+    if(r.status===504)throw new Error('The request took too long and timed out. This usually happens on very long scripts — try a shorter excerpt, or ask about increasing the server timeout.');
+    throw new Error(`API ${r.status}`);
+  }
+  const d=await r.json();
+  return d.content?.map(c=>c.text||'').join('')||'';
+};
+const escapeHtml=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const sym=code=>(CURRENCIES.find(c=>c.code===code)||CURRENCIES[0]).symbol;
+const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
+/* Client-side PDF text extraction via PDF.js — avoids the Vercel 4.5MB request-body limit
+   that base64-encoding a whole PDF would otherwise hit, since screenplay TEXT is tiny
+   compared to the binary PDF itself. Loads the library from cdnjs on first use only. */
+const extractPdfText=async file=>{
+  if(!window.pdfjsLib){
+    await new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js';
+      script.onload=resolve;script.onerror=()=>reject(new Error('Could not load the PDF reader library.'));
+      document.head.appendChild(script);
+    });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
+  }
+  const buf=await file.arrayBuffer();
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    text+=content.items.map(it=>it.str).join(' ')+'\n';
+  }
+  return text;
+};
+const readB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
+const readTxt=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(f);});
+const readImg=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);});
+/* ── Scene length in eighths of a page (the stripboard standard) ── */
+const fmtPages8=e=>{e=Math.round(Number(e)||0);if(e<=0)return'—';const w=Math.floor(e/8),r=e%8;return w&&r?`${w} ${r}/8`:w?`${w}`:`${r}/8`;};
+const parsePages8=t=>{
+  const s=String(t??'').trim();if(!s)return null;
+  let m=s.match(/^(\d+)\s+(\d)\s*\/\s*8$/);if(m)return Number(m[1])*8+Number(m[2]);
+  m=s.match(/^(\d)\s*\/\s*8$/);if(m)return Number(m[1]);
+  if(/^\d+(?:\.\d+)?$/.test(s))return Math.round(parseFloat(s)*8);
+  return null;
+};
+const SCENE_HEAD=/^\s*(?:\d+[A-Z]{0,2}[\s.)-]+)?(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E|INT|EXT)\b[\s.\/-]/i;
+const normHead=t=>String(t||'').toUpperCase().replace(/^\s*\d+[A-Z]{0,2}[\s.)-]+/,'').replace(/[^A-Z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+/* lines: [{page, y, text, h}] — y is the distance DOWN from the top of the page body, in points.
+   pageBody is the height of one page of body text. A scene runs from its heading to the next heading. */
+const layoutScenePages=(lines,pageBody)=>{
+  const ordered=lines.slice().sort((a,b)=>a.page-b.page||a.y-b.y);
+  const heads=[];let last=0;
+  ordered.forEach(l=>{
+    const pos=(l.page-1)*pageBody+l.y;last=Math.max(last,pos+(l.h||12));
+    if(l.text.length<140&&SCENE_HEAD.test(l.text))heads.push({text:l.text.trim(),pos});
+  });
+  return heads.map((h,i)=>{const end=i+1<heads.length?heads[i+1].pos:last;return{heading:h.text,eighths:Math.max(1,Math.round((end-h.pos)/pageBody*8))};});
+};
+const ensurePdfJs=async()=>{
+  if(window.pdfjsLib)return;
+  await new Promise((resolve,reject)=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js';
+    sc.onload=resolve;sc.onerror=()=>reject(new Error('Could not load the PDF reader library.'));
+    document.head.appendChild(sc);
+  });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
+};
+/* Reads real line positions out of a script PDF, so page lengths are measured, not guessed. */
+const measureScenePages=async file=>{
+  await ensurePdfJs();
+  const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  const lines=[];let body=0;
+  for(let n=1;n<=pdf.numPages;n++){
+    const page=await pdf.getPage(n);const H=page.getViewport({scale:1}).height;
+    const top=72,bottom=72;body=H-top-bottom;
+    const tc=await page.getTextContent();const rows={};
+    tc.items.forEach(it=>{if(!it.str||!it.str.trim())return;const y=it.transform[5];const k=Math.round(y/2);(rows[k]=rows[k]||[]).push({x:it.transform[4],s:it.str,y});});
+    Object.values(rows).forEach(r=>{
+      r.sort((a,b)=>a.x-b.x);
+      const text=r.map(i=>i.s).join(' ').replace(/\s+/g,' ').trim();
+      const fromTop=H-r[0].y;
+      if(fromTop<top-8||fromTop>H-bottom+12)return;   // page numbers, running headers and footers
+      if(/^\d+\.?$/.test(text))return;
+      lines.push({page:n,y:fromTop-top,text,h:12});
+    });
+  }
+  const res=layoutScenePages(lines,body);res.numPages=pdf.numPages;return res;
+};
+/* Plain-text scripts have no page layout, so this is an estimate (about 56 lines to a page). */
+const estimateTxtPages=text=>{
+  const lines=String(text||'').split(/\r?\n/);const heads=[];
+  lines.forEach((l,i)=>{if(l.length<140&&SCENE_HEAD.test(l))heads.push({text:l.trim(),pos:i});});
+  return heads.map((h,i)=>{const end=i+1<heads.length?heads[i+1].pos:lines.length;return{heading:h.text,eighths:Math.max(1,Math.round((end-h.pos)/56*8))};});
+};
+const attachPageLengths=(scenes,measured,source)=>{
+  if(!measured||!measured.length)return scenes;
+  /* Only trust a measurement that adds up. If it does not, the page lengths are left out rather than shown wrong. */
+  const total=measured.reduce((a,m)=>a+m.eighths,0)/8;
+  if(measured.numPages&&(total>measured.numPages*1.2||total<measured.numPages*0.5))return scenes;      // scenes should add up to roughly the script's pages
+  const ratio=measured.length/Math.max(1,scenes.length);
+  if(ratio<0.87||ratio>1.15)return scenes;                                                              // headings found should match the scenes read
+  const out=scenes.map(s=>({...s}));
+  if(measured.length===out.length){out.forEach((s,i)=>{s.pages8=measured[i].eighths;s.pages8Source=source;});return out;}
+  let cur=0,hit=0;
+  out.forEach(s=>{const key=normHead(s.heading);for(let j=cur;j<measured.length;j++){if(normHead(measured[j].heading)===key){s.pages8=measured[j].eighths;s.pages8Source=source;cur=j+1;hit++;break;}}});
+  return hit>=out.length*0.9?out:scenes;                                                                // most scenes must match, or none are used
+};
+/* ── Cast numbering, like the cast legend on a stripboard ── */
+const TIER_RANK={lead:0,supporting:1,background:2,extra:3};
+const buildCastIndex=(sortedScenes,characters)=>{
+  const tierOf=n=>(characters||[]).find(c=>c.name===n)?.tier;
+  const count={},first={};
+  sortedScenes.forEach((sc,i)=>(sc.cast||[]).forEach(n=>{count[n]=(count[n]||0)+1;if(first[n]==null)first[n]=i;}));
+  const names=Object.keys(count).sort((a,b)=>(TIER_RANK[tierOf(a)]??1)-(TIER_RANK[tierOf(b)]??1)||count[b]-count[a]||first[a]-first[b]);
+  const idx={};names.forEach((n,i)=>{idx[n]=i+1;});
+  return{idx,list:names.map(n=>({id:idx[n],name:n,tier:tierOf(n)||'',scenes:count[n]}))};
+};
+/* ── Strip colours: white INT day · yellow EXT day · green INT night · blue EXT night · orange evening ── */
+const todClass=sc=>{const t=`${sc.dayNight||''} ${sc.timeNotes||''}`.toUpperCase();if(/EVEN|DUSK|DAWN|SUNSET|SUNRISE/.test(t))return'eve';if(/NIGHT/.test(t))return'night';return'day';};
+const isExtScene=sc=>/^EXT/i.test(String(sc.intExt||'').trim())||(!sc.intExt&&/^\s*\d*[A-Z]{0,2}[\s.)-]*EXT/i.test(sc.heading||''));
+const stripStyle=sc=>{
+  const c=todClass(sc),ext=isExtScene(sc);
+  if(c==='eve')return{bg:'#FF9933',fg:'#111111'};
+  if(c==='night')return ext?{bg:'#1F3BFF',fg:'#FFFFFF'}:{bg:'#0B9A2A',fg:'#FFFFFF'};
+  return ext?{bg:'#FFF35C',fg:'#111111'}:{bg:'#FFFFFF',fg:'#111111'};
+};
+/* ── Schedule: dates, auto-build, and the two printable documents ── */
+const addIsoDays=(iso,n)=>{const d=new Date(`${iso}T12:00:00`);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+const dowOf=iso=>new Date(`${iso}T12:00:00`).getDay();
+const longDate=iso=>iso?new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'No date set';
+const shortDate=iso=>iso?new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):'No date';
+const ordinal=n=>{const sfx=['th','st','nd','rd'],v=n%100;return n+(sfx[(v-20)%10]||sfx[v]||sfx[0]);};
+const stripDateBar=iso=>{if(!iso)return'NO DATE SET';const d=new Date(`${iso}T12:00:00`);return`${d.toLocaleDateString('en-GB',{weekday:'long'}).toUpperCase()} ${ordinal(d.getDate()).toUpperCase()} ${d.toLocaleDateString('en-GB',{month:'long'}).toUpperCase()} ${d.getFullYear()}`;};
+const nextMonday=()=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+((8-d.getDay())%7||7));return d.toISOString().slice(0,10);};
+const sceneLoc=sc=>sc.location||String(sc.heading||'').replace(/^\s*\d*[A-Z]{0,2}[\s.)-]*(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E|INT|EXT)\.?\s*/i,'').replace(/\s*[-–—]\s*(?:DAY|NIGHT|EVENING|MORNING|AFTERNOON|DUSK|DAWN|CONTINUOUS|LATER|SAME).*$/i,'').trim();
+const MEALS=['Breakfast','Lunch','Dinner'];
+const todLabel=sc=>{const c=todClass(sc);return c==='eve'?'Evening':c==='night'?'Night':'Day';};
+const bgText=sc=>{const p=[];if(Number(sc.backgroundActors)>0)p.push(`${sc.backgroundActors} extras`);(sc.talkingExtras||[]).forEach(t=>p.push(t));return p.join(', ');};
+/* Groups scenes by location (so a company is not moved around), keeps day scenes before night scenes at a location,
+   and fills each day up to the target page count. A scene with no page length counts as one page. */
+const suggestDays=({scenes,pagesPerDay,startDate,skipSundays})=>{
+  const target=Math.max(8,Math.round(pagesPerDay*8));
+  const order={day:0,eve:1,night:2};const groups=[],map={};
+  scenes.forEach((sc,i)=>{const k=normHead(sceneLoc(sc))||'?';if(!(k in map)){map[k]=groups.length;groups.push([]);}groups[map[k]].push({sc,i});});
+  const flat=[];groups.forEach(g=>{g.sort((a,b)=>order[todClass(a.sc)]-order[todClass(b.sc)]||a.i-b.i);g.forEach(x=>flat.push(x.sc));});
+  const buckets=[];let cur=null,load=0;
+  flat.forEach(sc=>{const e=sc.pages8>0?sc.pages8:8;if(!cur||(load+e>target&&cur.length)){cur=[];buckets.push(cur);load=0;}cur.push(sc.id);load+=e;});
+  const out=[];let date=startDate;
+  buckets.forEach(ids=>{
+    while(skipSundays&&dowOf(date)===0){out.push({kind:'off',date,title:'DAY OFF',scene_ids:[]});date=addIsoDays(date,1);}
+    out.push({kind:'shoot',date,scene_ids:ids});date=addIsoDays(date,1);
+  });
+  return out;
+};
+const openPrintable=html=>{const w=window.open('','_blank');if(!w){alert('Your browser blocked the new tab — allow pop-ups for NKÒ and try again.');return;}w.document.write(html);w.document.close();};
+const PRINT_BAR=`<div class="np" style="background:#f3f1ec;padding:12px;text-align:center;border-bottom:1px solid #ccc"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#666;font-size:11px;margin-top:6px">Save the PDF, then share it on WhatsApp or email</div></div>`;
+
+/* ── Export colour: every PDF export opens with a Charcoal | White switch. The page is built in its own native
+   colours and re-coloured live in the browser, so there is nothing to regenerate and nothing is forced. ── */
+const THEME_D2W={'#141414':'#ffffff','#1c1c1e':'#f4f3ee','#242424':'#ebe9e2','#2a2a2a':'#e3e0d8','#3a3a3a':'#cfccc2','#5a5a5a':'#8a8a8a','#9a9080':'#6b665c','#8c852e':'#6f6414','#f0e8d0':'#1a1a1a','#52b07a':'#2e7d4f','#e06b52':'#c0432b','#1f3a2b':'#dcefe3'};
+const THEME_W2D={'#ffffff':'#141414','#fff':'#141414','#111':'#f0e8d0','#111111':'#f0e8d0','#eee':'#242424','#ddd':'#3a3a3a','#ccc':'#3a3a3a','#bbb':'#4a4a4a','#999':'#6a6a6a','#888':'#9a9080','#777':'#9a9080','#666':'#9a9080'};
+/* Runs inside the export window, so it must not use anything from the app: it is sent over as text. */
+function nkoThemeRuntime(NATIVE,D2W,W2D){
+  var KEY='nko_export_theme';var map=NATIVE==='dark'?D2W:W2D;
+  var els=[].slice.call(document.querySelectorAll('[style]')).filter(function(e){return !e.closest('.np')&&!e.closest('[data-keep]');});
+  els.forEach(function(e){e.setAttribute('data-s0',e.getAttribute('style'));});
+  var btns=[].slice.call(document.querySelectorAll('#nko-theme-bar button'));
+  function conv(str){
+    var out=str;
+    if(NATIVE==='dark'){out=out.replace(/(^|[;\s"'])color:\s*#feed61/gi,'$1color:#7a6500').replace(/(^|[;\s"'])color:\s*#3a3a3a/gi,'$1color:#8a8a8a');}
+    return out.replace(/#[0-9a-fA-F]{3,6}\b/g,function(h){var k=h.toLowerCase();return map[k]||h;});
+  }
+  function apply(t,save){
+    var dark=t==='dark',page=dark?'#141414':'#ffffff',ink=dark?'#f0e8d0':'#111111';
+    els.forEach(function(e){var b=e.getAttribute('data-s0');e.setAttribute('style',t===NATIVE?b:conv(b));});
+    document.documentElement.style.background=page;document.body.style.background=page;document.body.style.color=ink;
+    btns.forEach(function(b){var on=b.getAttribute('data-t')===t;b.style.background=on?'#FEED61':'#ffffff';b.style.color='#141414';b.style.fontWeight=on?'700':'400';b.style.borderColor=on?'#8C852E':'#bbbbbb';});
+    document.body.setAttribute('data-theme',t);
+    if(save){try{localStorage.setItem(KEY,t);}catch(e){}}
+  }
+  btns.forEach(function(b){b.addEventListener('click',function(){apply(b.getAttribute('data-t'),true);});});
+  var pref=null;try{pref=localStorage.getItem(KEY);}catch(e){}
+  apply(pref==='dark'||pref==='white'?pref:NATIVE,false);
+}
+const THEME_BAR=`<div class="np" id="nko-theme-bar" style="background:#f3f1ec;border-bottom:1px solid #d6d2c8;padding:10px 12px;text-align:center;font-family:Arial,sans-serif;font-size:12px;color:#333"><span style="margin-right:8px">Page colour</span><button data-t="dark" style="border:1px solid #bbb;border-radius:6px 0 0 6px;padding:6px 14px;cursor:pointer;font-size:12px">Charcoal</button><button data-t="white" style="border:1px solid #bbb;border-left:none;border-radius:0 6px 6px 0;padding:6px 14px;cursor:pointer;font-size:12px">White</button></div>`;
+const openThemed=(html,native)=>{
+  const runtime='<script>('+nkoThemeRuntime.toString()+')('+JSON.stringify(native)+','+JSON.stringify(THEME_D2W)+','+JSON.stringify(THEME_W2D)+');<\/script>';
+  const out=html.replace(/<head>/i,'<head><meta charset="utf-8">').replace('</head>','<style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:0}</style></head>').replace(/<body[^>]*>/,m=>m+THEME_BAR+'<div id="nko-sheet" style="padding:10mm;box-decoration-break:clone;-webkit-box-decoration-break:clone">').replace('</body>','</div>'+runtime+'</body>');
+  openPrintable(out);
+};
+/* The strip schedule, laid out like a production stripboard: cast legend, then day by day. */
+const scheduleStripPDF=(project,days,scenes,characters)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const sorted=sortScenes(scenes.map(normalizeScene));const castIdx=buildCastIndex(sorted,characters);
+  const byId=Object.fromEntries(sorted.map(s=>[s.id,s]));
+  const bar=(bg,txt)=>`<div data-keep="1" style="background:${bg};color:#fff;text-align:center;font-weight:700;font-size:14px;padding:12px 8px;margin:10px 0 6px;page-break-inside:avoid">${txt}</div>`;
+  let n=0,grand=0;const anyPg=sorted.some(s=>s.pages8>0);
+  const body=days.map(d=>{
+    if(d.kind!=='shoot')return bar('#111',escapeHtml(d.title||(d.kind==='off'?'DAY OFF':'NOTE'))+(d.kind==='off'&&d.date?` — ${escapeHtml(stripDateBar(d.date))}`:''));
+    n++;
+    const list=(d.scene_ids||[]).map(id=>byId[id]).filter(Boolean);
+    const tot=list.reduce((s,x)=>s+(Number(x.pages8)||0),0);grand+=tot;
+    const strips=list.map(sc=>{
+      const st=stripStyle(sc);const ids=(sc.cast||[]).map(c=>castIdx.idx[c]).filter(Boolean).sort((a,b)=>a-b);
+      return`<table data-keep="1" style="width:100%;border-collapse:collapse;table-layout:fixed;background:${st.bg};color:${st.fg};border:1px solid #000;page-break-inside:avoid"><colgroup><col style="width:46px"/><col/><col style="width:72px"/><col style="width:34%"/></colgroup><tr>
+        <td style="padding:5px 6px;font-size:12px;font-weight:700;vertical-align:top;text-align:center">${escapeHtml(sc.sceneNumber)}</td>
+        <td style="padding:5px 6px;font-size:11px;vertical-align:top"><div style="font-weight:700">${escapeHtml((sc.intExt||'').toUpperCase())} ${escapeHtml(sceneLoc(sc))} — ${escapeHtml(todLabel(sc))}</div><div style="margin-top:2px">${escapeHtml(sc.synopsis||'')}</div></td>
+        <td style="padding:5px 6px;font-size:11px;vertical-align:top;white-space:nowrap">${sc.pages8>0?escapeHtml(fmtPages8(sc.pages8))+' pgs.':''}</td>
+        <td style="padding:5px 6px;font-size:10px;vertical-align:top">CAST: ${ids.join(', ')||'—'}${bgText(sc)?`<br/>BG: ${escapeHtml(bgText(sc))}`:''}</td></tr></table>`;
+    }).join('');
+    return bar('#5A2E0E',escapeHtml(stripDateBar(d.date)))+(strips||'<div style="padding:10px;color:#777;font-size:11px">No scenes scheduled yet.</div>')+bar('#000',`End Day # ${n}${d.date?` ${escapeHtml(longDate(d.date))}`:''} ${anyPg?` -- Total Pages: ${tot?fmtPages8(tot):'0'}`:''}`);
+  }).join('');
+  const legend=castIdx.list.length?`<div style="margin-bottom:16px"><div style="font-weight:700;text-decoration:underline;font-size:12px;margin-bottom:4px">CAST MEMBERS</div><div style="columns:3;font-size:11px;line-height:1.55">${castIdx.list.map(c=>`<div>${c.id}. ${escapeHtml(c.name)}</div>`).join('')}</div></div>`:'';
+  openThemed(`<!DOCTYPE html><html><head><title>Stripboard — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;font-family:Arial,sans-serif;color:#111;background:#fff}</style></head><body>${PRINT_BAR}
+    <div style="max-width:760px;margin:0 auto;padding:18px"><div style="border:1px solid #000;padding:8px 10px;font-size:13px;margin-bottom:14px">${escapeHtml(brand.companyName?`${brand.companyName} — `:'')}${escapeHtml(project.name)} Stripboard</div>
+    ${legend}${body}<div style="text-align:center;font-size:11px;margin-top:14px">${n} shoot day${n!==1?'s':''}${anyPg?` · ${fmtPages8(grand)==='—'?'0':fmtPages8(grand)} pages scheduled`:''}</div>
+    <div style="text-align:center;font-size:9px;color:#888;margin-top:10px">Generated by NKÒ — Budgets Tailored To Film</div></div></body></html>`,'white');
+};
+/* The call sheet: only what the crew needs on the day — no department-head directory. */
+const callSheetPDF=(project,day,dayNo,totalDays,scenes,characters)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const sorted=sortScenes(scenes.map(normalizeScene));const castIdx=buildCastIndex(sorted,characters);
+  const byId=Object.fromEntries(sorted.map(s=>[s.id,s]));
+  const list=(day.scene_ids||[]).map(id=>byId[id]).filter(Boolean);
+  const tot=list.reduce((s,x)=>s+(Number(x.pages8)||0),0);
+  const where=day.location||[...new Set(list.map(sceneLoc).filter(Boolean))].join(' · ')||'—';
+  const names=[...new Set(list.flatMap(sc=>sc.cast||[]))].sort((a,b)=>(castIdx.idx[a]||999)-(castIdx.idx[b]||999));
+  const calls=day.cast_calls||{};
+  const th=t=>`<th style="text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:#eee;border-bottom:1px solid #999">${t}</th>`;
+  const td=(t,x)=>`<td style="padding:6px 8px;font-size:12px;border-bottom:1px solid #ddd;vertical-align:top;${x||''}">${t}</td>`;
+  const key=(k,v)=>`<div style="flex:1;min-width:140px;border:1px solid #bbb;padding:8px 10px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666">${k}</div><div style="font-size:15px;font-weight:700;margin-top:2px">${v}</div></div>`;
+  const sceneRows=list.map(sc=>`<tr>${td(escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml((sc.intExt||'').toUpperCase()))}${td(`${escapeHtml(sceneLoc(sc))}<div style="color:#666;font-size:10px">${escapeHtml(sc.synopsis||'')}</div>`)}${td(escapeHtml(todLabel(sc)))}${td((sc.cast||[]).map(c=>castIdx.idx[c]).filter(Boolean).sort((a,b)=>a-b).join(', ')||'—')}</tr>`).join('');
+  const castRows=names.map(nm=>`<tr>${td(castIdx.idx[nm]||'')}${td(escapeHtml(nm))}${td(escapeHtml(calls[nm]||day.call_time||'—'),'font-weight:700')}</tr>`).join('');
+  const bgRows=list.filter(sc=>bgText(sc)).map(sc=>`<tr>${td('Sc '+escapeHtml(sc.sceneNumber),'font-weight:700')}${td(escapeHtml(bgText(sc)))}</tr>`).join('');
+  openThemed(`<!DOCTYPE html><html><head><title>Call sheet — ${escapeHtml(project.name)}</title><style>@media print{.np{display:none}}body{margin:0;font-family:Arial,sans-serif;color:#111;background:#fff}table{width:100%;border-collapse:collapse}</style></head><body>${PRINT_BAR}
+    <div style="max-width:760px;margin:0 auto;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px">
+        <div><div style="font-size:11px;letter-spacing:2px;color:#666">${escapeHtml(brand.companyName||'')} CALL SHEET</div><div style="font-size:24px;font-weight:700;font-family:Georgia,serif">${escapeHtml(project.name)}</div></div>
+        <div style="text-align:right;font-size:13px"><b>Day ${dayNo} of ${totalDays}</b><br/>${escapeHtml(longDate(day.date))}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${key('Crew call',escapeHtml(day.call_time||'—'))}${calls['dept:Art']?key('Art call',escapeHtml(calls['dept:Art'])):''}${MEALS.filter(m=>calls['meal:'+m]).map(m=>key(m,escapeHtml(calls['meal:'+m]))).join('')}${key('Location',escapeHtml(where))}</div>
+      ${calls['info:hospital']?`<div style="border:1px solid #bbb;border-left:5px solid #c0392b;padding:8px 12px;margin-bottom:16px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666">Nearest hospital</div><div style="font-size:14px;font-weight:700;margin-top:2px">${escapeHtml(calls['info:hospital'])}</div></div>`:''}
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:20px 0 6px">Scenes</div>
+      <table><tr>${th('Sc')}${th('I/E')}${th('Set')}${th('D/N')}${th('Cast')}</tr>${sceneRows||`<tr>${td('No scenes scheduled for this day.')}</tr>`}</table>
+      ${castRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Cast</div><table><tr>${th('#')}${th('Character')}${th('Call')}</tr>${castRows}</table>`:''}
+      ${bgRows?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Background and extras</div><table><tr>${th('Scene')}${th('Needed')}</tr>${bgRows}</table>`:''}
+      ${day.notes?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin:18px 0 6px">Notes</div><div style="font-size:12px;line-height:1.6;white-space:pre-wrap;border:1px solid #bbb;padding:10px">${escapeHtml(day.notes)}</div>`:''}
+      <div style="text-align:center;font-size:9px;color:#888;margin-top:22px">Generated by NKÒ — Budgets Tailored To Film</div>
+    </div></body></html>`,'white');
+};
+/* Excel export — real structured data (SheetJS), separate from the PDF export which is a formatted
+   document. Loaded from the official SheetJS CDN, same lazy-load pattern as the PDF.js reader above. */
+let xlsxLoadPromise=null;
+const loadXLSX=()=>{
+  if(window.XLSX)return Promise.resolve(window.XLSX);
+  if(xlsxLoadPromise)return xlsxLoadPromise;
+  xlsxLoadPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    script.onload=()=>resolve(window.XLSX);
+    script.onerror=()=>reject(new Error('Could not load the Excel export library. Check your connection and try again.'));
+    document.head.appendChild(script);
+  });
+  return xlsxLoadPromise;
+};
+const budgetPreview=(items,project)=>{
+  const rows=items.slice(0,10).map(i=>[i.dept,i.description||'',i.qty,i.unit,i.rate,i.currency,fmt(lTot(i))]);
+  return{title:`Budget — ${project.name}`,columns:['Department','Description','Qty','Unit','Rate','Currency','Total'],rows,totalCount:items.length};
+};
+const budgetExcel=async(items,project)=>{
+  const XLSX=await loadXLSX();
+  const wb=XLSX.utils.book_new();
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const info=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');
+  const grand={};
+  const phaseTotals=PHASES.map(ph=>{
+    const t={};ph.depts.forEach(d=>{items.filter(i=>i.dept===d).forEach(i=>{t[i.currency]=(t[i.currency]||0)+lTot(i);grand[i.currency]=(grand[i.currency]||0)+lTot(i);});});
+    return{ph,t};
+  });
+  const fmtT=t=>Object.entries(t).map(([c,a])=>`${fmt(a)} ${c}`).join(' · ')||'—';
+  const grandUSD=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+
+  // ---- Top Sheet ----
+  const top=[
+    ['PRODUCTION BUDGET — TOP SHEET'],
+    [brand.productionTitle||project.name||''],
+    [project.type||'',project.base_currency||''],
+    [],
+  ];
+  const infoRows=[
+    ['Company',brand.companyName],
+    ['Producer',info.producer],['Line Producer',info.lineProducer],['Executive Producer',info.execProducer],['Prepared By',info.preparedBy],
+    ['Pre-production',info.prepStart&&`${info.prepStart} → ${info.prepEnd||''}`],
+    ['Shoot',info.shootStart&&`${info.shootStart} → ${info.shootEnd||''}`],
+    ['Post-production',info.postStart&&`${info.postStart} → ${info.postEnd||''}`],
+  ].filter(([,v])=>v);
+  if(infoRows.length){infoRows.forEach(([k,v])=>top.push([k,v]));top.push([]);}
+  top.push(['Account','Department','Total','Total (USD equiv.)']);
+  phaseTotals.forEach(({ph,t})=>{
+    top.push([ph.name,'','','']);
+    ph.depts.forEach(d=>{
+      const di=items.filter(i=>i.dept===d);if(!di.length)return;
+      const dt={};di.forEach(i=>{dt[i.currency]=(dt[i.currency]||0)+lTot(i);});
+      const dUSD=di.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+      top.push(['',d,fmtT(dt),`$${fmt(dUSD)}`]);
+    });
+    const phaseUSD=items.filter(i=>ph.depts.includes(i.dept)).reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+    top.push(['',`${ph.name} Subtotal`,fmtT(t),`$${fmt(phaseUSD)}`]);
+    top.push([]);
+  });
+  top.push(['','GRAND TOTAL',fmtT(grand),`$${fmt(grandUSD)}`]);
+  const topWs=XLSX.utils.aoa_to_sheet(top);
+  topWs['!cols']=[{wch:24},{wch:32},{wch:22},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
+
+  // ---- Detail (department blocks, matches PDF layout, USD equivalent per line) ----
+  const det=[];
+  PHASES.forEach(ph=>{
+    const phDepts=ph.depts.filter(d=>items.some(i=>i.dept===d));
+    if(!phDepts.length)return;
+    det.push([ph.name]);
+    phDepts.forEach(d=>{
+      const di=items.filter(i=>i.dept===d);
+      const dt={};di.forEach(i=>{dt[i.currency]=(dt[i.currency]||0)+lTot(i);});
+      det.push([d,'','','','',fmtT(dt),'']);
+      det.push(['Description','Qty','Unit','Rate','Currency','Total','Total (USD)']);
+      di.forEach(i=>det.push([i.description||'',i.qty,i.unit,i.rate,i.currency,lTot(i),Number(toUSD(lTot(i),i.currency).toFixed(2))]));
+      det.push([]);
+    });
+  });
+  const detWs=XLSX.utils.aoa_to_sheet(det);
+  detWs['!cols']=[{wch:40},{wch:8},{wch:10},{wch:12},{wch:10},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,detWs,'Detail');
+
+  XLSX.writeFile(wb,`${(project.name||'Budget').replace(/[^a-z0-9]/gi,'_')}_Budget.xlsx`);
+};
+const breakdownPreview=(scenes,project)=>{
+  const rows=scenes.slice(0,10).map(s=>[s.sceneNumber||'',s.heading||'',s.dayNight||'',(s.cast||[]).join(', '),(s.vehicles||[]).join(', ')||'—']);
+  return{title:`Breakdown — ${project.name} (Cast by tier & Picture Vehicles sections precede this)`,columns:['Scene #','Heading','Day/Night','Cast','Vehicles'],rows,totalCount:scenes.length};
+};
+const breakdownExcel=async(scenes,project,characters=[])=>{
+  const XLSX=await loadXLSX();
+  const wb=XLSX.utils.book_new();
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const uniq=arr=>[...new Set(arr.filter(Boolean))];
+  const allCast=uniq(scenes.flatMap(s=>s.cast||[]));
+  const allProps=uniq(scenes.flatMap(s=>s.props||[]));
+  const allWardrobe=uniq(scenes.flatMap(s=>s.wardrobe||[]));
+  const allVehicles=uniq(scenes.flatMap(s=>s.vehicles||[]));
+  const allEquip=uniq(scenes.flatMap(s=>s.specialEquip||[]));
+  const intCount=scenes.filter(s=>s.intExt==='INT').length,extCount=scenes.filter(s=>s.intExt==='EXT').length;
+  const dayCount=scenes.filter(s=>s.dayNight==='DAY').length,nightCount=scenes.filter(s=>s.dayNight==='NIGHT').length;
+
+  // ---- Top Sheet ----
+  const top=[['SCRIPT BREAKDOWN — TOP SHEET'],[brand.productionTitle||project.name||''],[project.type||''],[],
+    ['Summary','Count'],
+    ['Total Scenes',scenes.length],
+    ['Interior / Exterior',`${intCount} INT · ${extCount} EXT`],
+    ['Day / Night',`${dayCount} DAY · ${nightCount} NIGHT`],
+    [],
+    ['Element','Unique Count'],
+    ['Cast',allCast.length],
+    ['Props',allProps.length],
+    ['Wardrobe',allWardrobe.length],
+    ['Vehicles',allVehicles.length],
+    ['Special Equipment',allEquip.length],
+    [],
+    ['Cast Member','Scene Count'],
+  ];
+  allCast.forEach(name=>{
+    const n=scenes.filter(s=>(s.cast||[]).includes(name)).length;
+    top.push([name,n]);
+  });
+  const topWs=XLSX.utils.aoa_to_sheet(top);
+  topWs['!cols']=[{wch:26},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,topWs,'Top Sheet');
+
+  // ---- Scenes sheet: its own tab, Interior then Exterior ----
+  const sceneRow=s=>[s.sceneNumber||'',s.heading||'',s.dayNight||'',s.synopsis||'',(s.cast||[]).join(', '),(s.talkingExtras||[]).join(', '),s.backgroundActors||0,(s.props||[]).join(', '),(s.wardrobe||[]).join(', '),(s.vehicles||[]).join(', '),(s.specialEquip||[]).join(', ')];
+  const sceneHeader=['Scene #','Heading','Day/Night','Synopsis','Cast','Talking Extras','Background Actors','Props','Wardrobe','Vehicles','Special Equipment'];
+  const intScenes=scenes.filter(s=>s.intExt==='INT');
+  const extScenes=scenes.filter(s=>s.intExt!=='INT');
+  const sceneRows=[['INTERIOR SCENES'],sceneHeader,...intScenes.map(sceneRow),[],['EXTERIOR SCENES'],sceneHeader,...extScenes.map(sceneRow)];
+  const sceneWs=XLSX.utils.aoa_to_sheet(sceneRows);
+  sceneWs['!cols']=[{wch:6},{wch:26},{wch:9},{wch:36},{wch:26},{wch:12},{wch:14},{wch:26},{wch:26},{wch:20},{wch:26}];
+  XLSX.utils.book_append_sheet(wb,sceneWs,'Scenes');
+
+  // ---- Cast sheet: its own tab, grouped by tier ----
+  const{byTier}=getCastTiers(project,scenes,characters);
+  const castRows=[['Tier','Cast Member','Scenes']];
+  CAST_TIERS.forEach((tierName,ti)=>{
+    byTier[ti].forEach(name=>{
+      const sc=scenes.filter(s=>(s.cast||[]).includes(name)).map(s=>s.sceneNumber);
+      castRows.push([tierName,name,sc.join(', ')]);
+    });
+  });
+  const castWs=XLSX.utils.aoa_to_sheet(castRows);
+  castWs['!cols']=[{wch:20},{wch:24},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,castWs,'Cast');
+
+  // ---- Locations sheet: its own tab — was missing entirely before ----
+  const locMap={};
+  scenes.forEach(s=>{const key=(s.location||parseLocation(s.heading)||'Unspecified').trim()||'Unspecified';if(!locMap[key])locMap[key]={location:key,intExt:s.intExt||'',scenes:[]};locMap[key].scenes.push(s.sceneNumber);});
+  const locRows=[['Location','Int/Ext','Scene Count','Scenes'],...Object.values(locMap).sort((a,b)=>b.scenes.length-a.scenes.length).map(r=>[r.location,r.intExt,r.scenes.length,r.scenes.join(', ')])];
+  const locWs=XLSX.utils.aoa_to_sheet(locRows);
+  locWs['!cols']=[{wch:26},{wch:9},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,locWs,'Locations');
+
+  // ---- Picture Vehicles sheet: its own tab ----
+  const vehRows=[['Vehicle','Scene Count','Scenes']];
+  allVehicles.forEach(v=>{const sc=scenes.filter(s=>(s.vehicles||[]).includes(v)).map(s=>s.sceneNumber);vehRows.push([v,sc.length,sc.join(', ')]);});
+  if(!allVehicles.length)vehRows.push(['None identified','','']);
+  const vehWs=XLSX.utils.aoa_to_sheet(vehRows);
+  vehWs['!cols']=[{wch:30},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,vehWs,'Picture Vehicles');
+
+  // ---- Props sheet: its own tab ----
+  const propRows=[['Prop','Scene Count','Scenes']];
+  allProps.forEach(p=>{const sc=scenes.filter(s=>(s.props||[]).includes(p)).map(s=>s.sceneNumber);propRows.push([p,sc.length,sc.join(', ')]);});
+  if(!allProps.length)propRows.push(['None identified','','']);
+  const propWs=XLSX.utils.aoa_to_sheet(propRows);
+  propWs['!cols']=[{wch:30},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,propWs,'Props');
+
+  XLSX.writeFile(wb,`${(project.name||'Breakdown').replace(/[^a-z0-9]/gi,'_')}_Breakdown.xlsx`);
+};
+const recoverScenes=raw=>{
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
+  const salvageObjects=(text,keyHint)=>{
+    const out=[];let depth=0,start=-1;
+    for(let i=0;i<text.length;i++){const c=text[i];if(c==='{'){if(!depth)start=i;depth++;}else if(c==='}'){depth--;if(!depth&&start!==-1){try{const o=JSON.parse(text.slice(start,i+1));if(o[keyHint]!==undefined)out.push(o);}catch{}start=-1;}}}
+    return out;
+  };
+  // Try clean parse of the full {characters,scenes} object first
+  const objStart=s.indexOf('{');
+  if(objStart!==-1){
+    try{
+      const parsed=JSON.parse(s.slice(objStart));
+      if(parsed&&Array.isArray(parsed.scenes))return{scenes:parsed.scenes,characters:Array.isArray(parsed.characters)?parsed.characters:[]};
+    }catch{}
+  }
+  // Fall back: locate the scenes/characters arrays independently, whichever order they're actually in,
+  // and salvage whatever complete objects exist — each array's end is bounded by wherever the OTHER
+  // key starts (if it comes after), so neither array's salvage run bleeds into the other's content.
+  const scenesIdx=s.indexOf('"scenes"');
+  const charsIdx=s.indexOf('"characters"');
+  let scenes=[],characters=[];
+  if(scenesIdx!==-1){
+    const arrStart=s.indexOf('[',scenesIdx);
+    const arrEnd=(charsIdx!==-1&&charsIdx>arrStart)?charsIdx:s.length;
+    if(arrStart!==-1)scenes=salvageObjects(s.slice(arrStart,arrEnd),'sceneNumber');
+  }else{
+    // Oldest fallback: a bare array with no wrapper object at all (pre-this-format responses)
+    const a=s.indexOf('[');if(a!==-1)scenes=salvageObjects(s.slice(a),'sceneNumber');
+  }
+  if(charsIdx!==-1){
+    const arrStart=s.indexOf('[',charsIdx);
+    const arrEnd=(scenesIdx!==-1&&scenesIdx>arrStart)?scenesIdx:s.length;
+    if(arrStart!==-1)characters=salvageObjects(s.slice(arrStart,arrEnd),'name');
+  }
+  return{scenes,characters};
+};
+/* Recover a script budget from Claude's JSON response, tolerating truncation (hit token limit)
+   or stray syntax issues — salvages every complete line item it can find rather than failing outright. */
+const recoverBudget=raw=>{
+  let s=raw.replace(/```json/gi,'').replace(/```/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').trim();
+  const start=s.indexOf('{');if(start===-1)return null;
+  s=s.slice(start);
+  try{
+    const end=s.lastIndexOf('}');
+    if(end!==-1){
+      const parsed=JSON.parse(s.slice(0,end+1));
+      if(parsed&&Array.isArray(parsed.budget)&&parsed.budget.length)return{...parsed,truncated:false};
+    }
+  }catch{}
+  const titleMatch=s.match(/"title"\s*:\s*"([^"]*)"/);
+  const summaryMatch=s.match(/"summary"\s*:\s*"([^"]*)"/);
+  const budgetIdx=s.indexOf('"budget"');
+  const items=[];
+  if(budgetIdx!==-1){
+    const arrStart=s.indexOf('[',budgetIdx);
+    if(arrStart!==-1){
+      let depth=0,itemStart=-1;
+      for(let i=arrStart;i<s.length;i++){
+        const c=s[i];
+        if(c==='{'){if(!depth)itemStart=i;depth++;}
+        else if(c==='}'){depth--;if(!depth&&itemStart!==-1){try{const o=JSON.parse(s.slice(itemStart,i+1));if(o.description||o.dept)items.push(o);}catch{}itemStart=-1;}}
+      }
+    }
+  }
+  if(!items.length)return null;
+  return{
+    title:titleMatch?titleMatch[1]:'Script budget',
+    budget:items,
+    summary:summaryMatch?summaryMatch[1]:`Recovered ${items.length} line item${items.length!==1?'s':''} — the response was cut off, so some later lines may be missing. Re-run on a shorter script excerpt for a complete budget.`,
+    truncated:true,
+  };
+};
+const useIsMobile=(bp=640)=>{const[m,setM]=useState(()=>window.innerWidth<bp);useEffect(()=>{const h=()=>setM(window.innerWidth<bp);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[bp]);return m;};
+/* Keyword safety net — used only if the AI ever returns a department outside the DEPTS list */
+/* Hard override — some keywords are unambiguous enough that they should win regardless of what
+   department the AI claims, since the AI sometimes returns a VALID department that is simply wrong
+   (e.g. filing cast members under Production Team). Checked before trusting the AI's own dept value. */
+const forceDeptOverride=(desc='')=>{
+  const t=desc.toLowerCase();
+  if(/\bcast\b/.test(t))return'F - Talents';
+  if(/\bextras?\b/.test(t))return'F - Talents';
+  if(/\bactor\b|\bactress\b|\bperformer\b/.test(t))return'F - Talents';
+  if(/^lead\s*-|^supporting\s*-|^background\s*-/.test(t))return'F - Talents';
+  if(/\bwrestl/.test(t))return'F - Talents';
+  if(/\britual performer/.test(t))return'F - Talents';
+  if(/\bcostume\b|\bwardrobe\b|\btailor\b|\bdry clean/.test(t))return'P - Wardrobe';
+  if(/\bmakeup\b|\bmake-up\b|\bhair styl|\bbody paint/.test(t))return'Q - Makeup & Hair';
+  if(/\bstunt\b|\bpyro|\bfight choreo|\bsfx makeup|\bprop fabrication/.test(t))return'R - SFX & Stunts';
+  return null;
+};
+const smartDeptFallback=(desc='',rawDept='')=>{
+  const t=`${desc} ${rawDept}`.toLowerCase();
+  const has=(...words)=>words.some(w=>t.includes(w));
+  if(has('actor','cast','talent','extra','performer','lead','supporting','ritual','wrestl'))return'F - Talents';
+  if(has('costume','wardrobe','tailor','stylist','dry clean'))return'P - Wardrobe';
+  if(has('makeup','make-up','hair','wig','body paint'))return'Q - Makeup & Hair';
+  if(has('stunt','sfx','special effect','pyro','fight choreo','armour','weapon prop','python prop','mask'))return'R - SFX & Stunts';
+  if(has('director','dop','director of photography','1st ad','2nd ad','3rd ad','script supervisor','continuity','dialect','language coach'))return'E - Creative Team';
+  if(has('camera operator','focus puller','grip','1st ac','2nd ac','drone operator','steadicam'))return'G - Camera & Grip Team';
+  if(has('camera','lens','tripod','crane','gimbal'))return'H - Camera & Grip Equipment';
+  if(has('gaffer','electric','lighting tech'))return'I - Light & Power Team';
+  if(has('light','generator','genny'))return'J - Light & Power Equipment';
+  if(has('sound recordist','boom','mixer','sound engineer'))return'K - Sound Team';
+  if(has('mic','recorder'))return'L - Sound Equipment';
+  if(has('production designer','art director','props master','set dresser'))return'M - Art Team';
+  if(has('set construction','prop purchase','prop rental','set dressing'))return'N - Set & Prop Expenses';
+  if(has('location'))return'O - Location';
+  if(has('feeding','food','accommodation','welfare','medic','water'))return'T - Hospitality & Welfare';
+  if(has('editor','colorist','vfx','sound design','composer'))return'W - Post-Production Team';
+  if(has('poster','publicity','marketing','press','social media'))return'Y - PR & Marketing';
+  if(has('producer','production manager','unit manager','accountant'))return'D - Production Team';
+  return'D - Production Team';
+};
+
+/* ── Atoms ── */
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'schedule',e:'🗓️',l:'Schedule'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const s=(x)=>({style:x});
+const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
+const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
+const Btn=({variant='primary',size='md',style:sx,...p})=>{
+  const bg=variant==='primary'?T.gold:variant==='sage'?T.sage:variant==='danger'?T.coral:'transparent';
+  const co=variant==='ghost'||variant==='outline'?T.gold:T.ink;
+  const br=variant==='outline'?`1px solid ${T.gold}`:variant==='ghost'?`1px solid ${T.line}`:'none';
+  return<button {...p} style={{background:bg,color:co,border:br,borderRadius:8,padding:size==='sm'?'5px 12px':'8px 18px',fontSize:size==='sm'?11:13,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',...sx}}/>;
+};
+const Pill=({children,color})=><span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:color?`${color}22`:T.hi,color:color||T.goldDim,border:`1px solid ${color||T.line}`,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{children}</span>;
+/* New NKÒ wordmark (Ò-mark asset pack). Inlined as SVG rather than an image file, since the
+   app ships as a single App.jsx — no separate asset upload needed. Uses Fraunces for "NK"
+   instead of the pack's Source Serif 4 placeholder, since Fraunces is the serif already loaded
+   and used everywhere else in the app (the pack itself calls Source Serif 4 a stand-in pending
+   the licensed font, so this isn't a deviation from a locked spec). Iris mark keeps the pack's
+   exact brand gold (#D4AF37), separate from the app's own accent gold (T.gold, #FEED61) —
+   worth deciding whether those two golds should be unified app-wide.*/
+const NkoLogo=({height=32,style})=>(
+  <svg viewBox="0 0 500 200" style={{height,width:'auto',display:'block',...style}}>
+    <text x="60" y="170" fontFamily="Fraunces, Georgia, serif" fontWeight="700" fontSize="150" fill="#EDEAE4">NK</text>
+    <g transform="translate(300,18) scale(1.55)">
+      <path d="M50 33 A27 27 0 0 1 77 60 L64 60 A14 14 0 0 0 50 46 Z" fill="#D4AF37"/>
+      <path d="M77 60 A27 27 0 0 1 50 87 L50 74 A14 14 0 0 0 64 60 Z" fill="#D4AF37"/>
+      <path d="M50 87 A27 27 0 0 1 23 60 L36 60 A14 14 0 0 0 50 74 Z" fill="#D4AF37"/>
+      <path d="M23 60 A27 27 0 0 1 50 33 L50 46 A14 14 0 0 0 36 60 Z" fill="#D4AF37"/>
+      <polygon points="20,2 76,18 76,29 20,13" fill="#D4AF37"/>
+    </g>
+  </svg>
+);
+const StatCard=({label,value,sub,accent,onClick})=><div onClick={onClick} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,cursor:onClick?'pointer':'default'}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
+function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:760,width:'100%',maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div style={{padding:'16px 20px 10px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+            <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Export preview — {title}</div>
+            <button onClick={onClose} style={{background:'none',border:'none',color:T.dim,fontSize:18,cursor:'pointer'}}>✕</button>
+          </div>
+          <div style={{color:T.dim,fontSize:12,marginTop:2}}>What you'll get in the .xlsx, before downloading</div>
+        </div>
+        <div style={{overflowX:'auto',overflowY:'auto',padding:'0 20px',flex:1}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+            <thead><tr>{columns.map(c=><th key={c} style={{textAlign:'left',padding:'6px 8px',color:T.goldDim,fontSize:10,textTransform:'uppercase',letterSpacing:'0.04em',borderBottom:`1px solid ${T.line}`,whiteSpace:'nowrap'}}>{c}</th>)}</tr></thead>
+            <tbody>{rows.map((r,i)=><tr key={i}>{r.map((cell,j)=><td key={j} style={{padding:'6px 8px',color:T.cream,borderBottom:'1px solid #2a2a2a',whiteSpace:'nowrap'}}>{cell}</td>)}</tr>)}</tbody>
+          </table>
+          {!rows.length&&<div style={{color:T.dim,fontSize:12,padding:'20px 0'}}>Nothing to export yet.</div>}
+        </div>
+        <div style={{padding:'8px 20px',color:T.dim,fontSize:11,textAlign:'right'}}>{totalCount>rows.length?`Showing ${rows.length} of ${totalCount} rows — full list downloads`:`${totalCount} row${totalCount===1?'':'s'}`}</div>
+        <div style={{display:'flex',gap:8,padding:'12px 20px',borderTop:`1px solid ${T.line}`}}>
+          <Btn variant="ghost" onClick={onClose}>← Edit in app first</Btn>
+          <Btn variant="sage" onClick={()=>{onDownload();onClose();}}>⬇️ Download .xlsx</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+function FeedbackButton({user,view,mobile}){
+  const[open,setOpen]=useState(false);
+  const[category,setCategory]=useState('Idea');
+  const[message,setMessage]=useState('');
+  const[state,setState]=useState('idle'); // idle | sending | sent | error
+  const submit=async()=>{
+    if(!message.trim())return;
+    setState('sending');
+    const id=Math.random().toString(36).slice(2,10);
+    const{error}=await sb.from('feedback').insert({id,user_id:user.id,user_email:user.email,category,message:message.trim(),page_context:view});
+    if(error){setState('error');return;}
+    setState('sent');
+    setTimeout(()=>{setOpen(false);setState('idle');setMessage('');setCategory('Idea');},1400);
+  };
+  return(<>
+    <button onClick={()=>setOpen(true)} style={{position:'fixed',right:18,bottom:mobile?66:18,zIndex:55,background:T.gold,color:T.ink,border:'none',borderRadius:24,padding:'10px 16px',fontSize:12,fontWeight:700,cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.4)',fontFamily:'Manrope,sans-serif'}}>💬 Feedback</button>
+    {open&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={()=>state!=='sending'&&setOpen(false)}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:420,width:'100%',padding:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Send feedback</div>
+          <button onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:T.dim,fontSize:18,cursor:'pointer'}}>✕</button>
+        </div>
+        {state==='sent'?(
+          <div style={{color:T.sage,fontSize:13,padding:'16px 0',textAlign:'center'}}>✓ Thanks — got it.</div>
+        ):(<>
+          <div style={{display:'flex',gap:6,marginBottom:10}}>
+            {['Idea','Bug','Other'].map(c=><button key={c} onClick={()=>setCategory(c)} style={{flex:1,background:category===c?T.gold:T.panel,color:category===c?T.ink:T.cream,border:`1px solid ${category===c?T.gold:T.line}`,borderRadius:6,padding:'6px 0',fontSize:12,cursor:'pointer',fontWeight:600}}>{c}</button>)}
+          </div>
+          <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="What's on your mind — a bug, an idea, anything." rows={4} style={{width:'100%',background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',fontSize:13,fontFamily:'Manrope,sans-serif',resize:'vertical',marginBottom:10}}/>
+          {state==='error'&&<div style={{color:T.coral,fontSize:12,marginBottom:8}}>Could not send — check your connection and try again.</div>}
+          <Btn variant="sage" onClick={submit} disabled={state==='sending'||!message.trim()}>{state==='sending'?'Sending…':'Send'}</Btn>
+        </>)}
+      </div>
+    </div>}
+  </>);
+}
+function ExportMenu({onPdf,onExcel,getPreview}){
+  const[open,setOpen]=useState(false);
+  const[preview,setPreview]=useState(null);
+  const ref=useRef();
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[]);
+  const item={display:'block',width:'100%',textAlign:'left',padding:'10px 14px',background:'none',border:'none',color:T.cream,fontSize:13,cursor:'pointer',fontFamily:'Manrope,sans-serif'};
+  return(<>
+    <div ref={ref} style={{position:'relative',display:'inline-block'}}>
+      <Btn variant="outline" size="sm" onClick={()=>setOpen(o=>!o)}>⬇️ Export ▾</Btn>
+      {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:200,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
+        <button onClick={()=>{onPdf();setOpen(false);}} style={item}>📄 PDF Document</button>
+        <button onClick={()=>{setOpen(false);getPreview?setPreview(getPreview()):onExcel();}} style={{...item,borderTop:`1px solid ${T.line}`}}>📊 Excel Spreadsheet (.xlsx)</button>
+      </div>}
+    </div>
+    {preview&&<ExportPreviewModal {...preview} onClose={()=>setPreview(null)} onDownload={onExcel}/>}
+  </>);
+}
+const FS=()=><div style={{height:8,background:`repeating-linear-gradient(90deg,${T.gold} 0 12px,transparent 12px 20px)`,opacity:.4,borderRadius:1}}/>;
+
+/* ── Auth ── */
+const AuthCtx=createContext(null);
+const useAuth=()=>useContext(AuthCtx);
+function AuthProvider({children}){
+  const[user,setUser]=useState(null);const[loading,setLoading]=useState(true);const[recovery,setRecovery]=useState(false);
+  useEffect(()=>{
+    sb.auth.getSession().then(({data:{session}})=>{setUser(session?.user??null);setLoading(false);});
+    const{data:{subscription}}=sb.auth.onAuthStateChange((event,s)=>{setUser(s?.user??null);if(event==='PASSWORD_RECOVERY')setRecovery(true);});
+    return()=>subscription.unsubscribe();
+  },[]);
+  const signOut=()=>sb.auth.signOut();
+  if(loading)return<div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',color:T.gold,fontFamily:'Fraunces,serif',fontSize:22}}>Loading…</div>;
+  return<AuthCtx.Provider value={{user,signOut,recovery,clearRecovery:()=>setRecovery(false)}}>{children}</AuthCtx.Provider>;
+}
+const TERMS_TEXT=`Last updated: September 2026
+
+1. Acceptance of Terms
+By creating an account or using NKÒ ("the Service"), you agree to these Terms & Conditions. If you don't agree, please don't use the Service.
+
+2. What NKÒ Is
+NKÒ is a production finance tool for film, TV, and content productions — budgeting, script breakdown, cash reconciliation, and purchase order tracking. It is a tool to help you manage your production's finances; it does not provide accounting, legal, or tax advice, and you remain responsible for your production's financial and legal obligations.
+
+3. Your Account
+You're responsible for keeping your login credentials secure and for all activity under your account. Let us know right away if you believe your account has been compromised.
+
+4. Your Content
+Scripts, budgets, production data, and anything else you upload or enter remain yours. You're responsible for having the rights to any script, document, or material you upload.
+
+5. How We Use Your Data
+We use the data you enter to provide the Service to you — storing your budgets, generating breakdowns and reconciliation reports, and powering the AI features you use. We may also use aggregated or anonymized data (patterns across many productions, not your specific scripts or financial details) to improve NKÒ's features, including making our AI budgeting and extraction tools more accurate for African productions generally. We do not sell your personal data or your production's financial details to third parties.
+
+6. AI-Generated Content
+NKÒ uses AI to help generate budget lines, script breakdowns, and extract data from invoices. AI-generated output can contain errors or omissions. You're responsible for reviewing and confirming any AI-generated content before relying on it for real production decisions.
+
+7. Acceptable Use
+You agree not to use the Service for anything illegal, to attempt to access other users' data without authorization, or to interfere with the Service's normal operation.
+
+8. Fees and Free Trial
+NKÒ is currently offered under a free trial covering a limited number of productions per account. We may introduce paid plans or change trial terms going forward; we'll aim to give you reasonable notice of changes that affect your account.
+
+9. Termination
+You may stop using the Service and close your account at any time. We may suspend or terminate accounts that violate these terms.
+
+10. Disclaimer and Limitation of Liability
+The Service is provided "as is," without warranties of any kind. To the fullest extent permitted by law, NKÒ and its operators are not liable for indirect, incidental, or consequential damages arising from your use of the Service, including financial decisions made based on data or AI output within it.
+
+11. Changes to These Terms
+We may update these terms from time to time. Continued use of the Service after changes take effect means you accept the updated terms.
+
+12. Contact
+Questions about these terms can be directed to the NKÒ team.`;
+function TermsModal({onClose}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:200}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:28,maxWidth:520,maxHeight:'80vh',overflowY:'auto',width:'100%'}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:19,color:T.cream,marginBottom:14}}>Terms & Conditions</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',whiteSpace:'pre-wrap',lineHeight:1.6,marginBottom:18}}>{TERMS_TEXT}</div>
+        <Btn onClick={onClose} style={{width:'100%'}}>Close</Btn>
+      </div>
+    </div>
+  );
+}
+function AuthScreen(){
+  const{t}=useLang();
+  const[mode,setMode]=useState('login');const[email,setEmail]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[ok,setOk]=useState('');const[showPass,setShowPass]=useState(false);const[agreed,setAgreed]=useState(false);const[showTerms,setShowTerms]=useState(false);
+  const submit=async()=>{setErr('');setOk('');
+    if(mode==='signup'&&!agreed){setErr('Please agree to the Terms & Conditions to create an account.');return;}
+    const fn=mode==='login'?sb.auth.signInWithPassword:sb.auth.signUp;
+    const{error}=await fn.call(sb.auth,{email,password:pass});
+    if(error){
+      const readable=typeof error.message==='string'&&error.message.trim()&&error.message.trim()!=='{}'?error.message:'Something went wrong on our end. Please try again in a moment, or contact support if this keeps happening.';
+      setErr(readable);
+    }else if(mode==='signup')setOk('Check your email to confirm your account.');
+  };
+  const forgotPassword=async()=>{
+    setErr('');setOk('');
+    if(!email){setErr('Enter your email above first, then tap Forgot password.');return;}
+    const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
+    if(error)setErr(error.message);else setOk('Password reset link sent — check your email.');
+  };
+  return(
+    <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      {showTerms&&<TermsModal onClose={()=>setShowTerms(false)}/>}
+      <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><LangToggle compact/></div>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:4}}><NkoLogo height={30}/></div>
+        <div style={{fontSize:11,color:T.goldDim,textAlign:'center',fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:28}}>{t('tagline')}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <Inp type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e=>setEmail(e.target.value)}/>
+          <div style={{position:'relative'}}>
+            <Inp type={showPass?'text':'password'} placeholder={t('passwordPlaceholder')} value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} style={{paddingRight:56}}/>
+            <button type="button" onClick={()=>setShowPass(s=>!s)} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.goldDim,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{showPass?t('hide'):t('show')}</button>
+          </div>
+          {mode==='login'&&<button onClick={forgotPassword} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',textAlign:'right',padding:0}}>{t('forgotPassword')}</button>}
+          {mode==='signup'&&<label style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>
+            <input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)} style={{marginTop:2}}/>
+            <span>I agree to the <button type="button" onClick={e=>{e.preventDefault();setShowTerms(true);}} style={{background:'none',border:'none',color:T.goldDim,fontWeight:700,cursor:'pointer',padding:0,fontSize:11,textDecoration:'underline'}}>Terms & Conditions</button></span>
+          </label>}
+          {err&&<div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
+          {ok&&<div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>{ok}</div>}
+          <Btn onClick={submit}>{mode==='login'?t('signIn'):t('createAccount')}</Btn>
+          <button onClick={()=>{setMode(m=>m==='login'?'signup':'login');setErr('');setOk('');}} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{mode==='login'?t('noAccountSignUp'):t('haveAccountSignIn')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Navigation ── */
+const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',schedule:'navSchedule',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
+function LangToggle({compact}){
+  const{lang,setLang}=useLang();
+  return(
+    <div style={{display:'flex',border:`1px solid ${T.line}`,borderRadius:6,overflow:'hidden',flexShrink:0}}>
+      {['en','fr'].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:compact?'4px 8px':'5px 10px',background:lang===l?T.gold:'transparent',color:lang===l?T.ink:T.dim,border:'none',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{l.toUpperCase()}</button>)}
+    </div>
+  );
+}
+function Sidebar({view,setView,onSignOut,userEmail}){
+  const{t}=useLang();
+  return(
+    <div style={{width:210,minHeight:'100vh',background:T.panel,borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0}}>
+      <div style={{padding:'22px 18px 14px'}}>
+        <NkoLogo height={26}/>
+        <div style={{fontSize:9,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',marginTop:2}}>{t('tagline')}</div>
+      </div>
+      <FS/>
+      <nav style={{flex:1,padding:'14px 10px'}}>
+        {NAV.map(n=>{const on=view===n.id;return<button key={n.id} onClick={()=>setView(n.id)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:8,border:'none',cursor:'pointer',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,textAlign:'left',marginBottom:2,borderLeft:`2px solid ${on?T.gold:'transparent'}`}}><span style={{fontSize:15}}>{n.e}</span>{t(NAV_KEY[n.id])}</button>;})}
+      </nav>
+      <div style={{padding:'14px 16px',borderTop:`1px solid ${T.line}`}}>
+        <div style={{marginBottom:12}}><LangToggle/></div>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+          <div style={{width:34,height:34,borderRadius:'50%',background:T.hi,border:`1px solid ${T.goldDim}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:T.gold,fontWeight:700,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{userEmail?.charAt(0).toUpperCase()||'?'}</div>
+          <div style={{overflow:'hidden'}}><div style={{fontSize:11,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t('studio')}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div></div>
+        </div>
+        <Btn variant="ghost" size="sm" onClick={onSignOut} style={{width:'100%'}}>{t('signOut')}</Btn>
+      </div>
+    </div>
+  );
+}
+function TopBar({view,setView,projects,currentId,onSelect,onCreate}){
+  const{t}=useLang();
+  return(
+    <div style={{background:T.panel,borderBottom:`1px solid ${T.line}`,padding:'10px 20px',display:'flex',alignItems:'center',gap:10}}>
+      {view!=='dashboard'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
+      <Sel value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,maxWidth:280}}>
+        <option value="">{t('selectProduction')}</option>
+        {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+      </Sel>
+      <Btn onClick={onCreate} size="sm">{t('newBtn')}</Btn>
+      <LangToggle compact/>
+    </div>
+  );
+}
+function MobileNav({view,setView}){
+  const{t}=useLang();
+  return(
+    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:50,background:T.panel,borderTop:`1px solid ${T.line}`,display:'flex',overflowX:'auto'}}>
+      {NAV.map(n=>{const on=view===n.id;const lbl=t(NAV_KEY[n.id]);return<button key={n.id} onClick={()=>setView(n.id)} style={{flex:'0 0 auto',padding:'8px 12px 6px',border:'none',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontSize:9,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',cursor:'pointer'}}><span style={{fontSize:18}}>{n.e}</span>{lbl.split(' ')[0]}</button>;})}
+    </div>
+  );
+}
+
+/* ── New Project Modal ── */
+function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
+  const[name,setName]=useState('');const[type,setType]=useState(PROJ_TYPES[0]);const[cur,setCur]=useState(defaultCurrency);
+  const create=async()=>{if(name)await onCreate({name,type,base_currency:cur});};
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.88)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
+      <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:26,width:'100%',maxWidth:380}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:18}}>New production</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <Inp placeholder="Production name" value={name} onChange={e=>setName(e.target.value)}/>
+          <Sel value={type} onChange={e=>setType(e.target.value)} style={{width:'100%'}}>{PROJ_TYPES.map(t=><option key={t}>{t}</option>)}</Sel>
+          <Sel value={cur} onChange={e=>setCur(e.target.value)} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code} — {c.symbol}</option>)}</Sel>
+          <div style={{display:'flex',gap:8,marginTop:4}}><Btn onClick={create}>Create</Btn><Btn variant="ghost" onClick={onClose}>Cancel</Btn></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Dashboard ── */
+function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
+  const{t}=useLang();
+  const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
+  const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
+  const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
+  const advCurrency=id=>advances.find(a=>a.id===id)?.currency||'NGN';
+  const totalBudgetUSD=budgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const totalSpentUSD=reconEntries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
+  const savedUSD=totalBudgetUSD-totalSpentUSD;
+  return(
+    <div>
+      <div style={{marginBottom:22}}><NkoLogo height={32}/><div style={{fontSize:14,color:T.dim,marginTop:8,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
+      {typeof trialCount==='number'&&trialCount<trialLimit&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 14px',marginBottom:16,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{trialLimit-trialCount} of {trialLimit} free productions left</div>}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
+        <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
+        <StatCard label={t('statTotalSpend')} value={`≈ $${fmt(totalSpentUSD)}`} sub={t('statAcrossSlate')}/>
+        <StatCard label={t('statTotalSaved')} value={`≈ $${fmt(Math.abs(savedUSD))}`} sub={savedUSD<0?t('statOverBudget'):t('statUnderBudget')} accent={savedUSD<0?T.coral:T.sage}/>
+        <StatCard label={t('statUnpaid')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
+      </div>
+      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
+      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
+      {projects.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:44,textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>🎬</div><div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:8}}>{t('noProductionsYet')}</div><div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Manrope,sans-serif'}}>{t('createFirstDesc')}</div><Btn onClick={()=>setShowModal(true)}>{t('createFirstBtn')}</Btn></div>:(
+      <>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream}}>{t('productionsHeader')}</div>
+          <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+            {selected.size>0&&<><span style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{selected.size} selected</span><Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set())}>Clear</Btn><Btn size="sm" variant="danger" onClick={()=>setConfirmMulti(true)}>🗑️ Delete</Btn></>}
+            {selected.size===0&&projects.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set(projects.map(p=>p.id)))}>Select all</Btn>}
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
+          {projects.map(p=>{
+            const pi=budgetItems.filter(i=>i.project_id===p.id);const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+            const open=advances.filter(a=>a.project_id===p.id&&a.status!=='reconciled').length;const isSel=selected.has(p.id);
+            const pAdvIds=advances.filter(a=>a.project_id===p.id).map(a=>a.id);
+            const spentTotals={};reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).forEach(e=>{const c=advCurrency(e.advance_id);spentTotals[c]=(spentTotals[c]||0)+(Number(e.amount)||0);});
+            const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+            const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
+            const pct=budgetUSD>0?Math.min(100,(spentUSD/budgetUSD)*100):0;const over=spentUSD>budgetUSD;
+          return<div key={p.id} style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?T.hi:T.panel,border:`1px solid ${isSel?T.coral:p.id===currentId?T.gold:T.line}`,borderRadius:10,padding:18,position:'relative'}}>
+            <button onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSel?T.coral:T.faint}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
+            <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',paddingRight:28}}>
+              <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div>
+              <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2,marginBottom:8}}>{p.type}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
+              {budgetUSD>0&&<>
+                <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:6}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
+                  <span>{Object.entries(spentTotals).length===0?'No spend yet':Object.entries(spentTotals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}</span>
+                  <span style={{color:over?T.coral:T.sage}}>{over?'Over pace':`${Math.round(pct)}%`}</span>
+                </div>
+              </>}
+              <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
+            </button>
+            {p.user_id===currentUserId&&(()=>{const collab=collaborators.find(c=>c.project_id===p.id);return(
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                {collab?<>
+                  <span style={{fontSize:10,color:T.sage}}>👤 Collaborator added</span>
+                  <button onClick={e=>{e.stopPropagation();if(window.confirm('Remove this collaborator from the production?'))onRemoveCollaborator(p.id);}} style={{background:'none',border:'none',color:T.faint,fontSize:10,cursor:'pointer'}}>Remove</button>
+                </>:<button onClick={e=>{e.stopPropagation();const email=window.prompt("Invite a collaborator by email — they'll need an NKÒ account already:");if(email)onInviteCollaborator(p.id,email);}} style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700}}>+ Invite collaborator</button>}
+              </div>
+            );})()}
+            <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}}>🗑️</button>
+          </div>;})}
+        </div>
+      </>
+      )}
+      {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{const ok=await onCreate(d);if(ok)setShowModal(false);}} defaultCurrency={defaultCurrency}/>}
+    </div>
+  );
+}
+
+/* ── Per-production Dashboard — shown when a production is selected ── */
+function ProductionDashboardView({project,items,advances,payees,onBack,onOpenBudget}){
+  const{t}=useLang();
+  const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+  const openAdv=advances.filter(a=>a.status!=='reconciled').length;
+  const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
+  return(
+    <div>
+      <button onClick={onBack} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',marginBottom:14,padding:0}}>{t('allProductions')}</button>
+      <div style={{marginBottom:22}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:28,color:T.cream}}>{project.name}</div>
+        <div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:4}}>{project.type}</div>
+        <div style={{fontSize:13,color:T.dim,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{t('productionDashboard')}</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
+        <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')} sub={project.base_currency} onClick={onOpenBudget}/>
+        <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')}/>
+        <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage}/>
+        <StatCard label={t('statUnpaidCrew')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
+      </div>
+    </div>
+  );
+}
+/* ── Budgets ── */
+function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characters,onSaveCharacter}){
+  const[open,setOpen]=useState(true);const mob=useIsMobile();
+  const isTalent=dept==='F - Talents';
+  const tiers=isTalent&&project?getCastTiers(project,scenes||[],characters||[]):null;
+  const[tierEdit,setTierEdit]=useState(null);
+  const matchedCast=desc=>{
+    if(!tiers)return null;
+    const d=(desc||'').toLowerCase();
+    return tiers.ordered.find(name=>d.includes(name.toLowerCase()))||null;
+  };
+  const tierLabelOf=name=>{
+    for(let i=0;i<4;i++)if(tiers.byTier[i].includes(name))return{label:CAST_TIERS[i],idx:i};
+    return null;
+  };
+  const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+  const ts=Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')||'—';
+  const usdTotal=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden',marginBottom:8}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{dept}</span><span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>({items.length})</span></div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{ts}</div>
+          {items.length>0&&<div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usdTotal)}</div>}
+        </div>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 12px 14px'}}>
+        {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span style={{textAlign:'right'}}>Line total</span><span>Cur</span><span/></div>}
+        {items.map(item=>{const usd=toUSD(lTot(item),item.currency);return<div key={item.id} style={{padding:mob?'14px 0':'8px 0',borderBottom:`1px solid ${T.line}`}}>
+          {mob?<>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})} style={{flex:1}}/>
+              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:20,cursor:'pointer',background:'none',border:'none',flexShrink:0,width:28}}>×</button>
+            </div>
+            {isTalent&&matchedCast(item.description)&&(()=>{const mc=matchedCast(item.description);const tl=tierLabelOf(mc);return(
+              <div style={{position:'relative',marginBottom:10}}>
+                <button onClick={()=>setTierEdit(tierEdit===item.id?null:item.id)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'4px 10px',fontSize:11,color:T.gold,cursor:'pointer'}}>{mc}: {tl?.label||'—'} ✎</button>
+                {tierEdit===item.id&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(mc,{tier:TIER_KEYS[i]});setTierEdit(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===tl?.idx?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})()}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit</div><Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:13}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel></div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit cost</div><Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Currency</div><Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:13}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,color:T.gold,fontWeight:700}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.dim}}>≈ ${fmt(usd)}</div>
+            </div>
+          </>:<>
+            <div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,alignItems:'center'}}>
+              <Inp value={item.description||''} placeholder="Description" onChange={e=>onUpdate(item.id,{description:e.target.value})}/>
+              <Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:12}}/>
+              <Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:11}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel>
+              <Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12}}/>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold,fontWeight:700}}>{sym(item.currency)}{fmt(lTot(item))}</div>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usd)}</div>
+              </div>
+              <Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:10}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+              <button onClick={()=>onRemove(item.id)} style={{color:T.faint,fontSize:18,cursor:'pointer',background:'none',border:'none'}}>×</button>
+            </div>
+            {isTalent&&matchedCast(item.description)&&(()=>{const mc=matchedCast(item.description);const tl=tierLabelOf(mc);return(
+              <div style={{position:'relative',marginTop:5}}>
+                <button onClick={()=>setTierEdit(tierEdit===item.id?null:item.id)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'3px 9px',fontSize:10,color:T.gold,cursor:'pointer'}}>{mc}: {tl?.label||'—'} ✎</button>
+                {tierEdit===item.id&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(mc,{tier:TIER_KEYS[i]});setTierEdit(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===tl?.idx?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})()}
+          </>}
+        </div>;})}
+        <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Add line</button>
+      </div>}
+    </div>
+  );
+}
+/* ── Production Info — title-page metadata like a real budget document ── */
+const PI_FIELDS=[
+  ['producer','Producer'],['lineProducer','Line Producer'],['execProducer','Executive Producer'],['preparedBy','Prepared By'],
+  ['prepStart','Pre-production Start'],['prepEnd','Pre-production End'],
+  ['shootStart','Shoot Commencement'],['shootEnd','Wrap Date'],
+  ['postStart','Post-production Start'],['postEnd','Post-production End'],
+];
+/* ── Phase Cost Summary — manual input for pre/production/post totals ── */
+const PHASE_COLORS=['#7F77DD','#FEED61','#5B9BD5','#D98BA8']; // Pre-Production, Production, Post-Production, PR/Marketing & Distribution — deliberately distinct from sage/coral, which already mean reconciled/over-budget elsewhere in the app
+function BudgetSummaryHeader({project,items,onSetContingency,onSetTarget}){
+  const{t}=useLang();
+  const preDepts=PHASES[0].depts,prodDepts=PHASES[1].depts,postDepts=PHASES[2].depts,prDepts=PHASES[3].depts;
+  let phaseTotals=[0,0,0,0],autoContingency=0;
+  items.forEach(i=>{
+    const t=lTot(i);
+    if(/contingency/i.test(i.description||'')){autoContingency+=t;return;}
+    if(preDepts.includes(i.dept))phaseTotals[0]+=t;
+    else if(prodDepts.includes(i.dept))phaseTotals[1]+=t;
+    else if(postDepts.includes(i.dept))phaseTotals[2]+=t;
+    else if(prDepts.includes(i.dept))phaseTotals[3]+=t;
+  });
+  const[contingencyInput,setContingencyInput]=useState(String(autoContingency||''));
+  useEffect(()=>{setContingencyInput(String(autoContingency||''));},[autoContingency]);
+  const debounceRef=useRef(null);
+  const onContingencyChange=v=>{
+    setContingencyInput(v);
+    clearTimeout(debounceRef.current);
+    debounceRef.current=setTimeout(()=>onSetContingency(v===''?0:v,items),500);
+  };
+  const[targetInput,setTargetInput]=useState(project.target_budget!=null?String(project.target_budget):'');
+  useEffect(()=>{setTargetInput(project.target_budget!=null?String(project.target_budget):'');},[project.id,project.target_budget]);
+  const targetDebounce=useRef(null);
+  const onTargetChange=v=>{
+    setTargetInput(v);
+    clearTimeout(targetDebounce.current);
+    targetDebounce.current=setTimeout(()=>onSetTarget(v===''?null:Number(v)),600);
+  };
+  const estimate=phaseTotals.reduce((a,b)=>a+b,0)+autoContingency;
+  const target=project.target_budget;
+  const headroom=target!=null?target-estimate:null;
+  const phaseTotalSum=phaseTotals.reduce((a,b)=>a+b,0)||1;
+  return(
+    <div style={{marginBottom:18}}>
+      <div style={{display:'grid',gridTemplateColumns:target!=null?'1fr 1fr 1fr':'1fr 1fr',gap:8,marginBottom:14}}>
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Target</div>
+          <Inp type="number" placeholder="Not set" value={targetInput} onChange={e=>onTargetChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,padding:'4px 6px'}}/>
+        </div>
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Estimate</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream,fontWeight:700,padding:'4px 0'}}>{fmt(estimate)}</div>
+        </div>
+        {target!=null&&<div style={{background:headroom<0?'rgba(224,107,82,.1)':'rgba(82,176,122,.1)',border:`1px solid ${headroom<0?T.coral:T.sage}`,borderRadius:10,padding:'10px 12px'}}>
+          <div style={{fontSize:9,color:headroom<0?T.coral:T.sage,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>{headroom<0?'Over target':'Headroom'}</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:headroom<0?T.coral:T.sage,fontWeight:700,padding:'4px 0'}}>{fmt(Math.abs(headroom))}</div>
+        </div>}
+      </div>
+      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>{t('phaseCostSummary')}</div>
+          <span style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Live from your budget lines</span>
+        </div>
+        <div style={{display:'flex',height:8,borderRadius:4,overflow:'hidden',marginBottom:8}}>
+          {phaseTotals.map((v,i)=>v>0&&<div key={i} style={{width:`${(v/phaseTotalSum)*100}%`,background:PHASE_COLORS[i]}}/>)}
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:12,marginBottom:12}}>
+          {PHASES.map((p,i)=>phaseTotals[i]>0&&<div key={p.name} style={{display:'flex',alignItems:'center',gap:5,fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}><span style={{width:7,height:7,borderRadius:2,background:PHASE_COLORS[i],display:'inline-block'}}/>{p.name} · {fmt(phaseTotals[i])}</div>)}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:10,paddingTop:10,borderTop:`1px solid ${T.line}`}}>
+          <div>
+            <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('contingency')}</div>
+            <Inp type="number" placeholder="0" value={contingencyInput} onChange={e=>onContingencyChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
+            <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(estimate)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductionInfoPanel({project}){
+  const{t}=useLang();
+  const[open,setOpen]=useState(false);const[info,setInfo]=useState({});const[saved,setSaved]=useState(false);
+  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');setInfo(s);setSaved(Object.keys(s).length>0);}catch{}},[project?.id]);
+  const set=(k,v)=>setInfo(p=>({...p,[k]:v}));
+  const save=()=>{localStorage.setItem(`nko_info_${project.id}`,JSON.stringify(info));setSaved(true);setOpen(false);};
+  return(
+    <div style={{background:T.panel,border:`1px solid ${saved?T.sage:T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📋 {t('productionInfo')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— producer credits & phase dates</span></span>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:8}}>
+          {PI_FIELDS.map(([k,label])=><div key={k}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:3}}>{label}</div><Inp type={k.includes('Start')||k.includes('End')?'date':'text'} value={info[k]||''} onChange={e=>set(k,e.target.value)}/></div>)}
+        </div>
+        <div style={{display:'flex',gap:8,marginTop:12}}><Btn size="sm" variant="sage" onClick={save}>Save info</Btn><Btn size="sm" variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn></div>
+      </div>}
+    </div>
+  );
+}
+
+function BrandPanel({project}){
+  const{t}=useLang();
+  const[open,setOpen]=useState(false);const[cname,setCname]=useState('');const[ptitle,setPtitle]=useState('');const[logo,setLogo]=useState(null);const[accent,setAccent]=useState('#FEED61');const[saved,setSaved]=useState(false);const lr=useRef();
+  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');setCname(s.companyName||'');setPtitle(s.productionTitle||project.name||'');setLogo(s.logo||null);setAccent(s.accentColor||'#FEED61');setSaved(!!(s.companyName||s.logo));}catch{}},[project?.id]);
+  const save=()=>{localStorage.setItem(`nko_brand_${project.id}`,JSON.stringify({companyName:cname,productionTitle:ptitle,logo,accentColor:accent}));setSaved(true);setOpen(false);};
+  return(
+    <div style={{background:T.panel,border:`1px solid ${saved?accent:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>{logo&&<img src={logo} style={{height:28,objectFit:'contain'}}/>}<div style={{width:10,height:10,borderRadius:'50%',background:accent}}/><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{t('brandPanel')}</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
+        <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>lr.current.click()}><input ref={lr} type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Please upload an image file.');return;}if(f.size>3*1024*1024){alert('Logo image is too large (max 3MB).');return;}setLogo(await readImg(f));}}/>{logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload logo</div>}</div>
+        <Inp placeholder="Company name" value={cname} onChange={e=>setCname(e.target.value)}/>
+        <Inp placeholder="Production title" value={ptitle} onChange={e=>setPtitle(e.target.value)}/>
+        <div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:8,fontWeight:700}}>Accent colour</div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{ACCENT_COLORS.map(c=><button key={c} onClick={()=>setAccent(c)} style={{width:28,height:28,borderRadius:'50%',background:c,border:`3px solid ${accent===c?T.cream:'transparent'}`,cursor:'pointer'}}/>)}</div></div>
+        <div style={{display:'flex',gap:8}}><Btn onClick={save} variant="sage">Save brand</Btn><Btn variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn></div>
+      </div>}
+    </div>
+  );
+}
+function ScriptResultModal({result,currency,onApply,onClose}){
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
+      <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:24,width:'100%',maxWidth:480,maxHeight:'80vh',overflow:'auto'}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,marginBottom:4}}>{result.title||'Script budget'}</div>
+        {result.truncated&&<div style={{background:'rgba(224,107,82,.12)',border:`1px solid ${T.coral}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:10}}>⚠️ Response was cut off — showing {result.budget.length} recovered line item{result.budget.length!==1?'s':''}. Review before applying, or re-run on a shorter excerpt for a complete budget.</div>}
+        {result.summary&&<div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>{result.summary}</div>}
+        <div style={{marginBottom:16}}>{(result.budget||[]).slice(0,12).map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.line}`,fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.cream}}>{item.description}</span><span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace'}}>{sym(currency)}{fmt(item.rate*item.qty)}</span></div>)}</div>
+        <div style={{display:'flex',gap:8}}><Btn onClick={onApply}>Apply to budget</Btn><Btn variant="ghost" onClick={onClose}>Discard</Btn></div>
+      </div>
+    </div>
+  );
+}
+function InvoiceUploader({project,onCreatePO}){
+  const[state,setState]=useState('idle'); // idle | reading | analyzing | done | error
+  const[file,setFile]=useState(null); // the original invoice, kept with the PO
+  const[err,setErr]=useState('');
+  const[draft,setDraft]=useState(null);
+  const fr=useRef();
+  const process=async f=>{
+    const isPDF=f.type==='application/pdf';
+    const isImg=f.type.startsWith('image/');
+    if(!isPDF&&!isImg){setErr('Upload a PDF, JPG, or PNG invoice.');setState('error');return;}
+    if(f.size>15*1024*1024){setErr('File is too large (max 15MB).');setState('error');return;}
+    setState('reading');setErr('');setFile(f);
+    try{
+      const b=await readB64(f);
+      const uc=isPDF
+        ?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}]
+        :[{type:'image',source:{type:'base64',media_type:f.type,data:b}},{type:'text',text:INVOICE_PROMPT(project.base_currency)}];
+      setState('analyzing');
+      const raw=await callClaude([{role:'user',content:uc}],INVOICE_SYS,4000);
+      const parsed=recoverInvoice(raw);
+      if(!parsed)throw new Error('Could not read this invoice. Try a clearer photo or a different file.');
+      setDraft({
+        vendor:parsed.vendor||'',
+        dept:DEPTS.includes(parsed.suggestedDept)?parsed.suggestedDept:DEPTS[0],
+        description:(parsed.lineItems||[]).map(li=>li.description).filter(Boolean).join(', ')||'',
+        amount:String(parsed.totalAmount||''),
+        currency:parsed.currency||project.base_currency,
+      });
+      setState('done');
+    }catch(e){setErr(e.message);setState('error');}
+  };
+  const reset=()=>{setState('idle');setDraft(null);setErr('');setFile(null);};
+  return(
+    <div style={{marginBottom:18}}>
+      {(state==='idle'||state==='error')&&<div onClick={()=>fr.current.click()} style={{border:`2px dashed ${T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:'pointer'}}>
+        <input ref={fr} type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
+        <div style={{fontSize:24,marginBottom:8}}>🧾</div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Drop an invoice or receipt</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, or a photo of a paper invoice — NKÒ reads it, drafts a PO, and keeps the original on file</div>
+        <Btn variant="ghost" size="sm">Choose file</Btn>
+        {err&&<div style={{color:T.coral,fontSize:12,marginTop:10}}>{err}</div>}
+      </div>}
+      {(state==='reading'||state==='analyzing')&&<div style={{border:`2px dashed ${T.gold}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi}}>
+        <div style={{color:T.gold,fontFamily:'Manrope,sans-serif',fontSize:13}}>{state==='reading'?'Reading file…':'Extracting invoice details…'}</div>
+      </div>}
+      {state==='done'&&draft&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Confirm before creating PO — check these against the actual invoice</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Vendor</div><Inp value={draft.vendor} onChange={e=>setDraft(d=>({...d,vendor:e.target.value}))}/></div>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Department</div><Sel value={draft.dept} onChange={e=>setDraft(d=>({...d,dept:e.target.value}))} style={{width:'100%'}}>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel></div>
+        </div>
+        <div style={{marginBottom:8}}><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Description</div><Inp value={draft.description} onChange={e=>setDraft(d=>({...d,description:e.target.value}))}/></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Amount</div><Inp type="number" value={draft.amount} onChange={e=>setDraft(d=>({...d,amount:e.target.value}))}/></div>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Currency</div><Sel value={draft.currency} onChange={e=>setDraft(d=>({...d,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <Btn variant="sage" onClick={()=>{onCreatePO({...draft,amount:Number(draft.amount)||0},file);reset();}}>Create Purchase Order</Btn>
+          <Btn variant="ghost" onClick={reset}>Cancel</Btn>
+        </div>
+      </div>}
+    </div>
+  );
+}
+function ScriptUploader({project,onApplyBudget}){
+  const{t}=useLang();
+  const[state,setState]=useState('idle');const[err,setErr]=useState('');const[result,setResult]=useState(null);const fr=useRef();
+  const process=async f=>{
+    const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
+    if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX file.');setState('error');return;}
+    if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
+    setState('reading');setErr('');
+    try{
+      let uc;
+      if(isPDF){
+        let extracted='';
+        try{extracted=await extractPdfText(f);}catch{extracted='';}
+        if(extracted&&extracted.length>200){
+          uc=[{type:'text',text:`Script:\n\n${extracted.slice(0,300000)}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];
+        }else{
+          const sizeMB=f.size/1024/1024;
+          if(sizeMB>3.2)throw new Error(`This PDF looks like scanned pages with no selectable text, and is too large (${sizeMB.toFixed(1)}MB) to upload directly. Try exporting it as a text-based PDF, or paste the script into a .txt file instead.`);
+          const b=await readB64(f);
+          uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:SCRIPT_PROMPT(project.base_currency)}];
+        }
+      }else{
+        const txt=await readTxt(f);
+        uc=[{type:'text',text:`Script:\n\n${txt.slice(0,300000)}\n\n${SCRIPT_PROMPT(project.base_currency)}`}];
+      }
+      setState('analyzing');
+      const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS(project.type),24000);
+      const recovered=recoverBudget(raw);
+      if(!recovered||!recovered.budget?.length)throw new Error('Could not read a budget from the response. Try again, or upload a shorter script excerpt.');
+      setResult(recovered);setState('done');
+    }catch(e){setErr(`Failed: ${e.message}`);setState('error');}
+  };
+  return(
+    <>
+      <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:(state==='idle'||state==='error')?'pointer':'default',marginBottom:18}}>
+        <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
+        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{t('uploadScript')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div><Btn variant="ghost" size="sm">{t('chooseFile')}</Btn></>}
+        {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
+        {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Keep screen on during analysis</div></>}
+        {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage}}>Analysis complete</div></>}
+        {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
+      </div>
+      {result&&state==='done'&&<ScriptResultModal result={result} currency={project.base_currency} onApply={()=>{onApplyBudget(result.budget);setResult(null);setState('idle');}} onClose={()=>{setResult(null);setState('idle');}}/>}
+    </>
+  );
+}
+/* ── Budget PDF — full branded budget export ── */
+const budgetPDF=(items,project,advances,reconEntries)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const info=JSON.parse(localStorage.getItem(`nko_info_${project.id}`)||'{}');
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const infoRows=[['Producer',info.producer],['Line Producer',info.lineProducer],['Executive Producer',info.execProducer],['Prepared By',info.preparedBy],['Pre-production',info.prepStart&&`${info.prepStart} → ${info.prepEnd||''}`],['Shoot',info.shootStart&&`${info.shootStart} → ${info.shootEnd||''}`],['Post-production',info.postStart&&`${info.postStart} → ${info.postEnd||''}`]].filter(([,v])=>v);
+  const infoBlock=infoRows.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:18px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden">${infoRows.map(([k,v])=>`<tr><td style="padding:6px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;width:170px;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${escapeHtml(k)}</td><td style="padding:6px 12px;font-size:12px;color:#F0E8D0;font-weight:600;background:#1C1C1E;border-bottom:1px solid #3A3A3A">${escapeHtml(v)}</td></tr>`).join('')}</table>`:'';
+  const grand={};items.forEach(i=>{grand[i.currency]=(grand[i.currency]||0)+lTot(i);});
+  const phaseSummary=PHASES.map(ph=>{
+    const pi=items.filter(i=>ph.depts.includes(i.dept));
+    const t={};pi.forEach(i=>{t[i.currency]=(t[i.currency]||0)+lTot(i);});
+    const line=Object.entries(t).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ')||'—';
+    return`<div style="flex:1;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#9A9080;text-transform:uppercase;letter-spacing:1px">${escapeHtml(ph.name)}</div><div style="font-size:13px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${line}</div></div>`;
+  }).join('');
+  const deptBlocks=PHASES.map((ph,phIdx)=>{
+    const phBlocks=ph.depts.map(d=>{
+    const di=items.filter(i=>i.dept===d);if(!di.length)return'';
+    const sub={};di.forEach(i=>{sub[i.currency]=(sub[i.currency]||0)+lTot(i);});
+    const rows=di.map(i=>`<tr><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A">${escapeHtml(i.description||'—')}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${escapeHtml(i.qty)}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:center;border-bottom:1px solid #3A3A3A">${escapeHtml(i.unit)}</td><td style="padding:5px 10px;font-size:11px;color:#F0E8D0;text-align:right;font-family:monospace;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(i.rate)}</td><td style="padding:5px 10px;font-size:11px;text-align:right;font-family:monospace;font-weight:600;color:#FEED61;border-bottom:1px solid #3A3A3A">${sym(i.currency)}${fmt(lTot(i))}</td></tr>`).join('');
+    const subLine=Object.entries(sub).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
+    return`<div style="margin-bottom:16px;page-break-inside:avoid"><div style="background:#1C1C1E;color:#FEED61;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none"><span>${escapeHtml(d)}</span><span style="font-family:monospace">${subLine}</span></div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none"><tr style="background:#242424">${['Description','Qty','Unit','Rate','Total'].map((h,i)=>`<th style="padding:5px 10px;font-size:9px;color:#9A9080;text-transform:uppercase;text-align:${i>2?'right':i>0?'center':'left'}">${h}</th>`).join('')}</tr>${rows}</table></div>`;
+    }).join('');
+    if(!phBlocks)return'';
+    return`<div style="margin-bottom:8px;${phIdx>0?'page-break-before:always;':''}"><div style="font-size:14px;font-weight:700;font-family:Georgia;color:#F0E8D0;border-bottom:2px solid #FEED61;padding-bottom:4px;margin-bottom:10px">${escapeHtml(ph.name)}</div>${phBlocks}</div>`;
+  }).join('');
+  const grandLine=Object.entries(grand).map(([cc,a])=>`${sym(cc)}${fmt(a)}`).join(' · ');
+  const html=`<!DOCTYPE html><html><head><title>Budget — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button><div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then share via WhatsApp or email</div></div>
+    <div style="max-width:700px;margin:0 auto;padding:26px;background:#141414">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:8px">
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">${escapeHtml(project.type)} · ${escapeHtml(brand.productionTitle||project.name)}</div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Created ${new Date().getFullYear()}</div></div>${logoHtml}
+      </div>
+      ${infoBlock}
+      <div style="background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">
+        <div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1.5px">Grand Total</div>
+        <div style="font-size:26px;font-weight:700;font-family:monospace;color:#FEED61;margin-top:3px">${grandLine||'—'}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px">${phaseSummary}</div>
+      ${deptBlocks}
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:18px">Generated by NKÒ — Budgets Tailored To Film · nko-nko.vercel.app</div>
+    </div></body></html>`;
+  openThemed(html,'dark');
+};
+
+function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner}){
+  const{t:tr}=useLang();
+  const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
+  const[search,setSearch]=useState('');
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const pItems=items.filter(i=>i.project_id===project.id);
+  const pAdv=advances.filter(a=>a.project_id===project.id);
+  const totalAdv=pAdv.reduce((s,a)=>s+a.amount,0);
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('budgetHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      <BudgetSummaryHeader project={project} items={pItems} onSetContingency={onSetContingency} onSetTarget={onSetTarget}/>
+      <ProductionInfoPanel project={project}/>
+      <BrandPanel project={project}/>
+      {totalAdv>0&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>Advances issued: {sym(project.base_currency)}{fmt(totalAdv)}</div>}
+      <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
+        <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
+        {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>)}
+      </div>
+      {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:8}}>
+          {TEMPLATES.map(tpl=><button key={tpl.id} onClick={()=>{onApplyTemplate(tpl);setShowTpl(false);}} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:12,cursor:'pointer',textAlign:'left'}}><div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream}}>{tpl.label}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:3}}>{tpl.items.length} line items</div></button>)}
+        </div>
+      </div>}
+      <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
+      <div style={{marginBottom:14}}>
+        <Inp placeholder="🔍 Search line items or departments…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%'}}/>
+      </div>
+      {(()=>{
+        const activeDepts=DEPTS.filter(d=>pItems.some(i=>i.dept===d));
+        const emptyDepts=DEPTS.filter(d=>!activeDepts.includes(d));
+        const q=search.trim().toLowerCase();
+        const visibleDepts=q?activeDepts.filter(d=>d.toLowerCase().includes(q)||pItems.some(i=>i.dept===d&&(i.description||'').toLowerCase().includes(q))):activeDepts;
+        return(
+          <>
+            {q&&!visibleDepts.length&&<div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',padding:'12px 0'}}>No departments or line items match "{search}".</div>}
+            {visibleDepts.map(d=>{
+              const di=pItems.filter(i=>i.dept===d);
+              const deptNameMatches=d.toLowerCase().includes(q);
+              const shown=q&&!deptNameMatches?di.filter(i=>(i.description||'').toLowerCase().includes(q)):di;
+              return<DeptSection key={d} dept={d} items={shown} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove} project={project} scenes={scenes} characters={characters} onSaveCharacter={onSaveCharacter}/>;
+            })}
+            {!q&&<Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
+              <option value="">{tr('addDepartment')}</option>
+              {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
+            </Sel>}
+          </>
+        );
+      })()}
+    </div>
+  );
+}
+
+/* ── Recon ── */
+function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,onDelete,isOwner}){
+  const{t:tr}=useLang();
+  const[show,setShow]=useState(false);const[eDesc,setEDesc]=useState('');const[eAmt,setEAmt]=useState('');const[eDate,setEDate]=useState(today());const[eCat,setECat]=useState('Miscellaneous');const[eRef,setERef]=useState('');const mob=useIsMobile();
+  const[editingId,setEditingId]=useState(null);const[editCat,setEditCat]=useState('');const[editDesc,setEditDesc]=useState('');const[editAmt,setEditAmt]=useState('');
+  const startEdit=en=>{
+    const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'Miscellaneous';
+    setEditingId(en.id);setEditCat(cat);setEditDesc((en.description||'').replace(/^\[[^\]]+\]\s*/,''));setEditAmt(String(en.amount));
+  };
+  const saveEdit=en=>{
+    if(editDesc&&editAmt)onUpdateEntry(en.id,{description:`[${editCat}] ${editDesc}`,amount:Number(editAmt)});
+    setEditingId(null);
+  };
+  const requestDelete=()=>{
+    const n=entries.length;
+    const spent=entries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+Number(e.amount||0),0);
+    const entryWord=`${n} logged entr${n===1?'y':'ies'}`;
+    if(advance.status==='reconciled'){
+      const typed=window.prompt(`This advance is RECONCILED. Deleting it permanently removes ${entryWord} (${sym(advance.currency)}${fmt(spent)} of confirmed spend), and that spend drops out of the Cost Report. Type DELETE to confirm.`);
+      if(typed!=='DELETE')return;
+    }else if(!window.confirm(`Delete this advance${n?` and its ${entryWord}`:''}? This can't be undone.`))return;
+    onDelete(advance.id);
+  };
+  const cashIn=entries.filter(e=>e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const spent=entries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const funds=Number(advance.amount)+cashIn;const bal=funds-spent;const pct=funds>0?Math.min(100,(spent/funds)*100):0;
+  const sc=advance.status==='reconciled'?T.sage:bal<0?T.coral:T.gold;
+  const save=()=>{if(eDesc&&eAmt){onAddEntry({advance_id:advance.id,description:`[${eCat}] ${eDesc}${eRef?` · Ref: ${eRef}`:''}`,amount:Number(eAmt),date:eDate});setEDesc('');setEAmt('');setERef('');setECat('Miscellaneous');}setShow(false);};
+  return(
+    <div style={{background:T.panel,border:`1px solid ${bal<0?T.coral:T.line}`,borderRadius:10,overflow:'hidden',marginBottom:12}}>
+      <div style={{padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:mob?'wrap':'nowrap',gap:8}}>
+        <div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{advance.recipient}{advance.dept&&<span style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:400}}> · {advance.dept}</span>}</div><div style={{fontSize:11,color:T.dim,marginTop:2,fontFamily:'Manrope,sans-serif'}}>{advance.purpose||'No purpose'} · {advance.date_issued}</div></div>
+        <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div><Pill color={sc}>{advance.status==='reconciled'?'Reconciled':bal<0?'Overspent':bal===0?'Balanced':'Open'}</Pill></div>
+      </div>
+      <div style={{padding:'0 16px 10px'}}><div style={{height:6,borderRadius:3,background:T.ink,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:bal<0?T.coral:T.gold}}/></div><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}><span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span><span style={{color:bal<0?T.coral:T.dim}}>{bal<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(advance.currency)}${fmt(bal)}`}</span></div></div>
+      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{
+        const isIn=en.description?.startsWith('[CASH-IN]');const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');
+        if(editingId===en.id)return(
+          <div key={en.id} style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`,display:'flex',flexDirection:'column',gap:6,background:T.hi}}>
+            {!isIn&&<Sel value={editCat} onChange={e=>setEditCat(e.target.value)} style={{width:'100%'}}>{expenseCatsForDept(advance.dept).map(c=><option key={c}>{c}</option>)}</Sel>}
+            <Inp value={editDesc} onChange={e=>setEditDesc(e.target.value)} placeholder="What was spent on?"/>
+            <Inp type="number" value={editAmt} onChange={e=>setEditAmt(e.target.value)} placeholder="Amount"/>
+            <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>saveEdit(en)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditingId(null)}>Cancel</Btn></div>
+          </div>
+        );
+        return<div key={en.id} onClick={()=>startEdit(en)} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8,cursor:'pointer'}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:isIn?'rgba(82,176,122,.2)':T.hi,color:isIn?T.sage:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{isIn?'CASH IN':cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:isIn?T.sage:T.cream,fontSize:12}}>{isIn?'+':''}{sym(advance.currency)}{fmt(en.amount)}</span><span style={{color:T.faint,fontSize:12}}>✎</span><button onClick={e=>{e.stopPropagation();onRemoveEntry(en.id);}} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
+        <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
+      </div>}
+      {show&&<div style={{padding:'10px 16px',borderTop:`1px solid ${T.line}`,background:T.hi,display:'flex',flexDirection:'column',gap:8}}>
+        <Sel value={eCat} onChange={e=>setECat(e.target.value)} style={{width:'100%'}}>{expenseCatsForDept(advance.dept).map(c=><option key={c}>{c}</option>)}</Sel>
+        <Inp placeholder="What was spent on?" value={eDesc} onChange={e=>setEDesc(e.target.value)}/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}><Inp type="number" placeholder="Amount" value={eAmt} onChange={e=>setEAmt(e.target.value)}/><Inp type="date" value={eDate} onChange={e=>setEDate(e.target.value)}/></div>
+        <Inp placeholder="Receipt / voucher ref (optional)" value={eRef} onChange={e=>setERef(e.target.value)}/>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={save}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setShow(false)}>Cancel</Btn></div>
+      </div>}
+      {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14,flexWrap:'wrap'}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('logExpense')}</button><button onClick={()=>{const extra=window.prompt(`Top up this advance — how much extra ${advance.currency} was given to ${advance.recipient}?`);if(extra&&Number(extra)>0)onTopUp(advance.id,Number(extra));}} style={{color:T.sapphire,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('topUp')}</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('reconcileBtn')}</button>}</div>}
+      {advance.status!=='reconciled'&&!show&&bal<0&&<div style={{padding:'0 16px 12px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Overspent — top up with new cash received, or remove a logged expense with the × button above.</div>}
+      {isOwner&&!show&&<div style={{padding:'0 16px 12px',borderTop:advance.status==='reconciled'?`1px solid ${T.line}`:'none',paddingTop:advance.status==='reconciled'?10:0}}><button onClick={requestDelete} style={{color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',padding:0}}>Delete advance</button></div>}
+    </div>
+  );
+}
+/* ── Cost Report — budget vs actual by phase, using dept tag on advances ── */
+/* ── People slots: crew & cast lines in the Budget become slots on the Payments tab ── */
+const isPeopleLine=i=>{
+  if(!String(i.description||'').trim())return false;
+  if(i.unit==='person')return true;
+  const d=String(i.dept||'');
+  return d==='F - Talents'||/ Team$/.test(d);
+};
+const personSlots=items=>{
+  const out=[];
+  (items||[]).filter(isPeopleLine).forEach(i=>{
+    const headcount=i.unit==='person'?Math.max(1,Math.round(Number(i.qty)||1)):1;
+    const budget=i.unit==='person'?(Number(i.rate)||0):lTot(i);
+    for(let k=0;k<headcount;k++)out.push({item:i,k,of:headcount,budget,kind:i.dept==='F - Talents'?'cast':'crew'});
+  });
+  return out;
+};
+const payeeSpend=(payees,items,projectId)=>{
+  const out=[];
+  (payees||[]).filter(p=>p.project_id===projectId).forEach(p=>{
+    const it=(items||[]).find(i=>String(i.id)===String(p.budget_item_id));
+    const dept=p.dept||it?.dept||'';
+    (p.payments||[]).forEach((pay,i)=>out.push({id:`${p.id}-${i}`,amount:Number(pay.amount)||0,currency:p.currency,dept,name:p.name,role:p.role,date:pay.date,method:pay.method,receipt:pay.receipt}));
+  });
+  return out;
+};
+function CostReportPanel({project,items,advances,reconEntries,paidPOs=[],payeePays=[]}){
+  const{t:tr}=useLang();
+  const advIds=advances.map(a=>a.id);
+  const advCur=id=>advances.find(a=>a.id===id)?.currency||project.base_currency;
+  const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]'));
+  const budgetByCur={};items.forEach(i=>{budgetByCur[i.currency]=(budgetByCur[i.currency]||0)+lTot(i);});
+  const spentByCur={};
+  spendEntries.forEach(e=>{const c=advCur(e.advance_id);spentByCur[c]=(spentByCur[c]||0)+(Number(e.amount)||0);});
+  paidPOs.forEach(po=>{spentByCur[po.currency]=(spentByCur[po.currency]||0)+(Number(po.amount)||0);});
+  payeePays.forEach(x=>{spentByCur[x.currency]=(spentByCur[x.currency]||0)+x.amount;});
+  const budgetUSD=items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const spentUSD=spendEntries.reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+paidPOs.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0)+payeePays.reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
+  const remainUSD=budgetUSD-spentUSD;
+  const curs=[...new Set([...Object.keys(budgetByCur),...Object.keys(spentByCur),project.base_currency])];
+  const fmtCur=obj=>curs.filter(c=>obj[c]).map(c=>`${sym(c)}${fmt(obj[c])}`).join(' · ')||`${sym(project.base_currency)}0`;
+  const remainingByCur={};curs.forEach(c=>{remainingByCur[c]=(budgetByCur[c]||0)-(spentByCur[c]||0);});
+  const untaggedSpentUSD=spendEntries.filter(e=>{const a=advances.find(x=>x.id===e.advance_id);return a&&!a.dept;}).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0);
+  const untaggedPayUSD=payeePays.filter(x=>!x.dept).reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
+  if(items.length===0&&advances.length===0&&payeePays.length===0)return null;
+  return(
+    <div style={{marginBottom:22}}>
+      <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:2}}>{tr('costReport')}</div>
+      <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12}}>{tr('costReportSub')}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginBottom:12}}>
+        <StatCard label={tr('totalBudgetLbl')} value={fmtCur(budgetByCur)} sub={project.base_currency}/>
+        <StatCard label={tr('actualSpentLbl')} value={fmtCur(spentByCur)} sub={project.base_currency}/>
+        <StatCard label={tr('remainingLbl')} value={fmtCur(remainingByCur)} sub={remainUSD<0?tr('statOverBudget'):tr('statUnderBudget')} accent={remainUSD<0?T.coral:T.sage}/>
+      </div>
+      {untaggedPayUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedPayUSD)} paid to people with no department set — they count toward Actual spend, but not any phase. Set a department on the payee.</div>}
+      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent on advances with no department set — tag them when issuing an advance for an accurate phase breakdown.</div>}
+      <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>{tr('byPhase')}</div>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {PHASES.map(ph=>{
+          const bItems=items.filter(i=>ph.depts.includes(i.dept));
+          const bByCur={};bItems.forEach(i=>{bByCur[i.currency]=(bByCur[i.currency]||0)+lTot(i);});
+          const advIdsPhase=advances.filter(a=>ph.depts.includes(a.dept)).map(a=>a.id);
+          const poPhase=paidPOs.filter(po=>ph.depts.includes(po.dept));
+          const sByCur={};
+          spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).forEach(e=>{const c=advCur(e.advance_id);sByCur[c]=(sByCur[c]||0)+(Number(e.amount)||0);});
+          poPhase.forEach(po=>{sByCur[po.currency]=(sByCur[po.currency]||0)+(Number(po.amount)||0);});
+          const payPhase=payeePays.filter(x=>ph.depts.includes(x.dept));
+          payPhase.forEach(x=>{sByCur[x.currency]=(sByCur[x.currency]||0)+x.amount;});
+          const bUSD=bItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+          const sUSD=spendEntries.filter(e=>advIdsPhase.includes(e.advance_id)).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCur(e.advance_id)),0)+poPhase.reduce((s,po)=>s+toUSD(Number(po.amount)||0,po.currency),0)+payPhase.reduce((s,x)=>s+toUSD(x.amount,x.currency),0);
+          const pct=bUSD>0?Math.min(100,(sUSD/bUSD)*100):0;const over=sUSD>bUSD;const diffUSD=sUSD-bUSD;
+          return(
+            <div key={ph.name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6,gap:8,flexWrap:'wrap'}}>
+                <span style={{color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif'}}>{ph.name}</span>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:sUSD===0?T.dim:(over?T.coral:T.sage)}}>{sUSD===0?tr('notStarted'):`${over?'+':'-'}$${fmt(Math.abs(diffUSD))} ${over?tr('statOverBudget'):tr('statUnderBudget')}`}</span>
+              </div>
+              <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:5}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,fontFamily:'IBM Plex Mono,monospace',flexWrap:'wrap',gap:6}}>
+                <span>Budget {fmtCur(bByCur)}</span><span>Spent {fmtCur(sByCur)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency,payments=[]}){
+  const openAdv=advances.filter(a=>a.status!=='reconciled'&&(a.amount-reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0))>0);
+  const feed=[
+    ...reconEntries.filter(e=>advances.some(a=>a.id===e.advance_id)).map(e=>({...e,_source:'ADVANCE',_label:advances.find(a=>a.id===e.advance_id)?.recipient||'Advance',_date:e.date})),
+    ...paidPOs.map(po=>({id:po.id,amount:po.amount,_source:po.po_number||'PO',_label:po.vendor||'Vendor',_date:po.created_at,_po:po})),
+    ...payments.map(x=>({id:x.id,amount:x.amount,_source:'PAYMENT',_label:`${x.name}${x.role?` · ${x.role}`:''}`,_date:x.date,_pay:x})),
+  ].sort((a,b)=>new Date(b._date||0)-new Date(a._date||0));
+  const total=feed.reduce((s,f)=>s+Number(f.amount||0),0);
+  return(
+    <div style={{marginBottom:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
+        <div style={{color:T.cream,fontFamily:'Fraunces,serif',fontSize:15}}>{dept}</div>
+        <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:16,fontWeight:700}}>{sym(currency)}{fmt(total)} <span style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif',fontWeight:400}}>spent</span></div>
+      </div>
+      {openAdv.length>0&&<div style={{marginBottom:10}}>
+        <div style={{fontSize:9,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:5}}>Cash still with someone</div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {openAdv.map(a=>{const bal=a.amount-reconEntries.filter(e=>e.advance_id===a.id).reduce((s,e)=>s+Number(e.amount),0);return(
+            <div key={a.id} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'5px 10px',fontSize:11}}>
+              <span style={{color:T.cream}}>{a.recipient}</span> <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace'}}>{sym(a.currency)}{fmt(bal)}</span>
+            </div>
+          );})}
+        </div>
+      </div>}
+      {feed.length>0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden'}}>
+        {feed.slice(0,8).map((f,i)=>(
+          <div key={f.id+i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 12px',borderBottom:i<feed.length-1?`1px solid ${T.line}`:'none'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{background:f._source==='ADVANCE'?T.hi:'rgba(82,176,122,.15)',color:f._source==='ADVANCE'?T.dim:T.sage,fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:5}}>{f._source}</span>
+              <span style={{color:T.cream,fontSize:12}}>{f.description||f._label}</span>
+              {f._pay?.receipt?.path&&<button onClick={()=>viewReceipt(f._pay.receipt.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Receipt</button>}
+              {f._po&&<span style={{display:'inline-flex',gap:4}}>
+                {f._po.invoice_file?.path&&<button onClick={()=>viewReceipt(f._po.invoice_file.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Invoice</button>}
+                {f._po.receipt_file?.path&&<button onClick={()=>viewReceipt(f._po.receipt_file.path)} style={{color:T.sage,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:5,padding:'1px 6px'}}>📎 Receipt</button>}
+              </span>}
+            </div>
+            <span style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{fmt(f.amount)}</span>
+          </div>
+        ))}
+      </div>:<div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>Nothing logged yet.</div>}
+    </div>
+  );
+}
+function ReconView({project,items,advances,reconEntries,purchaseOrders,payees=[],onAddAdvance,onUpdateAdvance,onAddEntry,onRemoveEntry,onUpdateEntry,onTopUp,onDeleteAdvance,isOwner}){
+  const{t:tr}=useLang();
+  const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
+  const[showAll,setShowAll]=useState(false);
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const pAdv=advances.filter(a=>a.project_id===project.id);
+  const pPOsPaid=(purchaseOrders||[]).filter(po=>po.project_id===project.id&&po.status==='Paid');
+  const isTopUp=e=>!!e.description?.startsWith('[CASH-IN]');const total=pAdv.reduce((s,a)=>s+Number(a.amount)+reconEntries.filter(e=>e.advance_id===a.id&&isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0),0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id&&!isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0)).reduce((a,b)=>a+b,0);
+  const payList=payeeSpend(payees,items,project.id);
+  const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept),...payList.map(x=>x.dept)].filter(Boolean))];
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances, paid purchase orders and payments to crew and cast, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
+      <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries} paidPOs={pPOsPaid} payeePays={payList}/>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
+        <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
+      </div>
+      {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>{tr('newAdvance')}</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <Inp placeholder="Recipient name" value={rec.recipient} onChange={e=>setRec(p=>({...p,recipient:e.target.value}))}/>
+          <Sel value={rec.dept} onChange={e=>setRec(p=>({...p,dept:e.target.value}))} style={{width:'100%'}}><option value="">Department (optional)</option>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel>
+          <Inp type="number" placeholder="Amount" value={rec.amount} onChange={e=>setRec(p=>({...p,amount:e.target.value}))}/>
+          <Sel value={rec.currency} onChange={e=>setRec(p=>({...p,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+          <Inp placeholder="Purpose" value={rec.purpose} onChange={e=>setRec(p=>({...p,purpose:e.target.value}))} style={{gridColumn:'span 2'}}/>
+          <Inp type="date" value={rec.date_issued} onChange={e=>setRec(p=>({...p,date_issued:e.target.value}))} style={{gridColumn:'span 2'}}/>
+        </div>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>{tr('issueAdvance').replace('+ ','')}</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>{tr('cancel')}</Btn></div>
+      </div>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>By department</div>
+        <div style={{display:'flex',gap:8}}>{(pAdv.length>0||pPOsPaid.length>0||payList.length>0)&&isOwner&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid,payList)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
+      </div>
+      {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
+        activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} payments={payList.filter(x=>x.dept===dept)} currency={project.base_currency}/>)}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+        <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
+      </div>
+      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onUpdateEntry={onUpdateEntry} onTopUp={onTopUp} onDelete={onDeleteAdvance} isOwner={isOwner}/>))}
+    </div>
+  );
+}
+
+/* ── Payments ── */
+/* ── PDF Receipt — bank-receipt style for a single payment ── */
+const receiptPDF=(payee,payment,project)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=brand.logo?`<img src="${brand.logo}" style="height:42px;object-fit:contain"/>`:'';
+  const ref=`NKO-${project.id.slice(0,4).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+  const html=`<!DOCTYPE html><html><head><title>Receipt — ${payee.name}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A">
+      <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
+      <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
+    </div>
+    <div style="max-width:420px;margin:24px auto;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.4)">
+      <div style="background:#141414;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #FEED61">
+        <div><div style="color:#FEED61;font-size:20px;font-weight:700;font-family:Georgia">${brand.companyName||'NKÒ'}</div>
+        <div style="color:#8C852E;font-size:9px;text-transform:uppercase;letter-spacing:2px">Payment Receipt</div></div>
+        ${logoHtml}
+      </div>
+      <div style="padding:22px;text-align:center;border-bottom:1px dashed #3A3A3A">
+        <div style="font-size:11px;color:#9A9080;margin-bottom:4px">Amount Paid</div>
+        <div style="font-size:34px;font-weight:700;color:#FEED61">${sym(payee.currency)}${fmt(payment.amount)}</div>
+        <div style="display:inline-block;margin-top:8px;background:rgba(82,176,122,.15);color:#52B07A;font-size:11px;font-weight:700;padding:4px 14px;border-radius:12px">✓ PAID</div>
+      </div>
+      <div style="padding:16px 22px">
+        ${[['Paid to',payee.name],['Role',payee.role||'—'],['Production',project.name],['Payment method',payment.method],['Date',payment.date],['Reference',ref]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #3A3A3A"><span style="font-size:12px;color:#9A9080">${k}</span><span style="font-size:12px;color:#F0E8D0;font-weight:600;text-align:right">${v}</span></div>`).join('')}
+      </div>
+      <div style="padding:12px 22px 20px;text-align:center">
+        <div style="font-size:10px;color:#5A5A5A">Generated by NKÒ — Budgets Tailored To Film</div>
+        <div style="font-size:10px;color:#3A3A3A;margin-top:2px">nko-nko.vercel.app</div>
+      </div>
+    </div>
+  </body></html>`;
+  openThemed(html,'dark');
+};
+
+/* ── Recon Report PDF — full advances + expense log for a production ── */
+const poRegisterPDF=(pos,project)=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const th=(t,r)=>`<th style="padding:7px 10px;font-size:9px;color:#8C852E;text-transform:uppercase;letter-spacing:1px;text-align:${r?'right':'left'};border-bottom:1px solid #3A3A3A;background:#1C1C1E">${t}</th>`;
+  const td=(t,r,x)=>`<td style="padding:7px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A;text-align:${r?'right':'left'};vertical-align:top;${x||''}">${t}</td>`;
+  const doc=(f,l)=>f?.path?`<span style="color:#52B07A">✓ ${l}</span>`:`<span style="color:#9A9080">— ${l}</span>`;
+  const rows=pos.slice().sort((a,b)=>String(a.po_number||'').localeCompare(String(b.po_number||''))).map(po=>`<tr style="page-break-inside:avoid">${td(escapeHtml(po.po_number||''),0,'white-space:nowrap;font-family:monospace')}${td(`${escapeHtml(po.vendor||'Vendor')}<div style="color:#9A9080;font-size:10px;margin-top:1px">${escapeHtml(po.description||'')}</div>`)}${td(escapeHtml(po.dept||'—'))}${td(escapeHtml(po.status||''))}${td(`${doc(po.invoice_file,'Invoice')}<br>${doc(po.receipt_file,'Receipt')}`)}${td(`${sym(po.currency)}${fmt(po.amount)}`,1,'font-family:monospace;white-space:nowrap')}</tr>`).join('');
+  const tot={};pos.forEach(po=>{tot[po.currency]=(tot[po.currency]||0)+(Number(po.amount)||0);});
+  const totTxt=Object.keys(tot).map(c=>`${sym(c)}${fmt(tot[c])}`).join(' · ');
+  const html=`<!DOCTYPE html><html><head><title>PO Register — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A"><button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button></div>
+    <div style="max-width:760px;margin:0 auto;padding:22px 26px 10px;background:#141414">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Purchase Order Register — ${escapeHtml(project.name)}</div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Prepared ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · ${pos.length} purchase order${pos.length!==1?'s':''} · ${totTxt}</div></div>${logoHtml}
+      </div>
+      <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A"><tr>${th('PO')}${th('Vendor')}${th('Dept')}${th('Status')}${th('Documents')}${th('Amount',1)}</tr>${rows}</table>
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:14px">Generated by NKÒ — Budgets Tailored To Film · Invoices and receipts are kept in the app and can be opened from each PO</div>
+    </div>
+  </body></html>`;
+  openThemed(html,'dark');
+};
+const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[],payeePays=[])=>{
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:40px;object-fit:contain"/>`:'';
+  const cashIn=e=>!!e.description?.startsWith('[CASH-IN]');
+  const advIds=advances.map(a=>a.id);
+  const advOf=id=>advances.find(a=>a.id===id);
+  const curOf=id=>advOf(id)?.currency||project.base_currency;
+  const add=(o,c,v)=>{o[c]=(o[c]||0)+(Number(v)||0);};
+  const spendEntries=reconEntries.filter(e=>advIds.includes(e.advance_id)&&!cashIn(e));
+  const budgetBy={},spentBy={},poBy={},issuedBy={},advSpentBy={},peopleBy={};
+  items.forEach(i=>add(budgetBy,i.currency,lTot(i)));
+  spendEntries.forEach(e=>{add(spentBy,curOf(e.advance_id),e.amount);add(advSpentBy,curOf(e.advance_id),e.amount);});
+  paidPOs.forEach(po=>{add(spentBy,po.currency,po.amount);add(poBy,po.currency,po.amount);});
+  payeePays.forEach(x=>{add(spentBy,x.currency,x.amount);add(peopleBy,x.currency,x.amount);});
+  advances.forEach(a=>{add(issuedBy,a.currency,a.amount);reconEntries.filter(e=>e.advance_id===a.id&&cashIn(e)).forEach(e=>add(issuedBy,a.currency,e.amount));});
+  const curSet=[...new Set([...Object.keys(budgetBy),...Object.keys(spentBy),...Object.keys(issuedBy)])];
+  const curs=curSet.length?curSet:[project.base_currency];
+  const m1=(c,v)=>`${v<0?'−':''}${sym(c)}${fmt(Math.abs(v))}`;
+  const money=o=>curs.map(c=>m1(c,o[c]||0)).join('<br>');
+  const diff=(a,b)=>{const o={};curs.forEach(c=>{o[c]=(a[c]||0)-(b[c]||0);});return o;};
+  const remainBy=diff(budgetBy,spentBy);
+  const heldBy=diff(issuedBy,advSpentBy);
+  const anyOver=curs.some(c=>remainBy[c]<0);
+  const card=(label,val,color)=>`<div style="flex:1;min-width:130px;background:#1C1C1E;border:1px solid #3A3A3A;border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:#9A9080;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${label}</div><div style="font-family:monospace;font-size:15px;color:${color||'#F0E8D0'}">${val}</div></div>`;
+  const summary=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">${card('Total budget',money(budgetBy))}${card('Actual spent',money(spentBy),'#FEED61')}${card('Remaining',money(remainBy),anyOver?'#E06B52':'#52B07A')}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">${card('Paid purchase orders',money(poBy))}${card('Paid to crew &amp; cast',money(peopleBy))}${card('Spent from cash advances',money(advSpentBy))}${card('Cash still with recipients',money(heldBy))}</div>`;
+  const th=(t,r)=>`<th style="padding:7px 10px;font-size:9px;color:#9A9080;text-align:${r?'right':'left'};text-transform:uppercase;letter-spacing:.5px;background:#242424">${t}</th>`;
+  const td=(t,r,extra)=>`<td style="padding:7px 10px;font-size:11px;color:#F0E8D0;border-bottom:1px solid #3A3A3A;text-align:${r?'right':'left'};vertical-align:top;${extra||''}">${t}</td>`;
+  // ── by phase
+  const inPh=(ph,d)=>ph.depts.includes(d);
+  const phaseRows=PHASES.map(ph=>{
+    const b={},s={};
+    items.filter(i=>inPh(ph,i.dept)).forEach(i=>add(b,i.currency,lTot(i)));
+    spendEntries.filter(e=>inPh(ph,advOf(e.advance_id)?.dept)).forEach(e=>add(s,curOf(e.advance_id),e.amount));
+    paidPOs.filter(po=>inPh(ph,po.dept)).forEach(po=>add(s,po.currency,po.amount));
+    payeePays.filter(x=>inPh(ph,x.dept)).forEach(x=>add(s,x.currency,x.amount));
+    return{name:ph.name,b,s};
+  });
+  const unS={};
+  spendEntries.filter(e=>!PHASES.some(ph=>inPh(ph,advOf(e.advance_id)?.dept))).forEach(e=>add(unS,curOf(e.advance_id),e.amount));
+  const phaseHtml=phaseRows.filter(r=>curs.some(c=>r.b[c]||r.s[c])).map(r=>`<tr>${td(escapeHtml(r.name))}${td(money(r.b),1)}${td(money(r.s),1)}${td(money(diff(r.b,r.s)),1)}</tr>`).join('')
+    +(curs.some(c=>unS[c])?`<tr>${td('Not assigned to a department')}${td('—',1)}${td(money(unS),1)}${td('—',1)}</tr>`:'');
+  const phaseTable=phaseHtml?`<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">By phase</div>
+    <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A;margin-bottom:26px"><tr>${th('Phase')}${th('Budget',1)}${th('Spent',1)}${th('Remaining',1)}</tr>${phaseHtml}</table>`:'';
+  // ── by department (advance expenses + paid POs together)
+  const deptList=[...new Set([...advances.map(a=>a.dept),...paidPOs.map(po=>po.dept),...payeePays.map(x=>x.dept)])].filter(Boolean).sort((x,y)=>DEPTS.indexOf(x)-DEPTS.indexOf(y));
+  const deptKeys=(advances.some(a=>!a.dept)||payeePays.some(x=>!x.dept))?[...deptList,'']:deptList;
+  const badge=(t,po)=>`<span style="background:${po?'#1F3A2B':'#2A2A2A'};color:${po?'#52B07A':'#9A9080'};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;white-space:nowrap">${escapeHtml(t)}</span>`;
+  const deptBlocks=deptKeys.map(d=>{
+    const advs=advances.filter(a=>(a.dept||'')===d);
+    const rows=[
+      ...reconEntries.filter(e=>advs.some(a=>a.id===e.advance_id)&&!cashIn(e)).map(e=>{
+        const cat=e.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(e.description||'').replace(/^\[[^\]]+\]\s*/,'');
+        return{date:e.date||'',src:'ADVANCE',po:0,main:desc||cat,sub:[cat&&desc?cat:'',advOf(e.advance_id)?.recipient||''].filter(Boolean).join(' · '),amount:e.amount,currency:curOf(e.advance_id)};}),
+      ...payeePays.filter(x=>(x.dept||'')===d).map(x=>({date:String(x.date||'').slice(0,10),src:'PAYMENT',po:1,main:x.name||'Payee',sub:[x.role||'',x.method||'',x.receipt?.path?'Receipt ✓ on file':'No receipt'].filter(Boolean).join(' · '),amount:x.amount,currency:x.currency})),
+      ...paidPOs.filter(po=>(po.dept||'')===d).map(po=>({date:String(po.created_at||'').slice(0,10),src:po.po_number||'PO',po:1,main:po.vendor||'Vendor',sub:[po.description||'',`Invoice ${po.invoice_file?.path?'✓ on file':'— none'} · Receipt ${po.receipt_file?.path?'✓ on file':'— none'}`].filter(Boolean).join(' · '),amount:po.amount,currency:po.currency})),
+    ].sort((x,y)=>String(x.date).localeCompare(String(y.date)));
+    const spent={},bud={};rows.forEach(r=>add(spent,r.currency,r.amount));items.filter(i=>(i.dept||'')===d).forEach(i=>add(bud,i.currency,lTot(i)));
+    const cs=[...new Set([...Object.keys(spent),...Object.keys(bud)])];
+    const line=o=>cs.map(c=>m1(c,o[c]||0)).join(' · ');
+    return`<div style="margin-bottom:20px;border:1px solid #3A3A3A;border-radius:8px;overflow:hidden">
+      <div style="background:#1C1C1E;padding:10px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+        <div style="color:#F0E8D0;font-weight:700;font-size:13px">${escapeHtml(d||'No department set')}</div>
+        <div style="text-align:right"><span style="color:#FEED61;font-family:monospace;font-size:14px">${line(spent)}</span> <span style="color:#9A9080;font-size:10px">spent</span>${Object.keys(bud).length?`<div style="color:#9A9080;font-size:10px;margin-top:2px">Budget ${line(bud)}</div>`:''}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;background:#141414;table-layout:fixed"><colgroup><col style="width:84px"/><col style="width:84px"/><col/><col style="width:112px"/></colgroup>${rows.map(r=>`<tr style="page-break-inside:avoid">${td(escapeHtml(r.date),0,'color:#9A9080;white-space:nowrap')}${td(badge(r.src,r.po))}${td(`${escapeHtml(r.main)}${r.sub?`<div style="color:#9A9080;font-size:10px;margin-top:1px">${escapeHtml(r.sub)}</div>`:''}`)}${td(m1(r.currency,Number(r.amount)||0),1,'font-family:monospace;white-space:nowrap')}</tr>`).join('')}</table>
+    </div>`;
+  }).join('');
+  // ── cash advances (top-ups add to funds, they are not spending)
+  const advRows=advances.map(a=>{
+    const ens=reconEntries.filter(e=>e.advance_id===a.id);
+    const topUps=ens.filter(cashIn).reduce((s,e)=>s+(Number(e.amount)||0),0);
+    const spent=ens.filter(e=>!cashIn(e)).reduce((s,e)=>s+(Number(e.amount)||0),0);
+    const funds=Number(a.amount)+topUps;const bal=funds-spent;
+    const status=a.status==='reconciled'?'<span style="color:#52B07A">✓ Reconciled</span>':bal<0?`<span style="color:#E06B52">Over by ${sym(a.currency)}${fmt(Math.abs(bal))}</span>`:'<span style="color:#FEED61">Open</span>';
+    return`<tr style="page-break-inside:avoid">${td(escapeHtml(a.recipient))}${td(escapeHtml(a.dept||'—'))}${td(escapeHtml(a.purpose||''))}${td(escapeHtml(a.date_issued||''),0,'white-space:nowrap')}${td(`${sym(a.currency)}${fmt(funds)}${topUps?`<div style="color:#9A9080;font-size:9px">incl. ${sym(a.currency)}${fmt(topUps)} top-up</div>`:''}`,1,'font-family:monospace')}${td(`${sym(a.currency)}${fmt(spent)}`,1,'font-family:monospace')}${td(m1(a.currency,bal),1,'font-family:monospace')}${td(status)}</tr>`;
+  }).join('');
+  const advTable=advRows?`<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin:6px 0 8px">Cash advances</div>
+    <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #3A3A3A"><tr>${th('Recipient')}${th('Department')}${th('Purpose')}${th('Issued')}${th('Funds',1)}${th('Spent',1)}${th('Balance',1)}${th('Status')}</tr>${advRows}</table>`:'';
+  const nothing=!advances.length&&!paidPOs.length&&!payeePays.length;
+  const html=`<!DOCTYPE html><html><head><title>Recon Report — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;font-family:Arial;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px;text-align:center;border-bottom:1px solid #3A3A3A">
+      <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 24px;font-weight:700;cursor:pointer;border-radius:6px">Save as PDF</button>
+      <div style="color:#9A9080;font-size:11px;margin-top:6px">Save the PDF, then attach it in WhatsApp or email</div>
+    </div>
+    <div style="max-width:760px;margin:0 auto;padding:22px 26px 10px;background:#141414">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #FEED61;padding-bottom:14px;margin-bottom:18px">
+        <div><div style="font-size:22px;font-weight:700;font-family:Georgia;color:#F0E8D0">${escapeHtml(brand.companyName||'NKÒ')}</div>
+        <div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px">Reconciliation Report — ${escapeHtml(project.name)}</div>
+        <div style="font-size:10px;color:#9A9080;margin-top:3px">Prepared ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · Cash advances, paid purchase orders and crew &amp; cast payments</div></div>
+        ${logoHtml}
+      </div>
+      ${nothing?'<div style="color:#9A9080;font-size:12px">Nothing has been spent or issued yet.</div>':`${summary}${phaseTable}<div style="font-size:11px;color:#8C852E;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">By department</div>${deptBlocks}${advTable}`}
+      <div style="text-align:center;font-size:10px;color:#5A5A5A;margin-top:10px;page-break-inside:avoid">Generated by NKÒ — Budgets Tailored To Film · nko-nko.vercel.app</div>
+    </div>
+  </body></html>`;
+  openThemed(html,'dark');
+};
+
+function PoFiles({po,isOwner,onRemove,onAdd}){
+  const chip=(label,f,kind)=>f?.path
+    ?<span style={{display:'inline-flex',alignItems:'center',gap:4,marginRight:6}}>
+      <button onClick={()=>viewReceipt(f.path)} title={f.name} style={{color:T.sage,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>📎 {label}</button>
+      <button onClick={()=>downloadReceipt(f.path,f.name)} title={`Download ${label.toLowerCase()}`} style={{color:T.dim,fontSize:11,cursor:'pointer',background:'none',border:`1px solid ${T.line}`,borderRadius:6,padding:'2px 6px'}}>⬇</button>
+      {isOwner&&onRemove&&<button onClick={()=>{if(window.confirm(`Remove the ${label.toLowerCase()} file from this PO? This cannot be undone.`))onRemove(kind);}} title="Remove file" style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none'}}>✕</button>}
+    </span>
+    :<span style={{color:T.faint,fontSize:10,marginRight:10,fontStyle:'italic'}}>No {label.toLowerCase()} on file{onAdd&&<> · <button onClick={()=>onAdd(kind)} style={{color:T.gold,fontSize:10,fontWeight:700,cursor:'pointer',background:'none',border:'none',padding:0,fontStyle:'normal'}}>＋ Add</button></>}</span>;
+  return<div style={{marginTop:6}}>{chip('Invoice',po.invoice_file,'invoice_file')}{chip('Receipt',po.receipt_file,'receipt_file')}</div>;
+}
+function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,onDeletePO,isOwner}){
+  const{t:tr}=useLang();
+  const[payFor,setPayFor]=useState(null);const[payFile,setPayFile]=useState(null);const[payMethod,setPayMethod]=useState('Bank Transfer');const[payBusy,setPayBusy]=useState(false);const[payErr,setPayErr]=useState('');
+  const payRef=useRef();
+  const[addRcptFor,setAddRcptFor]=useState(null);const addRcptRef=useRef();const addKind=useRef('receipt_file');
+  const closePay=()=>{setPayFor(null);setPayFile(null);setPayErr('');};
+  const confirmPaid=async po=>{
+    if(!payFile){setPayErr('Upload the payment receipt first.');return;}
+    setPayBusy(true);setPayErr('');
+    let receipt=null;
+    try{receipt=await uploadReceipt(project.id,payFile);}catch(e){setPayErr(e.message);setPayBusy(false);return;}
+    const ok=await onUpdatePO(po.id,{status:'Paid',receipt_file:receipt,pay_method:payMethod,paid_at:new Date().toISOString().slice(0,10)});
+    setPayBusy(false);
+    if(!ok){removeReceiptFile(receipt.path);return;}
+    closePay();
+    setJustPaid(p=>({...p,[po.id]:true}));
+    setTimeout(()=>setJustPaid(p=>{const n={...p};delete n[po.id];return n;}),6000);
+  };
+  const onAddRcptPicked=async e=>{
+    const f=e.target.files[0];e.target.value='';const poId=addRcptFor;setAddRcptFor(null);
+    if(!f||!poId)return;
+    try{const r=await uploadReceipt(project.id,f);const ok=await onUpdatePO(poId,{[addKind.current]:r});if(!ok)removeReceiptFile(r.path);}catch(err){alert(`Could not store the file: ${err.message}`);}
+  };
+  const removePoFile=(po,kind)=>{const f=po[kind];if(f?.path)removeReceiptFile(f.path);onUpdatePO(po.id,{[kind]:null});};
+  const[justPaid,setJustPaid]=useState({}); // {poId: true} — cleared after a few seconds, purely a transient confirmation
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const pPOs=purchaseOrders.filter(po=>po.project_id===project.id);
+  // Departments are driven by actual PO activity, not by every department with a budget line —
+  // a department only ever appears here once an invoice has actually been detected for it.
+  const deptsByRecency=[];
+  pPOs.slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).forEach(po=>{
+    if(po.dept&&!deptsByRecency.includes(po.dept))deptsByRecency.push(po.dept);
+  });
+  const mostRecentDept=deptsByRecency[0];
+  const deptBudget=dept=>items.filter(i=>i.dept===dept).reduce((s,i)=>s+lTot(i),0);
+  const deptCommitted=dept=>pPOs.filter(po=>po.dept===dept).reduce((s,po)=>s+Number(po.amount||0),0);
+  const statusColor=st=>st==='Paid'?T.sage:st==='Approved'?T.gold:T.dim;
+  const changeStatus=(po,newStatus)=>{
+    if(newStatus===po.status)return;
+    // Marking Paid needs proof of payment on file first (unless this PO already has a receipt attached)
+    if(newStatus==='Paid'&&!po.receipt_file?.path){setPayFor(po.id);setPayFile(null);setPayErr('');return;}
+    onUpdatePO(po.id,{status:newStatus,...(newStatus==='Paid'?{paid_at:new Date().toISOString().slice(0,10)}:{})});
+    if(newStatus==='Paid'){
+      setJustPaid(p=>({...p,[po.id]:true}));
+      setTimeout(()=>setJustPaid(p=>{const n={...p};delete n[po.id];return n;}),6000);
+    }
+  };
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Purchase Orders — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Drop in an invoice — NKÒ detects the department and plots it against what's left there.</div></div>
+      <input ref={addRcptRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAddRcptPicked}/>
+      <InvoiceUploader project={project} onCreatePO={(draft,file)=>onCreatePO({...draft,project_id:project.id},file)}/>
+      {deptsByRecency.length>0&&<div style={{marginBottom:20}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:8}}>Departments in this production</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:10}}>
+          {deptsByRecency.map(dept=>{
+            const budget=deptBudget(dept);const committed=deptCommitted(dept);const remaining=budget-committed;
+            const pct=budget>0?Math.min(100,(committed/budget)*100):0;
+            const isNew=dept===mostRecentDept;
+            return(
+              <div key={dept} style={{background:T.panel,border:`1px solid ${isNew?T.gold:T.line}`,borderRadius:10,padding:12,position:'relative'}}>
+                {isNew&&<div style={{position:'absolute',top:-8,right:12,background:T.gold,color:T.ink,fontSize:8,fontWeight:800,padding:'2px 8px',borderRadius:8}}>JUST DETECTED</div>}
+                <div style={{color:T.cream,fontSize:12,fontWeight:600,marginBottom:6}}>{dept}</div>
+                <div style={{height:5,borderRadius:3,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:remaining<0?T.coral:pct>85?T.gold:T.sage}}/></div>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim}}>
+                  <span>Committed {fmt(committed)}</span>
+                  <span style={{color:remaining<0?T.coral:T.dim,fontWeight:remaining<0?700:400}}>{remaining<0?`Over by ${fmt(Math.abs(remaining))}`:budget>0?`${fmt(remaining)} left`:'No budget set'}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{color:T.faint,fontSize:10,textAlign:'center',marginTop:8,fontStyle:'italic'}}>Other departments appear here the moment an invoice is detected for them.</div>
+      </div>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>All Purchase Orders ({pPOs.length})</div>
+        {pPOs.length>0&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>{try{poRegisterPDF(pPOs,project);}catch(e){alert(`Could not build the PDF: ${e.message}`);}}}>📄 Export PO register</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Only the production owner can export</span>)}
+      </div>
+      {pPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No purchase orders yet — drop in an invoice above to create your first one.</div></div>:
+      pPOs.slice().reverse().map(po=>(
+        <div key={po.id} style={{background:T.panel,border:`1px solid ${justPaid[po.id]?T.sage:payFor===po.id?T.gold:T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <div>
+            <div style={{color:T.cream,fontSize:13,fontWeight:600}}>{po.vendor||'Unnamed vendor'} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {po.dept}</span></div>
+            <div style={{color:T.faint,fontSize:10,marginTop:1}}>Counts toward {phaseForDept(po.dept)}</div>
+            <div style={{color:T.dim,fontSize:11,marginTop:2}}>{po.description}</div>
+            {justPaid[po.id]&&<div style={{color:T.sage,fontSize:10,marginTop:3}}>✓ added to Recon just now</div>}
+            <PoFiles po={po} isOwner={isOwner} onRemove={kind=>removePoFile(po,kind)} onAdd={isOwner?(kind=>{addKind.current=kind;setAddRcptFor(po.id);setTimeout(()=>addRcptRef.current&&addRcptRef.current.click(),0);}):null}/>
+            
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(po.currency)}{fmt(po.amount)}</span>
+            <Sel value={po.status} onChange={e=>changeStatus(po,e.target.value)} style={{fontSize:11,padding:'4px 6px',color:statusColor(po.status),borderColor:statusColor(po.status)}}>
+              <option>Pending</option><option>Approved</option><option>Paid</option>
+            </Sel>
+            <button onClick={()=>{if(window.confirm('Delete this purchase order? Its invoice and receipt files will be deleted too.'))onDeletePO(po.id);}} style={{background:'none',border:'none',color:T.faint,cursor:'pointer'}}>✕</button>
+          </div>
+          {payFor===po.id&&<div style={{flexBasis:'100%',borderTop:`1px solid ${T.line}`,paddingTop:12,marginTop:2}}>
+            <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>Upload the payment receipt to mark this PO as Paid</div>
+            <input ref={payRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={e=>{setPayFile(e.target.files[0]||null);setPayErr('');}}/>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+              <Btn variant="ghost" size="sm" onClick={()=>payRef.current&&payRef.current.click()}>{payFile?`📎 ${payFile.name}`:'📎 Choose receipt (photo or PDF)'}</Btn>
+              <Sel value={payMethod} onChange={e=>setPayMethod(e.target.value)} style={{fontSize:11,padding:'4px 6px'}}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</Sel>
+              <Btn variant="sage" size="sm" onClick={()=>confirmPaid(po)} disabled={!payFile||payBusy}>{payBusy?'Saving…':'Mark as Paid'}</Btn>
+              <Btn variant="ghost" size="sm" onClick={closePay}>Cancel</Btn>
+            </div>
+            {payErr&&<div style={{color:T.coral,fontSize:11,marginTop:6}}>{payErr}</div>}
+          </div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+function RevenueView({project,items,onAdd,onUpdate,onRemove,isOwner}){
+  const[showForm,setShowForm]=useState(false);
+  const[form,setForm]=useState({source:'Client fee',description:'',amount:'',currency:'NGN',status:'Expected',date:today()});
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const pItems=items.filter(i=>i.project_id===project.id);
+  const expected=pItems.reduce((s,i)=>s+Number(i.amount||0),0);
+  const received=pItems.filter(i=>i.status==='Received').reduce((s,i)=>s+Number(i.amount||0),0);
+  const outstanding=expected-received;
+  const submit=()=>{
+    if(!form.amount)return;
+    onAdd({...form,amount:Number(form.amount),project_id:project.id});
+    setForm({source:'Client fee',description:'',amount:'',currency:project.base_currency,status:'Expected',date:today()});
+    setShowForm(false);
+  };
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Revenue — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>What this production is expected to earn, and what's actually come in.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
+        <StatCard label="Expected revenue" value={`${sym(project.base_currency)}${fmt(expected)}`} sub="total projected"/>
+        <StatCard label="Received" value={`${sym(project.base_currency)}${fmt(received)}`} sub="actually in" accent={T.sage}/>
+        <StatCard label="Outstanding" value={`${sym(project.base_currency)}${fmt(outstanding)}`} sub="not yet received" accent={outstanding>0?T.gold:T.sage}/>
+      </div>
+      {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Add revenue line</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <Sel value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))} style={{width:'100%'}}>{REVENUE_SOURCES.map(s=><option key={s}>{s}</option>)}</Sel>
+          <Sel value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))} style={{width:'100%'}}><option>Expected</option><option>Received</option></Sel>
+          <Inp placeholder="Description (e.g. client name, deal)" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} style={{gridColumn:'span 2'}}/>
+          <Inp type="number" placeholder="Amount" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))}/>
+          <Sel value={form.currency} onChange={e=>setForm(f=>({...f,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+          <Inp type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={{gridColumn:'span 2'}}/>
+        </div>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={submit}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
+      </div>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pItems.length} revenue line{pItems.length!==1?'s':''}</div>
+        <Btn size="sm" onClick={()=>setShowForm(true)}>+ Add revenue</Btn>
+      </div>
+      {pItems.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No revenue logged yet for this production.</div></div>:
+      pItems.slice().reverse().map(i=>(
+        <div key={i.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <div>
+            <div style={{color:T.cream,fontSize:13,fontWeight:600}}>{i.description||i.source} <span style={{color:T.dim,fontWeight:400,fontSize:11}}>· {i.source}</span></div>
+            <div style={{color:T.dim,fontSize:11,marginTop:2}}>{i.date}</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(i.currency)}{fmt(i.amount)}</span>
+            <Sel value={i.status} onChange={e=>onUpdate(i.id,{status:e.target.value})} style={{fontSize:11,padding:'4px 6px',color:i.status==='Received'?T.sage:T.goldDim,borderColor:i.status==='Received'?T.sage:T.goldDim}}>
+              <option>Expected</option><option>Received</option>
+            </Sel>
+            <button onClick={()=>{if(window.confirm('Delete this revenue line?'))onRemove(i.id);}} style={{background:'none',border:'none',color:T.faint,cursor:'pointer'}}>✕</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+/* ── Payment receipts: private storage, compressed photos, short-lived signed links ── */
+const RECEIPT_BUCKET='payment-receipts';
+const RECEIPT_MAX=8*1024*1024;
+const RECEIPT_TYPES=['image/jpeg','image/png','image/webp','application/pdf'];
+const RECEIPT_ACCEPT=RECEIPT_TYPES.join(',');
+const compressImage=file=>new Promise(resolve=>{
+  if(!file.type.startsWith('image/')){resolve(file);return;}
+  const url=URL.createObjectURL(file);const img=new Image();
+  img.onload=()=>{
+    const max=1600;let w=img.naturalWidth,h=img.naturalHeight;
+    if(w>max||h>max){const r=Math.min(max/w,max/h);w=Math.round(w*r);h=Math.round(h*r);}
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+    c.toBlob(b=>{URL.revokeObjectURL(url);resolve(b&&b.size<file.size?new File([b],file.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):file);},'image/jpeg',0.82);
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+  img.src=url;
+});
+const uploadReceipt=async(projectId,rawFile)=>{
+  if(!RECEIPT_TYPES.includes(rawFile.type))throw new Error('Receipts must be a photo (JPG, PNG or WebP) or a PDF.');
+  const file=await compressImage(rawFile);
+  if(file.size>RECEIPT_MAX)throw new Error('That file is too large (max 8MB).');
+  const ext=file.type==='application/pdf'?'pdf':file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+  const path=`${projectId}/${Math.random().toString(36).slice(2,12)}${Date.now().toString(36)}.${ext}`;
+  const{error}=await sb.storage.from(RECEIPT_BUCKET).upload(path,file,{contentType:file.type,upsert:false});
+  if(error)throw new Error(`${error.message||'upload failed'}${error.statusCode||error.status?` (code ${error.statusCode||error.status})`:''}${error.error&&error.error!==error.message?` [${error.error}]`:''}`);
+  return{path,name:rawFile.name,type:file.type,size:file.size};
+};
+const viewReceipt=async path=>{
+  const w=window.open('','_blank');
+  const{data,error}=await sb.storage.from(RECEIPT_BUCKET).createSignedUrl(path,120);
+  if(error||!data?.signedUrl){if(w)w.close();alert(`Could not open the receipt: ${error?.message||'please try again'}`);return;}
+  if(w)w.location.href=data.signedUrl;else window.open(data.signedUrl,'_blank');
+};
+const downloadReceipt=async(path,name)=>{
+  const{data,error}=await sb.storage.from(RECEIPT_BUCKET).createSignedUrl(path,120,{download:name||true});
+  if(error||!data?.signedUrl){alert(`Could not download the file: ${error?.message||'please try again'}`);return;}
+  const a=document.createElement('a');a.href=data.signedUrl;a.download=name||'';document.body.appendChild(a);a.click();a.remove();
+};
+const removeReceiptFile=path=>Promise.resolve(sb.storage.from(RECEIPT_BUCKET).remove([path])).catch(()=>{});
+const purgeReceipts=async projectId=>{
+  try{
+    const{data}=await sb.storage.from(RECEIPT_BUCKET).list(projectId,{limit:1000});
+    if(data&&data.length)await sb.storage.from(RECEIPT_BUCKET).remove(data.map(f=>`${projectId}/${f.name}`));
+  }catch{}
+};
+
+function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemovePayment,onAttachReceipt,onUpdatePayee,onUpdatePayment,onDeletePayee,isOwner}){
+  const{t:tr}=useLang();
+  const[showForm,setShowForm]=useState(false);const[np,setNp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN',dept:''});
+  const[assignKey,setAssignKey]=useState(null);const[assignName,setAssignName]=useState('');
+  const[logFor,setLogFor]=useState(null);const[lAmt,setLAmt]=useState('');const[lMethod,setLMethod]=useState('Cash');const[lFile,setLFile]=useState(null);const[busy,setBusy]=useState(false);
+  const[attachTarget,setAttachTarget]=useState(null);const[attachBusy,setAttachBusy]=useState(null);
+  const attachRef=useRef();
+  const[editPayee,setEditPayee]=useState(null);const[ep,setEp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
+  const[editPay,setEditPay]=useState(null);const[epay,setEpay]=useState({amount:'',method:'Cash',date:''});
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const startEditPayee=p=>{setEditPay(null);setEditPayee(p.id);setEp({name:p.name||'',role:p.role||'',agreed_fee:String(p.agreed_fee??''),currency:p.currency||'NGN'});};
+  const saveEditPayee=async p=>{
+    if(!ep.name.trim()){alert('A payee needs a name.');return;}
+    await onUpdatePayee(p.id,{name:ep.name.trim(),role:ep.role,agreed_fee:Number(ep.agreed_fee)||0,currency:ep.currency});
+    setEditPayee(null);
+  };
+  const startEditPay=(p,i)=>{const pay=(p.payments||[])[i];setEditPayee(null);setEditPay(`${p.id}-${i}`);setEpay({amount:String(pay.amount),method:pay.method||'Cash',date:pay.date||today()});};
+  const saveEditPay=async(p,i)=>{
+    const a=Number(epay.amount);if(!(a>0)){alert('Enter the amount paid.');return;}
+    await onUpdatePayment(p.id,i,{amount:a,method:epay.method,date:epay.date});
+    setEditPay(null);
+  };
+  const pPayees=payees.filter(p=>p.project_id===project.id);
+  const missingTotal=pPayees.reduce((s,p)=>s+(p.payments||[]).filter(x=>!x.receipt).length,0);
+  const openLog=id=>{setLogFor(id);setLAmt('');setLMethod('Cash');setLFile(null);};
+  const submitLog=async p=>{
+    const amount=Number(lAmt);
+    if(!(amount>0)){alert('Enter the amount paid.');return;}
+    setBusy(true);
+    let receipt=null;
+    try{if(lFile)receipt=await uploadReceipt(project.id,lFile);}
+    catch(e){setBusy(false);alert(`The receipt did not upload, so this payment has not been logged yet: ${e.message}`);return;}
+    await onAddPayment(p.id,{amount,method:lMethod,date:today(),...(receipt?{receipt}:{})});
+    setBusy(false);setLogFor(null);setLFile(null);setLAmt('');
+  };
+  const onAttachPicked=async e=>{
+    const f=e.target.files[0];e.target.value='';
+    if(!f||!attachTarget)return;
+    const{pid,idx}=attachTarget;setAttachBusy(`${pid}-${idx}`);
+    try{const receipt=await uploadReceipt(project.id,f);await onAttachReceipt(pid,idx,receipt);}
+    catch(err){alert(`Could not attach the receipt: ${err.message}`);}
+    setAttachBusy(null);setAttachTarget(null);
+  };
+  const smallBtn=(color,border)=>({color,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${border}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'});
+  const slots=personSlots(items);
+  const occ={};const occIds=new Set();
+  slots.forEach(sl=>{const key=`${sl.item.id}:${sl.k}`;const p=pPayees.find(x=>String(x.budget_item_id)===String(sl.item.id)&&(Number(x.slot)||0)===sl.k&&!occIds.has(x.id));if(p){occ[key]=p;occIds.add(p.id);}});
+  const unlinked=pPayees.filter(p=>!occIds.has(p.id));
+  const freeSlots=slots.filter(sl=>!occ[`${sl.item.id}:${sl.k}`]);
+  const slotLabel=sl=>`${sl.item.description}${sl.of>1?` (${sl.k+1} of ${sl.of})`:''}`;
+  const addTo=(o,c,v)=>{o[c]=(o[c]||0)+(Number(v)||0);};
+  const budM={},paidM={},oweM={};
+  slots.forEach(sl=>{addTo(budM,sl.item.currency,sl.budget);const p=occ[`${sl.item.id}:${sl.k}`];if(!p)addTo(oweM,sl.item.currency,sl.budget);});
+  pPayees.forEach(p=>{const paid=(p.payments||[]).reduce((x,y)=>x+(Number(y.amount)||0),0);addTo(paidM,p.currency,paid);addTo(oweM,p.currency,Math.max(0,(Number(p.agreed_fee)||0)-paid));});
+  const money=o=>{const ks=Object.keys(o).filter(k=>o[k]);return ks.length?ks.map(k=>`${sym(k)}${fmt(o[k])}`).join(' · '):`${sym(project.base_currency)}0`;};
+  const doAssign=async sl=>{
+    if(!assignName.trim()){alert('Enter the person’s name.');return;}
+    await onAddPayee({name:assignName.trim(),role:sl.item.description,agreed_fee:sl.budget,currency:sl.item.currency,project_id:project.id,payments:[],budget_item_id:String(sl.item.id),slot:sl.k,dept:sl.item.dept});
+    setAssignKey(null);setAssignName('');
+  };
+  const budgetNote=(p,sl)=>sl&&<div style={{margin:'0 0 8px'}}>
+    <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif'}}>from Budget · {sl.item.description} · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div>
+    {Math.round(Number(p.agreed_fee)||0)!==Math.round(sl.budget)&&<div style={{fontSize:11,color:T.gold,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Budget is now {sym(sl.item.currency)}{fmt(sl.budget)}, agreed fee is {sym(p.currency)}{fmt(p.agreed_fee)}. <button onClick={()=>onUpdatePayee(p.id,{agreed_fee:sl.budget,currency:sl.item.currency})} style={{color:T.gold,fontWeight:700,textDecoration:'underline',background:'none',border:'none',cursor:'pointer',fontSize:11,padding:0}}>Update to budget</button></div>}
+  </div>;
+  const payeeCard=(p,note)=>{
+        const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);const bal=p.agreed_fee-paid;const pct=p.agreed_fee>0?Math.min(100,(paid/p.agreed_fee)*100):0;
+        return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div><button onClick={()=>editPayee===p.id?setEditPayee(null):startEditPayee(p)} style={{...smallBtn(T.dim,T.line),marginTop:6}}>✎ Edit payee</button></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
+          {editPayee===p.id&&<div style={{margin:'0 0 10px',padding:12,background:T.hi,border:`1px solid ${T.gold}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <Inp placeholder="Name" value={ep.name} onChange={e=>setEp(v=>({...v,name:e.target.value}))}/>
+              <Inp placeholder="Role" value={ep.role} onChange={e=>setEp(v=>({...v,role:e.target.value}))}/>
+              <Inp type="number" placeholder="Agreed fee" value={ep.agreed_fee} onChange={e=>setEp(v=>({...v,agreed_fee:e.target.value}))}/>
+              <Sel value={ep.currency} onChange={e=>setEp(v=>({...v,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+              <Btn size="sm" onClick={()=>saveEditPayee(p)}>Save changes</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditPayee(null)}>Cancel</Btn>
+              {isOwner&&<button onClick={()=>{const n=(p.payments||[]).length;if(window.confirm(`Delete ${p.name}${n?` and their ${n} logged payment${n!==1?'s':''} (receipts included)`:''}? This cannot be undone.`)){setEditPayee(null);onDeletePayee(p.id);}}} style={{marginLeft:'auto',color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete payee</button>}
+            </div>
+          </div>}
+          {note}<div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
+          {(p.payments||[]).map((pay,i)=>{
+            const key=`${p.id}-${i}`;
+            if(editPay===key)return<div key={i} style={{padding:10,margin:'6px 0',background:T.hi,border:`1px solid ${T.gold}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <Inp type="number" placeholder={`Amount (${p.currency})`} value={epay.amount} onChange={e=>setEpay(v=>({...v,amount:e.target.value}))}/>
+                <Sel value={epay.method} onChange={e=>setEpay(v=>({...v,method:e.target.value}))} style={{width:'100%'}}>{[...new Set([...PAY_METHODS,epay.method])].map(m=><option key={m}>{m}</option>)}</Sel>
+              </div>
+              <Inp type="date" value={epay.date} onChange={e=>setEpay(v=>({...v,date:e.target.value}))}/>
+              <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>saveEditPay(p,i)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditPay(null)}>Cancel</Btn></div>
+            </div>;
+            return<div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6,fontSize:12,padding:'6px 0',borderBottom:`1px solid ${T.line}`}}>
+              <span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span>
+                {pay.receipt
+                  ?<button onClick={()=>viewReceipt(pay.receipt.path)} title={pay.receipt.name} style={smallBtn(T.sage,T.sage)}>📎 Receipt</button>
+                  :<button disabled={attachBusy===key} onClick={()=>{setAttachTarget({pid:p.id,idx:i});attachRef.current?.click();}} style={smallBtn(T.gold,T.goldDim)}>{attachBusy===key?'Uploading…':'No receipt · Attach'}</button>}
+                {isOwner&&<button onClick={()=>receiptPDF(p,pay,project)} title="Generate a payment slip PDF" style={smallBtn(T.dim,T.line)}>🧾 Payment slip</button>}
+                <button onClick={()=>startEditPay(p,i)} title="Edit this payment" style={{color:T.dim,fontSize:13,cursor:'pointer',background:'none',border:'none'}}>✎</button>
+                <button onClick={()=>{if(pay.receipt&&!window.confirm('Remove this payment and delete its attached receipt?'))return;onRemovePayment(p.id,i);}} style={{color:T.faint,fontSize:14,cursor:'pointer',background:'none',border:'none'}}>×</button>
+              </div>
+            </div>;})}
+          {bal>0&&logFor!==p.id&&<div style={{marginTop:8}}><Btn size="sm" variant="outline" onClick={()=>openLog(p.id)}>{tr('logPayment')}</Btn></div>}
+          {logFor===p.id&&<div style={{marginTop:10,padding:12,background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <Inp type="number" placeholder={`Amount (${p.currency})`} value={lAmt} onChange={e=>setLAmt(e.target.value)}/>
+              <Sel value={lMethod} onChange={e=>setLMethod(e.target.value)} style={{width:'100%'}}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</Sel>
+            </div>
+            <label style={{display:'block',border:`1px dashed ${lFile?T.sage:T.line}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',fontSize:12,color:lFile?T.sage:T.dim,fontFamily:'Manrope,sans-serif',wordBreak:'break-all'}}>
+              <input type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={e=>setLFile(e.target.files[0]||null)}/>
+              {lFile?`📎 ${lFile.name}`:'📎 Attach receipt — photo, transfer screenshot or PDF'}
+            </label>
+            <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>You can attach it later, but this payment will show as "No receipt" until you do.</div>
+            <div style={{display:'flex',gap:8}}><Btn size="sm" disabled={busy} onClick={()=>submitLog(p)}>{busy?'Saving…':'Save payment'}</Btn><Btn size="sm" variant="ghost" disabled={busy} onClick={()=>setLogFor(null)}>Cancel</Btn></div>
+          </div>}
+        </div>;
+  };
+  const slotDepts=[...new Set(slots.map(sl=>sl.item.dept))].sort((x,y)=>DEPTS.indexOf(x)-DEPTS.indexOf(y));
+  return(
+    <div>
+      <input ref={attachRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAttachPicked}/>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('paymentsHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everyone here comes straight from your budget. Nothing is typed twice.</div><div style={{marginTop:14}}><FS/></div></div>
+      {missingTotal>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}>⚠ {missingTotal} logged payment{missingTotal!==1?'s have':' has'} no receipt attached. Tap <b>No receipt · Attach</b> on each one to add it.</div>}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:18}}>
+        <StatCard label="Budgeted (people)" value={money(budM)} sub="crew & cast"/>
+        <StatCard label="Paid so far" value={money(paidM)} sub="all payments" accent={T.gold}/>
+        <StatCard label="Still to pay" value={money(oweM)} sub="owed" accent={T.coral}/>
+      </div>
+      {slots.length===0&&<div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:20,marginBottom:18,textAlign:'center',color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif'}}>No crew or cast in the budget yet. Add them in the Budget (Production Team, Talents, Camera &amp; Grip Team…) and they appear here ready to pay.</div>}
+      {slotDepts.map(dept=><div key={dept}>
+        <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',margin:'18px 0 8px'}}>{dept}</div>
+        {slots.filter(sl=>sl.item.dept===dept).map(sl=>{
+          const key=`${sl.item.id}:${sl.k}`;const p=occ[key];
+          if(p)return<div key={key}>{payeeCard(p,budgetNote(p,sl))}</div>;
+          return<div key={key} style={{background:'transparent',border:`1px dashed ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+              <div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.dim}}>Name not set yet</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{slotLabel(sl)}</div><div style={{fontSize:10,color:T.goldDim,marginTop:2,fontFamily:'Manrope,sans-serif'}}>from Budget · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div></div>
+              <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(sl.item.currency)}{fmt(sl.budget)}</div><Pill color={T.dim}>Unassigned</Pill></div>
+            </div>
+            {assignKey===key
+              ?<div style={{marginTop:10,display:'flex',gap:8,flexWrap:'wrap'}}><div style={{flex:'1 1 200px'}}><Inp placeholder="Full name" value={assignName} onChange={e=>setAssignName(e.target.value)}/></div><Btn size="sm" onClick={()=>doAssign(sl)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>{setAssignKey(null);setAssignName('');}}>Cancel</Btn></div>
+              :<div style={{marginTop:10}}><Btn size="sm" onClick={()=>{setAssignKey(key);setAssignName('');}}>Assign a person</Btn></div>}
+          </div>;})}
+      </div>)}
+      {unlinked.length>0&&<div>
+        <div style={{fontSize:10,color:T.coral,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',margin:'22px 0 4px'}}>Not linked to a budget line</div>
+        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Manrope,sans-serif'}}>Their payments count as spend, but with no budget line to compare against. Link them to a slot above, or leave them as unbudgeted.</div>
+        {unlinked.map(p=><div key={p.id}>{payeeCard(p,<div style={{margin:'0 0 8px'}}>
+          <div style={{fontSize:10,color:T.coral,fontFamily:'Manrope,sans-serif'}}>Unbudgeted{p.dept?` · ${p.dept}`:''}</div>
+          {freeSlots.length>0&&<Sel value="" onChange={e=>{const sl=freeSlots.find(x=>`${x.item.id}:${x.k}`===e.target.value);if(sl)onUpdatePayee(p.id,{budget_item_id:String(sl.item.id),slot:sl.k,dept:sl.item.dept});}} style={{fontSize:11,padding:'4px 6px',marginTop:6,maxWidth:'100%'}}><option value="">Link to a budget slot…</option>{freeSlots.map(sl=><option key={`${sl.item.id}:${sl.k}`} value={`${sl.item.id}:${sl.k}`}>{slotLabel(sl)} · {sl.item.dept.split(' - ')[1]||sl.item.dept}</option>)}</Sel>}
+        </div>)}</div>)}
+      </div>}
+      {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,margin:'18px 0 0'}}>
+        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Manrope,sans-serif'}}>For someone who isn’t in the budget (a last-minute driver, say). Their payments show as unbudgeted spend.</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+          <Inp placeholder="Name" value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))}/>
+          <Inp placeholder="Role" value={np.role} onChange={e=>setNp(p=>({...p,role:e.target.value}))}/>
+          <Inp type="number" placeholder="Agreed fee" value={np.agreed_fee} onChange={e=>setNp(p=>({...p,agreed_fee:e.target.value}))}/>
+          <Sel value={np.currency} onChange={e=>setNp(p=>({...p,currency:e.target.value}))} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel>
+        </div>
+        <Sel value={np.dept} onChange={e=>setNp(p=>({...p,dept:e.target.value}))} style={{width:'100%',marginBottom:8}}><option value="">Department (so it counts in the right phase)…</option>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(np.name){onAddPayee({...np,agreed_fee:Number(np.agreed_fee),project_id:project.id,payments:[]});setNp({name:'',role:'',agreed_fee:'',currency:project.base_currency||'NGN',dept:''});setShowForm(false);}}}>Add</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
+      </div>}
+      <div style={{display:'flex',justifyContent:'flex-start',margin:'18px 0 4px'}}><Btn size="sm" variant="ghost" onClick={()=>setShowForm(true)}>＋ Add someone not in the budget</Btn></div>
+    </div>
+  );
+}
+
+/* ── AI Builder ── */
+function AIView({project,budgetItems,advances}){
+  const{t:tr}=useLang();
+  const[msgs,setMsgs]=useState([]);const[input,setInput]=useState('');const[loading,setLoading]=useState(false);const[editIdx,setEditIdx]=useState(null);const[editText,setEditText]=useState('');const[imgPreview,setImgPreview]=useState(null);const[imgB64,setImgB64]=useState(null);
+  const botRef=useRef();const imgRef=useRef();
+  useEffect(()=>{botRef.current?.scrollIntoView({behavior:'smooth'});},[msgs]);
+  const ctx=project?`Project: "${project.name}" (${project.type}, ${project.base_currency}). Budget: ${budgetItems.length} lines.`:'No project selected.';
+
+  const pickImage=async e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Please attach an image file.');return;}if(f.size>8*1024*1024){alert('Image is too large (max 8MB).');return;}const b64=await readB64(f);setImgB64(b64);setImgPreview(URL.createObjectURL(f));};
+  const clearImage=()=>{setImgB64(null);setImgPreview(null);if(imgRef.current)imgRef.current.value='';};
+
+  const buildContent=(text,b64)=>{if(b64)return[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},{type:'text',text:`[${ctx}]\n\n${text}`}];return`[${ctx}]\n\n${text}`;};
+
+  const send=async txt=>{
+    const msg=(txt||input).trim();if(!msg||loading)return;
+    setInput('');const b64=imgB64;setImgB64(null);setImgPreview(null);if(imgRef.current)imgRef.current.value='';
+    const userMsg={role:'user',content:msg,image:b64?imgPreview:null};
+    setMsgs(p=>[...p,userMsg]);setLoading(true);
+    try{
+      const h=msgs.map(m=>({role:m.role,content:m.role==='user'?`[${ctx}]\n\n${m.content}`:m.content}));
+      const r=await callClaude([...h,{role:'user',content:buildContent(msg,b64)}],CHAT_SYS);
+      setMsgs(p=>[...p,{role:'assistant',content:r}]);
+    }catch{setMsgs(p=>[...p,{role:'assistant',content:'Connection error. Try again.'}]);}
+    setLoading(false);
+  };
+
+  const saveEdit=async()=>{
+    if(editIdx===null)return;
+    const newMsgs=msgs.slice(0,editIdx);
+    setMsgs(newMsgs);setEditIdx(null);
+    await send(editText);setEditText('');
+  };
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 130px)'}}>
+      <div style={{marginBottom:18}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('aiBuilderHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Production finance co-pilot — calibrated for African markets.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{flex:1,overflowY:'auto',marginBottom:12}}>
+        {msgs.length===0&&<div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>Quick prompts</div><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{QUICK.map(q=><button key={q} onClick={()=>send(q)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'6px 14px',fontSize:12,color:T.cream,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{q}</button>)}</div></div>}
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {msgs.map((m,i)=>(
+            <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
+              <div style={{maxWidth:'82%',position:'relative'}}>
+                {m.image&&<img src={m.image} style={{maxWidth:'100%',borderRadius:8,marginBottom:4,display:'block'}}/>}
+                <div style={{padding:'10px 14px',borderRadius:10,fontSize:14,lineHeight:1.65,background:m.role==='user'?T.goldGlow:T.panel,border:`1px solid ${m.role==='user'?T.goldDim:T.line}`,color:T.cream,fontFamily:'Manrope,sans-serif',whiteSpace:'pre-wrap'}}>{m.content}</div>
+                {m.role==='user'&&editIdx!==i&&<button onClick={()=>{setEditIdx(i);setEditText(m.content);}} style={{position:'absolute',top:-8,right:-8,background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'2px 8px',fontSize:10,color:T.goldDim,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>edit</button>}
+                {editIdx===i&&<div style={{marginTop:6,display:'flex',gap:6}}>
+                  <Inp value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&saveEdit()} style={{flex:1,fontSize:12}}/>
+                  <Btn size="sm" onClick={saveEdit}>Send</Btn>
+                  <Btn size="sm" variant="ghost" onClick={()=>{setEditIdx(null);setEditText('');}}>✕</Btn>
+                </div>}
+              </div>
+            </div>
+          ))}
+          {loading&&<div style={{display:'flex',justifyContent:'flex-start'}}><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 16px',color:T.dim,fontSize:14,fontFamily:'Manrope,sans-serif'}}>Thinking…</div></div>}
+        </div>
+        <div ref={botRef}/>
+      </div>
+      {/* Image preview */}
+      {imgPreview&&<div style={{marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
+        <img src={imgPreview} style={{height:60,borderRadius:6,objectFit:'cover',border:`1px solid ${T.line}`}}/>
+        <button onClick={clearImage} style={{color:T.coral,fontSize:11,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Remove</button>
+      </div>}
+      {/* Input row */}
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <input ref={imgRef} type="file" accept="image/*" style={{display:'none'}} onChange={pickImage}/>
+        <button onClick={()=>imgRef.current.click()} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 10px',cursor:'pointer',color:T.goldDim,fontSize:16,flexShrink:0}} title="Attach image">📎</button>
+        <Inp placeholder={tr('askPlaceholder')} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} style={{flex:1}}/>
+        <Btn onClick={()=>send()} style={{flexShrink:0,opacity:loading?.5:1}}>{tr('send')}</Btn>
+      </div>
+    </div>
+  );
+}
+
+/* ── Breakdown ── */
+const BKCAT=[{key:'location',label:'Location',icon:'📍'},{key:'timeNotes',label:'Time of Day',icon:'🕐'},{key:'cast',label:'Cast',icon:'👤'},{key:'talkingExtras',label:'Talking Extras',icon:'🗣️'},{key:'backgroundActors',label:'Background Actors',icon:'👥'},{key:'props',label:'Props',icon:'🎭'},{key:'vehicles',label:'Vehicles',icon:'🚗'},{key:'wardrobe',label:'Wardrobe',icon:'👗'},{key:'hairMakeup',label:'Hair & Make-up',icon:'💄'},{key:'specialEquip',label:'Special Equipment',icon:'🎥'},{key:'vfxSfx',label:'Stunts / SFX / VFX',icon:'✨'},{key:'sound',label:'Sound',icon:'🎵'},{key:'languageNotes',label:'Language Notes',icon:'🗣️'},{key:'notes',label:'Notes',icon:'📝'}];
+function PageLengthTool({scenes,onUpdateScene}){
+  const fr=useRef();const[busy,setBusy]=useState(false);
+  const run=async f=>{
+    setBusy(true);
+    try{
+      const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+      const measured=isPdf?await measureScenePages(f):estimateTxtPages(await readTxt(f));
+      if(!measured.length){alert('Could not find any scene headings in that file. If it is a scanned PDF, set page lengths by hand on each scene.');setBusy(false);return;}
+      const out=attachPageLengths(scenes.map(sc=>({...sc})),measured,isPdf?'measured':'estimated');
+      let n=0;
+      for(const sc of out){const old=scenes.find(x=>x.id===sc.id);if(sc.pages8&&sc.pages8!==old?.pages8&&old?.pages8Source!=='manual'){await onUpdateScene(sc.id,{pages8:sc.pages8,pages8Source:sc.pages8Source});n++;}}
+      const missed=scenes.length-out.filter(x=>x.pages8).length;
+      alert(n===0?'No reliable page lengths could be read from that file, so none were added. That is fine — page lengths are optional, and you can type them in on any scene.':`${n} scene${n!==1?'s':''} updated with page lengths.${missed?` ${missed} could not be matched — set ${missed!==1?'those':'that one'} by hand, or leave them blank.`:''}`);
+    }catch(e){alert(`Could not read page lengths: ${e.message}`);}
+    setBusy(false);
+  };
+  return<span><input ref={fr} type="file" accept=".pdf,.txt" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];e.target.value='';if(f)run(f);}}/><Btn size="sm" variant="outline" disabled={busy} onClick={()=>fr.current.click()}>{busy?'Reading…':'📏 Add page lengths from script'}</Btn></span>;
+}
+function SceneCard({scene,onDelete,onUpdate,index}){
+  const[open,setOpen]=useState(false);const[editing,setEditing]=useState(false);const[draft,setDraft]=useState(null);const mob=useIsMobile();
+  const startEdit=()=>{setDraft({...scene,cast:(scene.cast||[]).join(', '),props:(scene.props||[]).join(', '),vehicles:(scene.vehicles||[]).join(', '),wardrobe:(scene.wardrobe||[]).join(', '),specialEquip:(scene.specialEquip||[]).join(', '),talkingExtras:(scene.talkingExtras||[]).join(', ')});setEditing(true);setOpen(true);};
+  const saveEdit=()=>{
+    const upd={...draft,
+      cast:String(draft.cast||'').split(',').map(x=>x.trim()).filter(Boolean),
+      props:String(draft.props||'').split(',').map(x=>x.trim()).filter(Boolean),
+      vehicles:String(draft.vehicles||'').split(',').map(x=>x.trim()).filter(Boolean),
+      wardrobe:String(draft.wardrobe||'').split(',').map(x=>x.trim()).filter(Boolean),
+      specialEquip:String(draft.specialEquip||'').split(',').map(x=>x.trim()).filter(Boolean),
+      talkingExtras:String(draft.talkingExtras||'').split(',').map(x=>x.trim()).filter(Boolean),
+    };
+    if(draft.pagesText!==undefined){const v=parsePages8(draft.pagesText);if(v!==null){upd.pages8=v;upd.pages8Source='manual';}else if(String(draft.pagesText).trim()===''){upd.pages8=null;}}
+    delete upd.pagesText;
+    onUpdate(scene.id,upd);setEditing(false);setDraft(null);
+  };
+  const d=(k,v)=>setDraft(p=>({...p,[k]:v}));
+  return(
+    <div style={{background:T.panel,border:`1px solid ${editing?T.gold:T.line}`,borderRadius:10,overflow:'hidden',marginBottom:10}}>
+      <button onClick={()=>!editing&&setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10,textAlign:'left'}}>
+        <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?14:18,color:T.gold,fontWeight:700,minWidth:36,flexShrink:0}}>{scene.sceneNumber||'?'}</div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?13:14,color:T.cream,wordBreak:'break-word'}}>{scene.heading||'No heading'}</div>{scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{scene.synopsis.slice(0,70)}{scene.synopsis.length>70?'…':''}</div>}</div>
+        <div style={{display:'flex',gap:4,flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
+          <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:scene.intExt==='INT'?T.sapphire:T.sage,color:T.ink}}>{scene.intExt||'INT'}</span>
+          <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:scene.dayNight==='DAY'?T.gold:'#7B68EE',color:T.ink}}>{scene.dayNight||'DAY'}</span>{scene.pages8>0&&<span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:T.hi,border:`1px solid ${T.line}`,color:T.dim}}>{fmtPages8(scene.pages8)} pg</span>}
+          <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+        </div>
+      </button>
+      {open&&!editing&&<div style={{borderTop:`1px solid ${T.line}`}}>
+        {BKCAT.map(cat=>{const val=scene[cat.key];if(!val||(Array.isArray(val)&&!val.length))return null;return(
+          <div key={cat.key} style={{display:'flex',borderBottom:`1px solid ${T.line}`,flexDirection:mob?'column':'row'}}>
+            <div style={{width:mob?'100%':150,flexShrink:0,background:T.hi,padding:mob?'5px 14px 2px':'8px 14px',fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',gap:5}}><span>{cat.icon}</span>{cat.label}</div>
+            <div style={{flex:1,padding:'8px 14px',fontSize:mob?12:13,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',flexWrap:'wrap'}}>{Array.isArray(val)?<div style={{display:'flex',flexWrap:'wrap',gap:4}}>{val.map((v,i)=><span key={i} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:4,padding:'2px 7px',fontSize:11}}>{v}</span>)}</div>:val}</div>
+          </div>);})}
+        <div style={{padding:'8px 16px',display:'flex',gap:14}}>
+          <button onClick={startEdit} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>✏️ Edit scene</button>
+          <button onClick={()=>onDelete(scene.id)} style={{color:T.coral,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete scene</button>
+        </div>
+      </div>}
+      {open&&editing&&draft&&<div style={{borderTop:`1px solid ${T.line}`,padding:14,display:'flex',flexDirection:'column',gap:8,background:T.hi}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <Inp placeholder="Scene number" value={draft.sceneNumber||''} onChange={e=>d('sceneNumber',e.target.value)}/>
+          <div style={{display:'flex',gap:6}}>
+            <Sel value={draft.intExt||'INT'} onChange={e=>d('intExt',e.target.value)} style={{flex:1}}><option>INT</option><option>EXT</option><option>INT/EXT</option></Sel>
+            <Sel value={draft.dayNight||'DAY'} onChange={e=>d('dayNight',e.target.value)} style={{flex:1}}><option>DAY</option><option>NIGHT</option><option>DUSK</option><option>DAWN</option></Sel>
+          </div>
+        </div>
+        <Inp placeholder="Heading e.g. INT. MARKET - DAY" value={draft.heading||''} onChange={e=>d('heading',e.target.value)}/>
+        <Inp placeholder="Synopsis" value={draft.synopsis||''} onChange={e=>d('synopsis',e.target.value)}/>
+        <Inp placeholder="Page length in eighths — 8/8 is one full page, 6/8 is three-quarters (e.g. 7/8, 2, 1 2/8)" value={draft.pagesText??(draft.pages8?fmtPages8(draft.pages8):'')} onChange={e=>d('pagesText',e.target.value)}/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <Inp placeholder="Location" value={draft.location||''} onChange={e=>d('location',e.target.value)}/>
+          <Inp placeholder="Time of day — e.g. Morning (9AM)" value={draft.timeNotes||''} onChange={e=>d('timeNotes',e.target.value)}/>
+        </div>
+        <Inp placeholder="Cast — comma separated" value={draft.cast||''} onChange={e=>d('cast',e.target.value)}/>
+        <Inp placeholder="Talking extras — comma separated names/labels (e.g. Vendor, Guard 1)" value={draft.talkingExtras||''} onChange={e=>d('talkingExtras',e.target.value)}/>
+        <Inp type="number" min="0" placeholder="Background actors (silent headcount)" value={draft.backgroundActors??''} onChange={e=>d('backgroundActors',e.target.value===''?0:Number(e.target.value))}/>
+        <Inp placeholder="Props — comma separated" value={draft.props||''} onChange={e=>d('props',e.target.value)}/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <Inp placeholder="Vehicles — comma separated" value={draft.vehicles||''} onChange={e=>d('vehicles',e.target.value)}/>
+          <Inp placeholder="Wardrobe — comma separated" value={draft.wardrobe||''} onChange={e=>d('wardrobe',e.target.value)}/>
+          <Inp placeholder="Hair & make-up" value={draft.hairMakeup||''} onChange={e=>d('hairMakeup',e.target.value)}/>
+          <Inp placeholder="Special equipment" value={draft.specialEquip||''} onChange={e=>d('specialEquip',e.target.value)}/>
+          <Inp placeholder="Stunts / SFX / VFX" value={draft.vfxSfx||''} onChange={e=>d('vfxSfx',e.target.value)}/>
+          <Inp placeholder="Sound" value={draft.sound||''} onChange={e=>d('sound',e.target.value)}/>
+          <Inp placeholder="Language notes — e.g. Yoruba dialogue (subtitled)" value={draft.languageNotes||''} onChange={e=>d('languageNotes',e.target.value)}/>
+        </div>
+        <Inp placeholder="Notes" value={draft.notes||''} onChange={e=>d('notes',e.target.value)}/>
+        <div style={{display:'flex',gap:8}}>
+          <Btn size="sm" variant="sage" onClick={saveEdit}>Save changes</Btn>
+          <Btn size="sm" variant="ghost" onClick={()=>{setEditing(false);setDraft(null);}}>Cancel</Btn>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+/* Breakdown share / PDF export */
+const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
+  const scenes=sortScenes(scenesIn);
+  const brand=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');
+  const logoHtml=(brand.logo&&/^data:image\//.test(brand.logo))?`<img src="${brand.logo}" style="height:38px;object-fit:contain;display:block;margin-bottom:6px"/>`:'';
+  const castMap={};
+  scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;const lk=key.toLowerCase();if(!castMap[lk])castMap[lk]={name:key,scenes:[]};castMap[lk].scenes.push(s.sceneNumber);});});
+  const findMeta=name=>charactersIn.find(c=>c.project_id===project.id&&c.name.trim().toLowerCase()===name.trim().toLowerCase());
+  const castRows=Object.values(castMap).sort((a,b)=>b.scenes.length-a.scenes.length).map(r=>({...r,meta:findMeta(r.name)||{}}));
+  const locMap={};
+  scenes.forEach(s=>{const key=(s.location||'').trim()||'Unspecified';if(!locMap[key])locMap[key]={location:key,intExt:s.intExt||'',scenes:[]};locMap[key].scenes.push(s.sceneNumber);});
+  const locRows=Object.values(locMap).sort((a,b)=>b.scenes.length-a.scenes.length);
+  const scheduleRows=(()=>{const out=[];let current=null;scenes.forEach(s=>{const loc=(s.location||'').trim()||'Unspecified';if(current&&current.location===loc){current.scenes.push(s.sceneNumber);}else{current={location:loc,scenes:[s.sceneNumber]};out.push(current);}});return out;})();
+  const allCast=dedupeList(scenes.flatMap(s=>s.cast||[]));
+  const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
+  const allVehicles=dedupeList(scenes.flatMap(s=>s.vehicles||[]));
+  const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
+  const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
+  const summaryHeader=title=>`<div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none">
+    <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${escapeHtml(brand.companyName||'NKÒ')} · ${escapeHtml(project.name)}</div>
+    <div style="font-size:17px;font-weight:700">${escapeHtml(title)}</div></div>${logoHtml}</div>`;
+  const castPage=castRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
+    ${summaryHeader('Character Scene Breakdown')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
+      <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Character</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Age / description</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Role notes</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Total</th></tr>
+      ${castRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${escapeHtml(r.name)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${escapeHtml(r.meta.age_description)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${escapeHtml(r.meta.role_notes)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.map(escapeHtml).join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
+    </table>
+  </div>`:'';
+  const schedulePage=scheduleRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
+    ${summaryHeader('Outline Schedule')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
+      <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">S/N</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Set / Location</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Scene numbers</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Total</th></tr>
+      ${scheduleRows.map((r,i)=>`<tr><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${i+1}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${escapeHtml(r.location)}</td><td style="padding:7px 12px;font-size:11px;color:#9A9080;border-top:1px solid #3A3A3A">${r.scenes.map(escapeHtml).join(', ')}</td><td style="padding:7px 12px;font-size:12px;color:#FEED61;text-align:right;border-top:1px solid #3A3A3A;font-weight:700">${r.scenes.length}</td></tr>`).join('')}
+    </table>
+  </div>`:'';
+  const locPage=locRows.length?`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
+    ${summaryHeader('Locations Summary')}
+    <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none;background:#141414">
+      <tr style="background:#242424"><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:left">Location</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase">Int/Ext</th><th style="padding:7px 12px;font-size:10px;color:#9A9080;text-transform:uppercase;text-align:right">Scenes</th></tr>
+      ${locRows.map(r=>`<tr><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;border-top:1px solid #3A3A3A">${escapeHtml(r.location)}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:center;border-top:1px solid #3A3A3A">${escapeHtml(r.intExt)}</td><td style="padding:7px 12px;font-size:12px;color:#9A9080;text-align:right;border-top:1px solid #3A3A3A">${r.scenes.map(escapeHtml).join(', ')}</td></tr>`).join('')}
+    </table>
+  </div>`:'';
+  const elementGroup=(label,items)=>items.length?`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${items.map(it=>`<span style="background:#242424;border:1px solid #3A3A3A;border-radius:6px;padding:4px 10px;font-size:11px;color:#F0E8D0">${escapeHtml(it)}</span>`).join('')}</div></div>`:`<div style="margin-bottom:16px"><div style="font-size:10px;text-transform:uppercase;color:#8C852E;font-weight:700;margin-bottom:6px">${label}</div><div style="font-size:11px;color:#5A5A5A;font-style:italic">None identified</div></div>`;
+  const elementsPage=`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
+    ${summaryHeader('Production Elements')}
+    <div style="border:1px solid #3A3A3A;border-top:none;padding:16px;background:#141414">
+      ${elementGroup('All Cast',allCast)}
+      ${elementGroup('All Props',allProps)}
+      ${elementGroup('All Vehicles',allVehicles)}
+      ${elementGroup('All Costume',allCostume)}
+      ${elementGroup('All Equipment',allEquip)}
+    </div>
+  </div>`;
+  const sheets=scenes.map(sc=>{
+    const rows=BKCAT.map(cat=>{
+      const val=sc[cat.key];
+      if(!val||(Array.isArray(val)&&!val.length))return'';
+      const display=escapeHtml(Array.isArray(val)?val.join(', '):val);
+      return`<tr><td style="padding:7px 12px;background:#242424;color:#FEED61;font-size:10px;font-weight:700;text-transform:uppercase;width:150px;white-space:nowrap;font-family:Arial;border-bottom:1px solid #3A3A3A">${cat.icon} ${cat.label}</td><td style="padding:7px 12px;font-size:12px;color:#F0E8D0;font-family:Arial;background:#141414;border-bottom:1px solid #3A3A3A">${display}</td></tr>`;
+    }).join('');
+    return`<div style="page-break-after:always;padding:18px 26px;font-family:Arial;background:#141414">
+      <div style="background:#141414;color:#FEED61;padding:12px 18px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;border:1px solid #3A3A3A;border-bottom:none">
+        <div><div style="font-size:10px;text-transform:uppercase;color:#8C852E;margin-bottom:2px">${escapeHtml(brand.companyName||'NKÒ')} · ${escapeHtml(project.name)}</div>
+        <div style="font-size:17px;font-weight:700">Scene ${sc.sceneNumber||'—'}</div>
+        <div style="font-size:12px;color:#9A9080;margin-top:2px">${sc.heading||''}</div></div>
+        <div style="text-align:right">${logoHtml}<div style="font-size:10px;color:#8C852E">${sc.intExt||''} · ${sc.dayNight||''}</div></div>
+      </div>
+      ${sc.synopsis?`<div style="background:#1C1C1E;border:1px solid #3A3A3A;border-top:none;padding:9px 18px;font-size:12px;color:#F0E8D0;font-style:italic">${sc.synopsis}</div>`:''}
+      <table style="width:100%;border-collapse:collapse;border:1px solid #3A3A3A;border-top:none">${rows}</table>
+    </div>`;
+  }).join('');
+  const html=`<!DOCTYPE html><html><head><title>Breakdown — ${escapeHtml(project.name)}</title><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.np{display:none}}body{margin:0;background:#141414}</style></head><body>
+    <div class="np" style="background:#141414;padding:12px 18px;text-align:center;font-family:Arial;border-bottom:1px solid #3A3A3A">
+      <button onclick="window.print()" style="background:#FEED61;border:none;padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;border-radius:6px">Print / Save as PDF</button>
+      <span style="color:#9A9080;font-size:11px;margin-left:10px">${scenes.length} scene${scenes.length!==1?'s':''} · ${escapeHtml(project.name)}</span>
+    </div>${castPage}${schedulePage}${locPage}${elementsPage}${sheets}</body></html>`;
+  openThemed(html,'dark');
+};
+function BreakdownUploader({project,onApply,onSaveCharacter}){
+  const{t:tr}=useLang();
+  const[state,setState]=useState('idle');const[err,setErr]=useState('');const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
+  const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
+  const sendNotif=n=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKÒ Breakdown Complete',{body:`${n} scenes extracted from ${project.name}`});}catch{}};
+  useEffect(()=>{const h=()=>{if(document.visibilityState==='visible'&&resRef.current){onApply(resRef.current);resRef.current=null;setState('done');}};document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);},[]);
+  const process=async f=>{
+    const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
+    if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX file.');setState('error');return;}
+    if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
+    await askNotif();setState('reading');setErr('');
+    try{
+      const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?40:200;
+      let uc;let measured=null,measuredSource='';
+      if(isPDF){
+        try{measured=await measureScenePages(f);measuredSource='measured';}catch{measured=null;}
+        let extracted='';
+        try{extracted=await extractPdfText(f);}catch{extracted='';}
+        if(extracted&&extracted.length>200){
+          uc=[{type:'text',text:`Script:\n\n${extracted.slice(0,300000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
+        }else{
+          const sizeMB=f.size/1024/1024;
+          if(sizeMB>3.2)throw new Error(`This PDF looks like scanned pages with no selectable text, and is too large (${sizeMB.toFixed(1)}MB) to upload directly. Try exporting it as a text-based PDF, or paste the script into a .txt file instead.`);
+          const b=await readB64(f);
+          uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:BREAKDOWN_PROMPT(ep,max)}];
+        }
+      }else{
+        const txt=await readTxt(f);
+        measured=estimateTxtPages(txt);measuredSource='estimated';
+        uc=[{type:'text',text:`Script:\n\n${txt.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
+      }
+      setState('analyzing');
+      const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS,32000);
+      const{scenes:scenesRaw,characters}=recoverScenes(raw);if(!scenesRaw.length)throw new Error('No scenes found — try TXT format');const scenes=attachPageLengths(scenesRaw,measured,measuredSource);
+      characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
+      sendNotif(scenes.length);
+      try{localStorage.setItem(`nko_bk_${project?.id}`,JSON.stringify({scenes,ts:Date.now()}));}catch{}
+      if(document.visibilityState==='hidden'){resRef.current=scenes;}else{onApply(scenes);setState('done');}
+    }catch(e){setErr(e.message);setState('error');}
+  };
+  return(
+    <div style={{marginBottom:18}}>
+      {state==='analyzing'&&<div style={{background:'rgba(82,176,122,.1)',border:`1px solid ${T.sage}`,borderRadius:8,padding:'10px 14px',marginBottom:10}}><div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>{notif==='granted'?tr('notifOn'):tr('keepScreenOpen')}</div></div>}
+      <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{background:T.hi,border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:20,textAlign:'center',cursor:(state==='idle'||state==='error')?'pointer':'default'}}>
+        <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
+        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📋</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{tr('aiScriptBreakdown')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Upload your script — cast, props, location, vehicles per scene</div>{notif==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',marginBottom:8}}>🔔 Safe to switch apps during analysis</div>}{notif==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:8}}>💡 Allow notifications to switch apps freely</div>}<Btn variant="ghost" size="sm">{tr('chooseScript')}</Btn></>}
+        {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading…</div></>}
+        {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Analyzing your script…</div></>}
+        {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage,marginBottom:4}}>Breakdown complete</div><button onClick={e=>{e.stopPropagation();setState('idle');}} style={{color:T.gold,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another →</button></>}
+        {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
+      </div>
+    </div>
+  );
+}
+const dedupeList=arr=>{
+  const seen={};
+  arr.forEach(v=>{const t=String(v||'').trim();if(!t)return;const key=t.toLowerCase();if(!seen[key])seen[key]=t;});
+  return Object.values(seen);
+};
+function ProductionElementsPanel({scenes}){
+  const{t:tr}=useLang();
+  const[open,setOpen]=useState(false);
+  const allCast=dedupeList(scenes.flatMap(s=>s.cast||[]));
+  const allProps=dedupeList(scenes.flatMap(s=>s.props||[]));
+  const allVehicles=dedupeList(scenes.flatMap(s=>s.vehicles||[]));
+  const allCostume=dedupeList(scenes.flatMap(s=>s.wardrobe||[]));
+  const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
+  const Group=({label,items,color})=>(
+    <div style={{marginBottom:16}}>
+      <div style={{fontSize:10,color,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{label}</div>
+      {items.length===0?<div style={{color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif',fontStyle:'italic'}}>None identified</div>:
+      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{items.map((it,i)=><span key={i} style={{background:T.hi,border:`1px solid ${color}`,color:T.cream,borderRadius:6,padding:'4px 10px',fontSize:12,fontFamily:'Manrope,sans-serif'}}>{it}</span>)}</div>}
+    </div>
+  );
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🧾 {tr('productionElements')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— every cast, prop, vehicle, costume & equipment item across the script</span></span>
+        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'14px 16px 4px'}}>
+        <Group label="All Cast" items={allCast} color={T.sage}/>
+        <Group label="All Props" items={allProps} color={T.coral}/>
+        <Group label="All Vehicles" items={allVehicles} color={T.sage}/>
+        <Group label="All Costume" items={allCostume} color={T.sapphire}/>
+        <Group label="All Equipment" items={allEquip} color={T.gold}/>
+      </div>}
+    </div>
+  );
+}
+/* ── Schedules — day-out-of-days, built from Breakdown scenes ── */
+const LOCATION_PALETTE=[
+  {bg:'#f5b878',text:'#4a2c0c'},{bg:'#7fae4a',text:'#183609'},{bg:'#d9d16a',text:'#3a3608'},
+  {bg:'#8fb8d9',text:'#0c2c40'},{bg:'#c98fd9',text:'#3a0c40'},{bg:'#d98f9f',text:'#40141c'},
+  {bg:'#9fd9c9',text:'#0c4034'},{bg:'#d9b88f',text:'#40280c'},{bg:'#a8d98f',text:'#1c400c'},
+  {bg:'#8f9fd9',text:'#0c1440'},
+];
+const asList=v=>Array.isArray(v)?v.map(x=>x&&typeof x==='object'?String(x.name||''):String(x==null?'':x)).map(x=>x.trim()).filter(Boolean):(typeof v==='string'?v.split(',').map(x=>x.trim()).filter(Boolean):[]);
+const normalizeScene=s=>({...s,sceneNumber:s.sceneNumber==null?'':String(s.sceneNumber),cast:asList(s.cast),talkingExtras:asList(s.talkingExtras),props:asList(s.props),vehicles:asList(s.vehicles),wardrobe:asList(s.wardrobe),specialEquip:asList(s.specialEquip),backgroundActors:Number(s.backgroundActors)||0,pages8:Number(s.pages8)>0?Math.round(Number(s.pages8)):null});
+const sortScenes=scenes=>[...scenes].sort((a,b)=>{
+  const pa=String(a.sceneNumber??'').match(/(\d+)(.*)/);
+  const pb=String(b.sceneNumber??'').match(/(\d+)(.*)/);
+  const na=pa?Number(pa[1]):0,nb=pb?Number(pb[1]):0;
+  if(na!==nb)return na-nb;
+  return String(pa?.[2]||'').localeCompare(String(pb?.[2]||''));
+});
+const parseLocation=heading=>{
+  if(!heading)return'Unknown';
+  let s=heading.trim().toUpperCase().replace(/^(INT|EXT|INT\/EXT|I\/E)[.\s\/]+/,'');
+  s=s.split(/\s+-\s+/)[0].split('—')[0].trim();
+  return s||'Unknown';
+};
+const CAST_TIERS=['Lead Cast','Supporting Actors','Background Cast','Extras'];
+const TIER_KEYS=['lead','supporting','background','extra'];
+function getCastTiers(project,pScenes,characters=[]){
+  const counts={};pScenes.forEach(s=>(s.cast||[]).forEach(n=>{counts[n]=(counts[n]||0)+1;}));
+  const names=Object.keys(counts);
+  const findChar=name=>characters.find(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());
+  const sorted=[...names].sort((a,b)=>counts[b]-counts[a]);
+  const n=sorted.length;
+  const frequencyTier=name=>{
+    const rank=sorted.indexOf(name);
+    if(n<=4)return rank===0?0:1;
+    if(rank<Math.ceil(n*0.15))return 0;
+    if(rank<Math.ceil(n*0.4))return 1;
+    if(rank<Math.ceil(n*0.75))return 2;
+    return 3;
+  };
+  // Real, shared tier (AI-judged at breakdown time, or producer-set) always wins over the
+  // frequency guess — frequency is only ever a fallback for a name with no tier saved yet.
+  const tierOf=name=>{
+    const c=findChar(name);
+    const idx=c?.tier?TIER_KEYS.indexOf(c.tier):-1;
+    return idx>=0?idx:frequencyTier(name);
+  };
+  const byTier=[[],[],[],[]];
+  sorted.forEach(name=>byTier[tierOf(name)].push(name));
+  const ordered=byTier.flat();
+  return{ordered,byTier,isGuessed:name=>!findChar(name)?.tier};
+}
+function CastTierLegend({project,pScenes,characters,onSaveCharacter}){
+  const{byTier,isGuessed}=getCastTiers(project,pScenes,characters);
+  const[editing,setEditing]=useState(null);
+  let num=0;
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:12}}>
+      {CAST_TIERS.map((tierName,ti)=>byTier[ti].length>0&&(
+        <div key={ti} style={{marginBottom:ti<3?8:0}}>
+          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>{tierName}</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+            {byTier[ti].map(name=>{num++;const myNum=num;const guessed=isGuessed(name);return(
+              <div key={name} style={{position:'relative'}}>
+                <button onClick={()=>setEditing(editing===name?null:name)} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',padding:0}} title={guessed?'Not yet confirmed — click to set':'Set by script analysis or producer'}>
+                  <b style={{color:T.gold}}>{myNum}</b> {name}{guessed&&<span style={{color:T.dim,fontSize:10}}> ?</span>}
+                </button>
+                {editing===name&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
+                  {CAST_TIERS.map((t,i)=><button key={i} onClick={()=>{onSaveCharacter(name,{tier:TIER_KEYS[i]});setEditing(null);}} style={{display:'block',width:'100%',textAlign:'left',padding:'7px 10px',background:i===ti?T.hi:'none',border:'none',color:T.cream,fontSize:11,cursor:'pointer'}}>{t}</button>)}
+                </div>}
+              </div>
+            );})}
+          </div>
+        </div>
+      ))}
+      {byTier.flat().length===0&&<div style={{fontSize:12,color:T.dim}}>No cast found in scenes yet.</div>}
+      <div style={{fontSize:10,color:T.dim,fontStyle:'italic',marginTop:8}}>Tier comes from script analysis where available (marked <b>?</b> if not yet confirmed) — click a name to set or correct it. This is shared with Budget and Breakdown.</div>
+    </div>
+  );
+}
+function CastSummaryPanel({project,scenes,characters,onSaveCharacter}){
+  const{t:tr}=useLang();
+  const[open,setOpen]=useState(false);
+  const[editingRow,setEditingRow]=useState(null);
+  const rows=(()=>{
+    const map={};
+    scenes.forEach(s=>{(s.cast||[]).forEach(name=>{const key=String(name||'').trim();if(!key)return;const lk=key.toLowerCase();if(!map[lk])map[lk]={name:key,scenes:[]};map[lk].scenes.push(s.sceneNumber);});});
+    return map;
+  })();
+  const findMeta=name=>characters.find(c=>c.name.trim().toLowerCase()===name.trim().toLowerCase());
+  const{byTier}=project?getCastTiers(project,scenes,characters):{byTier:[[],[],[],[]]};
+  let sn=0;
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 {tr('castSceneBreakdown')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {Object.keys(rows).length} character{Object.keys(rows).length!==1?'s':''}</span></span>
+        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
+        {Object.keys(rows).length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:
+        CAST_TIERS.map((tierName,ti)=>byTier[ti].length>0&&(
+          <div key={ti} style={{marginBottom:10}}>
+            <div style={{fontSize:9,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 0 4px'}}>{tierName}</div>
+            <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,padding:'4px 0',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Character</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span><span/></div>
+            {byTier[ti].map(name=>{sn++;const i=sn;const r=rows[name.toLowerCase()];if(!r)return null;const meta=findMeta(r.name)||{};const isEditing=editingRow===r.name;return<div key={r.name}>
+              <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
+                <span style={{color:T.faint,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{i}</span>
+                <span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</span>
+                <span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{r.scenes.join(', ')}</span>
+                <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:13,textAlign:'right'}}>{r.scenes.length}</span>
+                <button onClick={()=>setEditingRow(isEditing?null:r.name)} style={{background:'none',border:'none',color:T.goldDim,cursor:'pointer',fontSize:13}} title="Edit age/role notes">✏️</button>
+              </div>
+              {isEditing&&<div style={{padding:'8px 0 12px 36px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <Inp placeholder="Age / description" defaultValue={meta.age_description||''} onBlur={e=>{if(e.target.value!==(meta.age_description||''))onSaveCharacter(r.name,{age_description:e.target.value});}} style={{fontSize:12}}/>
+                <Inp placeholder="Role notes" defaultValue={meta.role_notes||''} onBlur={e=>{if(e.target.value!==(meta.role_notes||''))onSaveCharacter(r.name,{role_notes:e.target.value});}} style={{fontSize:12}}/>
+              </div>}
+            </div>;})}
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+function LocationsSummaryPanel({scenes}){
+  const{t:tr}=useLang();
+  const[open,setOpen]=useState(false);
+  const rows=(()=>{
+    const map={};
+    scenes.forEach(s=>{
+      const key=(s.location||'').trim()||'Unspecified';
+      if(!map[key])map[key]={location:key,intExt:s.intExt||'',scenes:[]};
+      map[key].scenes.push(s.sceneNumber);
+    });
+    return Object.values(map).sort((a,b)=>b.scenes.length-a.scenes.length);
+  })();
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📍 {tr('locationsSummary')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} location{rows.length!==1?'s':''}, grouped by scene count</span></span>
+        <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
+      </button>
+      {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 14px'}}>
+        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No locations assigned to scenes yet.</div>:
+        rows.map(r=><div key={r.location} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`,gap:10}}>
+          <div>
+            <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.location}</div>
+            <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif',marginTop:2}}>{r.intExt}</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{r.scenes.length} scene{r.scenes.length!==1?'s':''}</div>
+            <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif'}}>Sc. {r.scenes.join(', ')}</div>
+          </div>
+        </div>)}
+      </div>}
+    </div>
+  );
+}
+/* Estimated Shoot Days — replaces the old day-by-day scheduling apparatus (that's an AD's job,
+   not a producer's). This is deliberately a rough number, not a schedule: it exists to give
+   Budget a cost driver (crew day rates, location days) without pretending to plan a shoot. */
+const estimateShootDays=(scenes,projectType)=>{
+  const n=scenes.length;
+  if(!n)return null;
+  const distinctLocations=new Set(scenes.map(s=>parseLocation(s.heading))).size;
+  const scenesPerLocation=n/Math.max(distinctLocations,1);
+  // More scenes packed per location = fewer company moves = more shootable per day.
+  const baseScenesPerDay=scenesPerLocation>=3?5:scenesPerLocation>=1.5?4:3;
+  let raw=Math.ceil(n/baseScenesPerDay);
+  const bands={'Feature Film':[21,28],'Short Film':[2,4],'Vertical Series / Microdrama':[5,9]};
+  const band=bands[projectType];
+  if(band)raw=Math.min(Math.max(raw,band[0]),band[1]);
+  return raw;
+};
+const DayField=({value,onSave,...p})=>{
+  const[v,setV]=useState(value||'');
+  useEffect(()=>{setV(value||'');},[value]);
+  return<Inp {...p} value={v} onChange={e=>setV(e.target.value)} onBlur={()=>{if(v!==(value||''))onSave(v);}}/>;
+};
+function ScheduleGuide({onClose}){
+  const steps=[
+    ['1','Get your scenes','Run a script breakdown on the Breakdown tab. Every scene becomes a coloured strip on this page.'],
+    ['2','Build your days','Tap ✨ Suggest a schedule and NKÒ groups scenes by location. Or tap + Shoot day, then use “Add to day…” on any strip.'],
+    ['3','Fine-tune','Use ↑ ↓ to reorder and “Move…” to change day. Page lengths are optional and counted in eighths: 8/8 is one full page, 6/8 is three-quarters. They only sharpen the day totals.'],
+    ['4','Fill in each day','Tap ⚙ Details on a day: crew call, Art call, meals, location, nearest hospital, cast calls and notes.'],
+    ['5','Print','Under “Print a call sheet”, tap a day for the crew. The Strip schedule is the whole shoot on paper. Each opens a page: tap Save as PDF.'],
+  ];
+  return<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16,fontFamily:'Manrope,sans-serif'}}>
+    <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,marginBottom:10}}>How the schedule works</div>
+    {steps.map(([n,t,d])=><div key={n} style={{display:'flex',gap:10,marginBottom:9}}><div style={{width:22,height:22,borderRadius:'50%',background:T.gold,color:T.ink,fontWeight:800,fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{n}</div><div><div style={{color:T.cream,fontSize:13,fontWeight:700}}>{t}</div><div style={{color:T.dim,fontSize:12,lineHeight:1.55}}>{d}</div></div></div>)}
+    <div style={{fontSize:11,color:T.dim,lineHeight:2,margin:'4px 0 12px'}}><b style={{color:T.cream}}>Strip colours:</b> <span style={{background:'#fff',color:'#111',padding:'1px 6px',borderRadius:3}}>INT day</span> <span style={{background:'#FFF35C',color:'#111',padding:'1px 6px',borderRadius:3}}>EXT day</span> <span style={{background:'#0B9A2A',color:'#fff',padding:'1px 6px',borderRadius:3}}>INT night</span> <span style={{background:'#1F3BFF',color:'#fff',padding:'1px 6px',borderRadius:3}}>EXT night</span> <span style={{background:'#FF9933',color:'#111',padding:'1px 6px',borderRadius:3}}>Evening</span></div>
+    <Btn size="sm" onClick={onClose}>Got it</Btn>
+  </div>;
+}
+function GettingStarted({projects,budgetItems,scenes,scheduleDays,advances,purchaseOrders,payees,userId,onGo}){
+  const key=`nko_gs_hidden_${userId}`;
+  const[hidden,setHidden]=useState(()=>{try{return localStorage.getItem(key)==='1';}catch{return false;}});
+  const steps=[
+    {done:projects.length>0,title:'Create your production',hint:'Tap “New production” below.',go:null},
+    {done:budgetItems.length>0,title:'Turn your script into a budget',hint:'Upload your script for a first budget, or start from a template.',go:'budgets',label:'Open Budgets'},
+    {done:scenes.length>0,title:'Break your script into scenes',hint:'Cast, locations, props and extras, scene by scene.',go:'breakdown',label:'Open Breakdown'},
+    {done:scheduleDays.length>0,title:'Plan your shoot days',hint:'Build the schedule, then print a call sheet for each day.',go:'schedule',label:'Open Schedule'},
+    {done:advances.length>0||purchaseOrders.length>0||payees.length>0,title:'Track what you spend',hint:'Cash advances, invoices and crew payments, reconciled against the budget.',go:'recon',label:'Open Recon'},
+  ];
+  const doneN=steps.filter(s=>s.done).length;
+  if(hidden||doneN===steps.length)return null;
+  const hide=()=>{setHidden(true);try{localStorage.setItem(key,'1');}catch{}};
+  return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18,fontFamily:'Manrope,sans-serif'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:4}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Getting started</div><div style={{fontSize:11,color:T.dim}}>{doneN} of {steps.length} done</div></div>
+    <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:12}}><div style={{height:'100%',width:`${doneN/steps.length*100}%`,background:T.sage}}/></div>
+    {steps.map(st=><div key={st.title} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'7px 0',borderTop:`1px solid ${T.line}`}}>
+      <div style={{width:20,height:20,borderRadius:'50%',border:`1.5px solid ${st.done?T.sage:T.line}`,background:st.done?T.sage:'transparent',color:T.ink,fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1}}>{st.done?'✓':''}</div>
+      <div style={{flex:1,minWidth:0}}><div style={{color:st.done?T.dim:T.cream,fontSize:13,fontWeight:700,textDecoration:st.done?'line-through':'none'}}>{st.title}</div><div style={{color:T.dim,fontSize:11,lineHeight:1.5}}>{st.hint}</div></div>
+      {!st.done&&st.go&&<button onClick={()=>onGo(st.go)} style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'3px 8px',whiteSpace:'nowrap',fontFamily:'Manrope,sans-serif'}}>{st.label}</button>}
+    </div>)}
+    <div style={{marginTop:8}}><button onClick={hide} style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'Manrope,sans-serif'}}>Hide this</button></div>
+  </div>;
+}
+function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onRemoveDay,onUpdateScene,isOwner}){
+  const mob=useIsMobile();
+  const[ppd,setPpd]=useState('5');const[start,setStart]=useState(nextMonday);const[skipSun,setSkipSun]=useState(true);
+  const[showBuild,setShowBuild]=useState(false);const[openDay,setOpenDay]=useState(null);
+  const[guide,setGuide]=useState(()=>{try{return localStorage.getItem('nko_guide_schedule_v1')!=='1';}catch{return true;}});
+  const closeGuide=()=>{setGuide(false);try{localStorage.setItem('nko_guide_schedule_v1','1');}catch{}};
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const sorted=sortScenes(scenes.map(normalizeScene));
+  const castIdx=buildCastIndex(sorted,characters);
+  const byId=Object.fromEntries(sorted.map(s=>[s.id,s]));
+  const placed=new Set(days.flatMap(d=>d.scene_ids||[]));
+  const unscheduled=sorted.filter(s=>!placed.has(s.id));
+  const shootDays=days.filter(d=>d.kind==='shoot');
+  const noPages=sorted.filter(s=>!(s.pages8>0)).length;
+  const anyPages=sorted.some(s=>s.pages8>0);
+  const sumPg=list=>list.reduce((s,x)=>s+(Number(x.pages8)||0),0);
+  const dayScenes=d=>(d.scene_ids||[]).map(id=>byId[id]).filter(Boolean);
+  const totalPages=sumPg(sorted),scheduledPages=sumPg(sorted.filter(s=>placed.has(s.id)));
+  const shootNo={};let c0=0;days.forEach(d=>{if(d.kind==='shoot'){c0++;shootNo[d.id]=c0;}});
+  const target=Math.round((parseFloat(ppd)||5)*8);
+  const pg=e=>e>0?fmtPages8(e):'—';
+  const moveScene=async(sceneId,toDayId)=>{
+    const jobs=[];
+    for(const d of days){if((d.scene_ids||[]).includes(sceneId)&&d.id!==toDayId)jobs.push(onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)}));}
+    if(toDayId){const t=days.find(d=>d.id===toDayId);if(t&&!(t.scene_ids||[]).includes(sceneId))jobs.push(onUpdateDay(toDayId,{scene_ids:[...(t.scene_ids||[]),sceneId]}));}
+    await Promise.all(jobs);
+  };
+  const moveToNewDay=async sceneId=>{
+    const last=[...days].reverse().find(d=>d.date);
+    const jobs=days.filter(d=>(d.scene_ids||[]).includes(sceneId)).map(d=>onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)}));
+    jobs.push(onAddDays([{kind:'shoot',date:last?addIsoDays(last.date,1):start,scene_ids:[sceneId]}]));
+    await Promise.all(jobs);
+  };
+  const shift=(d,sceneId,dir)=>{const a=[...(d.scene_ids||[])];const i=a.indexOf(sceneId),j=i+dir;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];onUpdateDay(d.id,{scene_ids:a});};
+  const shiftDay=async(d,dir)=>{const i=days.findIndex(x=>x.id===d.id),o=days[i+dir];if(!o)return;await onUpdateDay(d.id,{position:o.position});await onUpdateDay(o.id,{position:d.position});};
+  const addDay=kind=>{const last=[...days].reverse().find(d=>d.date);onAddDays([{kind,date:last?addIsoDays(last.date,1):start,title:kind==='off'?'DAY OFF':kind==='note'?'NOTE':'',scene_ids:[]}]);};
+  const build=async()=>{
+    if(!unscheduled.length){alert('Every scene is already on the schedule.');return;}
+    const plan=suggestDays({scenes:unscheduled,pagesPerDay:parseFloat(ppd)||5,startDate:start,skipSundays:skipSun});
+    if(await onAddDays(plan))setShowBuild(false);
+  };
+  const editPages=sc=>{
+    const v=window.prompt(`Page length for scene ${sc.sceneNumber}, in eighths of a page.\n8/8 = one full page, 6/8 = three-quarters.\nExamples: 7/8, 2, 1 2/8`,sc.pages8>0?fmtPages8(sc.pages8):'');
+    if(v===null)return;const p=parsePages8(v);if(p===null){alert('Use a format like 7/8, 2 or 1 2/8.');return;}
+    onUpdateScene(sc.id,{pages8:p,pages8Source:'manual'});
+  };
+  const exportSafely=fn=>{try{fn();}catch(e){alert(`Could not build the PDF: ${e.message}. Please screenshot this message and send it to us.`);}};
+  const mini={color:T.dim,fontSize:12,cursor:'pointer',background:'none',border:`1px solid ${T.line}`,borderRadius:5,padding:'2px 7px',fontFamily:'Manrope,sans-serif'};
+  const dateStyle={background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.3)',borderRadius:5,color:'#fff',fontSize:11,padding:'3px 5px',fontFamily:'Manrope,sans-serif'};
+  const barBtn={color:'#fff',fontSize:11,cursor:'pointer',background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.3)',borderRadius:5,padding:'3px 8px',fontFamily:'Manrope,sans-serif'};
+  const strip=(sc,d)=>{
+    const st=stripStyle(sc);const ids=(sc.cast||[]).map(n=>castIdx.idx[n]).filter(Boolean).sort((a,b)=>a-b);
+    const light=st.fg==='#111111';const edge=light?'rgba(0,0,0,.35)':'rgba(255,255,255,.45)';
+    return<div key={sc.id} style={{background:st.bg,color:st.fg,borderRadius:6,padding:'8px 10px',marginBottom:4,border:`1px solid ${light?'rgba(0,0,0,.3)':'rgba(0,0,0,.5)'}`,fontFamily:'Manrope,sans-serif'}}>
+      <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+        <div style={{fontWeight:800,fontSize:13,minWidth:34,textAlign:'center'}}>{sc.sceneNumber}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:700,fontSize:12,wordBreak:'break-word'}}>{String(sc.intExt||'').toUpperCase()} {sceneLoc(sc)} — {todLabel(sc)}</div>
+          {sc.synopsis&&<div style={{fontSize:11,marginTop:1,opacity:.9}}>{sc.synopsis}</div>}
+          <div style={{fontSize:10,marginTop:3,opacity:.9}}>CAST: {ids.join(', ')||'—'}{bgText(sc)?`  ·  BG: ${bgText(sc)}`:''}</div>
+        </div>
+        {anyPages&&<button onClick={()=>editPages(sc)} title="Tap to change the page length" style={{color:st.fg,background:'none',border:`1px dashed ${edge}`,borderRadius:5,fontSize:11,fontWeight:700,padding:'2px 6px',cursor:'pointer',whiteSpace:'nowrap'}}>{sc.pages8>0?fmtPages8(sc.pages8):'+ pgs'}</button>}
+      </div>
+      <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center',flexWrap:'wrap'}}>
+        {d&&<><button onClick={()=>shift(d,sc.id,-1)} style={{...mini,color:st.fg,borderColor:edge}}>↑</button><button onClick={()=>shift(d,sc.id,1)} style={{...mini,color:st.fg,borderColor:edge}}>↓</button></>}
+        <select value="" onChange={e=>{const v=e.target.value;if(v==='__none')moveScene(sc.id,null);else if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}} style={{fontSize:11,padding:'3px 6px',borderRadius:5,border:`1px solid ${edge}`,background:'rgba(255,255,255,.85)',color:'#111',fontFamily:'Manrope,sans-serif'}}>
+          <option value="">{d?'Move…':'Add to day…'}</option>
+          {d&&<option value="__none">Unschedule</option>}
+          {shootDays.filter(x=>!d||x.id!==d.id).map(x=><option key={x.id} value={x.id}>Day {shootNo[x.id]} · {shortDate(x.date)}</option>)}
+          <option value="__new">＋ New shoot day</option>
+        </select>
+      </div>
+    </div>;
+  };
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Schedule — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Your scenes, laid out day by day. Page lengths are in eighths, and day totals add up from them.</div><div style={{marginTop:14}}><FS/></div></div>
+      {guide&&<ScheduleGuide onClose={closeGuide}/>}
+      {sorted.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.6}}>The schedule is built from your scenes.<br/>Run a script breakdown first (Breakdown tab), then come back here.</div></div>:<>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:16}}>
+        <StatCard label="Shoot days" value={shootDays.length} sub="scheduled"/>
+        {anyPages?<StatCard label="Pages scheduled" value={`${pg(scheduledPages)} / ${pg(totalPages)}`} sub="of the whole script" accent={scheduledPages===totalPages?T.sage:T.gold}/>:<StatCard label="Scenes scheduled" value={`${sorted.length-unscheduled.length} / ${sorted.length}`} sub="of your scenes" accent={unscheduled.length?T.gold:T.sage}/>}
+        <StatCard label="Not scheduled" value={unscheduled.length} sub={unscheduled.length===1?'scene':'scenes'} accent={unscheduled.length?T.coral:T.sage}/>
+      </div>
+      {noPages>0&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',lineHeight:1.6}}><span style={{flex:1,minWidth:200}}><b style={{color:T.cream}}>Page lengths are optional.</b> They are counted in eighths — 8/8 is one full page, 6/8 is three-quarters — and only make the day totals and ✨ Suggest more accurate. {noPages===sorted.length?'None are set, so each scene counts as 1 page.':`${noPages} scene${noPages!==1?'s are':' is'} missing one and count${noPages!==1?'':'s'} as 1 page.`}</span><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
+        <Btn size="sm" onClick={()=>addDay('shoot')}>+ Shoot day</Btn>
+        <Btn size="sm" variant="outline" onClick={()=>addDay('off')}>+ Day off</Btn>
+        <Btn size="sm" variant="outline" onClick={()=>addDay('note')}>+ Note</Btn>
+        <Btn size="sm" variant="outline" onClick={()=>setShowBuild(!showBuild)}>✨ Suggest a schedule</Btn>
+        <Btn size="sm" variant="ghost" onClick={()=>(guide?closeGuide():setGuide(true))}>❓ How this works</Btn>
+        {isOwner&&shootDays.length>0&&<Btn size="sm" variant="outline" onClick={()=>exportSafely(()=>scheduleStripPDF(project,days,scenes,characters))}>📄 Export schedule (PDF)</Btn>}
+        {!isOwner&&shootDays.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>}
+      </div>
+      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{fontSize:11,color:T.dim,lineHeight:1.7,marginBottom:8}}><b style={{color:T.cream}}>Schedule export</b> — the whole shoot on paper, scene by scene and day by day, for you and the department heads. <b style={{color:T.cream}}>Call sheet</b> — one day's instructions for the crew: call time, location, scenes and cast.</div>
+        {shootDays.length===0?<div style={{fontSize:11,color:T.coral}}>You don't have a shoot day yet. Tap “+ Shoot day” or “✨ Suggest a schedule” and a call sheet button for each day will appear here.</div>
+        :isOwner?<div><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Print a call sheet</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{shootDays.map(d=><button key={d.id} onClick={()=>exportSafely(()=>callSheetPDF(project,d,shootNo[d.id],shootDays.length,scenes,characters))} style={{...mini,color:T.cream}}>📄 Day {shootNo[d.id]} · {shortDate(d.date)}</button>)}</div><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'10px 0 5px'}}>Export the whole schedule</div><button onClick={()=>exportSafely(()=>scheduleStripPDF(project,days,scenes,characters))} style={{...mini,color:T.cream}}>📄 Export schedule (PDF) — every day, scene by scene</button></div>
+        :<div style={{fontSize:11,color:T.faint}}>Only the production owner can print call sheets and export the schedule.</div>}
+      </div>
+      {showBuild&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Suggest a schedule</div>
+        <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12,lineHeight:1.6}}>Scenes at the same location are kept together, day scenes before night scenes, and each day is filled up to your page target (a scene with no page length counts as 1 page). It only places scenes that aren't scheduled yet, and you can change anything afterwards.</div>
+        <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'1fr 1fr 1fr',gap:10,marginBottom:10}}>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Pages per day</div><Inp type="number" min="1" step="0.5" value={ppd} onChange={e=>setPpd(e.target.value)}/></div>
+          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>First shoot day</div><Inp type="date" value={start} onChange={e=>setStart(e.target.value)}/></div>
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',alignSelf:'end',paddingBottom:8}}><input type="checkbox" checked={skipSun} onChange={e=>setSkipSun(e.target.checked)}/> Sundays off</label>
+        </div>
+        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={build}>Build {unscheduled.length} scene{unscheduled.length!==1?'s':''}</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowBuild(false)}>Cancel</Btn></div>
+      </div>}
+      {days.map((d,di)=>{
+        if(d.kind!=='shoot')return<div key={d.id} style={{background:d.kind==='off'?'#111':'#2a2a2a',border:`1px solid ${T.line}`,borderRadius:8,padding:'10px 12px',marginBottom:14,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          <div style={{flex:1,minWidth:140}}><DayField value={d.title||''} placeholder={d.kind==='off'?'DAY OFF':'Note — e.g. Travel back to Lagos'} onSave={v=>onUpdateDay(d.id,{title:v})} style={{background:'transparent',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}/></div>
+          <input type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})} style={dateStyle}/>
+          <button onClick={()=>shiftDay(d,-1)} style={mini}>↑</button><button onClick={()=>shiftDay(d,1)} style={mini}>↓</button>
+          <button onClick={()=>onRemoveDay(d.id)} style={{...mini,color:T.coral}}>✕</button>
+        </div>;
+        const n=shootNo[d.id],list=dayScenes(d),tot=sumPg(list),calls=d.cast_calls||{};
+        const names=[...new Set(list.flatMap(sc=>sc.cast||[]))].sort((a,b)=>(castIdx.idx[a]||999)-(castIdx.idx[b]||999));
+        const prevShoot=shootDays.filter(x=>shootNo[x.id]<n).pop();
+        const setTime=(k,v)=>onUpdateDay(d.id,{cast_calls:{...calls,[k]:v}});
+        const timeBox=(label,k)=><div key={k} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0}}>{label}</span><input type="time" value={calls[k]||''} onChange={e=>setTime(k,e.target.value)} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>;
+        const copyPrev=()=>{const keep=Object.fromEntries(Object.entries(prevShoot.cast_calls||{}).filter(([k])=>/^(dept|meal|info):/.test(k)));onUpdateDay(d.id,{call_time:prevShoot.call_time||d.call_time||'',location:d.location||prevShoot.location||'',cast_calls:{...calls,...keep}});};
+        return<div key={d.id} style={{marginBottom:18}}>
+          <div style={{background:'#5A2E0E',borderRadius:'8px 8px 0 0',padding:'10px 12px',display:'flex',flexWrap:'wrap',gap:8,alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{color:'#fff',fontWeight:800,fontSize:13,fontFamily:'Manrope,sans-serif'}}>DAY {n} · {longDate(d.date)}</div>
+            <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+              <input type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})} style={dateStyle}/>
+              <button onClick={()=>shiftDay(d,-1)} style={barBtn}>↑</button><button onClick={()=>shiftDay(d,1)} style={barBtn}>↓</button>
+              <button onClick={()=>setOpenDay(openDay===d.id?null:d.id)} style={barBtn}>⚙ Details</button>
+              {isOwner&&<button onClick={()=>exportSafely(()=>callSheetPDF(project,d,n,shootDays.length,scenes,characters))} style={barBtn}>📄 Call sheet</button>}
+              <button onClick={()=>{if(!list.length||window.confirm(`Remove Day ${n}? Its ${list.length} scene${list.length!==1?'s':''} go back to "not scheduled".`))onRemoveDay(d.id);}} style={{...barBtn,color:'#ffb4a8'}}>✕</button>
+            </div>
+          </div>
+          {openDay===d.id&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderTop:'none',padding:12,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 2fr',gap:8}}>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Crew call</div><Inp type="time" value={d.call_time||''} onChange={e=>onUpdateDay(d.id,{call_time:e.target.value})}/></div>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Location (name and address) — leave blank to use the scene locations</div><DayField value={d.location||''} placeholder="e.g. Nnaji family house, 14 Okigwe Rd, Owerri" onSave={v=>onUpdateDay(d.id,{location:v})}/></div>
+            </div>
+            <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Notes for the call sheet</div><DayField value={d.notes||''} placeholder="Anything the crew must know that day" onSave={v=>onUpdateDay(d.id,{notes:v})}/></div>
+            <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1fr',gap:10}}>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Art department call — they often leave before the rest of the crew. Shown on the call sheet only if you fill it in.</div>{timeBox('Art call','dept:Art')}</div>
+              <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Nearest hospital — name, address and phone. Recommended on every call sheet, for crew safety.</div><DayField value={calls['info:hospital']||''} placeholder="e.g. Federal Medical Centre, Owerri · 0801 234 5678" onSave={v=>setTime('info:hospital',v)}/></div>
+            </div>
+            <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Meals</div><div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{MEALS.map(nm=>timeBox(nm,'meal:'+nm))}</div></div>
+            {prevShoot&&<div><button onClick={copyPrev} style={{...mini,color:T.cream}}>↧ Copy call times, meals, hospital and location from Day {shootNo[prevShoot.id]}</button></div>}
+            {names.length>0&&<div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Cast call times — blank means the crew call</div>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{names.map(nm=><div key={nm} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{castIdx.idx[nm]}. {nm}</span><input type="time" value={calls[nm]||''} onChange={e=>onUpdateDay(d.id,{cast_calls:{...calls,[nm]:e.target.value}})} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>)}</div></div>}
+          </div>}
+          <div style={{background:'#1a1a1a',padding:'6px 6px 2px',border:`1px solid ${T.line}`,borderTop:'none'}}>
+            {list.length?list.map(sc=>strip(sc,d)):<div style={{color:T.dim,fontSize:12,padding:'12px 6px',fontFamily:'Manrope,sans-serif'}}>No scenes yet. Add some from "Not scheduled" below, or use ✨ Suggest a schedule.</div>}
+          </div>
+          <div style={{background:'#000',borderRadius:'0 0 8px 8px',color:'#fff',textAlign:'center',fontWeight:700,fontSize:12,padding:'9px 8px',fontFamily:'Manrope,sans-serif'}}>End Day # {n}{anyPages&&<> — Total pages: {pg(tot)}</>}{anyPages&&tot>target*1.25&&<span style={{color:'#ffb4a8',fontWeight:600}}>  ·  heavy day</span>}</div>
+        </div>;
+      })}
+      {days.length>0&&<div style={{textAlign:'center',color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',margin:'6px 0 18px'}}>{shootDays.length} shoot day{shootDays.length!==1?'s':''}{anyPages&&` · ${pg(scheduledPages)} pages scheduled`}</div>}
+      <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,margin:'8px 0 8px'}}>Not scheduled {unscheduled.length>0&&<span style={{color:T.coral,fontSize:13}}>({unscheduled.length})</span>}</div>
+      {unscheduled.length===0?<div style={{color:T.sage,fontSize:12,fontFamily:'Manrope,sans-serif'}}>✓ Every scene is on the schedule.</div>:unscheduled.map(sc=>strip(sc,null))}
+      <div style={{marginTop:22,background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:2}}>
+        <b style={{color:T.cream}}>Strip colours and how many of your scenes use each</b><br/>
+        {[['INT day','#FFFFFF','#111111'],['EXT day','#FFF35C','#111111'],['INT night','#0B9A2A','#FFFFFF'],['EXT night','#1F3BFF','#FFFFFF'],['Evening','#FF9933','#111111']].map(([l,bg,fg])=>{const c=sorted.filter(sc=>stripStyle(sc).bg===bg).length;return<span key={l} style={{background:bg,color:fg,padding:'2px 7px',borderRadius:3,marginRight:5,opacity:c?1:.35,whiteSpace:'nowrap'}}>{l} · {c}</span>;})}
+        <div style={{marginTop:4,lineHeight:1.6}}>A colour showing 0 means none of your scenes are that type. If that looks wrong, check the scene's INT/EXT and time of day on the Breakdown tab.</div>
+      </div></>}
+    </div>
+  );
+}
+function ScriptInsights({scenes,characters,onUpdateScene}){
+  const[open,setOpen]=useState(false);const[tab,setTab]=useState('locations');
+  const sorted=sortScenes(scenes.map(normalizeScene));
+  if(!sorted.length)return null;
+  const castIdx=buildCastIndex(sorted,characters);
+  const sumPg=l=>l.reduce((s,x)=>s+(Number(x.pages8)||0),0);
+  const total=sumPg(sorted);
+  const estimated=sorted.some(s=>s.pages8Source==='estimated');
+  const locMap={};
+  sorted.forEach(sc=>{const k=normHead(sceneLoc(sc))||'UNKNOWN';const o=locMap[k]=locMap[k]||{name:sceneLoc(sc)||'Unknown location',nums:[],pages:0,int:0,ext:0,day:0,night:0};o.nums.push(sc.sceneNumber);o.pages+=Number(sc.pages8)||0;if(isExtScene(sc))o.ext++;else o.int++;if(todClass(sc)==='day')o.day++;else o.night++;});
+  const locs=Object.values(locMap).sort((a,b)=>b.pages-a.pages||b.nums.length-a.nums.length);
+  const nightN=sorted.filter(s=>todClass(s)!=='day').length;
+  const elems=key=>{const m={};sorted.forEach(sc=>(sc[key]||[]).forEach(it=>{const k=String(it).trim();if(k)(m[k]=m[k]||[]).push(sc.sceneNumber);}));return Object.entries(m).sort((a,b)=>b[1].length-a[1].length);};
+  const tx={};sorted.forEach(sc=>(sc.talkingExtras||[]).forEach(t=>{const k=String(t).trim();if(k)(tx[k]=tx[k]||[]).push(sc.sceneNumber);}));
+  const peak=sorted.reduce((m,sc)=>(Number(sc.backgroundActors)||0)>(m?.n||0)?{n:Number(sc.backgroundActors),sc:sc.sceneNumber}:m,null);
+  const castPages=name=>sumPg(sorted.filter(sc=>(sc.cast||[]).includes(name)));
+  const noPages=sorted.filter(s=>!(s.pages8>0)),noCast=sorted.filter(s=>!(s.cast||[]).length),noLoc=sorted.filter(s=>!sceneLoc(s)),noIE=sorted.filter(s=>!s.intExt);
+  const issues=noPages.length+noCast.length+noLoc.length+noIE.length;
+  const d5=Math.max(1,Math.ceil(total/40)),d6=Math.max(1,Math.ceil(total/48)),d4=Math.max(1,Math.ceil(total/32));
+  const sc4=l=>l.join(', ');
+  const row=(a,b,c)=><div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'baseline'}}><div style={{color:T.cream,fontSize:13,fontWeight:600,fontFamily:'Manrope,sans-serif',minWidth:0}}>{a}</div><div style={{color:T.gold,fontSize:11,fontFamily:'IBM Plex Mono,monospace',whiteSpace:'nowrap'}}>{b}</div></div>{c&&<div style={{color:T.dim,fontSize:10,marginTop:2,fontFamily:'Manrope,sans-serif',lineHeight:1.5}}>{c}</div>}</div>;
+  const tabBtn=(id,label)=><button key={id} onClick={()=>setTab(id)} style={{padding:'6px 12px',borderRadius:20,border:`1px solid ${tab===id?T.gold:T.line}`,background:tab===id?T.goldGlow:'transparent',color:tab===id?T.gold:T.dim,fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:'pointer',whiteSpace:'nowrap'}}>{label}{id==='checks'&&issues>0?` (${issues})`:''}</button>;
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
+      <button onClick={()=>setOpen(!open)} style={{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'12px 14px',background:'none',border:'none',cursor:'pointer',textAlign:'left'}}>
+        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📊 Script analysis</span>
+        <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{sorted.length} scenes · {total?fmtPages8(total):'no page lengths'} pgs · {locs.length} locations {open?'▴':'▾'}</span>
+      </button>
+      {open&&<div style={{padding:'0 14px 14px',borderTop:`1px solid ${T.line}`}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:8,margin:'12px 0'}}>
+          <StatCard label="Script length" value={total?fmtPages8(total):'—'} sub={estimated?'pages (estimated from text)':'pages'}/>
+          <StatCard label="Locations" value={locs.length} sub="to secure"/>
+          <StatCard label="Cast" value={castIdx.list.length} sub={`${castIdx.list.filter(c=>c.tier==='lead').length} lead`}/>
+          <StatCard label="Night / evening" value={`${Math.round(nightN/sorted.length*100)}%`} sub={`${nightN} of ${sorted.length} scenes`}/>
+        </div>
+        {total>0&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',lineHeight:1.6}}>At <b>5 pages a day</b> this is about <b>{d5} shoot days</b> ({d6} at 6 pages a day, {d4} at 4). Real days vary with location moves, night work and large casts — use it as a starting point for the schedule and budget.</div>}
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:6,marginBottom:6}}>{tabBtn('locations','Locations')}{tabBtn('cast','Cast')}{tabBtn('elements','Elements')}{tabBtn('checks','Checks')}</div>
+        {tab==='locations'&&<div>{locs.map(l=><div key={l.name}>{row(l.name,`${l.pages?fmtPages8(l.pages):'—'} pgs`,`${l.nums.length} scene${l.nums.length!==1?'s':''} · INT ${l.int} / EXT ${l.ext} · day ${l.day} / night-evening ${l.night} · sc ${sc4(l.nums)}`)}</div>)}</div>}
+        {tab==='cast'&&<div>{castIdx.list.map(c=><div key={c.id}>{row(`${c.id}. ${c.name}`,`${fmtPages8(castPages(c.name))==='—'?'—':fmtPages8(castPages(c.name))+' pgs'}`,`${c.tier||'tier not set'} · ${c.scenes} scene${c.scenes!==1?'s':''} · first appears sc ${(sorted.find(sc=>(sc.cast||[]).includes(c.name))||{}).sceneNumber}`)}</div>)}
+          <div style={{fontSize:10,color:T.faint,marginTop:8,fontFamily:'Manrope,sans-serif'}}>These numbers are the cast IDs used on the Schedule tab and call sheets.</div></div>}
+        {tab==='elements'&&<div>
+          {[['props','Props'],['vehicles','Vehicles'],['wardrobe','Wardrobe'],['specialEquip','Special equipment']].map(([k,label])=>{const e=elems(k);return<div key={k} style={{marginBottom:12}}><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'8px 0 2px'}}>{label} ({e.length})</div>{e.length===0?<div style={{fontSize:11,color:T.faint}}>None found in the script.</div>:e.map(([it,nums])=><div key={it}>{row(it,`${nums.length}×`,`sc ${sc4(nums)}`)}</div>)}</div>;})}
+          <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'8px 0 2px'}}>Extras</div>
+          {peak?row('Biggest crowd',`${peak.n}`,`Scene ${peak.sc} — plan for at least this many background actors on the day`):<div style={{fontSize:11,color:T.faint}}>No background crowds found.</div>}
+          {Object.entries(tx).map(([it,nums])=><div key={it}>{row(`${it} (talking)`,`${nums.length}×`,`sc ${sc4(nums)}`)}</div>)}
+        </div>}
+        {tab==='checks'&&<div style={{fontFamily:'Manrope,sans-serif'}}>
+          {issues===0?<div style={{color:T.sage,fontSize:13,padding:'8px 0'}}>✓ Every scene has a page length, a location, INT/EXT and cast.</div>:<>
+            {noPages.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noPages.length} scene{noPages.length!==1?'s have':' has'} no page length</div><div style={{color:T.dim,fontSize:10,margin:'2px 0 8px'}}>Scenes: {sc4(noPages.map(s=>s.sceneNumber))}. The schedule's day totals will be short until these are set.</div><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
+            {noCast.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noCast.length} scene{noCast.length!==1?'s have':' has'} no cast listed</div><div style={{color:T.dim,fontSize:10,marginTop:2}}>Scenes: {sc4(noCast.map(s=>s.sceneNumber))}. Check these — an empty scene won't appear on any call sheet.</div></div>}
+            {noLoc.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noLoc.length} scene{noLoc.length!==1?'s have':' has'} no location</div><div style={{color:T.dim,fontSize:10,marginTop:2}}>Scenes: {sc4(noLoc.map(s=>s.sceneNumber))}.</div></div>}
+            {noIE.length>0&&<div style={{padding:'8px 0'}}><div style={{color:T.cream,fontSize:13}}>{noIE.length} scene{noIE.length!==1?'s have':' has'} no INT/EXT</div><div style={{color:T.dim,fontSize:10,marginTop:2}}>Scenes: {sc4(noIE.map(s=>s.sceneNumber))}. Strip colours on the schedule depend on this.</div></div>}
+          </>}
+        </div>}
+      </div>}
+    </div>
+  );
+}
+function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner}){
+  const{t:tr}=useLang();
+  const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const ps=sortScenes(scenes.filter(s=>s.project_id===project.id));
+  const seenNums={};let dupeCount=0;
+  ps.forEach(s=>{const k=String(s.sceneNumber);seenNums[k]=(seenNums[k]||0)+1;if(seenNums[k]>1)dupeCount++;});
+  const filtered=ps.filter(s=>{const mf=filter==='ALL'||(filter==='INT'&&s.intExt==='INT')||(filter==='EXT'&&s.intExt==='EXT')||(filter==='DAY'&&s.dayNight==='DAY')||(filter==='NIGHT'&&s.dayNight==='NIGHT');const ms=!search||s.heading?.toLowerCase().includes(search.toLowerCase())||s.location?.toLowerCase().includes(search.toLowerCase());return mf&&ms;});
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?22:26,color:T.cream}}>{tr('breakdownHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div><div style={{marginTop:14}}><FS/></div></div>
+      {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+        <div>
+          <div style={{color:T.coral,fontSize:12,fontWeight:700}}>{dupeCount} duplicate scene{dupeCount!==1?'s':''} found</div>
+          <div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2}}>Likely from applying a breakdown twice. Cleanup keeps the first copy of each scene number and removes the rest — nothing else is touched.</div>
+        </div>
+        <Btn size="sm" variant="outline" onClick={()=>{if(window.confirm(`Remove ${dupeCount} duplicate scene${dupeCount!==1?'s':''}? This keeps one copy of each scene number and can't be undone.`))onDedupeScenes(project.id);}}>Clean up duplicates</Btn>
+      </div>}
+      {ps.length>0&&(()=>{const est=estimateShootDays(ps,project.type);return est&&(
+        <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+          <div>
+            <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Estimated Shoot Days</span>
+            <div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2}}>A rough guide from scene and location count — not a schedule. Use it to size crew day-rate and location-rental lines in Budget.</div>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:28,color:T.gold,fontWeight:700}}>{est} <span style={{fontSize:13,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:400}}>days</span></div>
+        </div>
+      );})()}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
+        <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
+      </div>
+      <CastSummaryPanel project={project} scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onSaveCharacter={onSaveCharacter}/>
+      <ScriptInsights scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onUpdateScene={onUpdateScene}/>
+      <LocationsSummaryPanel scenes={ps}/>
+      <ProductionElementsPanel scenes={ps}/>
+      <BreakdownUploader project={project} onApply={ns=>onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})))} onSaveCharacter={onSaveCharacter}/>
+      <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
+      <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
+        <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
+        {ps.length>0&&(isOwner?<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>)}
+      </div>
+      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
+    </div>
+  );
+}
+
+/* ── Marketplace (Notion-style) ── */
+function CreatorCard({creator,selected,onClick}){
+  const init=creator.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  return(
+    <button onClick={onClick} style={{background:selected?T.hi:T.panel,border:`1px solid ${selected?T.gold:T.line}`,borderRadius:12,padding:'16px 14px',textAlign:'left',cursor:'pointer',flexShrink:0,width:155}}>
+      <div style={{width:40,height:40,borderRadius:'50%',background:selected?T.gold:T.hi,border:`2px solid ${selected?T.gold:T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:selected?T.ink:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>{init}</div>
+      <div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream,marginBottom:2}}>{creator.name}</div>
+      <div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:4}}>{creator.role}</div>
+      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>{creator.loc} · {creator.downloads} uses</div>
+      {creator.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,marginTop:4}}>✓ NKÒ Verified</div>}
+    </button>
+  );
+}
+function VendorCard({vendor}){
+  return(
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:8}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{vendor.name}</div>
+        {vendor.verified&&<span style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,whiteSpace:'nowrap'}}>✓ Verified</span>}
+      </div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Pill>{vendor.category}</Pill>{vendor.loc&&<span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>{vendor.loc}</span>}</div>
+      {vendor.service&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{vendor.service}</div>}
+      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.goldDim,marginTop:4}}>{vendor.contact}</div>
+    </div>
+  );
+}
+function MarketplaceView({onApplyTemplate}){
+  const{t:tr}=useLang();
+  const[tab,setTab]=useState('templates');
+  const[cat,setCat]=useState('All');const[sel,setSel]=useState(null);const[search,setSearch]=useState('');const[applied,setApplied]=useState(null);const mob=useIsMobile();
+  const[vCat,setVCat]=useState('All');const[vSearch,setVSearch]=useState('');
+  const filtered=COMMUNITY_TEMPLATES.filter(t=>(cat==='All'||t.type===cat)&&(!sel||t.author===sel)&&(!search||t.label.toLowerCase().includes(search.toLowerCase())||t.author.toLowerCase().includes(search.toLowerCase())));
+  const filteredVendors=VENDORS.filter(v=>(vCat==='All'||v.category===vCat)&&(!vSearch||v.name.toLowerCase().includes(vSearch.toLowerCase())||v.loc.toLowerCase().includes(vSearch.toLowerCase())));
+  const featured=CREATORS[0];
+  return(
+    <div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('marketplaceHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates, and vendors to hire for your production.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{display:'flex',gap:8,marginBottom:20,borderBottom:`1px solid ${T.line}`}}>
+        <button onClick={()=>setTab('templates')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='templates'?T.gold:'transparent'}`,color:tab==='templates'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Templates</button>
+        <button onClick={()=>setTab('vendors')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='vendors'?T.gold:'transparent'}`,color:tab==='vendors'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Vendors</button>
+      </div>
+      {tab==='vendors'?<div>
+        <Inp placeholder="Search vendors by name or city…" value={vSearch} onChange={e=>setVSearch(e.target.value)} style={{marginBottom:12}}/>
+        <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{VENDOR_CATEGORIES.map(c=><button key={c} onClick={()=>setVCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${vCat===c?T.gold:T.line}`,background:vCat===c?T.goldGlow:'transparent',color:vCat===c?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
+        {filteredVendors.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No vendors match.</div></div>:
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:14}}>{filteredVendors.map(v=><VendorCard key={v.id} vendor={v}/>)}</div>}
+        <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>List your business</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Reach producers actively budgeting for a shoot.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Vendor listing','_blank')}>List your business →</Btn></div>
+      </div>:<>
+      {/* Featured creator hero */}
+      <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:20,marginBottom:24,display:'flex',gap:16,alignItems:'center',flexWrap:mob?'wrap':'nowrap'}}>
+        <div style={{width:52,height:52,borderRadius:'50%',background:T.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:T.ink,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{featured.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        <div style={{flex:1}}><div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:3}}>Featured creator</div><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream}}>{featured.name}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{featured.role} · {featured.loc}</div></div>
+        <div style={{display:'flex',gap:16,flexShrink:0}}><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>2</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>templates</div></div><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>{featured.downloads}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>uses</div></div></div>
+      </div>
+      {/* Creator row */}
+      <div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>Browse by creator</div>
+        <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}><div style={{display:'flex',gap:10,paddingBottom:8,minWidth:'max-content'}}>
+          <button onClick={()=>setSel(null)} style={{background:!sel?T.hi:T.panel,border:`1px solid ${!sel?T.gold:T.line}`,borderRadius:12,padding:'10px 14px',cursor:'pointer',color:!sel?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,flexShrink:0}}>All creators</button>
+          {CREATORS.map(c=><CreatorCard key={c.id} creator={c} selected={sel===c.name} onClick={()=>setSel(sel===c.name?null:c.name)}/>)}
+        </div></div>
+      </div>
+      {/* Search + category */}
+      <Inp placeholder="Search templates…" value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:12}}/>
+      <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{MKTCAT.map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${cat===c?T.gold:T.line}`,background:cat===c?T.goldGlow:'transparent',color:cat===c?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
+      {/* Template grid */}
+      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No templates match.</div></div>:
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:14}}>
+        {filtered.map(tpl=>{const total=tpl.items.reduce((s,i)=>s+lTot(i),0);const isApp=applied===tpl.id;const c=CREATORS.find(c=>c.name===tpl.author);const init=tpl.author.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        return<div key={tpl.id} style={{background:T.panel,border:`1px solid ${isApp?T.sage:T.line}`,borderRadius:12,padding:18,display:'flex',flexDirection:'column',gap:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <div style={{width:28,height:28,borderRadius:'50%',background:T.hi,border:`1px solid ${T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:T.goldDim,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{init}</div>
+            <div><div style={{fontSize:11,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{tpl.author}</div>{c?.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Verified</div>}</div>
+          </div>
+          <div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:3}}>{tpl.label}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{tpl.sub}</div></div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            <Pill>{tpl.type.split('/')[0].trim()}</Pill>
+            <span style={{fontSize:10,background:'rgba(82,176,122,.15)',color:T.sage,padding:'2px 8px',borderRadius:10,fontFamily:'Manrope,sans-serif',fontWeight:700,border:`1px solid ${T.sage}`}}>📊 Budget</span>
+            {tpl.scenes?.length>0&&<span style={{fontSize:10,background:'rgba(74,144,217,.15)',color:T.sapphire,padding:'2px 8px',borderRadius:10,fontFamily:'Manrope,sans-serif',fontWeight:700,border:`1px solid ${T.sapphire}`}}>📋 {tpl.scenes.length} scenes</span>}
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.gold}}>₦{fmt(total)}</div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>{tpl.items.length} lines · {tpl.downloads} uses</div></div>
+            <Btn size="sm" variant={isApp?'sage':'outline'} onClick={()=>{onApplyTemplate(tpl);setApplied(tpl.id);setTimeout(()=>setApplied(null),3000);}}>{isApp?tr('applied'):tr('useTemplate')}</Btn>
+          </div>
+        </div>;})}
+      </div>}
+      <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>Publish your template</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Share a budget that works and earn an NKÒ Verified badge.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Template submission','_blank')}>Submit a template →</Btn></div>
+      </>}
+    </div>
+  );
+}
+
+/* ── MainApp ── */
+function MainApp(){
+  const{user,signOut}=useAuth();
+  const[view,setView]=useState('dashboard');
+  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);const[revenueItems,setRevenueItems]=useState([]);const[scheduleDays,setScheduleDays]=useState([]);
+  const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
+  const[defaultCurrency,setDefaultCurrency]=useState('NGN');
+  useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
+  useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
+
+  useEffect(()=>{if(!user)return;
+    const loadAll=async()=>{
+      const[pr,bi,ad,re,py,sc,ch,po,cb,ts,rv,sdy]=await Promise.all([
+        sb.from('projects').select('*').order('created_at',{ascending:false}),
+        sb.from('budget_items').select('*'),
+        sb.from('advances').select('*'),
+        sb.from('recon_entries').select('*'),
+        sb.from('payees').select('*'),
+        sb.from('scenes').select('*'),
+        sb.from('characters').select('*'),
+        sb.from('purchase_orders').select('*'),
+        sb.from('project_collaborators').select('*'),
+        sb.from('user_trial_state').select('*').eq('user_id',user.id).maybeSingle(),
+        sb.from('revenue_items').select('*'),
+        sb.from('schedule_days').select('*'),
+      ]);
+      if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
+      if(sc.data)setScenes(sc.data.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id})));
+      if(ch.data)setCharacters(ch.data);
+      if(po.data)setPurchaseOrders(po.data);
+      if(cb.data)setCollaborators(cb.data);
+      setTrialCount(ts.data?.productions_created||0);
+      if(rv.data)setRevenueItems(rv.data);
+      if(sdy.data)setScheduleDays(sdy.data);
+    };loadAll();},[user]);
+
+  const project=projects.find(p=>p.id===currentId)||null;
+  const pBudget=budgetItems.filter(i=>i.project_id===currentId);
+  const pAdvances=advances.filter(a=>a.project_id===currentId);
+
+  const TRIAL_WALL_ENABLED=false; // paywall switched off for now — set to true to bring the 2-production cap back
+  const TRIAL_LIMIT=2;
+  const createProject=async d=>{
+    if(TRIAL_WALL_ENABLED&&trialCount>=TRIAL_LIMIT){
+      alert(`You've used your ${TRIAL_LIMIT} free productions on NKÒ. To start another one, reach out to us — we'll get you set up.`);
+      return false;
+    }
+    const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();
+    if(error){alert(`Could not create production: ${error.message}`);return false;}
+    if(data){
+      setProjects(p=>[data,...p]);setCurrentId(data.id);setView('budgets');
+      const newCount=trialCount+1;
+      const{error:tErr}=await sb.from('user_trial_state').upsert({user_id:user.id,productions_created:newCount});
+      if(!tErr)setTrialCount(newCount);
+      return true;
+    }
+    return false;
+  };
+  const inviteCollaborator=async(projectId,email)=>{
+    const{data:resolvedId,error:rErr}=await sb.rpc('resolve_user_by_email',{lookup_email:email.trim()});
+    if(rErr){alert(`Could not look up that email: ${rErr.message}`);return;}
+    if(!resolvedId){alert(`${email} doesn't have an NKÒ account yet — ask them to sign up first, then try again.`);return;}
+    if(resolvedId===user.id){alert("That's your own account — invite someone else to collaborate.");return;}
+    await sb.from('project_collaborators').delete().eq('project_id',projectId);
+    const{data,error}=await sb.from('project_collaborators').insert({id:Math.random().toString(36).slice(2,10),project_id:projectId,user_id:resolvedId,invited_by:user.id}).select().single();
+    if(error){alert(`Could not add collaborator: ${error.message}`);return;}
+    if(data){
+      setCollaborators(p=>[...p.filter(c=>c.project_id!==projectId),data]);
+      const proj=projects.find(p=>p.id===projectId);
+      fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        to:email.trim(),
+        subject:`You've been added to ${proj?.name||'a production'} on NKÒ`,
+        html:`<p>${user.email} added you as a collaborator on <strong>${proj?.name||'a production'}</strong> on NKÒ.</p><p>Log in to NKÒ to see it: <a href="${window.location.origin}">${window.location.origin}</a></p>`,
+      })}).catch(()=>{}); // best-effort — the collaborator seat itself is already created either way
+    }
+  };
+  const removeCollaborator=async projectId=>{
+    setCollaborators(p=>p.filter(c=>c.project_id!==projectId));
+    const{error}=await sb.from('project_collaborators').delete().eq('project_id',projectId);
+    if(error)alert(`Could not remove collaborator: ${error.message}`);
+  };
+  const deleteProjects=async ids=>{for(const id of ids){await purgeReceipts(id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
+  const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
+  const addRevenueItem=async item=>{
+    const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();
+    if(error){alert(`Could not add revenue line: ${error.message}`);return;}
+    if(data)setRevenueItems(p=>[...p,data]);
+  };
+  const updateRevenueItem=async(id,upd)=>{
+    setRevenueItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));
+    const{error}=await sb.from('revenue_items').update(upd).eq('id',id);
+    if(error)alert(`Could not update revenue line: ${error.message}`);
+  };
+  const removeRevenueItem=async id=>{
+    setRevenueItems(p=>p.filter(i=>i.id!==id));
+    const{error}=await sb.from('revenue_items').delete().eq('id',id);
+    if(error)alert(`Could not delete revenue line: ${error.message}`);
+  };
+  const setContingency=async(value,items)=>{
+    const existing=items.find(i=>i.dept==='V - Production Support'&&i.description==='Contingency');
+    if(existing){
+      await updateBudgetItem(existing.id,{rate:value});
+    }else if(Number(value)>0){
+      const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept:'V - Production Support',description:'Contingency',qty:1,unit:'flat',rate:value,currency:project.base_currency}).select().single();
+      if(error){alert(`Could not save contingency: ${error.message}`);return;}
+      if(data)setBudgetItems(p=>[...p,data]);
+    }
+  };
+  const updateProjectTarget=async value=>{
+    setProjects(p=>p.map(pr=>pr.id===currentId?{...pr,target_budget:value}:pr));
+    const{error}=await sb.from('projects').update({target_budget:value}).eq('id',currentId);
+    if(error)alert(`Could not save target: ${error.message}`);
+  };
+  const updateBudgetItem=async(id,upd)=>{
+    setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));
+    const{error}=await sb.from('budget_items').update(upd).eq('id',id);
+    if(error){
+      alert(`Could not save that change: ${error.message}`);
+      const{data}=await sb.from('budget_items').select('*').eq('id',id).single();
+      if(data)setBudgetItems(p=>p.map(i=>i.id===id?data:i));
+    }
+  };
+  const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));await sb.from('budget_items').delete().eq('id',id);};
+  const applyTemplate=async tpl=>{
+    const rows=tpl.items.map(t=>({
+      project_id:currentId,
+      user_id:user.id,
+      dept:t.dept,
+      description:t.description,
+      qty:Number(t.qty)||1,
+      unit:t.unit,
+      rate:Number(t.rate)||0,
+      currency:project.base_currency,
+    }));
+    const{data,error}=await sb.from('budget_items').insert(rows).select();
+    if(error){alert(`Could not apply template: ${error.message}`);return;}
+    if(data)setBudgetItems(p=>[...p,...data]);
+    if(tpl.scenes?.length){
+      const sceneRows=tpl.scenes.map(s=>({id:Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:s}));
+      const{data:scData,error:scError}=await sb.from('scenes').insert(sceneRows).select();
+      if(scError){alert(`Budget applied, but could not save template scenes: ${scError.message}`);}
+      else if(scData)setScenes(p=>[...p,...scData.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id}))]);
+    }
+  };
+  const applyScriptBudget=async lines=>{
+    const rows=lines.map(l=>({
+      project_id:currentId,
+      user_id:user.id,
+      dept:forceDeptOverride(l.description)||(DEPTS.includes(l.dept)?l.dept:smartDeptFallback(l.description,l.dept)),
+      description:String(l.description||'').slice(0,200),
+      qty:Number(l.qty)||1,
+      unit:UNITS.includes(l.unit)?l.unit:'flat',
+      rate:Number(l.rate)||0,
+      currency:project.base_currency,
+    }));
+    const{data,error}=await sb.from('budget_items').insert(rows).select();
+    if(error){alert(`Could not apply budget: ${error.message}`);return;}
+    if(data)setBudgetItems(p=>[...p,...data]);
+  };
+  const addAdvance=async a=>{const{data,error}=await sb.from('advances').insert({...a,user_id:user.id}).select().single();if(error){alert(`Could not save advance: ${error.message}`);return;}if(data)setAdvances(p=>[...p,data]);};
+  const updateAdvance=async(id,upd)=>{setAdvances(p=>p.map(a=>a.id===id?{...a,...upd}:a));const{error}=await sb.from('advances').update(upd).eq('id',id);if(error)alert(`Could not update advance: ${error.message}`);};
+  const addReconEntry=async e=>{const{data,error}=await sb.from('recon_entries').insert({...e,user_id:user.id}).select().single();if(error){alert(`Could not save expense: ${error.message}`);return;}if(data)setReconEntries(p=>[...p,data]);};
+  /* Top-up an advance — increases the amount when more cash is received */
+  const topUpAdvance=async(id,extra)=>{
+    const{data,error}=await sb.from('recon_entries').insert({advance_id:id,user_id:user.id,description:'[CASH-IN] Top-up received',amount:Number(extra),date:today()}).select().single();
+    if(error){alert(`Could not top up: ${error.message}`);return;}
+    if(data)setReconEntries(p=>[...p,data]);
+    setAdvances(p=>p.map(a=>a.id===id&&a.status==='reconciled'?{...a,status:'open'}:a));
+    await sb.from('advances').update({status:'open'}).eq('id',id);
+  };
+  const removeReconEntry=async id=>{setReconEntries(p=>p.filter(e=>e.id!==id));await sb.from('recon_entries').delete().eq('id',id);};
+  const removeAdvance=async id=>{
+    // Entries first, then the advance — nothing is removed from the screen unless the database accepted it.
+    const{error:eErr}=await sb.from('recon_entries').delete().eq('advance_id',id);
+    if(eErr){alert(`Could not delete this advance's logged expenses: ${eErr.message}`);return;}
+    const{error:aErr}=await sb.from('advances').delete().eq('id',id);
+    if(aErr){alert(`Could not delete the advance: ${aErr.message}`);return;}
+    setReconEntries(p=>p.filter(e=>e.advance_id!==id));
+    setAdvances(p=>p.filter(a=>a.id!==id));
+  };
+  const updateReconEntry=async(id,upd)=>{
+    setReconEntries(p=>p.map(e=>e.id===id?{...e,...upd}:e));
+    const{error}=await sb.from('recon_entries').update(upd).eq('id',id);
+    if(error)alert(`Could not save the change: ${error.message}`);
+  };
+  /* Scene breakdown persistence — stores the full scene object in a JSONB 'data' column */
+  const addScene=async sc=>{
+    const id=sc.id||Math.random().toString(36).slice(2,10);
+    const{id:_omit,project_id:_omit2,...rest}=sc;
+    const{data,error}=await sb.from('scenes').insert({id,project_id:currentId,user_id:user.id,data:rest}).select().single();
+    if(error){alert(`Could not save scene: ${error.message}`);return;}
+    if(data)setScenes(p=>[...p,normalizeScene({...data.data,id:data.id,project_id:data.project_id})]);
+  };
+  const addScenesBatch=async scenesArr=>{
+    const existingNumbers=new Set(scenes.filter(s=>s.project_id===currentId).map(s=>String(s.sceneNumber)));
+    const toInsert=scenesArr.filter(sc=>!existingNumbers.has(String(sc.sceneNumber)));
+    const skipped=scenesArr.length-toInsert.length;
+    if(skipped>0)alert(`${skipped} scene${skipped!==1?'s were':' was'} already saved for this production and ${skipped!==1?'were':'was'} skipped, so nothing got duplicated. ${toInsert.length} new scene${toInsert.length!==1?'s':''} added.`);
+    if(toInsert.length===0)return;
+    const rows=toInsert.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:rest};});
+    const{data,error}=await sb.from('scenes').insert(rows).select();
+    if(error){alert(`Could not save scenes: ${error.message}`);return;}
+    if(data)setScenes(p=>[...p,...data.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id}))]);
+  };
+  const updateScene=async(id,upd)=>{
+    setScenes(p=>p.map(s=>s.id===id?normalizeScene({...s,...upd}):s));
+    const merged=scenes.find(s=>s.id===id);
+    const{id:_omit,project_id:_omit2,...rest}={...merged,...upd};
+    const{error}=await sb.from('scenes').update({data:rest}).eq('id',id);
+    if(error)alert(`Could not save scene changes: ${error.message}`);
+  };
+  const deleteScene=async id=>{
+    setScenes(p=>p.filter(s=>s.id!==id));
+    const{error}=await sb.from('scenes').delete().eq('id',id);
+    if(error)alert(`Could not delete scene: ${error.message}`);
+  };
+  const dedupeScenes=async projectId=>{
+    const pScenes=scenes.filter(s=>s.project_id===projectId);
+    const seen=new Set();const toRemove=[];
+    pScenes.forEach(s=>{const k=String(s.sceneNumber);if(seen.has(k))toRemove.push(s.id);else seen.add(k);});
+    if(toRemove.length===0)return;
+    setScenes(p=>p.filter(s=>!toRemove.includes(s.id)));
+    const{error}=await sb.from('scenes').delete().in('id',toRemove);
+    if(error){alert(`Could not remove duplicates: ${error.message}`);return;}
+    alert(`Removed ${toRemove.length} duplicate scene${toRemove.length!==1?'s':''}.`);
+  };
+  /* Character metadata (Age/Description, Role Notes) — upserts by project_id + name */
+  const saveCharacterMeta=async(name,updates)=>{
+    if(!currentId||!name)return;
+    const existing=characters.find(c=>c.project_id===currentId&&c.name.trim().toLowerCase()===name.trim().toLowerCase());
+    const payload={age_description:updates.age_description??existing?.age_description??'',role_notes:updates.role_notes??existing?.role_notes??'',tier:updates.tier??existing?.tier??''};
+    if(existing){
+      setCharacters(p=>p.map(c=>c.id===existing.id?{...c,...payload}:c));
+      const{error}=await sb.from('characters').update(payload).eq('id',existing.id);
+      if(error)alert(`Could not save character notes: ${error.message}`);
+    }else{
+      const id=Math.random().toString(36).slice(2,10);
+      const row={id,project_id:currentId,user_id:user.id,name:name.trim(),...payload};
+      setCharacters(p=>[...p,row]);
+      const{error}=await sb.from('characters').insert(row);
+      if(error)alert(`Could not save character notes: ${error.message}`);
+    }
+  };
+  const addPayee=async p=>{
+    const{data,error}=await sb.from('payees').insert({...p,user_id:user.id,payments:[]}).select().single();
+    if(error){alert(`Could not save payee: ${error.message}`);return;}
+    if(data)setPayees(prev=>[...prev,{...data,payments:data.payments||[]}]);
+  };
+  const addPayment=async(pid,pay)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return false;
+    const prev=payee.payments||[];const newPayments=[...prev,pay];
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:newPayments}:x));
+    const{error}=await sb.from('payees').update({payments:newPayments}).eq('id',pid);
+    if(error){setPayees(p=>p.map(x=>x.id===pid?{...x,payments:prev}:x));alert(`Could not save payment: ${error.message}`);if(pay.receipt?.path)removeReceiptFile(pay.receipt.path);return false;}
+    return true;
+  };
+  const attachReceipt=async(pid,idx,receipt)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const prev=payee.payments||[];const next=prev.map((x,i)=>i===idx?{...x,receipt}:x);
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:next}:x));
+    const{error}=await sb.from('payees').update({payments:next}).eq('id',pid);
+    if(error){setPayees(p=>p.map(x=>x.id===pid?{...x,payments:prev}:x));removeReceiptFile(receipt.path);throw new Error(error.message);}
+  };
+  const addScheduleDays=async rows=>{
+    const base=scheduleDays.filter(d=>d.project_id===currentId).reduce((m,d)=>Math.max(m,d.position??0),-1);
+    const payload=rows.map((r,i)=>({id:Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,position:base+1+i,kind:'shoot',scene_ids:[],cast_calls:{},...r}));
+    const{data,error}=await sb.from('schedule_days').insert(payload).select();
+    if(error){alert(`Could not save the schedule: ${error.message}${/schedule_days/i.test(error.message)?' — run add_schedule_days.sql in Supabase first.':''}`);return false;}
+    setScheduleDays(p=>[...p,...data]);return true;
+  };
+  const updateScheduleDay=async(id,upd)=>{
+    const prev=scheduleDays.find(d=>d.id===id);if(!prev)return;
+    setScheduleDays(p=>p.map(d=>d.id===id?{...d,...upd}:d));
+    const{error}=await sb.from('schedule_days').update(upd).eq('id',id);
+    if(error){setScheduleDays(p=>p.map(d=>d.id===id?prev:d));alert(`Could not save the change: ${error.message}`);}
+  };
+  const removeScheduleDay=async id=>{
+    const{error}=await sb.from('schedule_days').delete().eq('id',id);
+    if(error){alert(`Could not remove that day: ${error.message}`);return;}
+    setScheduleDays(p=>p.filter(d=>d.id!==id));
+  };
+  const updatePayee=async(id,upd)=>{
+    const prev=payees.find(x=>x.id===id);if(!prev)return;
+    setPayees(p=>p.map(x=>x.id===id?{...x,...upd}:x));
+    const{error}=await sb.from('payees').update(upd).eq('id',id);
+    if(error){setPayees(p=>p.map(x=>x.id===id?prev:x));alert(`Could not save the change: ${error.message}`);}
+  };
+  const updatePayment=async(pid,idx,upd)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const prev=payee.payments||[];const next=prev.map((x,i)=>i===idx?{...x,...upd}:x);
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:next}:x));
+    const{error}=await sb.from('payees').update({payments:next}).eq('id',pid);
+    if(error){setPayees(p=>p.map(x=>x.id===pid?{...x,payments:prev}:x));alert(`Could not save the change: ${error.message}`);}
+  };
+  const deletePayee=async id=>{
+    const payee=payees.find(x=>x.id===id);if(!payee)return;
+    const{error}=await sb.from('payees').delete().eq('id',id);
+    if(error){alert(`Could not delete this payee: ${error.message}`);return;}
+    setPayees(p=>p.filter(x=>x.id!==id));
+    (payee.payments||[]).forEach(pay=>{if(pay.receipt?.path)removeReceiptFile(pay.receipt.path);});
+  };
+  const removePayment=async(pid,idx)=>{
+    const payee=payees.find(x=>x.id===pid);if(!payee)return;
+    const gone=(payee.payments||[])[idx];
+    const newPayments=(payee.payments||[]).filter((_,i)=>i!==idx);
+    setPayees(p=>p.map(x=>x.id===pid?{...x,payments:newPayments}:x));
+    const{error}=await sb.from('payees').update({payments:newPayments}).eq('id',pid);
+    if(error)alert(`Could not remove payment: ${error.message}`);
+    else if(gone?.receipt?.path)removeReceiptFile(gone.receipt.path);
+  };
+  const addPO=async(po,file)=>{
+    const id=Math.random().toString(36).slice(2,10);
+    const po_number=`PO-${String(purchaseOrders.length+1).padStart(4,'0')}`;
+    let invoice_file=null;
+    if(file){try{invoice_file=await uploadReceipt(po.project_id,file);}catch(e){alert(`The PO will be created, but the invoice file could not be stored: ${e.message}\n\nYou can retry from the PO card with “＋ Add” next to Invoice.`);}}
+    const{data,error}=await sb.from('purchase_orders').insert({id,po_number,...po,...(invoice_file?{invoice_file}:{}),user_id:user.id}).select().single();
+    if(error){if(invoice_file)removeReceiptFile(invoice_file.path);alert(`Could not create purchase order: ${error.message}`);return;}
+    if(data)setPurchaseOrders(p=>[...p,data]);
+  };
+  const updatePO=async(id,upd)=>{
+    const prev=purchaseOrders.find(po=>po.id===id);
+    setPurchaseOrders(p=>p.map(po=>po.id===id?{...po,...upd}:po));
+    const{error}=await sb.from('purchase_orders').update(upd).eq('id',id);
+    if(error){if(prev)setPurchaseOrders(p=>p.map(po=>po.id===id?prev:po));alert(`Could not update purchase order: ${error.message}`);return false;}
+    return true;
+  };
+  const deletePO=async id=>{
+    const gone=purchaseOrders.find(po=>po.id===id);
+    setPurchaseOrders(p=>p.filter(po=>po.id!==id));
+    const{error}=await sb.from('purchase_orders').delete().eq('id',id);
+    if(error){if(gone)setPurchaseOrders(p=>[...p,gone]);alert(`Could not delete purchase order: ${error.message}`);return;}
+    if(gone?.invoice_file?.path)removeReceiptFile(gone.invoice_file.path);
+    if(gone?.receipt_file?.path)removeReceiptFile(gone.receipt_file.path);
+  };
+
+  const pReconEntries=reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id));
+
+  return(
+    <div style={{minHeight:'100vh',background:T.ink,display:'flex',color:T.cream}}>
+      {!mobile&&<Sidebar view={view} setView={setView} onSignOut={signOut} userEmail={user?.email}/>}
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}}/>
+        <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
+          {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
+          {view==='dashboard'&&(project?
+            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
+          )}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
+          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
+          {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>p.project_id===currentId)} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
+          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={project?.user_id===user.id}/>}
+          {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
+          {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
+        </div>
+      </div>
+      {mobile&&<MobileNav view={view} setView={setView}/>}
+      <FeedbackButton user={user} view={view} mobile={mobile}/>
+    </div>
+  );
+}
+
+/* ── Root ── */
+function OnboardingScreen({onComplete}){
+  const{t}=useLang();
+  const[step,setStep]=useState(0);
+  const[role,setRole]=useState(null);
+  const[market,setMarket]=useState(null);
+  const RadioCard=({selected,title,sub,onClick})=>(
+    <button onClick={onClick} style={{width:'100%',textAlign:'left',background:selected?T.hi:T.panel,border:`1px solid ${selected?T.gold:T.line}`,borderRadius:10,padding:'14px 16px',marginBottom:10,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <div>
+        <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700}}>{title}</div>
+        <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:12,marginTop:2}}>{sub}</div>
+      </div>
+      <div style={{width:16,height:16,borderRadius:'50%',border:`2px solid ${selected?T.gold:T.faint}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+        {selected&&<div style={{width:8,height:8,borderRadius:'50%',background:T.gold}}/>}
+      </div>
+    </button>
+  );
+  const canContinue=step===0||(step===1&&role)||(step===2&&market);
+  return(
+    <div style={{minHeight:'100vh',background:T.ink,display:'flex',flexDirection:'column',padding:'32px 24px',boxSizing:'border-box'}}>
+      <div style={{display:'flex',justifyContent:'flex-end',maxWidth:420,margin:'0 auto',width:'100%'}}><LangToggle compact/></div>
+      <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:step===0?'center':'flex-start',maxWidth:420,margin:'0 auto',width:'100%'}}>
+        {step===0&&<>
+          <NkoLogo height={40}/>
+          <div style={{width:40,height:2,background:T.gold,margin:'16px 0'}}/>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>{t('onboardTagline')}</div>
+        </>}
+        {step===1&&<>
+          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{t('step1Of2')}</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>{t('whatsYourRole')}</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>{t('roleSubtitle')}</div>
+          {ROLES.map(r=><RadioCard key={r.id} selected={role===r.id} title={r.label} sub={r.sub} onClick={()=>setRole(r.id)}/>)}
+        </>}
+        {step===2&&<>
+          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{t('step2Of2')}</div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>{t('baseCurrency')}</div>
+          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>{t('currencySubtitle')}</div>
+          {MARKETS.map(m=><RadioCard key={m.code} selected={market===m.code} title={m.country} sub={`${m.code} · ${m.symbol}`} onClick={()=>setMarket(m.code)}/>)}
+        </>}
+      </div>
+      <div style={{maxWidth:420,margin:'0 auto',width:'100%'}}>
+        <div style={{display:'flex',gap:6,marginBottom:20}}>
+          {[0,1,2].map(i=><div key={i} style={{height:4,borderRadius:2,flex:1,background:i<=step?T.gold:T.line}}/>)}
+        </div>
+        <div style={{display:'flex',justifyContent:step===0?'flex-end':'space-between'}}>
+          {step>0&&<Btn variant="ghost" onClick={()=>setStep(s=>s-1)}>{t('backBtn')}</Btn>}
+          {step<2&&<Btn onClick={()=>canContinue&&setStep(s=>s+1)} style={{opacity:canContinue?1:.5}}>{step===0?t('getStarted'):t('continueBtn')}</Btn>}
+          {step===2&&<Btn onClick={()=>canContinue&&onComplete({role,market})} style={{opacity:canContinue?1:.5}}>{t('finishBtn')}</Btn>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SetNewPasswordScreen({onDone}){
+  const[pw,setPw]=useState('');const[pw2,setPw2]=useState('');const[err,setErr]=useState('');const[busy,setBusy]=useState(false);
+  const submit=async()=>{
+    setErr('');
+    if(pw.length<6){setErr('Password must be at least 6 characters.');return;}
+    if(pw!==pw2){setErr('Passwords do not match.');return;}
+    setBusy(true);
+    const{error}=await sb.auth.updateUser({password:pw});
+    setBusy(false);
+    if(error){setErr(error.message);return;}
+    onDone();
+  };
+  return(
+    <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:16}}><NkoLogo height={30}/></div>
+        <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,textAlign:'center',marginBottom:6}}>Set a new password</div>
+        <div style={{color:T.dim,fontSize:12,textAlign:'center',marginBottom:20,fontFamily:'Manrope,sans-serif'}}>You followed a password reset link — choose a new password to finish.</div>
+        <div style={{marginBottom:10}}><Inp type="password" placeholder="New password" value={pw} onChange={e=>setPw(e.target.value)}/></div>
+        <div style={{marginBottom:14}}><Inp type="password" placeholder="Confirm new password" value={pw2} onChange={e=>setPw2(e.target.value)}/></div>
+        {err&&<div style={{color:T.coral,fontSize:12,marginBottom:12,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
+        <Btn onClick={submit} disabled={busy} style={{width:'100%'}}>{busy?'Saving…':'Set new password'}</Btn>
+      </div>
+    </div>
+  );
+}
+function AuthGate(){
+  const{user,recovery,clearRecovery}=useAuth();
+  const[onboardDone,setOnboardDone]=useState(true);
+  useEffect(()=>{
+    if(!user){setOnboardDone(true);return;}
+    try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');setOnboardDone(!!s);}catch{setOnboardDone(false);}
+  },[user]);
+  if(recovery)return<SetNewPasswordScreen onDone={clearRecovery}/>;
+  if(!user)return<AuthScreen/>;
+  if(!onboardDone)return<OnboardingScreen onComplete={({role,market})=>{localStorage.setItem(`nko_onboarding_${user.id}`,JSON.stringify({role,market,completedAt:Date.now()}));setOnboardDone(true);}}/>;
+  return<MainApp/>;
+}
+export default function App(){
+  useEffect(()=>{
+    document.body.style.background='#141414';
+    document.body.style.margin='0';
+    document.body.style.padding='0';
+  },[]);
+  return<LangProvider><AuthProvider><AuthGate/></AuthProvider></LangProvider>;
+}
