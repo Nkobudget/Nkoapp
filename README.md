@@ -1,68 +1,74 @@
 # NKO
-The African Production Ledger — budgeting tool for African filmmakers.
+
+The African Production Ledger, with the current marketing pages and the recovered production workspace.
 
 ## Run locally
 
-Use Node.js 20 or newer. The existing lockfile installs React 18.3.1 and React Router 7.18.4, whose React peer requirement is `>=18`.
+Use Node.js 20 or newer. React 18.3.1 and React Router 7.18.4 are retained from the project lockfile.
 
 ```sh
 npm ci
+cp .env.example .env.local
 npm run dev
 ```
 
-## Page routes
+If `.env.local` already exists, compare its variables instead of overwriting it. The example contains the original project's public Supabase URL and publishable browser key, recovered from `d5d304c`. Never put a service-role key or server secret in a `VITE_*` variable.
 
-| URL | Page |
+## Routing and flow
+
+| URL | Behavior |
 | --- | --- |
-| `/` | Existing landing page |
-| `/onboarding` | OnboardingWelcome |
-| `/sign-in` | SignInPage |
+| `/` | Current public landing page |
+| `/sign-in` | Current provider-choice design; Continue with Email opens `/app` |
+| `/onboarding` | Current public welcome page; signed-in visitors continue through the gate at `/app` |
+| `/app/*` | One `AuthGate`: recovery, login/signup, onboarding, then the workspace |
+| `/dashboard` | Compatibility redirect to `/app` |
 
-The existing `react-router` dependency is reused. `BrowserRouter` wraps the app inside the existing reduced-motion provider, and `App.jsx` defines the routes. The landing-page layout, sections, asset paths, and styles are preserved.
+`main.jsx` keeps the existing BrowserRouter and reduced-motion provider. `App` owns exactly one `LangProvider` and one `AuthProvider`. `AuthGate` waits for initialization and selects screens in this order:
 
-Navigation:
+1. Password recovery: `SetNewPasswordScreen`.
+2. No user: `AuthScreen`, with login, signup, and the recovered Terms modal.
+3. User without a valid completion record: `OnboardingScreen`.
+4. User with completed onboarding: the recovered `MainApp` in `src/legacy/LegacyApp.jsx`.
 
-- Header **Get Started** opens `/onboarding`.
-- Header **Login** opens `/sign-in`.
-- Onboarding **Set Up My Production** opens `/sign-in`.
-- Onboarding **Back** and **I'll do this later** return to `/`.
-- Sign-in **New to NKO? Get started** opens `/onboarding`. This footer uses the component's existing copy/navigation props so its label describes its destination.
-- Browser Back/Forward uses normal history entries. An unknown client-side route returns to `/` with replacement history.
+The public `SignInPage` is a provider-choice page, not a second authentication system. Its Google button stays disabled because Google is disabled in the original Supabase project. The actual email/password form is `AuthScreen`, extracted from the old app and styled to the supplied compact login reference.
 
-The supplied ZIP contained `SignInPage` but no onboarding component. The previously supplied `OnboardingWelcome` page is added in `src/onboarding/OnboardingWelcome.jsx` with its existing design and image placeholder.
+## Onboarding
 
-These changes handle page navigation only. The Google/email buttons retain their original behavior and remain disabled until authentication callbacks are provided by the application. Production setup and skipping do not create records, change authentication, or persist an onboarding status. Existing API functions, Supabase configuration, CSS, and assets are preserved.
+Welcome → role → market/currency. The historical choices and storage shape are retained:
 
-## Brand logo
+```js
+// Key: nko_onboarding_<authenticated-user-id>
+{ role: 'producer', market: 'NGN', completedAt: 1791979200000 }
+```
 
-The header, footer, sign-in page, and onboarding welcome page all use `src/components/BrandLogo.jsx`, which loads the existing `/assets/logo.png` image. The file stays in `public/assets/logo.png`, following Vite's existing public-asset convention. Text/SVG logo substitutes and alternate-logo props were removed from these locations.
+Completion requires a recognized historical role, one of the six historical market/currency codes, and a positive integer timestamp. Malformed JSON, `{}`, partial records, invalid choices, and another account's record cannot bypass onboarding. Only completed choices are persisted; refreshing an unfinished flow returns to welcome. Storage failures are shown and do not permit completion.
 
-The image's intrinsic dimensions are 72 × 28. Tailwind sets one display dimension and lets the other scale automatically: the header is 40 pixels high, sign-in is 24 pixels high, onboarding is 24 pixels high on smaller screens and 28 on large screens, and the footer is 64 pixels wide within its original 64 × 32 container. Existing page padding and grids are preserved. Home links have the accessible name “NKO home”; standalone page logos have the alternative text “NKO”.
+The production-details screenshot has a different four-step wizard. Its split layout and selection-card styling inform the role/currency screens, but no production/scale/goals/AI steps were invented. The existing welcome image and all current assets remain intact. On small screens, preview panels stack beneath the form and selection cards use one column.
 
-The production browser check confirmed HTTP 200, the PNG content type, unchanged asset bytes, successful image decoding, and the correct aspect ratio in all four locations at 320, 375, 768, 1280, and 1440 pixels. Navigation and existing authentication-button behavior also passed after the logo update.
+## Authentication and deployment
 
-## Deploy and refresh page URLs
+The existing central Supabase client owns session persistence and token refresh. The provider validates stored sessions with Auth before rendering private UI. SDK auth callbacks execute outside its event lock; stale validation results cannot restore a signed-out or previous account.
 
-Build with `npm run build` and deploy the `dist` directory using the Vite preset. The existing `vercel.json` now rewrites `/sign-in` and `/onboarding` to `/index.html`, keeping the requested URL so React Router can render it on a direct visit or refresh. The rewrites are limited to those page paths; existing API functions, assets, and security headers remain configured as before. Include `vercel.json` in the project root when deploying.
+Signup requires agreement to the original Terms. A session returned by signup immediately advances to onboarding. A signup without a session displays a confirmation-email message. Password recovery has priority over onboarding, remains active through refresh in the same tab, and clears only after a successful password update or logout.
 
-On another static host, configure equivalent **rewrites** for these page URLs to `index.html`. The host must serve the app entrypoint while retaining the requested path. Vite's development and preview servers already support this SPA behavior. Other hosting configurations are not included because a Vercel configuration was supplied.
+Keep the existing Auth settings. Email authentication and automatic confirmation were enabled when checked; Google was disabled. No service settings were changed. Ensure Supabase URL Configuration permits `https://YOUR_HOST/app` and the local development equivalent for confirmation and password-reset redirects. Existing reset callbacks targeting `/` are also handled. Delivery of real confirmation/reset emails requires working SMTP configuration and has not been exercised with a live account.
+
+`vercel.json` retains the current headers/functions and rewrites `/sign-in`, `/onboarding`, `/app`, `/app/*`, and `/dashboard` to `index.html`. Existing API paths are not rewritten. Configure the two public Vite variables at build time and keep existing server-only Anthropic/Brevo credentials on the host.
 
 ## Verification
 
-Run the existing checks:
-
 ```sh
+npm test
 npm run lint
 npm run build
+npx playwright install chromium
+npm run test:integration
+npm run test:production
 ```
 
-In the browser, verify the header links, onboarding setup/back/skip controls, sign-in footer, Back/Forward history, and direct visits plus refreshes at both `/onboarding` and `/sign-in`. The completed integration is checked against the production build locally; no live Vercel deployment is performed.
+Results: build passed, 15 production-browser tests passed, three storage unit tests passed, and lint has zero errors with 19 legacy warnings. The browser suite intercepts external service requests; it never creates real accounts, writes production rows, sends emails, or invokes paid AI. It covers authentication, both confirmation modes, password recovery, onboarding validation and persistence, switching accounts, language, direct routes/history, restored dashboard sections, mobile layouts, and logo loading. See [implementation and verification notes](docs/AUTH_FLOW.md) and [the Git recovery walkthrough](docs/DASHBOARD_RECOVERY.md).
 
-Completed checks:
+All brand-logo locations use `BrandLogo` and the unchanged `/assets/logo.png` file. The dashboard retains its original business views and inline theme, with scoped typography and keyboard focus styles. Public page styles, images, APIs, and database schema remain unchanged.
 
-- Production build passed.
-- The existing ESLint check completed with zero errors and 101 warnings after the logo update. Its configuration does not enable `react/jsx-uses-vars`, so it reports JSX-used bindings as unused; the updates introduce no errors. The lint configuration is preserved.
-- Browser navigation and Back/Forward passed without full-document reloads during internal navigation.
-- Direct visits and refreshes returned HTTP 200 and the correct page for both routes, using Vite production preview and a static server applying the supplied Vercel rewrites.
-- Header, setup, back, skip, and sign-in footer controls passed at 375, 768, 1280, and 1440 pixels, with no horizontal overflow or browser runtime errors.
-- The page rewrites preserved asset delivery and did not map API paths to the app entrypoint. Backend/authentication code and both page designs were preserved.
+Real account access, database row-level-security policies, storage, AI, and email delivery still require a live acceptance check. Existing standalone API functions do not validate a Supabase JWT server-side; the frontend gate does not replace that missing protection.

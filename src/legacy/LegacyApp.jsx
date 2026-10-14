@@ -1,15 +1,18 @@
 /*
   NKÒ — Budgets Tailored To Film
-  Single-file React + Vite + Supabase
+  Workspace recovered from d5d304c and the uploaded Nkoapp(4).zip.
+  Auth, language providers, and onboarding now live in shared modules.
+  MainApp retains the historical production views and data operations.
 */
-import { createClient } from '@supabase/supabase-js';
-import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
+import { supabase as sb } from '../lib/supabaseClient';
+import { useAuth } from '../auth/AuthContext';
+import BrandLogo from '../components/BrandLogo';
+import { useLang } from '../i18n/LangContext';
+import { readOnboarding } from '../onboarding/storage';
+import './dashboard.css';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 /* ── Supabase ── */
-const SUPABASE_URL      = 'https://pvyrfjgrfmuvivdflcgg.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZUv';
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 /* ── Theme ── */
 const T = {
   ink:'#141414', panel:'#1C1C1E', hi:'#242424', line:'#3A3A3A',
@@ -36,112 +39,6 @@ const PHASES=[
 
 const UNITS=['day','week','flat','person','item'];
 const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Creator Content','Podcast','Animation / Cartoon','Other'];
-const TRANSLATIONS={
-  en:{
-    tagline:'Budgets Tailored To Film',
-    signOut:'Sign out',
-    studio:'Studio',
-    navDashboard:'Dashboard',navBudgets:'Budgets',navRevenue:'Revenue',navBreakdown:'Breakdown',navSchedule:'Schedule',navRecon:'Recon',navPayments:'Payments',navPO:'Purchase Orders',navMarketplace:'Marketplace',navAI:'AI Builder',
-    selectProduction:'Select production…',newBtn:'+ New',back:'← Back',
-    emailPlaceholder:'Email',passwordPlaceholder:'Password',show:'Show',hide:'Hide',
-    forgotPassword:'Forgot password?',signIn:'Sign in',createAccount:'Create account',
-    noAccountSignUp:'No account? Sign up',haveAccountSignIn:'Have an account? Sign in',
-    getStarted:'Get started',continueBtn:'Continue',backBtn:'Back',finishBtn:'Finish',
-    onboardTagline:'Budgets Tailored To Film.',
-    step1Of2:'Step 1 of 2',whatsYourRole:"What's your role?",roleSubtitle:"We'll tailor the workspace to what you manage day to day.",
-    step2Of2:'Step 2 of 2',baseCurrency:'Base currency?',currencySubtitle:'Sets the default currency for budgets and payments.',
-    dashHeaderTagline:'Budgets Tailored To Film.',
-    statProductions:'Productions',statActive:'active',statBudgetLines:'Budget lines',statAllProjects:'all projects',
-    statOpenAdvances:'Open advances',statPending:'pending',statUnpaid:'Unpaid',statCastCrew:'cast & crew',
-    statTotalSpend:'Total spend',statAcrossSlate:'across all productions',statTotalSaved:'Total saved',statOverBudget:'over budget',statUnderBudget:'under budget',
-    statTotalBudget:'Total budget',statOpenAdv:'open',statUnpaidCrew:'Unpaid crew',allProductions:'← All productions',productionDashboard:'Production dashboard',statThisProduction:'this production',
-    costReport:'Cost report',costReportSub:'Budget vs actual, pre-production through distribution',byPhase:'By phase',notStarted:'not started',totalBudgetLbl:'Total budget',actualSpentLbl:'Actual spent',remainingLbl:'Remaining',
-    noProductionsYet:'No productions yet',createFirstDesc:'Create a production and start building your budget.',
-    createFirstBtn:'Create your first production',productionsHeader:'Productions',
-    selectAll:'Select all',clear:'Clear',deleteBtn:'🗑️ Delete',
-    budgetHeader:'Budget',templates:'📋 Templates',shareBudgetPdf:'📄 Share Budget PDF',exportExcel:'📊 Export Excel',
-    addDepartment:'+ Add a department…',totalBudget:'Total budget',
-    phaseCostSummary:'Phase Cost Summary',preProduction:'Pre-Production',productionPhase:'Production',
-    contingency:'Contingency',postProduction:'Post-Production',total:'Total',prMarketing:'PR & Marketing',
-    productionInfo:'Production Info',brandPanel:'Brand Panel',
-    uploadScript:'Upload your script',chooseFile:'Choose file',
-    breakdownHeader:'Breakdown',castSceneBreakdown:'Character Scene Breakdown',
-    outlineSchedule:'Outline Schedule',locationsSummary:'Locations Summary',productionElements:'Production Elements',
-    aiScriptBreakdown:'AI Script Breakdown',chooseScript:'Choose script',
-    keepScreenOpen:'You can switch screens — results apply automatically when you come back',
-    notifOn:'🔔 Notifications on — you can switch apps',
-    analyzing:'Analyzing your script…',breakdownComplete:'Breakdown complete',
-    reconHeader:'Recon',issueAdvance:'+ Issue advance',newAdvance:'New advance',
-    logExpense:'+ Log expense',topUp:'💰 Top up',reconcileBtn:'✓ Reconcile',
-    paymentsHeader:'Payments',addPayee:'+ Add payee',logPayment:'+ Log payment',
-    marketplaceHeader:'Marketplace',useTemplate:'Use template',applied:'✓ Applied',
-    aiBuilderHeader:'AI Builder',askPlaceholder:'Ask about rates, budgets, recon… or attach an image',send:'Send',
-    save:'Save',cancel:'Cancel',deleteWord:'Delete',edit:'✏️ Edit',create:'Create',
-  },
-  fr:{
-    tagline:'Des budgets taillés pour le cinéma',
-    signOut:'Se déconnecter',
-    studio:'Studio',
-    navDashboard:'Tableau de bord',navBudgets:'Budgets',navRevenue:'Revenus',navBreakdown:'Découpage',navSchedule:'Planning',navRecon:'Rapprochement',navPayments:'Paiements',navPO:'Bons de commande',navMarketplace:'Place de marché',navAI:'Assistant IA',
-    selectProduction:'Sélectionner une production…',newBtn:'+ Nouveau',back:'← Retour',
-    emailPlaceholder:'E-mail',passwordPlaceholder:'Mot de passe',show:'Afficher',hide:'Masquer',
-    forgotPassword:'Mot de passe oublié ?',signIn:'Se connecter',createAccount:'Créer un compte',
-    noAccountSignUp:'Pas de compte ? Inscrivez-vous',haveAccountSignIn:'Déjà un compte ? Connectez-vous',
-    getStarted:'Commencer',continueBtn:'Continuer',backBtn:'Retour',finishBtn:'Terminer',
-    onboardTagline:'Des budgets taillés pour le cinéma.',
-    step1Of2:'Étape 1 sur 2',whatsYourRole:'Quel est votre rôle ?',roleSubtitle:"Nous adapterons l'espace de travail à vos tâches quotidiennes.",
-    step2Of2:'Étape 2 sur 2',baseCurrency:'Devise de base ?',currencySubtitle:'Définit la devise par défaut pour les budgets et paiements.',
-    dashHeaderTagline:'Des budgets taillés pour le cinéma.',
-    statProductions:'Productions',statActive:'actives',statBudgetLines:'Lignes budgétaires',statAllProjects:'tous projets',
-    statOpenAdvances:'Avances ouvertes',statPending:'en attente',statUnpaid:'Impayés',statCastCrew:'acteurs et équipe',
-    statTotalSpend:'Total dépensé',statAcrossSlate:'toutes productions',statTotalSaved:'Total économisé',statOverBudget:'dépassement',statUnderBudget:'sous le budget',
-    statTotalBudget:'Budget total',statOpenAdv:'ouvertes',statUnpaidCrew:'Équipe impayée',allProductions:'← Toutes les productions',productionDashboard:'Tableau de bord de production',statThisProduction:'cette production',
-    costReport:'Rapport de coûts',costReportSub:'Budget vs réel, de la pré-production à la distribution',byPhase:'Par phase',notStarted:'non commencé',totalBudgetLbl:'Budget total',actualSpentLbl:'Dépenses réelles',remainingLbl:'Restant',
-    noProductionsYet:'Aucune production pour le moment',createFirstDesc:'Créez une production et commencez votre budget.',
-    createFirstBtn:'Créer votre première production',productionsHeader:'Productions',
-    selectAll:'Tout sélectionner',clear:'Effacer',deleteBtn:'🗑️ Supprimer',
-    budgetHeader:'Budget',templates:'📋 Modèles',shareBudgetPdf:'📄 Partager le PDF du budget',exportExcel:'📊 Exporter Excel',
-    addDepartment:'+ Ajouter un département…',totalBudget:'Budget total',
-    phaseCostSummary:'Résumé des coûts par phase',preProduction:'Pré-production',productionPhase:'Production',
-    contingency:'Imprévus',postProduction:'Post-production',total:'Total',prMarketing:'RP et marketing',
-    productionInfo:'Infos production',brandPanel:'Panneau de marque',
-    uploadScript:'Téléversez votre scénario',chooseFile:'Choisir un fichier',
-    breakdownHeader:'Découpage',castSceneBreakdown:'Répartition des personnages par scène',
-    outlineSchedule:'Calendrier de tournage',locationsSummary:'Résumé des lieux',productionElements:'Éléments de production',
-    aiScriptBreakdown:'Découpage du scénario par IA',chooseScript:'Choisir un scénario',
-    keepScreenOpen:'Vous pouvez changer d’écran — les résultats s’appliquent à votre retour',
-    notifOn:'🔔 Notifications activées — vous pouvez changer d\u2019application',
-    analyzing:'Analyse de votre scénario…',breakdownComplete:'Découpage terminé',
-    reconHeader:'Rapprochement',issueAdvance:'+ Émettre une avance',newAdvance:'Nouvelle avance',
-    logExpense:'+ Enregistrer une dépense',topUp:'💰 Recharger',reconcileBtn:'✓ Rapprocher',
-    paymentsHeader:'Paiements',addPayee:'+ Ajouter un bénéficiaire',logPayment:'+ Enregistrer un paiement',
-    marketplaceHeader:'Place de marché',useTemplate:'Utiliser le modèle',applied:'✓ Appliqué',
-    aiBuilderHeader:'Assistant IA',askPlaceholder:'Posez une question sur les tarifs, budgets, rapprochements… ou joignez une image',send:'Envoyer',
-    save:'Enregistrer',cancel:'Annuler',deleteWord:'Supprimer',edit:'✏️ Modifier',create:'Créer',
-  },
-};
-const LangCtx=createContext(null);
-const useLang=()=>useContext(LangCtx);
-function LangProvider({children}){
-  const[lang,setLangState]=useState(()=>{try{return localStorage.getItem('nko_lang')||'en';}catch{return'en';}});
-  const setLang=l=>{try{localStorage.setItem('nko_lang',l);}catch{}setLangState(l);};
-  const t=useCallback(key=>TRANSLATIONS[lang]?.[key]??TRANSLATIONS.en[key]??key,[lang]);
-  return<LangCtx.Provider value={{lang,setLang,t}}>{children}</LangCtx.Provider>;
-}
-const ROLES=[
-  {id:'line_producer',label:'Line Producer',sub:'Owns the top sheet and daily cost tracking'},
-  {id:'production_manager',label:'Production Manager',sub:'Runs logistics, crew and locations'},
-  {id:'producer',label:'Producer',sub:'Oversees the whole production'},
-  {id:'production_accountant',label:'Production Accountant',sub:'Reconciles actuals and processes payments'},
-];
-const MARKETS=[
-  {country:'Nigeria',code:'NGN',symbol:'₦'},
-  {country:'Ghana',code:'GHS',symbol:'₵'},
-  {country:'Kenya',code:'KES',symbol:'KSh'},
-  {country:'South Africa',code:'ZAR',symbol:'R'},
-  {country:'Uganda',code:'UGX',symbol:'USh'},
-  {country:'Tanzania',code:'TZS',symbol:'TSh'},
-];
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
 const EXPENSE_CATS_UNIVERSAL=['Transport','Feeding','Fuel','Communication','Accommodation','Labour'];
 const EXPENSE_CATS_BY_DEPT={
@@ -1424,25 +1321,7 @@ const Btn=({variant='primary',size='md',style:sx,...p})=>{
   return<button {...p} style={{background:bg,color:co,border:br,borderRadius:8,padding:size==='sm'?'5px 12px':'8px 18px',fontSize:size==='sm'?11:13,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',...sx}}/>;
 };
 const Pill=({children,color})=><span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:color?`${color}22`:T.hi,color:color||T.goldDim,border:`1px solid ${color||T.line}`,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{children}</span>;
-/* New NKÒ wordmark (Ò-mark asset pack). Inlined as SVG rather than an image file, since the
-   app ships as a single App.jsx — no separate asset upload needed. Uses Fraunces for "NK"
-   instead of the pack's Source Serif 4 placeholder, since Fraunces is the serif already loaded
-   and used everywhere else in the app (the pack itself calls Source Serif 4 a stand-in pending
-   the licensed font, so this isn't a deviation from a locked spec). Iris mark keeps the pack's
-   exact brand gold (#D4AF37), separate from the app's own accent gold (T.gold, #FEED61) —
-   worth deciding whether those two golds should be unified app-wide.*/
-const NkoLogo=({height=32,style})=>(
-  <svg viewBox="0 0 500 200" style={{height,width:'auto',display:'block',...style}}>
-    <text x="60" y="170" fontFamily="Fraunces, Georgia, serif" fontWeight="700" fontSize="150" fill="#EDEAE4">NK</text>
-    <g transform="translate(300,18) scale(1.55)">
-      <path d="M50 33 A27 27 0 0 1 77 60 L64 60 A14 14 0 0 0 50 46 Z" fill="#D4AF37"/>
-      <path d="M77 60 A27 27 0 0 1 50 87 L50 74 A14 14 0 0 0 64 60 Z" fill="#D4AF37"/>
-      <path d="M50 87 A27 27 0 0 1 23 60 L36 60 A14 14 0 0 0 50 74 Z" fill="#D4AF37"/>
-      <path d="M23 60 A27 27 0 0 1 50 33 L50 46 A14 14 0 0 0 36 60 Z" fill="#D4AF37"/>
-      <polygon points="20,2 76,18 76,29 20,13" fill="#D4AF37"/>
-    </g>
-  </svg>
-);
+const NkoLogo=({height=32,style})=><BrandLogo style={{height,width:'auto',...style}}/>;
 const StatCard=({label,value,sub,accent,onClick})=><div onClick={onClick} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,cursor:onClick?'pointer':'default'}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
 function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
   return(
@@ -1529,115 +1408,6 @@ function ExportMenu({onPdf,onExcel,getPreview}){
 }
 const FS=()=><div style={{height:8,background:`repeating-linear-gradient(90deg,${T.gold} 0 12px,transparent 12px 20px)`,opacity:.4,borderRadius:1}}/>;
 
-/* ── Auth ── */
-const AuthCtx=createContext(null);
-const useAuth=()=>useContext(AuthCtx);
-function AuthProvider({children}){
-  const[user,setUser]=useState(null);const[loading,setLoading]=useState(true);const[recovery,setRecovery]=useState(false);
-  useEffect(()=>{
-    sb.auth.getSession().then(({data:{session}})=>{setUser(session?.user??null);setLoading(false);});
-    const{data:{subscription}}=sb.auth.onAuthStateChange((event,s)=>{setUser(s?.user??null);if(event==='PASSWORD_RECOVERY')setRecovery(true);});
-    return()=>subscription.unsubscribe();
-  },[]);
-  const signOut=()=>sb.auth.signOut();
-  if(loading)return<div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',color:T.gold,fontFamily:'Fraunces,serif',fontSize:22}}>Loading…</div>;
-  return<AuthCtx.Provider value={{user,signOut,recovery,clearRecovery:()=>setRecovery(false)}}>{children}</AuthCtx.Provider>;
-}
-const TERMS_TEXT=`Last updated: September 2026
-
-1. Acceptance of Terms
-By creating an account or using NKÒ ("the Service"), you agree to these Terms & Conditions. If you don't agree, please don't use the Service.
-
-2. What NKÒ Is
-NKÒ is a production finance tool for film, TV, and content productions — budgeting, script breakdown, cash reconciliation, and purchase order tracking. It is a tool to help you manage your production's finances; it does not provide accounting, legal, or tax advice, and you remain responsible for your production's financial and legal obligations.
-
-3. Your Account
-You're responsible for keeping your login credentials secure and for all activity under your account. Let us know right away if you believe your account has been compromised.
-
-4. Your Content
-Scripts, budgets, production data, and anything else you upload or enter remain yours. You're responsible for having the rights to any script, document, or material you upload.
-
-5. How We Use Your Data
-We use the data you enter to provide the Service to you — storing your budgets, generating breakdowns and reconciliation reports, and powering the AI features you use. We may also use aggregated or anonymized data (patterns across many productions, not your specific scripts or financial details) to improve NKÒ's features, including making our AI budgeting and extraction tools more accurate for African productions generally. We do not sell your personal data or your production's financial details to third parties.
-
-6. AI-Generated Content
-NKÒ uses AI to help generate budget lines, script breakdowns, and extract data from invoices. AI-generated output can contain errors or omissions. You're responsible for reviewing and confirming any AI-generated content before relying on it for real production decisions.
-
-7. Acceptable Use
-You agree not to use the Service for anything illegal, to attempt to access other users' data without authorization, or to interfere with the Service's normal operation.
-
-8. Fees and Free Trial
-NKÒ is currently offered under a free trial covering a limited number of productions per account. We may introduce paid plans or change trial terms going forward; we'll aim to give you reasonable notice of changes that affect your account.
-
-9. Termination
-You may stop using the Service and close your account at any time. We may suspend or terminate accounts that violate these terms.
-
-10. Disclaimer and Limitation of Liability
-The Service is provided "as is," without warranties of any kind. To the fullest extent permitted by law, NKÒ and its operators are not liable for indirect, incidental, or consequential damages arising from your use of the Service, including financial decisions made based on data or AI output within it.
-
-11. Changes to These Terms
-We may update these terms from time to time. Continued use of the Service after changes take effect means you accept the updated terms.
-
-12. Contact
-Questions about these terms can be directed to the NKÒ team.`;
-function TermsModal({onClose}){
-  return(
-    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:200}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:28,maxWidth:520,maxHeight:'80vh',overflowY:'auto',width:'100%'}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:19,color:T.cream,marginBottom:14}}>Terms & Conditions</div>
-        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',whiteSpace:'pre-wrap',lineHeight:1.6,marginBottom:18}}>{TERMS_TEXT}</div>
-        <Btn onClick={onClose} style={{width:'100%'}}>Close</Btn>
-      </div>
-    </div>
-  );
-}
-function AuthScreen(){
-  const{t}=useLang();
-  const[mode,setMode]=useState('login');const[email,setEmail]=useState('');const[pass,setPass]=useState('');const[err,setErr]=useState('');const[ok,setOk]=useState('');const[showPass,setShowPass]=useState(false);const[agreed,setAgreed]=useState(false);const[showTerms,setShowTerms]=useState(false);
-  const submit=async()=>{setErr('');setOk('');
-    if(mode==='signup'&&!agreed){setErr('Please agree to the Terms & Conditions to create an account.');return;}
-    const fn=mode==='login'?sb.auth.signInWithPassword:sb.auth.signUp;
-    const{error}=await fn.call(sb.auth,{email,password:pass});
-    if(error){
-      const readable=typeof error.message==='string'&&error.message.trim()&&error.message.trim()!=='{}'?error.message:'Something went wrong on our end. Please try again in a moment, or contact support if this keeps happening.';
-      setErr(readable);
-    }else if(mode==='signup')setOk('Check your email to confirm your account.');
-  };
-  const forgotPassword=async()=>{
-    setErr('');setOk('');
-    if(!email){setErr('Enter your email above first, then tap Forgot password.');return;}
-    const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
-    if(error)setErr(error.message);else setOk('Password reset link sent — check your email.');
-  };
-  return(
-    <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-      {showTerms&&<TermsModal onClose={()=>setShowTerms(false)}/>}
-      <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
-        <div style={{display:'flex',justifyContent:'center',marginBottom:10}}><LangToggle compact/></div>
-        <div style={{display:'flex',justifyContent:'center',marginBottom:4}}><NkoLogo height={30}/></div>
-        <div style={{fontSize:11,color:T.goldDim,textAlign:'center',fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.14em',marginBottom:28}}>{t('tagline')}</div>
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          <Inp type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e=>setEmail(e.target.value)}/>
-          <div style={{position:'relative'}}>
-            <Inp type={showPass?'text':'password'} placeholder={t('passwordPlaceholder')} value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} style={{paddingRight:56}}/>
-            <button type="button" onClick={()=>setShowPass(s=>!s)} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:T.goldDim,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{showPass?t('hide'):t('show')}</button>
-          </div>
-          {mode==='login'&&<button onClick={forgotPassword} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif',textAlign:'right',padding:0}}>{t('forgotPassword')}</button>}
-          {mode==='signup'&&<label style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>
-            <input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)} style={{marginTop:2}}/>
-            <span>I agree to the <button type="button" onClick={e=>{e.preventDefault();setShowTerms(true);}} style={{background:'none',border:'none',color:T.goldDim,fontWeight:700,cursor:'pointer',padding:0,fontSize:11,textDecoration:'underline'}}>Terms & Conditions</button></span>
-          </label>}
-          {err&&<div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
-          {ok&&<div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>{ok}</div>}
-          <Btn onClick={submit}>{mode==='login'?t('signIn'):t('createAccount')}</Btn>
-          <button onClick={()=>{setMode(m=>m==='login'?'signup':'login');setErr('');setOk('');}} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{mode==='login'?t('noAccountSignUp'):t('haveAccountSignIn')}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Navigation ── */
 const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',schedule:'navSchedule',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
 function LangToggle({compact}){
   const{lang,setLang}=useLang();
@@ -1656,7 +1426,7 @@ function Sidebar({view,setView,onSignOut,userEmail}){
         <div style={{fontSize:9,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',marginTop:2}}>{t('tagline')}</div>
       </div>
       <FS/>
-      <nav style={{flex:1,padding:'14px 10px'}}>
+      <nav aria-label="Workspace sections" style={{flex:1,padding:'14px 10px'}}>
         {NAV.map(n=>{const on=view===n.id;return<button key={n.id} onClick={()=>setView(n.id)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:8,border:'none',cursor:'pointer',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,textAlign:'left',marginBottom:2,borderLeft:`2px solid ${on?T.gold:'transparent'}`}}><span style={{fontSize:15}}>{n.e}</span>{t(NAV_KEY[n.id])}</button>;})}
       </nav>
       <div style={{padding:'14px 16px',borderTop:`1px solid ${T.line}`}}>
@@ -1673,9 +1443,9 @@ function Sidebar({view,setView,onSignOut,userEmail}){
 function TopBar({view,setView,projects,currentId,onSelect,onCreate}){
   const{t}=useLang();
   return(
-    <div style={{background:T.panel,borderBottom:`1px solid ${T.line}`,padding:'10px 20px',display:'flex',alignItems:'center',gap:10}}>
+    <div style={{background:T.panel,borderBottom:`1px solid ${T.line}`,padding:'10px 20px',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
       {view!=='dashboard'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
-      <Sel value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,maxWidth:280}}>
+      <Sel aria-label="Select production" value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,minWidth:0,maxWidth:280}}>
         <option value="">{t('selectProduction')}</option>
         {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
       </Sel>
@@ -2730,7 +2500,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
             <div style={{color:T.dim,fontSize:11,marginTop:2}}>{po.description}</div>
             {justPaid[po.id]&&<div style={{color:T.sage,fontSize:10,marginTop:3}}>✓ added to Recon just now</div>}
             <PoFiles po={po} isOwner={isOwner} onRemove={kind=>removePoFile(po,kind)} onAdd={isOwner?(kind=>{addKind.current=kind;setAddRcptFor(po.id);setTimeout(()=>addRcptRef.current&&addRcptRef.current.click(),0);}):null}/>
-            
+
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream,fontSize:14}}>{sym(po.currency)}{fmt(po.amount)}</span>
@@ -3942,17 +3712,28 @@ function MarketplaceView({onApplyTemplate}){
 }
 
 /* ── MainApp ── */
-function MainApp(){
+function Workspace(){
   const{user,signOut}=useAuth();
+  const[loadState,setLoadState]=useState('loading');
+  const[loadError,setLoadError]=useState('');
+  const[loadAttempt,setLoadAttempt]=useState(0);
+  const[signOutError,setSignOutError]=useState('');
+  const handleSignOut=async()=>{
+    setSignOutError('');
+    try{await signOut();}catch{setSignOutError('Could not sign out. Check your connection and try again.');}
+  };
   const[view,setView]=useState('dashboard');
   const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);const[revenueItems,setRevenueItems]=useState([]);const[scheduleDays,setScheduleDays]=useState([]);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
-  useEffect(()=>{if(!user)return;try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');if(s?.market)setDefaultCurrency(s.market);}catch{}},[user]);
+  useEffect(()=>{if(!user)return;const s=readOnboarding(user.id);if(s)setDefaultCurrency(s.market);},[user]);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
 
   useEffect(()=>{if(!user)return;
+    let cancelled=false;
+    setLoadState('loading');setLoadError('');
     const loadAll=async()=>{
+      try{
       const[pr,bi,ad,re,py,sc,ch,po,cb,ts,rv,sdy]=await Promise.all([
         sb.from('projects').select('*').order('created_at',{ascending:false}),
         sb.from('budget_items').select('*'),
@@ -3967,6 +3748,10 @@ function MainApp(){
         sb.from('revenue_items').select('*'),
         sb.from('schedule_days').select('*'),
       ]);
+      if(cancelled)return;
+      const results={projects:pr,budget_items:bi,advances:ad,recon_entries:re,payees:py,scenes:sc,characters:ch,purchase_orders:po,project_collaborators:cb,user_trial_state:ts,revenue_items:rv,schedule_days:sdy};
+      const failed=Object.entries(results).find(([,result])=>result.error);
+      if(failed)throw new Error(`Could not load ${failed[0]}. Please retry. If this continues, check database access and table configuration.`);
       if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
       if(sc.data)setScenes(sc.data.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id})));
       if(ch.data)setCharacters(ch.data);
@@ -3975,7 +3760,12 @@ function MainApp(){
       setTrialCount(ts.data?.productions_created||0);
       if(rv.data)setRevenueItems(rv.data);
       if(sdy.data)setScheduleDays(sdy.data);
-    };loadAll();},[user]);
+      setLoadState('ready');
+      }catch(error){if(!cancelled){setLoadError(error.message||'The workspace could not load. Please try again.');setLoadState('error');}}
+    };
+    void loadAll();
+    return()=>{cancelled=true;};
+  },[user,loadAttempt]);
 
   const project=projects.find(p=>p.id===currentId)||null;
   const pBudget=budgetItems.filter(i=>i.project_id===currentId);
@@ -4013,7 +3803,7 @@ function MainApp(){
       fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         to:email.trim(),
         subject:`You've been added to ${proj?.name||'a production'} on NKÒ`,
-        html:`<p>${user.email} added you as a collaborator on <strong>${proj?.name||'a production'}</strong> on NKÒ.</p><p>Log in to NKÒ to see it: <a href="${window.location.origin}">${window.location.origin}</a></p>`,
+        html:`<p>${user.email} added you as a collaborator on <strong>${proj?.name||'a production'}</strong> on NKÒ.</p><p>Log in to NKÒ to see it: <a href="${window.location.origin}/app">${window.location.origin}/app</a></p>`,
       })}).catch(()=>{}); // best-effort — the collaborator seat itself is already created either way
     }
   };
@@ -4278,10 +4068,24 @@ function MainApp(){
 
   const pReconEntries=reconEntries.filter(e=>pAdvances.some(a=>a.id===e.advance_id));
 
+  if(loadState!=='ready')return <main className="flex min-h-svh items-center justify-center bg-palette-near-black p-6 text-palette-ivory">
+    <div className="max-w-lg text-center">
+      {loadState==='loading'?<p role="status">Loading your productions…</p>:<>
+        <h1 className="text-2xl">Your workspace could not load</h1>
+        <p role="alert" className="mt-3">{loadError}</p>
+        <button type="button" onClick={()=>setLoadAttempt(n=>n+1)} className="mt-5 rounded-lg bg-palette-gold px-5 py-3 text-palette-black">Retry loading</button>
+      </>}
+      <button type="button" onClick={handleSignOut} className="ml-4 mt-5 rounded underline">Sign out</button>
+      {signOutError&&<p role="alert" className="mt-4 text-palette-apricot">{signOutError}</p>}
+    </div>
+  </main>;
+
   return(
-    <div style={{minHeight:'100vh',background:T.ink,display:'flex',color:T.cream}}>
-      {!mobile&&<Sidebar view={view} setView={setView} onSignOut={signOut} userEmail={user?.email}/>}
+    <main aria-label="Production workspace" style={{minHeight:'100vh',background:T.ink,display:'flex',color:T.cream}}>
+      {!mobile&&<Sidebar view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email}/>}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+        {signOutError&&<p role="alert" className="p-4 text-palette-apricot">{signOutError}</p>}
+        {mobile&&<div className="flex justify-end border-b border-palette-graphite px-4 py-2"><button type="button" onClick={handleSignOut} className="rounded text-sm text-palette-stone underline">Sign out</button></div>}
         <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}}/>
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
@@ -4302,107 +4106,10 @@ function MainApp(){
       </div>
       {mobile&&<MobileNav view={view} setView={setView}/>}
       <FeedbackButton user={user} view={view} mobile={mobile}/>
-    </div>
+    </main>
   );
 }
 
-/* ── Root ── */
-function OnboardingScreen({onComplete}){
-  const{t}=useLang();
-  const[step,setStep]=useState(0);
-  const[role,setRole]=useState(null);
-  const[market,setMarket]=useState(null);
-  const RadioCard=({selected,title,sub,onClick})=>(
-    <button onClick={onClick} style={{width:'100%',textAlign:'left',background:selected?T.hi:T.panel,border:`1px solid ${selected?T.gold:T.line}`,borderRadius:10,padding:'14px 16px',marginBottom:10,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-      <div>
-        <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700}}>{title}</div>
-        <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:12,marginTop:2}}>{sub}</div>
-      </div>
-      <div style={{width:16,height:16,borderRadius:'50%',border:`2px solid ${selected?T.gold:T.faint}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-        {selected&&<div style={{width:8,height:8,borderRadius:'50%',background:T.gold}}/>}
-      </div>
-    </button>
-  );
-  const canContinue=step===0||(step===1&&role)||(step===2&&market);
-  return(
-    <div style={{minHeight:'100vh',background:T.ink,display:'flex',flexDirection:'column',padding:'32px 24px',boxSizing:'border-box'}}>
-      <div style={{display:'flex',justifyContent:'flex-end',maxWidth:420,margin:'0 auto',width:'100%'}}><LangToggle compact/></div>
-      <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:step===0?'center':'flex-start',maxWidth:420,margin:'0 auto',width:'100%'}}>
-        {step===0&&<>
-          <NkoLogo height={40}/>
-          <div style={{width:40,height:2,background:T.gold,margin:'16px 0'}}/>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:15,lineHeight:1.6}}>{t('onboardTagline')}</div>
-        </>}
-        {step===1&&<>
-          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{t('step1Of2')}</div>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>{t('whatsYourRole')}</div>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>{t('roleSubtitle')}</div>
-          {ROLES.map(r=><RadioCard key={r.id} selected={role===r.id} title={r.label} sub={r.sub} onClick={()=>setRole(r.id)}/>)}
-        </>}
-        {step===2&&<>
-          <div style={{color:T.goldDim,fontFamily:'Manrope,sans-serif',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{t('step2Of2')}</div>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream,marginTop:8,marginBottom:6}}>{t('baseCurrency')}</div>
-          <div style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,marginBottom:24}}>{t('currencySubtitle')}</div>
-          {MARKETS.map(m=><RadioCard key={m.code} selected={market===m.code} title={m.country} sub={`${m.code} · ${m.symbol}`} onClick={()=>setMarket(m.code)}/>)}
-        </>}
-      </div>
-      <div style={{maxWidth:420,margin:'0 auto',width:'100%'}}>
-        <div style={{display:'flex',gap:6,marginBottom:20}}>
-          {[0,1,2].map(i=><div key={i} style={{height:4,borderRadius:2,flex:1,background:i<=step?T.gold:T.line}}/>)}
-        </div>
-        <div style={{display:'flex',justifyContent:step===0?'flex-end':'space-between'}}>
-          {step>0&&<Btn variant="ghost" onClick={()=>setStep(s=>s-1)}>{t('backBtn')}</Btn>}
-          {step<2&&<Btn onClick={()=>canContinue&&setStep(s=>s+1)} style={{opacity:canContinue?1:.5}}>{step===0?t('getStarted'):t('continueBtn')}</Btn>}
-          {step===2&&<Btn onClick={()=>canContinue&&onComplete({role,market})} style={{opacity:canContinue?1:.5}}>{t('finishBtn')}</Btn>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SetNewPasswordScreen({onDone}){
-  const[pw,setPw]=useState('');const[pw2,setPw2]=useState('');const[err,setErr]=useState('');const[busy,setBusy]=useState(false);
-  const submit=async()=>{
-    setErr('');
-    if(pw.length<6){setErr('Password must be at least 6 characters.');return;}
-    if(pw!==pw2){setErr('Passwords do not match.');return;}
-    setBusy(true);
-    const{error}=await sb.auth.updateUser({password:pw});
-    setBusy(false);
-    if(error){setErr(error.message);return;}
-    onDone();
-  };
-  return(
-    <div style={{minHeight:'100vh',background:T.ink,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-      <div style={{width:'100%',maxWidth:380,background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:32}}>
-        <div style={{display:'flex',justifyContent:'center',marginBottom:16}}><NkoLogo height={30}/></div>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,textAlign:'center',marginBottom:6}}>Set a new password</div>
-        <div style={{color:T.dim,fontSize:12,textAlign:'center',marginBottom:20,fontFamily:'Manrope,sans-serif'}}>You followed a password reset link — choose a new password to finish.</div>
-        <div style={{marginBottom:10}}><Inp type="password" placeholder="New password" value={pw} onChange={e=>setPw(e.target.value)}/></div>
-        <div style={{marginBottom:14}}><Inp type="password" placeholder="Confirm new password" value={pw2} onChange={e=>setPw2(e.target.value)}/></div>
-        {err&&<div style={{color:T.coral,fontSize:12,marginBottom:12,fontFamily:'Manrope,sans-serif'}}>{err}</div>}
-        <Btn onClick={submit} disabled={busy} style={{width:'100%'}}>{busy?'Saving…':'Set new password'}</Btn>
-      </div>
-    </div>
-  );
-}
-function AuthGate(){
-  const{user,recovery,clearRecovery}=useAuth();
-  const[onboardDone,setOnboardDone]=useState(true);
-  useEffect(()=>{
-    if(!user){setOnboardDone(true);return;}
-    try{const s=JSON.parse(localStorage.getItem(`nko_onboarding_${user.id}`)||'null');setOnboardDone(!!s);}catch{setOnboardDone(false);}
-  },[user]);
-  if(recovery)return<SetNewPasswordScreen onDone={clearRecovery}/>;
-  if(!user)return<AuthScreen/>;
-  if(!onboardDone)return<OnboardingScreen onComplete={({role,market})=>{localStorage.setItem(`nko_onboarding_${user.id}`,JSON.stringify({role,market,completedAt:Date.now()}));setOnboardDone(true);}}/>;
-  return<MainApp/>;
-}
-export default function App(){
-  useEffect(()=>{
-    document.body.style.background='#141414';
-    document.body.style.margin='0';
-    document.body.style.padding='0';
-  },[]);
-  return<LangProvider><AuthProvider><AuthGate/></AuthProvider></LangProvider>;
+export default function MainApp(){
+  return <div className="nko-dashboard"><Workspace/></div>;
 }

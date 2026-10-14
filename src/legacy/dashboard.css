@@ -1,0 +1,18 @@
+/* Isolate the recovered app's typography from the current marketing pages.
+   Its original inline visual theme and print/export styling are preserved. */
+.nko-dashboard {
+  font-family: Manrope, Arial, sans-serif;
+  line-height: normal;
+  min-height: 100svh;
+  overflow-wrap: break-word;
+}
+
+.nko-dashboard :is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--color-palette-gold) !important;
+  outline-offset: 3px;
+}
+
+.nko-dashboard button:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.65;
+}

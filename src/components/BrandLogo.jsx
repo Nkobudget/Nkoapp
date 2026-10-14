@@ -2,6 +2,7 @@ export default function BrandLogo({
   alt = "NKO",
   className = "",
   loading = "eager",
+  style,
 }) {
   return (
     <img
@@ -12,6 +13,7 @@ export default function BrandLogo({
       loading={loading}
       decoding="async"
       className={`block max-w-full object-contain ${className}`}
+      style={style}
     />
   );
 }
