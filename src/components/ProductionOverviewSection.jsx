@@ -4,7 +4,6 @@ import { Circle } from 'lucide-react';
 import { DURATION, EASE_OUT, VIEWPORT } from '../lib/motion';
 import { Reveal, Stagger, StaggerItem } from './motion/Reveal';
 
-// Illustrative values from the reference. Replace through the stages prop.
 const defaultStages = [
   {
     id: 'production',

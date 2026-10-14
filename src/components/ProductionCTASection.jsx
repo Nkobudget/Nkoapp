@@ -36,7 +36,6 @@ function StudioBackdrop({ src }) {
         />
       )}
 
-      {/* Readability overlays are part of the banner, not the placeholder. */}
       <div className="absolute inset-0 bg-palette-black/40" />
       <div className="absolute inset-0 bg-linear-to-r from-palette-black/85 via-palette-black/50 to-palette-black/10" />
 
@@ -80,13 +79,6 @@ function CTAAction({ href, onClick, className, children }) {
   );
 }
 
-/**
- * Drop-in CTA banner using the existing Tailwind v4 palette and project font.
- * Supply backgroundImage for the decorative studio photo. A missing or failed
- * image renders the placeholder; successful images replace the whole placeholder.
- * Provide hrefs for navigation, or callbacks for app actions. Without either,
- * the corresponding button is disabled until it is connected to your app.
- */
 export default function ProductionCTASection({
   backgroundImage = '',
   createHref,

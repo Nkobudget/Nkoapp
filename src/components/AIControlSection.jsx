@@ -4,7 +4,6 @@ import { ArrowRight, Check, X } from 'lucide-react';
 import { DURATION, EASE_OUT } from '../lib/motion';
 import { Reveal, Stagger, StaggerItem } from './motion/Reveal';
 
-// Reference illustration data, not a live budget change or approval record.
 const defaultSuggestion = {
   id: 'crane-day-reallocation',
   title: 'Move ₦300K from Contingency to Camera & Lighting',

@@ -8,12 +8,6 @@ import {
   staggerContainer,
 } from "../../lib/motion";
 
-/**
- * Reveals a single block as it scrolls into view.
- *
- * The `as` prop lets it render as any element (section, h2, p, figure…) so it
- * can be dropped onto existing markup without changing the structure.
- */
 export function Reveal({
   as = "div",
   children,
@@ -46,11 +40,6 @@ export function Reveal({
   );
 }
 
-/**
- * Container that reveals its <StaggerItem> children one after another.
- * Staggering is reserved for short, related lists so it reads as a sequence
- * rather than a queue of delays.
- */
 export function Stagger({
   as = "div",
   children,
@@ -77,10 +66,6 @@ export function Stagger({
   );
 }
 
-/**
- * Child of <Stagger>. Inherits the reveal animation from its parent so the
- * timing stays in sync with the surrounding group.
- */
 export function StaggerItem({ as = "div", children, className, ...rest }) {
   const Component = motion[as] ?? motion.div;
 

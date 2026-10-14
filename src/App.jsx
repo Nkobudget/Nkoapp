@@ -10,8 +10,11 @@ import ProductionRolesSection from "./components/ProductionRolesSection"
 import AIControlSection from "./components/AIControlSection"
 import ProductionCTASection from "./components/ProductionCTASection"
 import Footer from "./components/Footer"
+import { Navigate, Route, Routes, useNavigate } from "react-router";
+import SignInPage from "./auth/SignInPage";
+import OnboardingWelcome from "./onboarding/OnboardingWelcome";
 
-const App = () => {
+const LandingPage = () => {
   return (
     <div className="min-h-screen bg-palette-black text-palette-ivory overflow-x-hidden">
       <Header />
@@ -48,5 +51,38 @@ const App = () => {
     </div>
   );
 };
+
+function SignInRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <SignInPage
+      accountPrompt="New to NKO?"
+      accountLinkLabel="Get started"
+      onAccountClick={() => navigate("/onboarding")}
+    />
+  );
+}
+
+function OnboardingRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <OnboardingWelcome
+      onSetUpProduction={() => navigate("/sign-in")}
+      onSkip={() => navigate("/")}
+      onBack={() => navigate("/")}
+    />
+  );
+}
+
+const App = () => (
+  <Routes>
+    <Route path="/" element={<LandingPage />} />
+    <Route path="/sign-in" element={<SignInRoute />} />
+    <Route path="/onboarding" element={<OnboardingRoute />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
 
 export default App;
