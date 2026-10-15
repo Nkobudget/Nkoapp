@@ -173,7 +173,7 @@ export default function ProductionWorkflowSection({
       aria-labelledby={`${sectionId}-heading`}
       className={`isolate overflow-hidden bg-palette-black px-5 text-palette-ivory sm:px-8 lg:px-12 ${className}`}
     >
-      <div className="mx-auto max-w-[1320px] border-b border-palette-charcoal/60 py-16 sm:py-24 lg:py-36">
+      <div className="mx-auto max-w-[1320px] border-b border-palette-charcoal/60 py-14 sm:py-20 lg:py-28">
         <div className="mx-auto max-w-[1200px]">
           <Reveal
             as="h2"
@@ -186,7 +186,7 @@ export default function ProductionWorkflowSection({
             </span>
           </Reveal>
 
-          <div className="mt-14 space-y-20 sm:mt-20 sm:space-y-28 lg:mt-24 lg:space-y-36">
+          <div className="mt-12 space-y-16 sm:mt-16 sm:space-y-20 lg:mt-20 lg:space-y-28">
             {features.map((feature, index) => {
               const reversed = index % 2 === 1;
               const headingId = `${sectionId}-${feature.key}`;

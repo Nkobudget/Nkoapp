@@ -40,10 +40,9 @@ const LandingPage = () => {
     <div className="min-h-screen bg-palette-black text-palette-ivory overflow-x-hidden">
       <Header />
 
-      <main className="mx-auto w-[95%] max-w-screen-2xl flex flex-col gap-4 md:gap-8">
+      <main className="mx-auto w-[95%] max-w-screen-2xl flex flex-col">
         <HeroSection />
         <ImageDiagram />
-        <hr className="my-8 border-t border-palette-stone"/>
         <ProductionFeatures id="features" />
         <ProductionComplexitySection
           productionImage="/assets/product-complex2.png"

@@ -114,7 +114,7 @@ export default function ProductionIntelligenceSection({
       aria-labelledby={headingId}
       className={`isolate overflow-hidden bg-palette-black px-5 text-palette-ivory sm:px-8 lg:px-12 ${className}`}
     >
-      <div className="mx-auto max-w-[1320px] border-b border-palette-charcoal/60 py-16 sm:py-24 lg:py-36">
+      <div className="mx-auto max-w-[1320px] border-b border-palette-charcoal/60 py-14 sm:py-20 lg:py-28">
         <div className="mx-auto grid max-w-[1200px] items-start gap-12 lg:grid-cols-[0.73fr_1fr] lg:gap-9">
           <div className="min-w-0 lg:pt-6">
             <Reveal

@@ -45,9 +45,9 @@ export default function AIControlSection({
   return (
     <section
       aria-labelledby={`${sectionId}-heading`}
-      className={`bg-palette-black px-5 text-palette-ivory sm:px-8 lg:px-8 ${className}`}
+      className={`bg-palette-black px-5 text-palette-ivory sm:px-8 lg:px-12 ${className}`}
     >
-      <div className="mx-auto max-w-[1280px]  py-16 sm:py-24 lg:pt-36 lg:pb-32">
+      <div className="mx-auto max-w-[1280px] pt-14 pb-10 sm:pt-20 sm:pb-14 lg:pt-28 lg:pb-20">
         <div className="mx-auto max-w-[1176px]">
           <div className="grid items-center gap-6 lg:grid-cols-[1.45fr_1fr] lg:gap-16">
             <Reveal
@@ -73,7 +73,7 @@ export default function AIControlSection({
           <Stagger
             as="div"
             stagger={0.09}
-            className="mt-12 grid items-center gap-10 sm:mt-14 lg:mt-16 lg:grid-cols-[1fr_1.12fr_1fr]"
+            className="mt-10 grid items-center gap-10 sm:mt-12 lg:mt-16 lg:grid-cols-[1fr_1.12fr_1fr]"
           >
             <StaggerItem
               as="article"
