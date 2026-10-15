@@ -1,10 +1,16 @@
 import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { DURATION, EASE_OUT } from "../lib/motion";
 import Pressable from "./motion/Pressable";
 import { Link } from "react-router";
 import BrandLogo from "./BrandLogo";
+import AccountMenu from "./AccountMenu";
+import { useAuth } from "../auth/AuthContext";
 
 const Header = () => {
+  const { status, user } = useAuth();
+  const loginRef = useRef(null);
+  const [signedOutHere, setSignedOutHere] = useState(false);
   const navLinks = [
     { label: "Products", href: "#products" },
     { label: "How it Works", href: "#how-it-works" },
@@ -12,6 +18,16 @@ const Header = () => {
     { label: "Resources", href: "#resources" },
     { label: "Pricing", href: "#pricing" },
   ];
+
+  const signedIn = status === "authenticated" && !!user;
+
+  // After signing out from the account menu, keep keyboard focus in the header.
+  useEffect(() => {
+    if (signedOutHere && !signedIn) {
+      loginRef.current?.focus();
+      setSignedOutHere(false);
+    }
+  }, [signedOutHere, signedIn]);
 
   return (
     <motion.header
@@ -39,26 +55,36 @@ const Header = () => {
       </nav>
 
 
-      <div className="flex items-center gap-5">
-        <Link
-          to="/sign-in"
-          className="text-white text-sm font-medium hover:text-amber-400 transition-colors"
-        >
-          Login
-        </Link>
-        
-        <Pressable hover>
-          <Link
-            to="/onboarding"
-            className="rounded-full bg-palette-apricot px-5 py-2 text-sm font-semibold text-black 
-                       transition-all duration-300 
-                       shadow-[0_8px_20px_rgba(255,179,71,0.5)] 
-                       hover:bg-amber-400 
-                       hover:shadow-[0_8px_30px_rgba(255,179,71,0.8)]"
-          >
-            Get Started
-          </Link>
-        </Pressable>
+      <div className="flex min-h-10 items-center gap-5">
+        {status === "loading" ? (
+          // Reserve space while the session is restored so the header doesn't flash Login.
+          <span aria-hidden="true" className="block size-10" />
+        ) : signedIn ? (
+          <AccountMenu onSignedOut={() => setSignedOutHere(true)} />
+        ) : (
+          <>
+            <Link
+              ref={loginRef}
+              to="/app"
+              className="text-white text-sm font-medium hover:text-amber-400 transition-colors"
+            >
+              Login
+            </Link>
+            
+            <Pressable hover>
+              <Link
+                to="/onboarding"
+                className="rounded-full bg-palette-apricot px-5 py-2 text-sm font-semibold text-black 
+                           transition-all duration-300 
+                           shadow-[0_8px_20px_rgba(255,179,71,0.5)] 
+                           hover:bg-amber-400 
+                           hover:shadow-[0_8px_30px_rgba(255,179,71,0.8)]"
+              >
+                Get Started
+              </Link>
+            </Pressable>
+          </>
+        )}
       </div>
     </motion.header>
   );
