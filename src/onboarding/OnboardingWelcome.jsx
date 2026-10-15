@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import BrandLogo from "../components/BrandLogo";
+import BrandHomeLink from "../components/BrandHomeLink";
 import {
   ArrowLeft,
   ArrowRight,
@@ -106,7 +106,7 @@ export default function OnboardingWelcome({
         <div className="grid w-full max-w-[80rem] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
           <div className="min-w-0">
             <header className="flex flex-wrap items-center justify-between gap-2 border-b border-palette-graphite/50 px-4 py-3 sm:px-10 lg:px-14">
-              <BrandLogo className="h-6 w-auto lg:h-7" />
+              <BrandHomeLink className="h-6 w-auto lg:h-7" />
               {headerActions}
               <button
                 type="button"

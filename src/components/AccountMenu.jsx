@@ -18,6 +18,7 @@ export default function AccountMenu({ onSignedOut }) {
   const buttonRef = useRef(null);
   const itemRefs = useRef([]);
   const closeTimer = useRef(null);
+  const busyRef = useRef(false);
   // "hover" menus close when the pointer leaves; "click" menus stay pinned.
   const [openedBy, setOpenedBy] = useState(null);
   const [pending, setPending] = useState(false);
@@ -44,7 +45,7 @@ export default function AccountMenu({ onSignedOut }) {
     clearTimer();
     setOpenedBy("click");
     // Wait for the menu to mount before moving focus into it.
-    requestAnimationFrame(() => focusItem(index));
+    window.requestAnimationFrame(() => focusItem(index));
   };
 
   useEffect(() => {
@@ -78,16 +79,17 @@ export default function AccountMenu({ onSignedOut }) {
     else if (event.key === "Home") { event.preventDefault(); focusItem(0); }
     else if (event.key === "End") { event.preventDefault(); focusItem(-1); }
     else if (event.key === "Escape") { event.preventDefault(); close(true); }
-    else if (event.key === "Tab") close();
+    else if (event.key === "Tab") close(true);
   }
 
   function onBlur(event) {
-    if (pending || openedBy === "hover") return;
+    if (pending) return;
     if (!rootRef.current?.contains(event.relatedTarget)) close();
   }
 
   async function handleSignOut() {
-    if (pending) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setPending(true);
     setError("");
     try {
@@ -96,6 +98,7 @@ export default function AccountMenu({ onSignedOut }) {
     } catch {
       setError("Could not sign out. Check your connection and try again.");
       setPending(false);
+      busyRef.current = false;
     }
   }
 

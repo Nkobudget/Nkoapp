@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { ArrowLeft, ArrowRight, Coins, Users } from 'lucide-react'
-import BrandLogo from '../components/BrandLogo'
+import BrandHomeLink from '../components/BrandHomeLink'
 import LanguageSwitcher from '../i18n/LanguageSwitcher'
 import { useLang } from '../i18n/LangContext'
 import { useAuth } from '../auth/AuthContext'
@@ -62,7 +62,7 @@ export default function OnboardingScreen({ onComplete }) {
     <div className="mx-auto grid w-full max-w-[78rem] lg:min-h-[calc(100svh-5rem)] lg:grid-cols-[1.08fr_1fr]">
       <div className="min-w-0 lg:pr-12">
         <header className="flex flex-wrap items-center gap-5 border-b border-palette-graphite/60 pb-5">
-          <BrandLogo className="h-6 w-auto" />
+          <BrandHomeLink className="h-6 w-auto" />
           <ol aria-label={fr ? "Étapes d'accueil" : 'Onboarding progress'} className="flex flex-1 gap-4 text-[0.6875rem]">
             {[fr ? 'Bienvenue' : 'Welcome', fr ? 'Rôle' : 'Role', fr ? 'Devise' : 'Currency'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined} className={step === index ? 'text-palette-gold' : 'text-palette-stone'}><span className="mr-1 tabular-nums">0{index + 1}</span>{label}</li>)}
           </ol>

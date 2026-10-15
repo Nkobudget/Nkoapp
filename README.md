@@ -8,11 +8,12 @@ Use Node.js 20 or newer. React 18.3.1 and React Router 7.18.4 are retained from 
 
 ```sh
 npm ci
-cp .env.example .env.local
 npm run dev
 ```
 
-If `.env.local` already exists, compare its variables instead of overwriting it. The example contains the original project's public Supabase URL and publishable browser key, recovered from `d5d304c`. Never put a service-role key or server secret in a `VITE_*` variable.
+Keep your existing `.env.local`. For a fresh checkout, create that file beside `package.json` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from the existing Supabase project, then restart Vite. Local environment files are excluded from download archives and Git. Configure the same two values in the applicable Vercel environments before building there. Never put a service-role key or server secret in a `VITE_*` variable.
+
+The latest header, logo-link, favicon, and social-sharing changes are described in [the branding and navigation notes](docs/HEADER_BRANDING.md), including the verified production URL and link-preview limitations.
 
 ## Routing and flow
 
@@ -67,7 +68,7 @@ npm run test:integration
 npm run test:production
 ```
 
-Results: build passed, 15 production-browser tests passed, three storage unit tests passed, and lint has zero errors with 19 legacy warnings. The browser suite intercepts external service requests; it never creates real accounts, writes production rows, sends emails, or invokes paid AI. It covers authentication, both confirmation modes, password recovery, onboarding validation and persistence, switching accounts, language, direct routes/history, restored dashboard sections, mobile layouts, and logo loading. See [implementation and verification notes](docs/AUTH_FLOW.md) and [the Git recovery walkthrough](docs/DASHBOARD_RECOVERY.md).
+Results: build passed, 22 production-browser tests passed, five unit tests passed, and lint has zero errors with 19 legacy warnings. The browser suite intercepts external service requests; it never creates real accounts, writes production rows, sends emails, or invokes paid AI. It covers authentication, both confirmation modes, password recovery, onboarding validation and persistence, switching accounts, language, direct routes/history, restored dashboard sections, mobile layouts, and logo loading. See [implementation and verification notes](docs/AUTH_FLOW.md) and [the Git recovery walkthrough](docs/DASHBOARD_RECOVERY.md).
 
 All brand-logo locations use `BrandLogo` and the unchanged `/assets/logo.png` file. The dashboard retains its original business views and inline theme, with scoped typography and keyboard focus styles. Public page styles, images, APIs, and database schema remain unchanged.
 

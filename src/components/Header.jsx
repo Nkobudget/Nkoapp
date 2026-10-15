@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { DURATION, EASE_OUT } from "../lib/motion";
 import Pressable from "./motion/Pressable";
 import { Link } from "react-router";
-import BrandLogo from "./BrandLogo";
+import BrandHomeLink from "./BrandHomeLink";
 import AccountMenu from "./AccountMenu";
 import { useAuth } from "../auth/AuthContext";
 
@@ -34,15 +34,13 @@ const Header = () => {
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: DURATION.base, ease: EASE_OUT }}
-      className="w-[90%] mx-auto flex items-center justify-between gap-8 py-4"
+      className="relative z-50 w-[90%] mx-auto flex items-center justify-between gap-4 py-4 lg:gap-8"
     >
      
-      <Link to="/" aria-label="NKO home" className="shrink-0">
-        <BrandLogo alt="" className="h-10 w-auto" />
-      </Link>
+      <BrandHomeLink className="h-10 w-auto" />
 
      
-      <nav className="hidden md:flex items-center gap-8 text-white text-sm font-medium">
+      <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-8 text-white text-sm font-medium">
         {navLinks.map(({ label, href }) => (
           <a
             key={label}
@@ -66,7 +64,7 @@ const Header = () => {
             <Link
               ref={loginRef}
               to="/app"
-              className="text-white text-sm font-medium hover:text-amber-400 transition-colors"
+              className="rounded-sm text-white text-sm font-medium hover:text-amber-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-apricot"
             >
               Login
             </Link>

@@ -6,7 +6,7 @@
 */
 import { supabase as sb } from '../lib/supabaseClient';
 import { useAuth } from '../auth/AuthContext';
-import BrandLogo from '../components/BrandLogo';
+import BrandHomeLink from '../components/BrandHomeLink';
 import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
 import './dashboard.css';
@@ -1321,7 +1321,7 @@ const Btn=({variant='primary',size='md',style:sx,...p})=>{
   return<button {...p} style={{background:bg,color:co,border:br,borderRadius:8,padding:size==='sm'?'5px 12px':'8px 18px',fontSize:size==='sm'?11:13,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',...sx}}/>;
 };
 const Pill=({children,color})=><span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:color?`${color}22`:T.hi,color:color||T.goldDim,border:`1px solid ${color||T.line}`,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{children}</span>;
-const NkoLogo=({height=32,style})=><BrandLogo style={{height,width:'auto',...style}}/>;
+const NkoLogo=({height=32,style})=><BrandHomeLink style={{height,width:'auto',...style}} linkStyle={{display:'flex',width:'fit-content'}}/>;
 const StatCard=({label,value,sub,accent,onClick})=><div onClick={onClick} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,cursor:onClick?'pointer':'default'}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
 function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
   return(
