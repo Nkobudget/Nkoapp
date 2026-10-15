@@ -59,9 +59,9 @@ export default function ProductionOverviewSection({
   return (
     <section
       aria-labelledby={headingId}
-      className={`bg-palette-blackpx-5 text-palette-ivory sm:px-8 lg:px-12 ${className}`}
+      className={`bg-palette-black px-5 text-palette-ivory sm:px-8 lg:px-12 ${className}`}
     >
-      <div className="mx-auto max-w-[1280px] border-b border-palette-charcoal/60 py-16 sm:py-24 lg:py-32 lg:pb-38">
+      <div className="mx-auto max-w-[1280px] border-b border-palette-charcoal/60 py-14 sm:py-20 lg:py-28">
         <div className="mx-auto max-w-[1176px]">
           <div className="grid items-center gap-6 lg:grid-cols-[1.45fr_1fr] lg:gap-16">
             <Reveal
@@ -85,7 +85,7 @@ export default function ProductionOverviewSection({
             </Reveal>
           </div>
 
-          <div className="relative mt-12 sm:mt-16 lg:mt-24">
+          <div className="relative mt-10 sm:mt-12 lg:mt-16">
             <motion.div
               aria-hidden="true"
               style={{ transformOrigin: 'left' }}

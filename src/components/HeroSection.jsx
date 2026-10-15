@@ -9,7 +9,7 @@ const HeroSection = () => {
       variants={staggerContainer(0.09, 0.05)}
       initial="hidden"
       animate="visible"
-      className="flex flex-col items-center text-center gap-6 py-16 md:py-24 px-4"
+      className="flex flex-col items-center text-center gap-6 px-4 pt-14 pb-10 md:pt-20 md:pb-14 lg:pt-24 lg:pb-16"
     >
     
       <motion.span

@@ -39,7 +39,7 @@ export default function ProductionFeatures({ id, className = "" }) {
       className={`border-t border-palette-graphite/60 bg-palette-black text-palette-ivory wrap-break-word ${className}`}
     >
       <div className="bg-palette-near-black/35">
-        <div className="relative mx-auto max-w-[90rem] px-6 py-16 sm:px-10 sm:py-20 lg:px-[clamp(4rem,6.4vw,5.75rem)] lg:pb-40 lg:pt-[9.25rem]">
+        <div className="relative mx-auto max-w-[90rem] px-6 py-14 sm:px-10 sm:py-20 lg:px-[clamp(4rem,6.4vw,5.75rem)] lg:py-28">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.56fr)_minmax(0,1fr)] lg:gap-12">
             <Reveal
               as="h2"
@@ -67,7 +67,7 @@ export default function ProductionFeatures({ id, className = "" }) {
             as="ul"
             role="list"
             stagger={0.07}
-            className="mt-10 grid list-none grid-cols-1 items-start gap-y-8 p-0 sm:grid-cols-2 sm:gap-x-8 lg:mt-16 lg:max-w-[77rem] lg:grid-cols-4 lg:gap-x-0"
+            className="mt-10 grid list-none lg:mt-14 grid-cols-1 items-start gap-y-8 p-0 sm:grid-cols-2 sm:gap-x-8 lg:max-w-[77rem] lg:grid-cols-4 lg:gap-x-0"
           >
             {features.map(({ title, description, Icon }) => (
               <StaggerItem

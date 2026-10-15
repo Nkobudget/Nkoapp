@@ -58,7 +58,7 @@ export default function Footer({
         <Stagger
           as="div"
           stagger={0.06}
-          className="mx-auto grid max-w-[1176px] grid-cols-2 gap-x-8 gap-y-10 pb-12 sm:gap-y-12 sm:pb-16 lg:grid-cols-[minmax(0,2.05fr)_repeat(3,minmax(0,1fr))_minmax(0,0.8fr)] lg:gap-x-0 lg:pb-20"
+          className="mx-auto grid max-w-[1176px] grid-cols-2 gap-x-8 gap-y-10 pb-12 sm:gap-y-12 sm:pb-16 lg:grid-cols-[minmax(0,2.05fr)_repeat(3,minmax(0,1fr))_minmax(0,0.8fr)] lg:gap-x-0 lg:pb-16"
         >
           <StaggerItem as="div" className="col-span-2 min-w-0 lg:col-span-1">
             <a
