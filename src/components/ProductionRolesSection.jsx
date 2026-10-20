@@ -64,9 +64,9 @@ export default function ProductionRolesSection({ className = '' }) {
   return (
     <section
       aria-labelledby={`${sectionId}-heading`}
-      className={`bg-palette-black px-5 py-6 text-palette-ivory sm:px-8 sm:py-9 lg:px-12 ${className}`}
+      className={`bg-palette-black px-5 text-palette-ivory sm:px-8 lg:px-12 ${className}`}
     >
-      <div className="mx-auto max-w-[1280px] border-b border-palette-charcoal/60 py-16 sm:py-24 lg:py-32 lg:pb-38">
+      <div className="mx-auto max-w-[1280px] border-b border-palette-charcoal/60 py-14 sm:py-20 lg:py-28">
         <div className="mx-auto max-w-[1176px]">
           <Reveal
             as="h2"
@@ -81,7 +81,7 @@ export default function ProductionRolesSection({ className = '' }) {
           <Stagger
             as="div"
             stagger={0.08}
-            className="mt-12 grid overflow-hidden rounded-xl border border-palette-graphite/65 bg-palette-near-black/70 sm:mt-16 sm:grid-cols-2 lg:mt-24 lg:grid-cols-4"
+            className="mt-10 grid overflow-hidden rounded-xl border border-palette-graphite/65 bg-palette-near-black/70 sm:mt-12 sm:grid-cols-2 lg:mt-16 lg:grid-cols-4"
           >
             {roles.map(({ id, audience, title, description, benefits, dividerClass }) => (
               <StaggerItem

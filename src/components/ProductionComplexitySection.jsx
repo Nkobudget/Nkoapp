@@ -62,7 +62,7 @@ export default function ProductionComplexitySection({
       aria-labelledby={headingId}
       className={`bg-palette-black px-5 text-palette-ivory sm:px-8 lg:px-12 ${className}`}
     >
-      <div className="mx-auto max-w-[1320px] border-y border-palette-charcoal/60 py-16 sm:py-24 lg:py-36">
+      <div className="mx-auto max-w-[1320px] border-b border-palette-charcoal/60 py-14 sm:py-20 lg:py-28">
         <div className="mx-auto max-w-[1200px]">
           <div className="grid items-center gap-6 lg:grid-cols-[1.42fr_1fr] lg:gap-8">
             <Reveal
@@ -87,7 +87,7 @@ export default function ProductionComplexitySection({
             </Reveal>
           </div>
 
-          <div className="mt-10 grid items-start gap-10 sm:mt-14 lg:mt-20 lg:grid-cols-[1.42fr_1fr] lg:gap-6">
+          <div className="mt-10 grid items-start gap-10 sm:mt-12 lg:mt-16 lg:grid-cols-[1.42fr_1fr] lg:gap-6">
             <Stagger
               as="figure"
               aria-labelledby={illustrationId}

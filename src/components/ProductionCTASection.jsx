@@ -94,9 +94,9 @@ export default function ProductionCTASection({
   return (
     <section
       aria-labelledby={`${sectionId}-heading`}
-      className={`bg-palette-black px-5 py-12 text-palette-ivory sm:px-8 sm:py-16 lg:px-12 lg:py-[86px] ${className}`}
+      className={`bg-palette-black px-5 pt-4 pb-12 text-palette-ivory sm:px-8 sm:pt-6 sm:pb-16 lg:px-12 lg:pt-8 lg:pb-20 ${className}`}
     >
-      <div className="relative isolate mx-auto flex min-h-[440px] max-w-[1232px] items-center overflow-hidden rounded-2xl border border-palette-charcoal bg-palette-black px-6 py-14 sm:min-h-[540px] sm:px-10 sm:py-20 lg:min-h-[690px]">
+      <div className="relative isolate mx-auto flex min-h-[400px] max-w-[1232px] items-center overflow-hidden rounded-2xl border border-palette-charcoal bg-palette-black px-6 py-14 sm:min-h-[480px] sm:px-10 sm:py-20 lg:min-h-[600px]">
         <StudioBackdrop key={imageSrc} src={imageSrc} />
 
         <Stagger
