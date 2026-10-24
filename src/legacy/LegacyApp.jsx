@@ -1482,10 +1482,175 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
   );
 }
 
+
+/* ── Collaborators Modal ── */
+function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClose }) {
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const count = collaborators.length;
+
+  const handleInvite = async () => {
+    if (!email.trim()) return;
+    setBusy(true);
+    await onInvite(email.trim());
+    setBusy(false);
+    setEmail('');
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(20,20,20,.88)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        zIndex: 100,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.line}`,
+          borderRadius: 12,
+          padding: 24,
+          width: '100%',
+          maxWidth: 420,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontFamily: 'Fraunces,serif', fontSize: 18, color: T.cream }}>
+              Collaborators
+            </div>
+            <div style={{ fontSize: 12, color: T.dim, marginTop: 2, fontFamily: 'Manrope,sans-serif' }}>
+              {project.name} · {count}/4 invited
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: T.dim, fontSize: 18, cursor: 'pointer', padding: 4 }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div style={{ fontSize: 11, color: T.dim, marginBottom: 16, fontFamily: 'Manrope,sans-serif', lineHeight: 1.5 }}>
+          Invited collaborators can view and work together on budgets, schedules, breakdowns, and advances for this production. Up to 4 collaborators can join this project.
+        </div>
+
+        {/* List of current collaborators */}
+        <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {collaborators.length === 0 ? (
+            <div style={{ padding: 12, background: T.ink, borderRadius: 8, fontSize: 12, color: T.faint, textAlign: 'center' }}>
+              No collaborators invited yet.
+            </div>
+          ) : (
+            collaborators.map((c, i) => (
+              <div
+                key={c.id || i}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: T.hi,
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  border: `1px solid ${T.line}`,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14 }}>👤</span>
+                  <div>
+                    <div style={{ fontSize: 12, color: T.cream, fontWeight: 600 }}>
+                      {c.email || `Collaborator ${i + 1}`}
+                    </div>
+                    <div style={{ fontSize: 10, color: T.dim }}>
+                      Seat {i + 1} of 4
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Remove this collaborator from the production?')) {
+                      onRemove(c.id, project.id);
+                    }
+                  }}
+                  style={{
+                    background: 'none',
+                    border: `1px solid ${T.coral}`,
+                    borderRadius: 6,
+                    color: T.coral,
+                    fontSize: 10,
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Invite form if < 4 */}
+        {count < 4 ? (
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14 }}>
+            <div style={{ fontSize: 11, color: T.goldDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.05em' }}>
+              Invite collaborator ({count + 1} of 4)
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="email"
+                placeholder="colleague@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleInvite(); }}
+                style={{
+                  flex: 1,
+                  background: T.hi,
+                  border: `1px solid ${T.line}`,
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  color: T.cream,
+                  fontSize: 12,
+                  outline: 'none',
+                }}
+              />
+              <Btn onClick={handleInvite} disabled={busy || !email.trim()} style={{ fontSize: 12, padding: '8px 14px' }}>
+                {busy ? 'Inviting…' : 'Invite'}
+              </Btn>
+            </div>
+            <div style={{ fontSize: 10, color: T.dim, marginTop: 6, fontFamily: 'Manrope,sans-serif' }}>
+              They'll need an NKÒ account registered with this email.
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: 10, background: T.hi, borderRadius: 8, fontSize: 11, color: T.dim, textAlign: 'center', borderTop: `1px solid ${T.line}` }}>
+            ✓ All 4 collaborator seats are filled for this project.
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          <Btn variant="ghost" onClick={onClose} style={{ fontSize: 12 }}>
+            Done
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Dashboard ── */
 function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
+  const[collabModalProject,setCollabModalProject]=useState(null);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
   const advCurrency=id=>advances.find(a=>a.id===id)?.currency||'NGN';
@@ -1537,19 +1702,58 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
               </>}
               <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
             </button>
-            {p.user_id===currentUserId&&(()=>{const collab=collaborators.find(c=>c.project_id===p.id);return(
-              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                {collab?<>
-                  <span style={{fontSize:10,color:T.sage}}>👤 Collaborator added</span>
-                  <button onClick={e=>{e.stopPropagation();if(window.confirm('Remove this collaborator from the production?'))onRemoveCollaborator(p.id);}} style={{background:'none',border:'none',color:T.faint,fontSize:10,cursor:'pointer'}}>Remove</button>
-                </>:<button onClick={e=>{e.stopPropagation();const email=window.prompt("Invite a collaborator by email — they'll need an NKÒ account already:");if(email)onInviteCollaborator(p.id,email);}} style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700}}>+ Invite collaborator</button>}
-              </div>
-            );})()}
+            {(()=>{
+              const pCollabs = collaborators.filter(c => c.project_id === p.id);
+              const count = pCollabs.length;
+              const isOwner = p.user_id === currentUserId;
+              if (!isOwner) {
+                return (
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>👥 Shared production</span>
+                    <span style={{fontSize:10,color:T.faint}}>{count} collaborator{count !== 1 ? 's' : ''}</span>
+                  </div>
+                );
+              }
+              return (
+                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    {count === 0 ? (
+                      <span style={{fontSize:10,color:T.faint}}>No collaborators</span>
+                    ) : (
+                      <>
+                        <span style={{fontSize:10,color:T.sage,fontWeight:600}}>👤 {count}/4 collaborator{count > 1 ? 's' : ''}</span>
+                        <button
+                          onClick={e=>{e.stopPropagation();setCollabModalProject(p);}}
+                          style={{background:'none',border:'none',color:T.dim,fontSize:10,cursor:'pointer',textDecoration:'underline'}}
+                        >
+                          Manage
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {count < 4 ? (
+                    <button
+                      onClick={e=>{
+                        e.stopPropagation();
+                        const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
+                        if(email)onInviteCollaborator(p.id,email);
+                      }}
+                      style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700,marginLeft:count>0?'auto':0}}
+                    >
+                      + Invite collaborator
+                    </button>
+                  ) : (
+                    <span style={{fontSize:10,color:T.faint,marginLeft:'auto'}}>Max 4 reached</span>
+                  )}
+                </div>
+              );
+            })()}
             <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}}>🗑️</button>
           </div>;})}
         </div>
       </>
       )}
+      {collabModalProject&&<CollaboratorsModal project={collabModalProject} collaborators={collaborators.filter(c=>c.project_id===collabModalProject.id)} onInvite={email=>onInviteCollaborator(collabModalProject.id,email)} onRemove={(collabId)=>onRemoveCollaborator(collabId,collabModalProject.id)} onClose={()=>setCollabModalProject(null)}/>}
       {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{const ok=await onCreate(d);if(ok)setShowModal(false);}} defaultCurrency={defaultCurrency}/>}
     </div>
   );
@@ -3756,7 +3960,11 @@ function Workspace(){
       if(sc.data)setScenes(sc.data.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id})));
       if(ch.data)setCharacters(ch.data);
       if(po.data)setPurchaseOrders(po.data);
-      if(cb.data)setCollaborators(cb.data);
+      if(cb.data){
+        let cached = {};
+        try{ cached = JSON.parse(localStorage.getItem('nko_collab_emails') || '{}'); }catch{}
+        setCollaborators(cb.data.map(c=>({...c, email: c.email || cached[c.id] || cached[c.user_id]})));
+      }
       setTrialCount(ts.data?.productions_created||0);
       if(rv.data)setRevenueItems(rv.data);
       if(sdy.data)setScheduleDays(sdy.data);
@@ -3789,30 +3997,56 @@ function Workspace(){
     }
     return false;
   };
+  const MAX_COLLABORATORS = 4;
   const inviteCollaborator=async(projectId,email)=>{
-    const{data:resolvedId,error:rErr}=await sb.rpc('resolve_user_by_email',{lookup_email:email.trim()});
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = collaborators.filter(c=>c.project_id===projectId);
+    if(existing.length >= MAX_COLLABORATORS){
+      alert(`This production already has the maximum of ${MAX_COLLABORATORS} invited collaborators.`);
+      return;
+    }
+    const{data:resolvedId,error:rErr}=await sb.rpc('resolve_user_by_email',{lookup_email:cleanEmail});
     if(rErr){alert(`Could not look up that email: ${rErr.message}`);return;}
-    if(!resolvedId){alert(`${email} doesn't have an NKÒ account yet — ask them to sign up first, then try again.`);return;}
+    if(!resolvedId){alert(`${cleanEmail} doesn't have an NKÒ account yet — ask them to sign up first, then try again.`);return;}
     if(resolvedId===user.id){alert("That's your own account — invite someone else to collaborate.");return;}
-    await sb.from('project_collaborators').delete().eq('project_id',projectId);
-    const{data,error}=await sb.from('project_collaborators').insert({id:Math.random().toString(36).slice(2,10),project_id:projectId,user_id:resolvedId,invited_by:user.id}).select().single();
+    if(existing.some(c=>c.user_id===resolvedId)){
+      alert(`${cleanEmail} is already an invited collaborator on this production.`);
+      return;
+    }
+    const newId = Math.random().toString(36).slice(2,10);
+    const{data,error}=await sb.from('project_collaborators').insert({id:newId,project_id:projectId,user_id:resolvedId,invited_by:user.id}).select().single();
     if(error){alert(`Could not add collaborator: ${error.message}`);return;}
     if(data){
-      setCollaborators(p=>[...p.filter(c=>c.project_id!==projectId),data]);
+      try{
+        const cached = JSON.parse(localStorage.getItem('nko_collab_emails') || '{}');
+        cached[data.id] = cleanEmail;
+        cached[resolvedId] = cleanEmail;
+        localStorage.setItem('nko_collab_emails', JSON.stringify(cached));
+      }catch{}
+      const dataWithEmail = {...data, email: cleanEmail};
+      setCollaborators(p=>[...p.filter(c=>c.id!==data.id), dataWithEmail]);
       const proj=projects.find(p=>p.id===projectId);
       fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        to:email.trim(),
+        to:cleanEmail,
         subject:`You've been added to ${proj?.name||'a production'} on NKÒ`,
         html:`<p>${user.email} added you as a collaborator on <strong>${proj?.name||'a production'}</strong> on NKÒ.</p><p>Log in to NKÒ to see it: <a href="${window.location.origin}/app">${window.location.origin}/app</a></p>`,
-      })}).catch(()=>{}); // best-effort — the collaborator seat itself is already created either way
+      })}).catch(()=>{});
     }
   };
-  const removeCollaborator=async projectId=>{
-    setCollaborators(p=>p.filter(c=>c.project_id!==projectId));
-    const{error}=await sb.from('project_collaborators').delete().eq('project_id',projectId);
-    if(error)alert(`Could not remove collaborator: ${error.message}`);
+  const removeCollaborator=async(collabIdOrProjectId, maybeProjectId)=>{
+    if(maybeProjectId){
+      const collabId = collabIdOrProjectId;
+      setCollaborators(p=>p.filter(c=>c.id!==collabId));
+      const{error}=await sb.from('project_collaborators').delete().eq('id',collabId);
+      if(error)alert(`Could not remove collaborator: ${error.message}`);
+    } else {
+      const pid = collabIdOrProjectId;
+      setCollaborators(p=>p.filter(c=>c.project_id!==pid));
+      const{error}=await sb.from('project_collaborators').delete().eq('project_id',pid);
+      if(error)alert(`Could not remove collaborator: ${error.message}`);
+    }
   };
-  const deleteProjects=async ids=>{for(const id of ids){await purgeReceipts(id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
+  const deleteProjects=async ids=>{for(const id of ids){await purgeReceipts(id);await sb.from('project_collaborators').delete().eq('project_id',id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
   const addRevenueItem=async item=>{
     const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();

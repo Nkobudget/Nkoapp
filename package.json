@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "test:integration": "node --test tests/auth-dashboard.test.mjs",
-    "test": "node --test tests/onboarding-storage.test.mjs tests/initials.test.mjs",
+    "test": "node --test tests/onboarding-storage.test.mjs tests/initials.test.mjs tests/collaborators.test.mjs",
     "test:production": "node --test tests/production.test.mjs"
   },
   "dependencies": {

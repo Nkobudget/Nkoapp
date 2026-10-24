@@ -63,7 +63,7 @@ const Header = () => {
           <>
             <Link
               ref={loginRef}
-              to="/app"
+              to="/app?mode=login"
               className="rounded-sm text-white text-sm font-medium hover:text-amber-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-apricot"
             >
               Login
@@ -71,7 +71,7 @@ const Header = () => {
             
             <Pressable hover>
               <Link
-                to="/onboarding"
+                to="/app?mode=signup"
                 className="rounded-full bg-palette-apricot px-5 py-2 text-sm font-semibold text-black 
                            transition-all duration-300 
                            shadow-[0_8px_20px_rgba(255,179,71,0.5)] 

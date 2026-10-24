@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { MoveRight } from "lucide-react";
+import { Link } from "react-router";
 import { fadeUp, staggerContainer } from "../lib/motion";
 import Pressable from "./motion/Pressable";
 
@@ -45,11 +46,11 @@ const HeroSection = () => {
       >
 
         <Pressable hover className="inline-flex">
-          <button
-            type="button"
+          <Link
+            to="/app?mode=signup"
             className="group inline-flex items-center justify-center gap-2 rounded-2xl
                        bg-palette-apricot px-6 py-4 text-[15px] font-medium text-black
-                       transition-all duration-200
+                       transition-all duration-200 cursor-pointer
                        hover:brightness-110
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-palette-apricot focus-visible:ring-offset-2 focus-visible:ring-offset-black
                        shadow-[0_8px_24px_rgba(255,179,71,0.25)] hover:shadow-[0_10px_30px_rgba(255,179,71,0.45)]"
@@ -59,21 +60,21 @@ const HeroSection = () => {
               strokeWidth={1.5}
               className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
             />
-          </button>
+          </Link>
         </Pressable>
 
 
         <Pressable className="inline-flex">
-          <button
-            type="button"
+          <a
+            href="#features"
             className="inline-flex items-center justify-center rounded-2xl
                        border border-palette-ivory/80 px-6 py-4 text-[15px] font-medium text-palette-ivory
-                       transition-colors duration-200
+                       transition-colors duration-200 cursor-pointer
                        hover:bg-palette-ivory hover:text-black
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-palette-ivory focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             See How NKO Works
-          </button>
+          </a>
         </Pressable>
       </motion.div>
     </motion.section>

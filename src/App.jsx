@@ -12,14 +12,11 @@ import ProductionCTASection from "./components/ProductionCTASection"
 import Footer from "./components/Footer"
 import { Component, useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
-import SignInPage from "./auth/SignInPage";
-import OnboardingWelcome from "./onboarding/OnboardingWelcome";
 import { useAuth } from "./auth/AuthContext";
 import AuthGate from "./auth/AuthGate";
 import AuthProvider from "./auth/AuthProvider";
 import LangProvider from "./i18n/LangProvider";
 import { isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
-import AuthStatus from "./auth/AuthStatus";
 
 
 class DashboardBoundary extends Component {
@@ -64,48 +61,14 @@ const LandingPage = () => {
         <ProductionRolesSection />
         <AIControlSection />
         <ProductionCTASection
-         backgroundImage="/assets/studio.png" 
+          backgroundImage="/assets/studio.png"
+          createHref="/app?mode=signup"
          />
         <Footer/> 
       </main>
     </div>
   );
 };
-
-function SignInRoute() {
-  const navigate = useNavigate();
-  const { status, error, retry } = useAuth();
-
-  if (status === "authenticated") return <Navigate to="/app" replace />;
-  if (status === "loading") return <AuthStatus />;
-  if (status === "error") return <AuthStatus error={error} onRetry={retry} />;
-
-  return (
-    <SignInPage
-      introText="Sign in to your NKŌ workspace and keep your production moving."
-      onEmailContinue={() => navigate("/app")}
-      googleUnavailableMessage="Google sign-in is not enabled yet. Please continue with email."
-      accountPrompt="New to NKO?"
-      accountLinkLabel="Get started"
-      onAccountClick={() => navigate("/onboarding")}
-    />
-  );
-}
-
-function OnboardingRoute() {
-  const navigate = useNavigate();
-  const { status } = useAuth();
-  if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
-
-  return (
-    <OnboardingWelcome
-      onSetUpProduction={() => navigate("/sign-in")}
-      onSkip={() => navigate("/")}
-      onBack={() => navigate("/")}
-    />
-  );
-}
 
 function AppRoutes() {
   const { recovery, status } = useAuth();
@@ -122,8 +85,12 @@ function AppRoutes() {
   if (rootCallback || recovery) return <DashboardBoundary><AuthGate /></DashboardBoundary>;
   return <Routes>
     <Route path="/" element={<LandingPage />} />
-    <Route path="/sign-in" element={<SignInRoute />} />
-    <Route path="/onboarding" element={<OnboardingRoute />} />
+    <Route path="/sign-in" element={<Navigate to="/app?mode=login" replace />} />
+    <Route path="/login" element={<Navigate to="/app?mode=login" replace />} />
+    <Route path="/signup" element={<Navigate to="/app?mode=signup" replace />} />
+    <Route path="/register" element={<Navigate to="/app?mode=signup" replace />} />
+    <Route path="/create-account" element={<Navigate to="/app?mode=signup" replace />} />
+    <Route path="/onboarding" element={<Navigate to="/app?mode=signup" replace />} />
     <Route path="/app/*" element={<DashboardBoundary><AuthGate /></DashboardBoundary>} />
     <Route path="/dashboard" element={<Navigate to="/app" replace />} />
     <Route path="*" element={<Navigate to="/" replace />} />
