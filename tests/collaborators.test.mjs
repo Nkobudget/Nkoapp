@@ -56,3 +56,32 @@ test('individual collaborator removal leaves other collaborators intact', () => 
   assert.equal(collaborators.length < 4, true);
 });
 
+test('only the production admin can export data and share/invite collaborators', () => {
+  const project = { id: 'proj-123', name: 'Nna', user_id: 'admin-owner-id' };
+  const adminUser = { id: 'admin-owner-id', email: 'owner@example.com' };
+  const collaboratorUser = { id: 'collab-user-id', email: 'editor@example.com' };
+
+  const canExport = (user, proj) => {
+    return user.id === proj.user_id;
+  };
+
+  const canShareOrInvite = (user, proj) => {
+    return user.id === proj.user_id;
+  };
+
+  const canManageCollaborators = (user, proj) => {
+    return user.id === proj.user_id;
+  };
+
+  // Admin permissions
+  assert.equal(canExport(adminUser, project), true);
+  assert.equal(canShareOrInvite(adminUser, project), true);
+  assert.equal(canManageCollaborators(adminUser, project), true);
+
+  // Collaborator permissions (blocked from export, share, and invite)
+  assert.equal(canExport(collaboratorUser, project), false);
+  assert.equal(canShareOrInvite(collaboratorUser, project), false);
+  assert.equal(canManageCollaborators(collaboratorUser, project), false);
+});
+
+

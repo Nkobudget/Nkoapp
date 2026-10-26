@@ -1484,13 +1484,13 @@ function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
 
 
 /* ── Collaborators Modal ── */
-function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClose }) {
+function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClose, isOwner }) {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const count = collaborators.length;
 
   const handleInvite = async () => {
-    if (!email.trim()) return;
+    if (!email.trim() || !isOwner) return;
     setBusy(true);
     await onInvite(email.trim());
     setBusy(false);
@@ -1543,6 +1543,12 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
           Invited collaborators can view and work together on budgets, schedules, breakdowns, and advances for this production. Up to 4 collaborators can join this project.
         </div>
 
+        {!isOwner && (
+          <div style={{ padding: '8px 12px', background: T.hi, borderRadius: 8, fontSize: 11, color: T.sapphire, marginBottom: 14, border: `1px solid ${T.line}` }}>
+            🔒 You are viewing this production as an invited collaborator. Only the production admin can invite, remove, or manage collaborators.
+          </div>
+        )}
+
         {/* List of current collaborators */}
         <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {collaborators.length === 0 ? (
@@ -1574,32 +1580,38 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    if (window.confirm('Remove this collaborator from the production?')) {
-                      onRemove(c.id, project.id);
-                    }
-                  }}
-                  style={{
-                    background: 'none',
-                    border: `1px solid ${T.coral}`,
-                    borderRadius: 6,
-                    color: T.coral,
-                    fontSize: 10,
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                >
-                  Remove
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Remove this collaborator from the production?')) {
+                        onRemove(c.id, project.id);
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${T.coral}`,
+                      borderRadius: 6,
+                      color: T.coral,
+                      fontSize: 10,
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             ))
           )}
         </div>
 
-        {/* Invite form if < 4 */}
-        {count < 4 ? (
+        {/* Invite form if < 4 (Admin only) */}
+        {!isOwner ? (
+          <div style={{ padding: 10, background: T.hi, borderRadius: 8, fontSize: 11, color: T.faint, textAlign: 'center', borderTop: `1px solid ${T.line}` }}>
+            Only the production admin can invite or manage collaborators.
+          </div>
+        ) : count < 4 ? (
           <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14 }}>
             <div style={{ fontSize: 11, color: T.goldDim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, letterSpacing: '.05em' }}>
               Invite collaborator ({count + 1} of 4)
@@ -1708,9 +1720,9 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
               const isOwner = p.user_id === currentUserId;
               if (!isOwner) {
                 return (
-                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>👥 Shared production</span>
-                    <span style={{fontSize:10,color:T.faint}}>{count} collaborator{count !== 1 ? 's' : ''}</span>
+                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                    <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>👥 Shared production (Collaborator)</span>
+                    <span style={{fontSize:10,color:T.faint}}>Export & share managed by Admin</span>
                   </div>
                 );
               }
@@ -1748,19 +1760,21 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
                 </div>
               );
             })()}
-            <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}}>🗑️</button>
+            {isOwner && (
+              <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}} title="Delete production">🗑️</button>
+            )}
           </div>;})}
         </div>
       </>
       )}
-      {collabModalProject&&<CollaboratorsModal project={collabModalProject} collaborators={collaborators.filter(c=>c.project_id===collabModalProject.id)} onInvite={email=>onInviteCollaborator(collabModalProject.id,email)} onRemove={(collabId)=>onRemoveCollaborator(collabId,collabModalProject.id)} onClose={()=>setCollabModalProject(null)}/>}
+      {collabModalProject&&<CollaboratorsModal project={collabModalProject} isOwner={collabModalProject.user_id===currentUserId} collaborators={collaborators.filter(c=>c.project_id===collabModalProject.id)} onInvite={email=>onInviteCollaborator(collabModalProject.id,email)} onRemove={(collabId)=>onRemoveCollaborator(collabId,collabModalProject.id)} onClose={()=>setCollabModalProject(null)}/>}
       {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{const ok=await onCreate(d);if(ok)setShowModal(false);}} defaultCurrency={defaultCurrency}/>}
     </div>
   );
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items,advances,payees,onBack,onOpenBudget}){
+function ProductionDashboardView({project,items,advances,payees,onBack,onOpenBudget,isOwner}){
   const{t}=useLang();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
@@ -1769,9 +1783,16 @@ function ProductionDashboardView({project,items,advances,payees,onBack,onOpenBud
     <div>
       <button onClick={onBack} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',marginBottom:14,padding:0}}>{t('allProductions')}</button>
       <div style={{marginBottom:22}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:28,color:T.cream}}>{project.name}</div>
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:28,color:T.cream}}>{project.name}</div>
+          <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:6,background:isOwner?T.goldGlow:T.hi,color:isOwner?T.gold:T.sapphire,border:`1px solid ${isOwner?T.gold:T.line}`,fontFamily:'Manrope,sans-serif'}}>
+            {isOwner ? '👑 Production Admin' : '👥 Collaborator'}
+          </span>
+        </div>
         <div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:4}}>{project.type}</div>
-        <div style={{fontSize:13,color:T.dim,marginTop:6,fontFamily:'Manrope,sans-serif'}}>{t('productionDashboard')}</div>
+        <div style={{fontSize:13,color:T.dim,marginTop:6,fontFamily:'Manrope,sans-serif'}}>
+          {isOwner ? t('productionDashboard') : `${t('productionDashboard')} · Export and share actions are managed by the production admin.`}
+        </div>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
         <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')} sub={project.base_currency} onClick={onOpenBudget}/>
@@ -2178,7 +2199,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
       {totalAdv>0&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>Advances issued: {sym(project.base_currency)}{fmt(totalAdv)}</div>}
       <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
         <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
-        {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>)}
+        {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>)}
       </div>
       {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
@@ -2438,7 +2459,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,payees=[]
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>By department</div>
-        <div style={{display:'flex',gap:8}}>{(pAdv.length>0||pPOsPaid.length>0||payList.length>0)&&isOwner&&<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid,payList)}>📄 Export Recon Report</Btn>}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>{(pAdv.length>0||pPOsPaid.length>0||payList.length>0)&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid,payList)}>📄 Export Recon Report</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>)}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
       </div>
       {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
         activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} payments={payList.filter(x=>x.dept===dept)} currency={project.base_currency}/>)}
@@ -2693,7 +2714,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
         <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>All Purchase Orders ({pPOs.length})</div>
-        {pPOs.length>0&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>{try{poRegisterPDF(pPOs,project);}catch(e){alert(`Could not build the PDF: ${e.message}`);}}}>📄 Export PO register</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Only the production owner can export</span>)}
+        {pPOs.length>0&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>{try{poRegisterPDF(pPOs,project);}catch(e){alert(`Could not build the PDF: ${e.message}`);}}}>📄 Export PO register</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Only the production admin can export</span>)}
       </div>
       {pPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No purchase orders yet — drop in an invoice above to create your first one.</div></div>:
       pPOs.slice().reverse().map(po=>(
@@ -3647,13 +3668,13 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
         <Btn size="sm" variant="outline" onClick={()=>setShowBuild(!showBuild)}>✨ Suggest a schedule</Btn>
         <Btn size="sm" variant="ghost" onClick={()=>(guide?closeGuide():setGuide(true))}>❓ How this works</Btn>
         {isOwner&&shootDays.length>0&&<Btn size="sm" variant="outline" onClick={()=>exportSafely(()=>scheduleStripPDF(project,days,scenes,characters))}>📄 Export schedule (PDF)</Btn>}
-        {!isOwner&&shootDays.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>}
+        {!isOwner&&shootDays.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>}
       </div>
       <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontFamily:'Manrope,sans-serif'}}>
         <div style={{fontSize:11,color:T.dim,lineHeight:1.7,marginBottom:8}}><b style={{color:T.cream}}>Schedule export</b> — the whole shoot on paper, scene by scene and day by day, for you and the department heads. <b style={{color:T.cream}}>Call sheet</b> — one day's instructions for the crew: call time, location, scenes and cast.</div>
         {shootDays.length===0?<div style={{fontSize:11,color:T.coral}}>You don't have a shoot day yet. Tap “+ Shoot day” or “✨ Suggest a schedule” and a call sheet button for each day will appear here.</div>
         :isOwner?<div><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Print a call sheet</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{shootDays.map(d=><button key={d.id} onClick={()=>exportSafely(()=>callSheetPDF(project,d,shootNo[d.id],shootDays.length,scenes,characters))} style={{...mini,color:T.cream}}>📄 Day {shootNo[d.id]} · {shortDate(d.date)}</button>)}</div><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'10px 0 5px'}}>Export the whole schedule</div><button onClick={()=>exportSafely(()=>scheduleStripPDF(project,days,scenes,characters))} style={{...mini,color:T.cream}}>📄 Export schedule (PDF) — every day, scene by scene</button></div>
-        :<div style={{fontSize:11,color:T.faint}}>Only the production owner can print call sheets and export the schedule.</div>}
+        :<div style={{fontSize:11,color:T.faint}}>Only the production admin can print call sheets and export the schedule.</div>}
       </div>
       {showBuild&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16}}>
         <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Suggest a schedule</div>
@@ -3817,7 +3838,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
       <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
         <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
-        {ps.length>0&&(isOwner?<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production owner can export</span>)}
+        {ps.length>0&&(isOwner?<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export and share</span>)}
       </div>
       {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
@@ -3999,6 +4020,11 @@ function Workspace(){
   };
   const MAX_COLLABORATORS = 4;
   const inviteCollaborator=async(projectId,email)=>{
+    const proj=projects.find(p=>p.id===projectId);
+    if(proj && proj.user_id!==user.id){
+      alert("Only the production admin can share or invite collaborators.");
+      return;
+    }
     const cleanEmail = email.trim().toLowerCase();
     const existing = collaborators.filter(c=>c.project_id===projectId);
     if(existing.length >= MAX_COLLABORATORS){
@@ -4025,7 +4051,6 @@ function Workspace(){
       }catch{}
       const dataWithEmail = {...data, email: cleanEmail};
       setCollaborators(p=>[...p.filter(c=>c.id!==data.id), dataWithEmail]);
-      const proj=projects.find(p=>p.id===projectId);
       fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         to:cleanEmail,
         subject:`You've been added to ${proj?.name||'a production'} on NKÒ`,
@@ -4034,19 +4059,34 @@ function Workspace(){
     }
   };
   const removeCollaborator=async(collabIdOrProjectId, maybeProjectId)=>{
+    const pid = maybeProjectId || (collaborators.find(c=>c.id===collabIdOrProjectId)?.project_id);
+    const proj = projects.find(p=>p.id===pid);
+    if(proj && proj.user_id!==user.id){
+      alert("Only the production admin can manage collaborators.");
+      return;
+    }
     if(maybeProjectId){
       const collabId = collabIdOrProjectId;
       setCollaborators(p=>p.filter(c=>c.id!==collabId));
       const{error}=await sb.from('project_collaborators').delete().eq('id',collabId);
       if(error)alert(`Could not remove collaborator: ${error.message}`);
     } else {
-      const pid = collabIdOrProjectId;
       setCollaborators(p=>p.filter(c=>c.project_id!==pid));
       const{error}=await sb.from('project_collaborators').delete().eq('project_id',pid);
       if(error)alert(`Could not remove collaborator: ${error.message}`);
     }
   };
-  const deleteProjects=async ids=>{for(const id of ids){await purgeReceipts(id);await sb.from('project_collaborators').delete().eq('project_id',id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}};
+  const deleteProjects=async ids=>{
+    const unowned = ids.filter(id => {
+      const p = projects.find(proj => proj.id === id);
+      return p && p.user_id !== user.id;
+    });
+    if(unowned.length > 0){
+      alert("Only the production admin can delete a production.");
+      return;
+    }
+    for(const id of ids){await purgeReceipts(id);await sb.from('project_collaborators').delete().eq('project_id',id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}
+  };
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
   const addRevenueItem=async item=>{
     const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();
@@ -4324,7 +4364,7 @@ function Workspace(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
           {view==='dashboard'&&(project?
-            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')}/>
+            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} isOwner={project?.user_id===user.id}/>
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
