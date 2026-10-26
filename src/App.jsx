@@ -23,14 +23,25 @@ import AuthStatus from "./auth/AuthStatus";
 
 
 class DashboardBoundary extends Component {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
+  state = { failed: false, error: null };
+  static getDerivedStateFromError(error) { return { failed: true, error }; }
+  componentDidCatch(error, errorInfo) {
+    console.error("DashboardBoundary caught an error:", error, errorInfo);
+  }
   render() {
     return this.state.failed ? <main className="min-h-svh bg-palette-black p-8 text-palette-ivory">
       <h1 className="text-2xl">The workspace could not load.</h1>
       <p className="mt-3">Please reload the page and try again.</p>
-      <button type="button" className="mt-5 rounded bg-palette-gold px-4 py-3 text-palette-black" onClick={() => window.location.reload()}>Reload workspace</button>
-      <Link to="/" className="ml-4 underline">Return home</Link>
+      {this.state.error && (
+        <div className="mt-4 max-w-xl rounded border border-palette-graphite bg-palette-charcoal p-4 text-xs font-mono text-palette-apricot">
+          {this.state.error.message || String(this.state.error)}
+        </div>
+      )}
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        <button type="button" className="rounded bg-palette-gold px-4 py-3 text-palette-black font-semibold" onClick={() => window.location.reload()}>Reload workspace</button>
+        <button type="button" className="rounded border border-palette-graphite px-4 py-3 text-palette-ivory text-sm hover:border-palette-gold" onClick={() => { try { localStorage.clear(); sessionStorage.clear(); } catch {} window.location.href = '/app'; }}>Clear session & retry</button>
+        <Link to="/" className="underline text-sm">Return home</Link>
+      </div>
     </main> : this.props.children;
   }
 }

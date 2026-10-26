@@ -1659,7 +1659,7 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
 }
 
 /* ── Dashboard ── */
-function DashboardView({projects,budgetItems,advances,reconEntries,payees,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators,currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
+function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const[collabModalProject,setCollabModalProject]=useState(null);
@@ -1774,7 +1774,7 @@ function DashboardView({projects,budgetItems,advances,reconEntries,payees,curren
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items,advances,payees,onBack,onOpenBudget,isOwner}){
+function ProductionDashboardView({project,items=[],advances=[],payees=[],onBack,onOpenBudget,isOwner}){
   const{t}=useLang();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
@@ -3959,6 +3959,7 @@ function Workspace(){
     setLoadState('loading');setLoadError('');
     const loadAll=async()=>{
       try{
+      if(!sb)throw new Error('Database connection is not available. Please check connection and reload.');
       const[pr,bi,ad,re,py,sc,ch,po,cb,ts,rv,sdy]=await Promise.all([
         sb.from('projects').select('*').order('created_at',{ascending:false}),
         sb.from('budget_items').select('*'),

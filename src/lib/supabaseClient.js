@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const DEFAULT_SUPABASE_URL = 'https://pvyrfjgrfmuvivdflcgg.supabase.co'
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZUv'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY
 
 // Capture callback intent before the SDK consumes the URL fragment.
 const callbackHash = new URLSearchParams(window.location.hash.slice(1))
