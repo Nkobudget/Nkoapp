@@ -1,26 +1,15 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
-import { useSearchParams } from 'react-router'
 import { useAuth } from './AuthContext'
 import { useLang } from '../i18n/LangContext'
 import { authErrorMessage } from './authErrors'
 import AuthCard from './AuthCard'
 import TermsModal from './TermsModal'
 
-export default function AuthScreen({ defaultMode }) {
+export default function AuthScreen() {
   const { signIn, signUp, requestPasswordReset, callbackError } = useAuth()
   const { t, lang } = useLang()
-  const [searchParams] = useSearchParams()
-  const initialMode = defaultMode || (searchParams.get('mode') === 'signup' || searchParams.get('signup') !== null ? 'signup' : 'login')
-  const [mode, setMode] = useState(initialMode)
-
-  useEffect(() => {
-    const qMode = searchParams.get('mode')
-    if (qMode === 'signup' || qMode === 'login') {
-      setMode(qMode)
-    }
-  }, [searchParams])
-
+  const [mode, setMode] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [agreed, setAgreed] = useState(false)

@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 import { MoveRight } from "lucide-react";
-import { Link } from "react-router";
 import { fadeUp, staggerContainer } from "../lib/motion";
 import Pressable from "./motion/Pressable";
 
-const HeroSection = () => {
+const HeroSection = ({ onGetStarted }) => {
   return (
     <motion.section
       variants={staggerContainer(0.09, 0.05)}
@@ -46,8 +45,9 @@ const HeroSection = () => {
       >
 
         <Pressable hover className="inline-flex">
-          <Link
-            to="/app?mode=signup"
+          <button
+            type="button"
+            onClick={onGetStarted}
             className="group inline-flex items-center justify-center gap-2 rounded-2xl
                        bg-palette-apricot px-6 py-4 text-[15px] font-medium text-black
                        transition-all duration-200 cursor-pointer
@@ -60,13 +60,14 @@ const HeroSection = () => {
               strokeWidth={1.5}
               className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
             />
-          </Link>
+          </button>
         </Pressable>
 
 
         <Pressable className="inline-flex">
-          <a
-            href="#features"
+          <button
+            type="button"
+            onClick={onGetStarted}
             className="inline-flex items-center justify-center rounded-2xl
                        border border-palette-ivory/80 px-6 py-4 text-[15px] font-medium text-palette-ivory
                        transition-colors duration-200 cursor-pointer
@@ -74,7 +75,7 @@ const HeroSection = () => {
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-palette-ivory focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             See How NKO Works
-          </a>
+          </button>
         </Pressable>
       </motion.div>
     </motion.section>
