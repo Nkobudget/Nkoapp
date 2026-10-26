@@ -1699,6 +1699,9 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
             const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
             const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
             const pct=budgetUSD>0?Math.min(100,(spentUSD/budgetUSD)*100):0;const over=spentUSD>budgetUSD;
+            const isOwner = p.user_id === currentUserId;
+            const pCollabs = (collaborators || []).filter(c => c.project_id === p.id);
+            const count = pCollabs.length;
           return<div key={p.id} style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?T.hi:T.panel,border:`1px solid ${isSel?T.coral:p.id===currentId?T.gold:T.line}`,borderRadius:10,padding:18,position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSel?T.coral:T.faint}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
             <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',paddingRight:28}}>
@@ -1714,52 +1717,44 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
               </>}
               <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
             </button>
-            {(()=>{
-              const pCollabs = collaborators.filter(c => c.project_id === p.id);
-              const count = pCollabs.length;
-              const isOwner = p.user_id === currentUserId;
-              if (!isOwner) {
-                return (
-                  <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                    <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>👥 Shared production (Collaborator)</span>
-                    <span style={{fontSize:10,color:T.faint}}>Export & share managed by Admin</span>
-                  </div>
-                );
-              }
-              return (
-                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    {count === 0 ? (
-                      <span style={{fontSize:10,color:T.faint}}>No collaborators</span>
-                    ) : (
-                      <>
-                        <span style={{fontSize:10,color:T.sage,fontWeight:600}}>👤 {count}/4 collaborator{count > 1 ? 's' : ''}</span>
-                        <button
-                          onClick={e=>{e.stopPropagation();setCollabModalProject(p);}}
-                          style={{background:'none',border:'none',color:T.dim,fontSize:10,cursor:'pointer',textDecoration:'underline'}}
-                        >
-                          Manage
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  {count < 4 ? (
-                    <button
-                      onClick={e=>{
-                        e.stopPropagation();
-                        const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
-                        if(email)onInviteCollaborator(p.id,email);
-                      }}
-                      style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700,marginLeft:count>0?'auto':0}}
-                    >
-                      + Invite collaborator
-                    </button>
+            {!isOwner ? (
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>👥 Shared production (Collaborator)</span>
+                <span style={{fontSize:10,color:T.faint}}>Export & share managed by Admin</span>
+              </div>
+            ) : (
+              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  {count === 0 ? (
+                    <span style={{fontSize:10,color:T.faint}}>No collaborators</span>
                   ) : (
-                    <span style={{fontSize:10,color:T.faint,marginLeft:'auto'}}>Max 4 reached</span>
+                    <>
+                      <span style={{fontSize:10,color:T.sage,fontWeight:600}}>👤 {count}/4 collaborator{count > 1 ? 's' : ''}</span>
+                      <button
+                        onClick={e=>{e.stopPropagation();setCollabModalProject(p);}}
+                        style={{background:'none',border:'none',color:T.dim,fontSize:10,cursor:'pointer',textDecoration:'underline'}}
+                      >
+                        Manage
+                      </button>
+                    </>
                   )}
                 </div>
-              );
-            })()}
+                {count < 4 ? (
+                  <button
+                    onClick={e=>{
+                      e.stopPropagation();
+                      const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
+                      if(email)onInviteCollaborator(p.id,email);
+                    }}
+                    style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700,marginLeft:count>0?'auto':0}}
+                  >
+                    + Invite collaborator
+                  </button>
+                ) : (
+                  <span style={{fontSize:10,color:T.faint,marginLeft:'auto'}}>Max 4 reached</span>
+                )}
+              </div>
+            )}
             {isOwner && (
               <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}} title="Delete production">🗑️</button>
             )}
