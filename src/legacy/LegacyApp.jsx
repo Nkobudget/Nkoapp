@@ -38,7 +38,7 @@ const PHASES=[
 ];
 
 const UNITS=['day','week','flat','person','item'];
-const PROJ_TYPES=['Feature Film','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Creator Content','Podcast','Animation / Cartoon','Other'];
+const PROJ_TYPES=['Feature Film','Television Series / TV Show','Vertical Series / Microdrama','Short Film','Music Video','Documentary','Branded Content','Creator Content','Podcast','Animation / Cartoon','Other'];
 const PAY_METHODS=['Cash','Bank Transfer','OPay / PalmPay','M-Pesa','MTN Mobile Money','Airtel Money','Cheque','Other'];
 const EXPENSE_CATS_UNIVERSAL=['Transport','Feeding','Fuel','Communication','Accommodation','Labour'];
 const EXPENSE_CATS_BY_DEPT={
@@ -394,6 +394,155 @@ const TEMPLATES=[
     {dept:'Z - Sales & Distribution',description:"Distributor's marketing fund",qty:1,unit:'flat',rate:0},
     {dept:'Z - Sales & Distribution',description:'Festival runs',qty:1,unit:'flat',rate:0},
   ]},
+  {id:'television',label:'Television Series / TV Drama',type:'Television Series / TV Show',items:[
+    {dept:'A - Research & Development',description:'Series Bible & Concept Development',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Pilot Treatment & Series Arc',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Format Rights & IP Acquisition',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Research Materials & Archival Clearances',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Series Pitch Deck & Visual Bible',qty:1,unit:'flat',rate:0},
+    {dept:'A - Research & Development',description:'Network / Platform Legal Clearances',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Showrunner / Head Writer Fee',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Writers Room — Story Outline & Beat Sheets',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Episodic Screenplays (per episode)',qty:13,unit:'item',rate:0},
+    {dept:'B - Script & Story',description:'Script Editor / Story Editor',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script Coordinator & Writers Room Assistant',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Copyright & Broadcast Registrations',qty:1,unit:'flat',rate:0},
+    {dept:'B - Script & Story',description:'Script Printing & Distribution',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Episodic Script Breakdown',qty:13,unit:'item',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Series Master Schedule & Cross-boarding',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Standing Set vs Practical Location Scouting',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Casting Director & Ensemble Casting',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Table Reads (Series Cast)',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Director & Department Head Pre-pro Meetings',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Technical Camera Tests & Multi-cam Setup',qty:1,unit:'flat',rate:0},
+    {dept:'C - Pre-Production Expenses',description:'Wardrobe Fittings & Makeup Tests',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Showrunner / Executive Producer',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Line Producer / Supervising Producer',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Manager',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Series 1st Assistant Director (Block 1)',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Series 1st Assistant Director (Block 2)',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'2nd Assistant Director',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'2nd 2nd Assistant Director / Crowd AD',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Continuity / Script Supervisor',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Coordinator',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Accountant',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Assistant (Office)',qty:1,unit:'flat',rate:0},
+    {dept:'D - Production Team',description:'Production Assistant (Floor / Set)',qty:2,unit:'person',rate:0},
+    {dept:'E - Creative Team',description:'Lead / Block Director (Episodes 1-6)',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Episodic / Block Director (Episodes 7-13)',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Director Assistant / Shadow Director',qty:1,unit:'flat',rate:0},
+    {dept:'E - Creative Team',description:'Storyboard Artist (Action sequences)',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Series Regular Leads (Tier 1)',qty:4,unit:'person',rate:0},
+    {dept:'F - Talents',description:'Series Regular Supporting (Tier 2)',qty:6,unit:'person',rate:0},
+    {dept:'F - Talents',description:'Recurring Cast Members',qty:8,unit:'person',rate:0},
+    {dept:'F - Talents',description:'Episodic Guest Stars',qty:13,unit:'item',rate:0},
+    {dept:'F - Talents',description:'Day Players / Minor Roles',qty:20,unit:'person',rate:0},
+    {dept:'F - Talents',description:'Background / Extras (Crowd calls)',qty:50,unit:'person',rate:0},
+    {dept:'F - Talents',description:'Cast Wardrobe & Fitting Allowances',qty:1,unit:'flat',rate:0},
+    {dept:'F - Talents',description:'Cast Per Diem & Transport Allowance',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Director of Photography (DoP)',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Camera Operator A (A Cam)',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Camera Operator B (B Cam / Multi-cam)',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'1st Assistant Camera A (Focus Puller)',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'1st Assistant Camera B (Focus Puller)',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'2nd Assistant Camera / Clapper Loader',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'DIT (Digital Imaging Technician)',qty:1,unit:'flat',rate:0},
+    {dept:'G - Camera & Grip Team',description:'Steadicam / Gimbal Specialist',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Primary Multi-Camera Package (2x Cinema Bodies + Cine Lenses)',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Wireless Video Transmitters (Teradek 4-way)',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Director / Client Field Monitors & DIT Station',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Dolly, Track & Bazooka Package',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Jib / Crane Arm & Remote Head',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera Media Storage Cards & Rugged Backup RAID Drives',qty:1,unit:'flat',rate:0},
+    {dept:'H - Camera & Grip Equipment',description:'Camera & Equipment Transit Insurance',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Gaffer (Chief Lighting Technician)',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Best Boy Electric',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Key Grip',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Best Boy Grip',qty:1,unit:'flat',rate:0},
+    {dept:'I - Light & Power Team',description:'Sparks / Electrics',qty:3,unit:'person',rate:0},
+    {dept:'I - Light & Power Team',description:'Generator Operator & Technician',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Studio Lighting Package (SkyPanels, HMIs, LED Tubes)',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Standing Set Practical Lighting & Dimmers',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Heavy-Duty Soundstage Generator & Fuel',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Power Distribution Boxes, Cables & Distro',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Grip Rigging Package (C-stands, combos, diffusions, flags)',qty:1,unit:'flat',rate:0},
+    {dept:'J - Light & Power Equipment',description:'Atmospheric Effects (Haze / Fog machines)',qty:1,unit:'flat',rate:0},
+    {dept:'K - Sound Team',description:'Production Sound Mixer',qty:1,unit:'flat',rate:0},
+    {dept:'K - Sound Team',description:'1st Boom Operator',qty:1,unit:'flat',rate:0},
+    {dept:'K - Sound Team',description:'2nd Boom Operator / Sound Utility',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Multi-Track Field Recorder / Mixer (16+ tracks)',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Wireless Lavalier Microphone Kits (Ensemble setup)',qty:8,unit:'item',rate:0},
+    {dept:'L - Sound Equipment',description:'Shotgun Mics, Booms & Wind Protection',qty:2,unit:'item',rate:0},
+    {dept:'L - Sound Equipment',description:'Wireless IFB Monitoring for Director / Script / Producer',qty:1,unit:'flat',rate:0},
+    {dept:'L - Sound Equipment',description:'Timecode Boxes (Tentacle Sync for all cameras & audio)',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Production Designer',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Art Director',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Set Decorator',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Lead Carpenter & Construction Crew',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Scenic Painters',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Props Master',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'Assistant Props Master',qty:1,unit:'flat',rate:0},
+    {dept:'M - Art Team',description:'On-Set Dresser / Standby Art',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Standing Permanent Sets Construction (Living Room / Office / Bar)',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Standing Set Dressing Purchases & Rentals',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Episodic Swing Sets & Turnaround Renovations',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Hero Props & Special Recurring Items',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Art Consumables, Hardware & Lumber',qty:1,unit:'flat',rate:0},
+    {dept:'N - Set & Prop Expenses',description:'Greenery, Plants & Set Dressing Flowers',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Soundstage / Studio Facility Rental (Block Shoot)',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'External Practical Location Fees & Permits',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Location Manager & Scouts',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Site Security, Marshals & Community Settling',qty:1,unit:'flat',rate:0},
+    {dept:'O - Location',description:'Location Holding Area & Crew Parking',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Costume Designer',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Wardrobe Supervisor & Continuity Assistant',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Lead Characters Wardrobe Purchases (Multiple Doubles)',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Supporting Cast & Extras Costumes / Uniforms',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Costume Rentals, Tailoring & Alterations',qty:1,unit:'flat',rate:0},
+    {dept:'P - Wardrobe',description:'Dry Cleaning, Laundry & On-Set Wardrobe Maintenance',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Key Makeup Artist',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Assistant Makeup Artist',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Key Hair Stylist & Wig Master',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Continuity Makeup Supplies & Touch-up Kits',qty:1,unit:'flat',rate:0},
+    {dept:'Q - Makeup & Hair',description:'Wigs, Hairpieces & Barbering',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Stunt Coordinator',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Stunt Performers / Stunt Doubles',qty:2,unit:'person',rate:0},
+    {dept:'R - SFX & Stunts',description:'Physical SFX (Squibs, bullet hits, smoke, rain)',qty:1,unit:'flat',rate:0},
+    {dept:'R - SFX & Stunts',description:'Stunt Safety Pads, Rigging & First Aid Support',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Cast & Crew Commuter Buses / Shuttles',qty:2,unit:'item',rate:0},
+    {dept:'S - Production Logistics',description:'Equipment Trucks & Cargo Vans',qty:2,unit:'item',rate:0},
+    {dept:'S - Production Logistics',description:'Production Vehicles Fuel & Tolls',qty:1,unit:'flat',rate:0},
+    {dept:'S - Production Logistics',description:'Intercity Travel & Hotel Accommodations',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Full Production Catering (Breakfast & Lunch for cast & crew)',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'All-Day Craft Services, Snacks, Drinking Water & Beverages',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'On-Set Certified Paramedic / First Aid Medic & Medical Kit',qty:1,unit:'flat',rate:0},
+    {dept:'T - Hospitality & Welfare',description:'Mobile Restroom Trailer & Sanitation',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Production Office Rent & Utilities',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Office Supplies, Printing & High-Speed Internet',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Production Insurance (Cast, Crew, Equipment, Third-Party)',qty:1,unit:'flat',rate:0},
+    {dept:'U - Overhead & General Expenses',description:'Bank Charges, Currency Conversion & Transfer Fees',qty:1,unit:'flat',rate:0},
+    {dept:'V - Production Support',description:'Production Contingency (10%)',qty:1,unit:'flat',rate:0},
+    {dept:'V - Production Support',description:'Production Legal Counsel, Contracts & Clearances',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Post-Production Supervisor',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Lead Episodic Editor (Block 1)',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Episodic Editor (Block 2)',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Assistant Editor (Dailies sync, logging, project prep)',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Colorist (Episodic Grade & Look Development)',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Supervising Sound Editor / Re-Recording Mixer',qty:1,unit:'flat',rate:0},
+    {dept:'W - Post-Production Team',description:'Series Composer (Theme music & original episodic score)',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Offline & Online Editing Suites Rental',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Sound Design, Foley & ADR Recording Studio',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'Series Main Title Sequence & VFX Graphics',qty:1,unit:'flat',rate:0},
+    {dept:'X - Post-Production Expenses',description:'High-Resolution Cloud Storage & Long-Term LTO Archival',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Unit Still Photographer (Episodic gallery & press stills)',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Behind-The-Scenes (BTS) / EPK Video Team',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Key Art Design, Episode Posters & Title Cards',qty:1,unit:'flat',rate:0},
+    {dept:'Y - PR & Marketing',description:'Teaser & Trailer Editing and Sound Mix',qty:1,unit:'flat',rate:0},
+    {dept:'Z - Sales & Distribution',description:'Broadcast / Streamer Delivery Master Packages (ProRes 4444 / IMF)',qty:1,unit:'flat',rate:0},
+    {dept:'Z - Sales & Distribution',description:'Closed Captioning, Subtitles & SDH Timing (All episodes)',qty:13,unit:'item',rate:0},
+    {dept:'Z - Sales & Distribution',description:'Independent Quality Control (QC) Broadcast Verification Pass',qty:13,unit:'item',rate:0},
+    {dept:'Z - Sales & Distribution',description:'Music Cue Sheets & Broadcast Clearance Deliverables',qty:1,unit:'flat',rate:0},
+  ]},
   {id:'vertical',label:'Vertical Series (7-day)',type:'Vertical Series / Microdrama',items:[
     {dept:'F - Talents',description:'Lead actor',qty:1,unit:'flat',rate:120000},
     {dept:'F - Talents',description:'Supporting cast (2)',qty:2,unit:'person',rate:40000},
@@ -579,9 +728,9 @@ const mkScene=(num,heading,ie,dn,cast,props,notes)=>({
 });
 
 const COMMUNITY_TEMPLATES=[
-  {id:'ct1',label:'Nollywood TV Drama',author:'Zestyn Media',type:'Feature Film',
+  {id:'ct1',label:'Nollywood TV Drama',author:'Zestyn Media',type:'Television Series / TV Show',
    sub:'13-episode primetime drama',downloads:142,
-   items:TEMPLATES.find(t=>t.id==='feature').items,
+   items:TEMPLATES.find(t=>t.id==='television').items,
    scenes:[
      mkScene('1','INT. HOUSE - DAY','INT','DAY',['Lead','Mother'],'Phone, documents','Establish character world before conflict'),
      mkScene('2','EXT. STREET - DAY','EXT','DAY',['Lead','Antagonist'],'Car, bag','Traffic control permit required'),
@@ -635,7 +784,7 @@ const COMMUNITY_TEMPLATES=[
      mkScene('Anim','INT. STUDIO - MULTI-DAY','INT','DAY',[],'Workstations, tablets','Block by character across all scenes — faster than scene-by-scene'),
    ]},
 ];
-const MKTCAT=['All','Feature Film','Vertical Series / Microdrama','Music Video','Documentary','Short Film','Branded Content','Creator Content','Podcast','Animation / Cartoon'];
+const MKTCAT=['All','Television Series / TV Show','Feature Film','Vertical Series / Microdrama','Music Video','Documentary','Short Film','Branded Content','Creator Content','Podcast','Animation / Cartoon'];
 
 /* ── AI Prompts ── */
 const CHAT_SYS=`You are a production finance co-pilot for African film and TV productions. You know Lagos, Accra, Nairobi and Johannesburg market rates. Give practical, specific advice in Naira, Cedis, Shillings or Rand as appropriate. Keep responses concise and actionable. IMPORTANT: Do not use any Markdown formatting. No asterisks for bold, no # for headers, no | for tables, no bullet points with *. Write in plain conversational text only. Use line breaks to separate points.`;
@@ -1440,15 +1589,30 @@ function Sidebar({view,setView,onSignOut,userEmail}){
     </div>
   );
 }
-function TopBar({view,setView,projects,currentId,onSelect,onCreate}){
+function TopBar({view,setView,projects,currentId,onSelect,onCreate,isProducerActive,otherActiveCount,isOwner,liveActivityText}){
   const{t}=useLang();
   return(
-    <div style={{background:T.panel,borderBottom:`1px solid ${T.line}`,padding:'10px 20px',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+    <div style={{background:T.panel,borderBottom:`1px solid ${T.line}`,padding:'10px 16px',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
       {view!=='dashboard'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
-      <Sel aria-label="Select production" value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,minWidth:0,maxWidth:280}}>
+      <Sel aria-label="Select production" value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,minWidth:140,maxWidth:280}}>
         <option value="">{t('selectProduction')}</option>
         {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
       </Sel>
+      {currentId && (
+        isProducerActive && !isOwner ? (
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(82,176,122,0.15)',border:'1px solid #52B07A',borderRadius:20,padding:'4px 10px',fontSize:11,color:'#72D69A',fontFamily:'Manrope,sans-serif',fontWeight:600}}>
+            <span className="nko-live-dot" />
+            <span>Producer working on project</span>
+            {liveActivityText && <span style={{color:T.cream,fontSize:10,opacity:0.85}}>({liveActivityText})</span>}
+          </div>
+        ) : otherActiveCount > 0 ? (
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'4px 10px',fontSize:11,color:T.gold,fontFamily:'Manrope,sans-serif',fontWeight:600}}>
+            <span className="nko-live-dot-gold" />
+            <span>{otherActiveCount} active now</span>
+            {liveActivityText && <span style={{color:T.cream,fontSize:10,opacity:0.85}}>({liveActivityText})</span>}
+          </div>
+        ) : null
+      )}
       <Btn onClick={onCreate} size="sm">{t('newBtn')}</Btn>
       <LangToggle compact/>
     </div>
@@ -1769,7 +1933,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items=[],advances=[],payees=[],onBack,onOpenBudget,isOwner}){
+function ProductionDashboardView({project,items=[],advances=[],payees=[],onBack,onOpenBudget,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
   const{t}=useLang();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
@@ -1789,6 +1953,26 @@ function ProductionDashboardView({project,items=[],advances=[],payees=[],onBack,
           {isOwner ? t('productionDashboard') : `${t('productionDashboard')} · Export and share actions are managed by the production admin.`}
         </div>
       </div>
+      {isProducerActive && !isOwner && (
+        <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:18,color:'#72D69A',fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+          <span className="nko-live-dot" />
+          <div style={{flex:1,minWidth:0}}>
+            <strong>Producer is currently working on this project</strong>
+            {liveActivityText && <span style={{color:T.cream,marginLeft:8,fontSize:12}}>— {liveActivityText}</span>}
+          </div>
+          <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',background:'rgba(255,255,255,0.06)',padding:'2px 8px',borderRadius:6}}>Live</span>
+        </div>
+      )}
+      {otherActiveCount > 0 && isOwner && (
+        <div style={{display:'flex',alignItems:'center',gap:10,background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:18,color:T.gold,fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+          <span className="nko-live-dot-gold" />
+          <div style={{flex:1,minWidth:0}}>
+            <strong>{otherActiveCount} collaborator{otherActiveCount>1?'s':''} active on this project</strong>
+            {liveActivityText && <span style={{color:T.cream,marginLeft:8,fontSize:12}}>— {liveActivityText}</span>}
+          </div>
+          <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',background:'rgba(255,255,255,0.06)',padding:'2px 8px',borderRadius:6}}>Live</span>
+        </div>
+      )}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
         <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')} sub={project.base_currency} onClick={onOpenBudget}/>
         <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')}/>
@@ -2177,7 +2361,147 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   openThemed(html,'dark');
 };
 
-function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner}){
+function TemplatePickerModal({onClose,onApply,_project}){
+  const mob=useIsMobile();
+  const[selectedCat,setSelectedCat]=useState('All');
+  const[search,setSearch]=useState('');
+
+  const categories=['All','Television Series','Feature Film','Vertical Series','Short Film','Music Video','Documentary','Animation'];
+  const filteredTemplates=TEMPLATES.filter(tpl=>{
+    const q=search.trim().toLowerCase();
+    const matchSearch=!q||tpl.label.toLowerCase().includes(q)||tpl.type.toLowerCase().includes(q);
+    if(!matchSearch)return false;
+    if(selectedCat==='All')return true;
+    if(selectedCat==='Television Series')return tpl.id==='television'||tpl.type.includes('Television');
+    if(selectedCat==='Feature Film')return tpl.id==='feature'||tpl.type.includes('Feature');
+    if(selectedCat==='Vertical Series')return tpl.id==='vertical'||tpl.type.includes('Vertical');
+    if(selectedCat==='Short Film')return tpl.id==='shortfilm'||tpl.type.includes('Short');
+    if(selectedCat==='Music Video')return tpl.id==='musicvideo'||tpl.type.includes('Music');
+    if(selectedCat==='Documentary')return tpl.id==='documentary'||tpl.type.includes('Doc');
+    if(selectedCat==='Animation')return tpl.id==='animation'||tpl.type.includes('Animation');
+    return true;
+  });
+
+  return(
+    <div style={{
+      position:'fixed',inset:0,zIndex:1000,
+      background:'rgba(10,12,16,0.85)',
+      backdropFilter:'blur(5px)',
+      display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',
+      padding:mob?0:'20px',
+    }} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{
+        background:T.panel,
+        border:`1px solid ${T.line}`,
+        borderRadius:mob?'18px 18px 0 0':14,
+        width:'100%',maxWidth:840,
+        maxHeight:mob?'90vh':'85vh',
+        display:'flex',flexDirection:'column',
+        boxShadow:'0 24px 50px rgba(0,0,0,0.7)',
+        overflow:'hidden'
+      }}>
+        {/* Header */}
+        <div style={{padding:mob?'16px 16px 12px':'20px 24px 16px',borderBottom:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:20}}>📋</span>
+              <div style={{fontFamily:'Fraunces,serif',fontSize:mob?19:23,color:T.cream}}>Budget Templates</div>
+            </div>
+            <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:4,lineHeight:1.4}}>
+              Pick a production-tested A–Z budget tailored for your format — including television series, features, and commercials.
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="Close" style={{
+            background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,
+            color:T.cream,padding:'8px 14px',cursor:'pointer',
+            fontSize:13,fontFamily:'Manrope,sans-serif',fontWeight:700,flexShrink:0
+          }}>
+            ✕ Close
+          </button>
+        </div>
+
+        {/* Search & Category Pills */}
+        <div style={{padding:mob?'12px 14px':'14px 24px',borderBottom:`1px solid ${T.line}`,background:T.hi}}>
+          <Inp placeholder="🔍 Search budget templates (e.g. Television, Feature, Drama)…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%',marginBottom:10}}/>
+          <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',display:'flex',gap:6,paddingBottom:2}}>
+            {categories.map(cat=>(
+              <button key={cat} onClick={()=>setSelectedCat(cat)} style={{
+                padding:'6px 12px',borderRadius:16,border:`1px solid ${selectedCat===cat?T.gold:T.line}`,
+                background:selectedCat===cat?T.goldGlow:'transparent',color:selectedCat===cat?T.gold:T.dim,
+                fontSize:11,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'
+              }}>
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Template Cards */}
+        <div style={{padding:mob?'14px 14px 28px':'20px 24px',overflowY:'auto',display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(250px, 1fr))',gap:12}}>
+          {filteredTemplates.map(tpl=>{
+            const isTV = tpl.id === 'television';
+            return(
+              <div key={tpl.id} style={{
+                background: isTV ? 'rgba(254, 237, 97, 0.05)' : T.hi,
+                border: `1px solid ${isTV ? T.gold : T.line}`,
+                borderRadius: 10,
+                padding: mob ? 14 : 16,
+                display: 'flex', flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}>
+                <div>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,gap:6}}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                      color: isTV ? T.gold : T.dim, fontFamily: 'Manrope,sans-serif',
+                      background: isTV ? T.goldGlow : 'rgba(255,255,255,0.04)',
+                      padding: '2px 8px', borderRadius: 4, border: `1px solid ${isTV ? T.gold : T.line}`
+                    }}>
+                      {tpl.type}
+                    </span>
+                    {isTV && (
+                      <span style={{fontSize:9,fontWeight:800,background:'#52B07A',color:'#0A140F',padding:'2px 6px',borderRadius:4,fontFamily:'Manrope,sans-serif',letterSpacing:'0.04em'}}>
+                        TV TAILORED
+                      </span>
+                    )}
+                  </div>
+                  <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,lineHeight:1.3,marginBottom:6}}>
+                    {tpl.label}
+                  </div>
+                  <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.4}}>
+                    {isTV
+                      ? 'Showrunner, writers room, series regulars, multi-cam stage package, wardrobe continuity, post supervisor, and broadcast delivery QC.'
+                      : `${tpl.items.length} line items across production departments with standard African film & media industry allowances.`
+                    }
+                  </div>
+                </div>
+
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10,borderTop:`1px solid ${T.line}`}}>
+                  <div style={{fontSize:11,color:T.dim,fontFamily:'IBM Plex Mono,monospace'}}>
+                    {tpl.items.length} items
+                  </div>
+                  <button onClick={()=>{onApply(tpl);onClose();}} style={{
+                    background: isTV ? T.gold : T.panel,
+                    border: `1px solid ${isTV ? T.gold : T.line}`,
+                    color: isTV ? T.ink : T.cream,
+                    padding: '8px 14px', borderRadius: 6,
+                    fontSize: 12, fontFamily: 'Manrope,sans-serif', fontWeight: 700,
+                    cursor: 'pointer'
+                  }}>
+                    Apply Template →
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
   const[search,setSearch]=useState('');
@@ -2188,6 +2512,26 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('budgetHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      {isProducerActive && !isOwner && (
+        <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:16,color:'#72D69A',fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+          <span className="nko-live-dot" />
+          <div style={{flex:1,minWidth:0}}>
+            <strong>Producer is currently working on this project</strong>
+            {liveActivityText && <span style={{color:T.cream,marginLeft:8,fontSize:12}}>— {liveActivityText}</span>}
+          </div>
+          <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',background:'rgba(255,255,255,0.06)',padding:'2px 8px',borderRadius:6}}>Live updates on</span>
+        </div>
+      )}
+      {otherActiveCount > 0 && isOwner && (
+        <div style={{display:'flex',alignItems:'center',gap:10,background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16,color:T.gold,fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+          <span className="nko-live-dot-gold" />
+          <div style={{flex:1,minWidth:0}}>
+            <strong>{otherActiveCount} collaborator{otherActiveCount>1?'s':''} active on this project</strong>
+            {liveActivityText && <span style={{color:T.cream,marginLeft:8,fontSize:12}}>— {liveActivityText}</span>}
+          </div>
+          <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',background:'rgba(255,255,255,0.06)',padding:'2px 8px',borderRadius:6}}>Live</span>
+        </div>
+      )}
       <BudgetSummaryHeader project={project} items={pItems} onSetContingency={onSetContingency} onSetTarget={onSetTarget}/>
       <ProductionInfoPanel project={project}/>
       <BrandPanel project={project}/>
@@ -2196,12 +2540,7 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
         <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
         {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>)}
       </div>
-      {showTpl&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Apply a template</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:8}}>
-          {TEMPLATES.map(tpl=><button key={tpl.id} onClick={()=>{onApplyTemplate(tpl);setShowTpl(false);}} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,padding:12,cursor:'pointer',textAlign:'left'}}><div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream}}>{tpl.label}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:3}}>{tpl.items.length} line items</div></button>)}
-        </div>
-      </div>}
+      {showTpl&&<TemplatePickerModal onClose={()=>setShowTpl(false)} onApply={tpl=>{onApplyTemplate(tpl);setShowTpl(false);}} project={project}/>}
       <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
       <div style={{marginBottom:14}}>
         <Inp placeholder="🔍 Search line items or departments…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%'}}/>
@@ -3996,6 +4335,223 @@ function Workspace(){
   const pBudget=budgetItems.filter(i=>i.project_id===currentId);
   const pAdvances=advances.filter(a=>a.project_id===currentId);
 
+  const [activeCollaborators, setActiveCollaborators] = useState([]);
+  const [liveActivity, setLiveActivity] = useState(null);
+  const activeActivityTimer = useRef(null);
+  const channelRef = useRef(null);
+
+  // ── Realtime Synchronization & Live Collaborator Presence ──
+  useEffect(()=>{
+    if(!user || !sb || !currentId) {
+      setActiveCollaborators([]);
+      setLiveActivity(null);
+      return;
+    }
+    const isOwner = project?.user_id === user.id;
+    const channelName = `nko_prod_${currentId}`;
+    const ch = sb.channel(channelName, {
+      config: {
+        presence: { key: user.id },
+      },
+    });
+
+    // 1. Presence tracking: Who is in this project right now?
+    ch.on('presence', { event: 'sync' }, () => {
+      try {
+        const state = ch.presenceState();
+        const present = [];
+        Object.keys(state).forEach(key => {
+          const list = state[key] || [];
+          list.forEach(p => present.push(p));
+        });
+        setActiveCollaborators(present);
+      } catch {}
+    });
+
+    // 2. Broadcast for live activity updates (e.g. "Producer added a budget line")
+    ch.on('broadcast', { event: 'activity' }, ({ payload }) => {
+      if (payload && payload.userId !== user.id) {
+        setLiveActivity(payload);
+        if (activeActivityTimer.current) clearTimeout(activeActivityTimer.current);
+        activeActivityTimer.current = setTimeout(() => {
+          setLiveActivity(null);
+        }, 6000);
+      }
+    });
+
+    // 3. Postgres changes for real-time data sync across all project tables
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'budget_items', filter: `project_id=eq.${currentId}` }, payload => {
+      if (payload.eventType === 'INSERT') {
+        setBudgetItems(prev => prev.some(i => i.id === payload.new.id) ? prev : [...prev, payload.new]);
+      } else if (payload.eventType === 'UPDATE') {
+        setBudgetItems(prev => prev.map(i => i.id === payload.new.id ? { ...i, ...payload.new } : i));
+      } else if (payload.eventType === 'DELETE') {
+        setBudgetItems(prev => prev.filter(i => i.id !== payload.old.id));
+      }
+    });
+
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'advances', filter: `project_id=eq.${currentId}` }, payload => {
+      if (payload.eventType === 'INSERT') {
+        setAdvances(prev => prev.some(a => a.id === payload.new.id) ? prev : [...prev, payload.new]);
+      } else if (payload.eventType === 'UPDATE') {
+        setAdvances(prev => prev.map(a => a.id === payload.new.id ? { ...a, ...payload.new } : a));
+      } else if (payload.eventType === 'DELETE') {
+        setAdvances(prev => prev.filter(a => a.id !== payload.old.id));
+      }
+    });
+
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'recon_entries' }, payload => {
+      if (payload.eventType === 'INSERT') {
+        setReconEntries(prev => prev.some(e => e.id === payload.new.id) ? prev : [...prev, payload.new]);
+      } else if (payload.eventType === 'UPDATE') {
+        setReconEntries(prev => prev.map(e => e.id === payload.new.id ? { ...e, ...payload.new } : e));
+      } else if (payload.eventType === 'DELETE') {
+        setReconEntries(prev => prev.filter(e => e.id !== payload.old.id));
+      }
+    });
+
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'scenes', filter: `project_id=eq.${currentId}` }, payload => {
+      if (payload.eventType === 'INSERT') {
+        const item = normalizeScene({ ...payload.new.data, id: payload.new.id, project_id: payload.new.project_id });
+        setScenes(prev => prev.some(s => s.id === item.id) ? prev : [...prev, item]);
+      } else if (payload.eventType === 'UPDATE') {
+        const item = normalizeScene({ ...payload.new.data, id: payload.new.id, project_id: payload.new.project_id });
+        setScenes(prev => prev.map(s => s.id === item.id ? item : s));
+      } else if (payload.eventType === 'DELETE') {
+        setScenes(prev => prev.filter(s => s.id !== payload.old.id));
+      }
+    });
+
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_days', filter: `project_id=eq.${currentId}` }, payload => {
+      if (payload.eventType === 'INSERT') {
+        setScheduleDays(prev => prev.some(d => d.id === payload.new.id) ? prev : [...prev, payload.new]);
+      } else if (payload.eventType === 'UPDATE') {
+        setScheduleDays(prev => prev.map(d => d.id === payload.new.id ? { ...d, ...payload.new } : d));
+      } else if (payload.eventType === 'DELETE') {
+        setScheduleDays(prev => prev.filter(d => d.id !== payload.old.id));
+      }
+    });
+
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders', filter: `project_id=eq.${currentId}` }, payload => {
+      if (payload.eventType === 'INSERT') {
+        setPurchaseOrders(prev => prev.some(po => po.id === payload.new.id) ? prev : [...prev, payload.new]);
+      } else if (payload.eventType === 'UPDATE') {
+        setPurchaseOrders(prev => prev.map(po => po.id === payload.new.id ? { ...po, ...payload.new } : po));
+      } else if (payload.eventType === 'DELETE') {
+        setPurchaseOrders(prev => prev.filter(po => po.id !== payload.old.id));
+      }
+    });
+
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'payees', filter: `project_id=eq.${currentId}` }, payload => {
+      if (payload.eventType === 'INSERT') {
+        setPayees(prev => prev.some(p => p.id === payload.new.id) ? prev : [...prev, { ...payload.new, payments: payload.new.payments || [] }]);
+      } else if (payload.eventType === 'UPDATE') {
+        setPayees(prev => prev.map(p => p.id === payload.new.id ? { ...p, ...payload.new, payments: payload.new.payments || p.payments || [] } : p));
+      } else if (payload.eventType === 'DELETE') {
+        setPayees(prev => prev.filter(p => p.id !== payload.old.id));
+      }
+    });
+
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'project_collaborators', filter: `project_id=eq.${currentId}` }, payload => {
+      if (payload.eventType === 'INSERT') {
+        let cached = {};
+        try { cached = JSON.parse(localStorage.getItem('nko_collab_emails') || '{}'); } catch {}
+        const email = payload.new.email || cached[payload.new.id] || cached[payload.new.user_id];
+        setCollaborators(prev => prev.some(c => c.id === payload.new.id) ? prev : [...prev, { ...payload.new, email }]);
+      } else if (payload.eventType === 'DELETE') {
+        setCollaborators(prev => prev.filter(c => c.id !== payload.old.id));
+      }
+    });
+
+    ch.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        try {
+          await ch.track({
+            userId: user.id,
+            email: user.email,
+            isOwner,
+            role: isOwner ? 'Producer' : 'Collaborator',
+            onlineAt: new Date().toISOString(),
+          });
+        } catch {}
+      }
+    });
+
+    channelRef.current = ch;
+
+    return () => {
+      if (activeActivityTimer.current) clearTimeout(activeActivityTimer.current);
+      if (channelRef.current) {
+        sb.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [user, currentId, project?.user_id]);
+
+  // ── Redundant Background Polling (Every 12s when window is focused) ──
+  useEffect(() => {
+    if (!user || !sb || !currentId) return;
+    const interval = window.setInterval(async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      try {
+        const [bi, ad, re, sc, po, py] = await Promise.all([
+          sb.from('budget_items').select('*').eq('project_id', currentId),
+          sb.from('advances').select('*').eq('project_id', currentId),
+          sb.from('recon_entries').select('*'),
+          sb.from('scenes').select('*').eq('project_id', currentId),
+          sb.from('purchase_orders').select('*').eq('project_id', currentId),
+          sb.from('payees').select('*').eq('project_id', currentId),
+        ]);
+        if (bi.data) setBudgetItems(prev => {
+          const others = prev.filter(i => i.project_id !== currentId);
+          return [...others, ...bi.data];
+        });
+        if (ad.data) setAdvances(prev => {
+          const others = prev.filter(a => a.project_id !== currentId);
+          return [...others, ...ad.data];
+        });
+        if (re.data) setReconEntries(re.data);
+        if (sc.data) setScenes(prev => {
+          const others = prev.filter(s => s.project_id !== currentId);
+          return [...others, ...sc.data.map(r => normalizeScene({ ...r.data, id: r.id, project_id: r.project_id }))];
+        });
+        if (po.data) setPurchaseOrders(prev => {
+          const others = prev.filter(p => p.project_id !== currentId);
+          return [...others, ...po.data];
+        });
+        if (py.data) setPayees(prev => {
+          const others = prev.filter(p => p.project_id !== currentId);
+          return [...others, ...py.data.map(p => ({ ...p, payments: p.payments || [] }))];
+        });
+      } catch {}
+    }, 12000);
+    return () => window.clearInterval(interval);
+  }, [user, currentId]);
+
+  const broadcastActivity = (actionText) => {
+    try {
+      if (channelRef.current) {
+        const isOwner = project?.user_id === user?.id;
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'activity',
+          payload: {
+            userId: user.id,
+            email: user.email,
+            isOwner,
+            role: isOwner ? 'Producer' : 'Collaborator',
+            text: actionText,
+            timestamp: Date.now(),
+          },
+        }).catch(() => {});
+      }
+    } catch {}
+  };
+
+  const otherCollaborators = activeCollaborators.filter(c => c.userId !== user?.id);
+  const isProducerActive = Boolean(project && otherCollaborators.some(c => c.userId === project.user_id || c.isOwner || c.role === 'Producer'));
+  const otherActiveCount = otherCollaborators.length;
+
   const TRIAL_WALL_ENABLED=false; // paywall switched off for now — set to true to bring the 2-production cap back
   const TRIAL_LIMIT=2;
   const createProject=async d=>{
@@ -4083,7 +4639,7 @@ function Workspace(){
     }
     for(const id of ids){await purgeReceipts(id);await sb.from('project_collaborators').delete().eq('project_id',id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}
   };
-  const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data)setBudgetItems(p=>[...p,data]);};
+  const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data){setBudgetItems(p=>[...p,data]);broadcastActivity('added a budget line');}};
   const addRevenueItem=async item=>{
     const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();
     if(error){alert(`Could not add revenue line: ${error.message}`);return;}
@@ -4106,7 +4662,7 @@ function Workspace(){
     }else if(Number(value)>0){
       const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept:'V - Production Support',description:'Contingency',qty:1,unit:'flat',rate:value,currency:project.base_currency}).select().single();
       if(error){alert(`Could not save contingency: ${error.message}`);return;}
-      if(data)setBudgetItems(p=>[...p,data]);
+      if(data){setBudgetItems(p=>[...p,data]);broadcastActivity('updated contingency');}
     }
   };
   const updateProjectTarget=async value=>{
@@ -4116,6 +4672,7 @@ function Workspace(){
   };
   const updateBudgetItem=async(id,upd)=>{
     setBudgetItems(p=>p.map(i=>i.id===id?{...i,...upd}:i));
+    broadcastActivity('updated a budget line');
     const{error}=await sb.from('budget_items').update(upd).eq('id',id);
     if(error){
       alert(`Could not save that change: ${error.message}`);
@@ -4123,7 +4680,7 @@ function Workspace(){
       if(data)setBudgetItems(p=>p.map(i=>i.id===id?data:i));
     }
   };
-  const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));await sb.from('budget_items').delete().eq('id',id);};
+  const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));broadcastActivity('removed a budget line');await sb.from('budget_items').delete().eq('id',id);};
   const applyTemplate=async tpl=>{
     const rows=tpl.items.map(t=>({
       project_id:currentId,
@@ -4137,7 +4694,7 @@ function Workspace(){
     }));
     const{data,error}=await sb.from('budget_items').insert(rows).select();
     if(error){alert(`Could not apply template: ${error.message}`);return;}
-    if(data)setBudgetItems(p=>[...p,...data]);
+    if(data){setBudgetItems(p=>[...p,...data]);broadcastActivity(`applied ${tpl.label} template`);}
     if(tpl.scenes?.length){
       const sceneRows=tpl.scenes.map(s=>({id:Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:s}));
       const{data:scData,error:scError}=await sb.from('scenes').insert(sceneRows).select();
@@ -4158,11 +4715,11 @@ function Workspace(){
     }));
     const{data,error}=await sb.from('budget_items').insert(rows).select();
     if(error){alert(`Could not apply budget: ${error.message}`);return;}
-    if(data)setBudgetItems(p=>[...p,...data]);
+    if(data){setBudgetItems(p=>[...p,...data]);broadcastActivity('applied script budget');}
   };
-  const addAdvance=async a=>{const{data,error}=await sb.from('advances').insert({...a,user_id:user.id}).select().single();if(error){alert(`Could not save advance: ${error.message}`);return;}if(data)setAdvances(p=>[...p,data]);};
+  const addAdvance=async a=>{const{data,error}=await sb.from('advances').insert({...a,user_id:user.id}).select().single();if(error){alert(`Could not save advance: ${error.message}`);return;}if(data){setAdvances(p=>[...p,data]);broadcastActivity('created an advance');}};
   const updateAdvance=async(id,upd)=>{setAdvances(p=>p.map(a=>a.id===id?{...a,...upd}:a));const{error}=await sb.from('advances').update(upd).eq('id',id);if(error)alert(`Could not update advance: ${error.message}`);};
-  const addReconEntry=async e=>{const{data,error}=await sb.from('recon_entries').insert({...e,user_id:user.id}).select().single();if(error){alert(`Could not save expense: ${error.message}`);return;}if(data)setReconEntries(p=>[...p,data]);};
+  const addReconEntry=async e=>{const{data,error}=await sb.from('recon_entries').insert({...e,user_id:user.id}).select().single();if(error){alert(`Could not save expense: ${error.message}`);return;}if(data){setReconEntries(p=>[...p,data]);broadcastActivity('logged an expense');}};
   /* Top-up an advance — increases the amount when more cash is received */
   const topUpAdvance=async(id,extra)=>{
     const{data,error}=await sb.from('recon_entries').insert({advance_id:id,user_id:user.id,description:'[CASH-IN] Top-up received',amount:Number(extra),date:today()}).select().single();
@@ -4192,7 +4749,7 @@ function Workspace(){
     const{id:_omit,project_id:_omit2,...rest}=sc;
     const{data,error}=await sb.from('scenes').insert({id,project_id:currentId,user_id:user.id,data:rest}).select().single();
     if(error){alert(`Could not save scene: ${error.message}`);return;}
-    if(data)setScenes(p=>[...p,normalizeScene({...data.data,id:data.id,project_id:data.project_id})]);
+    if(data){setScenes(p=>[...p,normalizeScene({...data.data,id:data.id,project_id:data.project_id})]);broadcastActivity('added a scene');}
   };
   const addScenesBatch=async scenesArr=>{
     const existingNumbers=new Set(scenes.filter(s=>s.project_id===currentId).map(s=>String(s.sceneNumber)));
@@ -4318,7 +4875,7 @@ function Workspace(){
     if(file){try{invoice_file=await uploadReceipt(po.project_id,file);}catch(e){alert(`The PO will be created, but the invoice file could not be stored: ${e.message}\n\nYou can retry from the PO card with “＋ Add” next to Invoice.`);}}
     const{data,error}=await sb.from('purchase_orders').insert({id,po_number,...po,...(invoice_file?{invoice_file}:{}),user_id:user.id}).select().single();
     if(error){if(invoice_file)removeReceiptFile(invoice_file.path);alert(`Could not create purchase order: ${error.message}`);return;}
-    if(data)setPurchaseOrders(p=>[...p,data]);
+    if(data){setPurchaseOrders(p=>[...p,data]);broadcastActivity('created a purchase order');}
   };
   const updatePO=async(id,upd)=>{
     const prev=purchaseOrders.find(po=>po.id===id);
@@ -4356,14 +4913,14 @@ function Workspace(){
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
         {signOutError&&<p role="alert" className="p-4 text-palette-apricot">{signOutError}</p>}
         {mobile&&<div className="flex justify-end border-b border-palette-graphite px-4 py-2"><button type="button" onClick={handleSignOut} className="rounded text-sm text-palette-stone underline">Sign out</button></div>}
-        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}}/>
+        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
           {view==='dashboard'&&(project?
-            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} isOwner={project?.user_id===user.id}/>
+            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
