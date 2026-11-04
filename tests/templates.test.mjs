@@ -37,3 +37,31 @@ test('real-time presence and producer working indicator are configured', () => {
   assert.ok(code.includes("Producer working on project"), "Should have producer working pill in TopBar");
   assert.ok(code.includes("TemplatePickerModal"), "Should have dedicated mobile-friendly TemplatePickerModal");
 });
+
+test('iris-gold-128 loading glow up is configured across auth status, screen, and workspace', () => {
+  const irisLoaderPath = path.resolve('src/components/IrisLoader.jsx');
+  const irisLoaderCode = fs.readFileSync(irisLoaderPath, 'utf8');
+  assert.ok(irisLoaderCode.includes('iris-gold-128.png'), 'IrisLoader must use iris-gold-128.png');
+  assert.ok(irisLoaderCode.includes('nko-iris-glowing-logo'), 'IrisLoader must have glowing logo animation class');
+  assert.ok(irisLoaderCode.includes('nko-iris-aura'), 'IrisLoader must have aura glow animation');
+  assert.ok(irisLoaderCode.includes('Loading your workspace'), 'IrisLoader must include Loading your workspace text');
+
+  const authStatusPath = path.resolve('src/auth/AuthStatus.jsx');
+  const authStatusCode = fs.readFileSync(authStatusPath, 'utf8');
+  assert.ok(authStatusCode.includes('IrisLoader'), 'AuthStatus must render IrisLoader');
+
+  const authScreenPath = path.resolve('src/auth/AuthScreen.jsx');
+  const authScreenCode = fs.readFileSync(authScreenPath, 'utf8');
+  assert.ok(authScreenCode.includes('redirecting'), 'AuthScreen must handle post-login/register redirect state');
+  assert.ok(authScreenCode.includes('AuthStatus'), 'AuthScreen must render AuthStatus when redirecting');
+
+  const legacyAppPath = path.resolve('src/legacy/LegacyApp.jsx');
+  const legacyAppCode = fs.readFileSync(legacyAppPath, 'utf8');
+  assert.ok(legacyAppCode.includes('IrisLoader'), 'LegacyApp must render IrisLoader during workspace loadState');
+
+  const indexCss = fs.readFileSync(path.resolve('src/index.css'), 'utf8');
+  assert.ok(indexCss.includes('iris-glow-pulse'), 'src/index.css must define iris-glow-pulse keyframes');
+  assert.ok(indexCss.includes('iris-aura-pulse'), 'src/index.css must define iris-aura-pulse keyframes');
+});
+
+

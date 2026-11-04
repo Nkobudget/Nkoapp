@@ -5,6 +5,7 @@ import { useLang } from '../i18n/LangContext'
 import { authErrorMessage } from './authErrors'
 import AuthCard from './AuthCard'
 import TermsModal from './TermsModal'
+import AuthStatus from './AuthStatus'
 
 export default function AuthScreen() {
   const { signIn, signUp, requestPasswordReset, callbackError } = useAuth()
@@ -16,6 +17,7 @@ export default function AuthScreen() {
   const [pending, setPending] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState(callbackError)
+  const [redirecting, setRedirecting] = useState(false)
   const busy = useRef(false)
   const email = useRef(null)
   const id = useId()
@@ -33,10 +35,16 @@ export default function AuthScreen() {
     const data = new FormData(event.currentTarget)
     const credentials = { email: String(data.get('email')), password: String(data.get('password')) }
     void run('submit', async () => {
-      if (mode === 'login') await signIn(credentials)
-      else {
+      if (mode === 'login') {
+        await signIn(credentials)
+        setRedirecting(true)
+      } else {
         const result = await signUp(credentials)
-        if (result.requiresConfirmation) setNotice(lang === 'fr' ? 'Consultez votre messagerie pour confirmer votre compte avant de vous connecter.' : 'Check your email to confirm your account before signing in.')
+        if (result.requiresConfirmation) {
+          setNotice(lang === 'fr' ? 'Consultez votre messagerie pour confirmer votre compte avant de vous connecter.' : 'Check your email to confirm your account before signing in.')
+        } else {
+          setRedirecting(true)
+        }
       }
     })
   }
@@ -46,6 +54,10 @@ export default function AuthScreen() {
       await requestPasswordReset(email.current.value)
       setNotice(lang === 'fr' ? 'Si un compte correspond à cette adresse, vous recevrez un lien de réinitialisation.' : 'If an account exists for that email, you will receive a password-reset link.')
     })
+  }
+
+  if (redirecting) {
+    return <AuthStatus message={lang === 'fr' ? 'Ouverture de votre espace de travail…' : 'Loading your workspace…'} />
   }
 
   return <AuthCard title={mode === 'login' ? t('signIn') : t('createAccount')}>

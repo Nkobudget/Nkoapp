@@ -7,6 +7,7 @@
 import { supabase as sb } from '../lib/supabaseClient';
 import { useAuth } from '../auth/AuthContext';
 import BrandHomeLink from '../components/BrandHomeLink';
+import IrisLoader from '../components/IrisLoader';
 import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
 import './dashboard.css';
@@ -4897,13 +4898,13 @@ function Workspace(){
 
   if(loadState!=='ready')return <main className="flex min-h-svh items-center justify-center bg-palette-near-black p-6 text-palette-ivory">
     <div className="max-w-lg text-center">
-      {loadState==='loading'?<p role="status">Loading your productions…</p>:<>
+      {loadState==='loading'?<IrisLoader message="Loading your workspace…" />:<>
         <h1 className="text-2xl">Your workspace could not load</h1>
         <p role="alert" className="mt-3">{loadError}</p>
         <button type="button" onClick={()=>setLoadAttempt(n=>n+1)} className="mt-5 rounded-lg bg-palette-gold px-5 py-3 text-palette-black">Retry loading</button>
+        <button type="button" onClick={handleSignOut} className="ml-4 mt-5 rounded underline">Sign out</button>
+        {signOutError&&<p role="alert" className="mt-4 text-palette-apricot">{signOutError}</p>}
       </>}
-      <button type="button" onClick={handleSignOut} className="ml-4 mt-5 rounded underline">Sign out</button>
-      {signOutError&&<p role="alert" className="mt-4 text-palette-apricot">{signOutError}</p>}
     </div>
   </main>;
 

@@ -14,3 +14,46 @@
   --color-palette-warm-gray: #5A5852;
   --color-palette-gold: #D4AF37;
 }
+
+@keyframes iris-glow-pulse {
+  0% {
+    transform: scale(0.94);
+    filter: drop-shadow(0 0 10px rgba(254, 237, 97, 0.4)) drop-shadow(0 0 25px rgba(212, 175, 55, 0.25));
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 22px rgba(254, 237, 97, 0.95)) drop-shadow(0 0 45px rgba(212, 175, 55, 0.65));
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.94);
+    filter: drop-shadow(0 0 10px rgba(254, 237, 97, 0.4)) drop-shadow(0 0 25px rgba(212, 175, 55, 0.25));
+    opacity: 0.85;
+  }
+}
+
+@keyframes iris-aura-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0.3;
+  }
+}
+
+.nko-iris-glowing-logo {
+  animation: iris-glow-pulse 2.2s infinite ease-in-out;
+  will-change: transform, filter, opacity;
+}
+
+.nko-iris-aura {
+  animation: iris-aura-pulse 2.2s infinite ease-in-out;
+  will-change: transform, opacity;
+}
