@@ -1823,34 +1823,54 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
   );
 }
 
+/* ── Project Matching Helper (handles string/number IDs and project name fallback) ── */
+const matchesProject = (entityProjectId, targetProjectId, projectName) => {
+  if (!entityProjectId && !targetProjectId) return false;
+  const eId = String(entityProjectId ?? '').trim();
+  const tId = String(targetProjectId ?? '').trim();
+  if (eId && tId && eId === tId) return true;
+  if (projectName && eId && eId.toLowerCase() === String(projectName).trim().toLowerCase()) return true;
+  return false;
+};
+
 /* ── Centralized Spend Calculation Helper (Recon expenses + Paid POs + Cast/Crew payments) ── */
 const computeTotalSpend = (projectAdvances = [], projectReconEntries = [], projectPayees = [], projectPOs = []) => {
   const isTopUp = e => !!e.description?.startsWith('[CASH-IN]');
-  const advIds = new Set((projectAdvances || []).map(a => a.id));
+  const advIds = new Set((projectAdvances || []).map(a => String(a.id)));
   const advCurMap = {};
-  (projectAdvances || []).forEach(a => { advCurMap[a.id] = a.currency || 'NGN'; });
+  (projectAdvances || []).forEach(a => { advCurMap[String(a.id)] = a.currency || 'NGN'; });
 
   const spentByCur = {};
+  const breakdown = { advances: {}, payees: {}, pos: {} };
+
   (projectReconEntries || []).forEach(e => {
-    if (advIds.has(e.advance_id) && !isTopUp(e)) {
-      const c = advCurMap[e.advance_id] || 'NGN';
-      spentByCur[c] = (spentByCur[c] || 0) + (Number(e.amount) || 0);
+    const aid = String(e.advance_id || '');
+    if (advIds.has(aid) && !isTopUp(e)) {
+      const c = advCurMap[aid] || 'NGN';
+      const amt = Number(e.amount) || 0;
+      spentByCur[c] = (spentByCur[c] || 0) + amt;
+      breakdown.advances[c] = (breakdown.advances[c] || 0) + amt;
     }
   });
   (projectPayees || []).forEach(p => {
     const c = p.currency || 'NGN';
     (p.payments || []).forEach(pay => {
-      spentByCur[c] = (spentByCur[c] || 0) + (Number(pay.amount) || 0);
+      const amt = Number(pay.amount) || 0;
+      spentByCur[c] = (spentByCur[c] || 0) + amt;
+      breakdown.payees[c] = (breakdown.payees[c] || 0) + amt;
     });
   });
   (projectPOs || []).forEach(po => {
-    if (po.status === 'Paid') {
+    const isPaid = po.status === 'Paid' || String(po.status || '').toLowerCase() === 'paid';
+    if (isPaid) {
       const c = po.currency || 'NGN';
-      spentByCur[c] = (spentByCur[c] || 0) + (Number(po.amount) || 0);
+      const amt = Number(po.amount) || 0;
+      spentByCur[c] = (spentByCur[c] || 0) + amt;
+      breakdown.pos[c] = (breakdown.pos[c] || 0) + amt;
     }
   });
   const totalUSD = Object.entries(spentByCur).reduce((s, [c, amt]) => s + toUSD(amt, c), 0);
-  return { spentByCur, totalUSD };
+  return { spentByCur, totalUSD, breakdown };
 };
 
 /* ── Dashboard ── */
@@ -1891,30 +1911,61 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
           {projects.map(p=>{
-            const pi=budgetItems.filter(i=>i.project_id===p.id);const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
-            const open=advances.filter(a=>a.project_id===p.id&&a.status!=='reconciled').length;const isSel=selected.has(p.id);
-            const pAdv=advances.filter(a=>a.project_id===p.id);
-            const pPay=payees.filter(py=>py.project_id===p.id);
-            const pPO=(purchaseOrders||[]).filter(po=>po.project_id===p.id);
-            const { spentByCur: pSpentTotals, totalUSD: pSpentUSD } = computeTotalSpend(pAdv, reconEntries, pPay, pPO);
+            const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
+            const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+            const open=advances.filter(a=>matchesProject(a.project_id, p.id, p.name)&&a.status!=='reconciled').length;
+            const isSel=selected.has(p.id);
+            const pAdv=advances.filter(a=>matchesProject(a.project_id, p.id, p.name));
+            const pPay=payees.filter(py=>matchesProject(py.project_id, p.id, p.name));
+            const pPO=(purchaseOrders||[]).filter(po=>matchesProject(po.project_id, p.id, p.name));
+            const { spentByCur: pSpentTotals, totalUSD: pSpentUSD, breakdown: pBreakdown } = computeTotalSpend(pAdv, reconEntries, pPay, pPO);
             const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-            const pct=budgetUSD>0?Math.min(100,(pSpentUSD/budgetUSD)*100):0;const over=pSpentUSD>budgetUSD;
+            const pct=budgetUSD>0?Math.min(100,(pSpentUSD/budgetUSD)*100):0;
+            const over=pSpentUSD>budgetUSD && budgetUSD > 0;
             const isOwner = p.user_id === currentUserId;
-            const pCollabs = (collaborators || []).filter(c => c.project_id === p.id);
+            const pCollabs = (collaborators || []).filter(c => matchesProject(c.project_id, p.id, p.name));
             const count = pCollabs.length;
+            const pSpendDisplay = Object.entries(pSpentTotals).length === 0
+              ? `${sym(p.base_currency || 'NGN')}0`
+              : Object.entries(pSpentTotals).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
+
           return<div key={p.id} style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?T.hi:T.panel,border:`1px solid ${isSel?T.coral:p.id===currentId?T.gold:T.line}`,borderRadius:10,padding:18,position:'relative'}}>
             <button onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSel?T.coral:T.faint}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
             <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',paddingRight:28}}>
               <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div>
               <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2,marginBottom:8}}>{p.type}</div>
-              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
-              {(budgetUSD>0 || Object.entries(pSpentTotals).length>0)&&<>
-                {budgetUSD>0&&<div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:6}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>}
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
-                  <span>{Object.entries(pSpentTotals).length===0?'No spend yet':Object.entries(pSpentTotals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}</span>
-                  {budgetUSD>0&&<span style={{color:over?T.coral:T.sage}}>{over?'Over pace':`${Math.round(pct)}%`}</span>}
+
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
+                <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:'Manrope,sans-serif'}}>Budget</span>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream}}>
+                  {Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><span key={c}>{sym(c)}{fmt(a)}</span>)}
+                </span>
+              </div>
+
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
+                <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:'Manrope,sans-serif'}}>Total Spend</span>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:pSpentUSD>0?T.gold:T.cream,fontWeight:700}}>
+                  {pSpendDisplay}
+                </span>
+              </div>
+
+              <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:6,marginTop:2}}>
+                <div style={{width:`${Math.min(100,pct)}%`,height:'100%',background:over?T.coral:T.sage,transition:'width 0.3s ease'}}/>
+              </div>
+
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
+                <span>{budgetUSD>0?`${Math.round(pct)}% of budget`:(pSpentUSD>0?'Logged spend':'0% pace')}</span>
+                <span style={{color:over?T.coral:T.sage}}>{over?'Over pace':'On pace'}</span>
+              </div>
+
+              {pSpentUSD > 0 && (
+                <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
+                  {Object.values(pBreakdown.advances).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.cream,border:`1px solid ${T.line}`}}>💵 Cash: {Object.entries(pBreakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                  {Object.values(pBreakdown.payees).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sage,border:`1px solid ${T.line}`}}>👥 Crew: {Object.entries(pBreakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                  {Object.values(pBreakdown.pos).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sapphire,border:`1px solid ${T.line}`}}>📄 POs: {Object.entries(pBreakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
                 </div>
-              </>}
+              )}
+
               <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
             </button>
             {!isOwner ? (
@@ -1974,7 +2025,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
-  const { spentByCur, totalUSD: spentUSD } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
+  const { spentByCur, totalUSD: spentUSD, breakdown } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
   const budgetUSD = items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
   const spendPct = budgetUSD > 0 ? (spentUSD / budgetUSD) * 100 : 0;
   const overBudget = spentUSD > budgetUSD && budgetUSD > 0;
@@ -2025,6 +2076,26 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
         <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')} onClick={onOpenBudget}/>
         <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage} onClick={onOpenRecon}/>
         <StatCard label={t('statUnpaidCrew')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:8,marginTop:10}}>
+        <div style={{background:T.hi,padding:'8px 12px',borderRadius:8,border:`1px solid ${T.line}`}}>
+          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>💵 Cash Advances</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.cream,marginTop:2,fontWeight:600}}>
+            {Object.entries(breakdown.advances).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
+          </div>
+        </div>
+        <div style={{background:T.hi,padding:'8px 12px',borderRadius:8,border:`1px solid ${T.line}`}}>
+          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>👥 Crew Payments</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sage,marginTop:2,fontWeight:600}}>
+            {Object.entries(breakdown.payees).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
+          </div>
+        </div>
+        <div style={{background:T.hi,padding:'8px 12px',borderRadius:8,border:`1px solid ${T.line}`}}>
+          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>📄 Paid POs</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sapphire,marginTop:2,fontWeight:600}}>
+            {Object.entries(breakdown.pos).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
+          </div>
+        </div>
       </div>
       {budgetUSD > 0 && (
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'14px 18px',marginTop:14}}>
@@ -2331,10 +2402,28 @@ function InvoiceUploader({project,onCreatePO}){
 function ScriptUploader({project,onApplyBudget}){
   const{t}=useLang();
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[result,setResult]=useState(null);const fr=useRef();
+  const resRef=useRef();
+  const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');
+  const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
+  const sendNotif=count=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKÒ Budget Ready',{body:`Budget breakdown generated for ${project.name}: ${count} budget lines ready to apply`});}catch{}};
+
+  useEffect(()=>{
+    const h=()=>{
+      if(document.visibilityState==='visible'&&resRef.current){
+        setResult(resRef.current);
+        resRef.current=null;
+        setState('done');
+      }
+    };
+    document.addEventListener('visibilitychange',h);
+    return()=>document.removeEventListener('visibilitychange',h);
+  },[]);
+
   const process=async f=>{
     const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
     if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX file.');setState('error');return;}
     if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
+    await askNotif();
     setState('reading');setErr('');
     try{
       let uc;
@@ -2357,16 +2446,23 @@ function ScriptUploader({project,onApplyBudget}){
       const raw=await callClaude([{role:'user',content:uc}],SCRIPT_SYS(project.type),24000);
       const recovered=recoverBudget(raw);
       if(!recovered||!recovered.budget?.length)throw new Error('Could not read a budget from the response. Try again, or upload a shorter script excerpt.');
-      setResult(recovered);setState('done');
+      sendNotif(recovered.budget.length);
+      try{localStorage.setItem(`nko_script_budget_${project?.id}`,JSON.stringify({result:recovered,ts:Date.now()}));}catch{}
+      if(document.visibilityState==='hidden'){
+        resRef.current=recovered;
+      }else{
+        setResult(recovered);
+        setState('done');
+      }
     }catch(e){setErr(`Failed: ${e.message}`);setState('error');}
   };
   return(
     <>
       <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:(state==='idle'||state==='error')?'pointer':'default',marginBottom:18}}>
         <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
-        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{t('uploadScript')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div><Btn variant="ghost" size="sm">{t('chooseFile')}</Btn></>}
+        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{t('uploadScript')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div>{notif==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',marginBottom:8}}>🔔 Safe to switch apps during analysis</div>}{notif==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:8}}>💡 Allow notifications to switch apps freely</div>}<Btn variant="ghost" size="sm">{t('chooseFile')}</Btn></>}
         {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
-        {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Keep screen on during analysis</div></>}
+        {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>🔔 Safe to switch apps — your budget breakdown will be waiting when you return</div></>}
         {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage}}>Analysis complete</div></>}
         {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
       </div>
@@ -4194,17 +4290,72 @@ function ScriptInsights({scenes,characters,onUpdateScene}){
     </div>
   );
 }
-function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner}){
+function ProductionSpendBreakdownPanel({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
+  const mob=useIsMobile();
+  const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+  const { spentByCur, totalUSD: spentUSD, breakdown } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
+  const budgetUSD = items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const spendPct = budgetUSD > 0 ? (spentUSD / budgetUSD) * 100 : 0;
+  const overBudget = spentUSD > budgetUSD && budgetUSD > 0;
+  const spendDisplay = Object.entries(spentByCur).length === 0
+    ? `${sym(project.base_currency || 'NGN')}0`
+    : Object.entries(spentByCur).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
+  const budgetDisplay = Object.entries(totals).length === 0
+    ? `${sym(project.base_currency || 'NGN')}0`
+    : Object.entries(totals).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
+
+  return (
+    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'14px 16px',marginBottom:16,fontFamily:'Manrope,sans-serif'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8,marginBottom:10}}>
+        <div>
+          <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>💰 Production Spend Breakdown</div>
+          <div style={{fontSize:11,color:T.dim,marginTop:2}}>{project.name} ({project.type}) · Live spend reconciled against script & budget</div>
+        </div>
+        <span style={{fontSize:11,fontFamily:'IBM Plex Mono,monospace',fontWeight:700,color:overBudget?T.coral:T.sage,background:T.hi,border:`1px solid ${T.line}`,padding:'3px 8px',borderRadius:6}}>
+          {spendDisplay} / {budgetDisplay} ({Math.round(spendPct)}%)
+        </span>
+      </div>
+
+      <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:12}}>
+        <div style={{width:`${Math.min(100,spendPct)}%`,height:'100%',background:overBudget?T.coral:T.sage,transition:'width 0.3s ease'}}/>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(3, 1fr)',gap:8,fontSize:11}}>
+        <div style={{background:T.hi,padding:'8px 10px',borderRadius:8,border:`1px solid ${T.line}`}}>
+          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>💵 Cash Advances</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.cream,marginTop:2,fontWeight:600}}>
+            {Object.entries(breakdown.advances).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
+          </div>
+        </div>
+        <div style={{background:T.hi,padding:'8px 10px',borderRadius:8,border:`1px solid ${T.line}`}}>
+          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>👥 Crew Payments</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sage,marginTop:2,fontWeight:600}}>
+            {Object.entries(breakdown.payees).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
+          </div>
+        </div>
+        <div style={{background:T.hi,padding:'8px 10px',borderRadius:8,border:`1px solid ${T.line}`}}>
+          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>📄 Paid POs</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sapphire,marginTop:2,fontWeight:600}}>
+            {Object.entries(breakdown.pos).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const{t:tr}=useLang();
   const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
-  const ps=sortScenes(scenes.filter(s=>s.project_id===project.id));
+  const ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)));
   const seenNums={};let dupeCount=0;
   ps.forEach(s=>{const k=String(s.sceneNumber);seenNums[k]=(seenNums[k]||0)+1;if(seenNums[k]>1)dupeCount++;});
   const filtered=ps.filter(s=>{const mf=filter==='ALL'||(filter==='INT'&&s.intExt==='INT')||(filter==='EXT'&&s.intExt==='EXT')||(filter==='DAY'&&s.dayNight==='DAY')||(filter==='NIGHT'&&s.dayNight==='NIGHT');const ms=!search||s.heading?.toLowerCase().includes(search.toLowerCase())||s.location?.toLowerCase().includes(search.toLowerCase());return mf&&ms;});
   return(
     <div>
       <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?22:26,color:T.cream}}>{tr('breakdownHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div><div style={{marginTop:14}}><FS/></div></div>
+      <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>
       {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
         <div>
           <div style={{color:T.coral,fontSize:12,fontWeight:700}}>{dupeCount} duplicate scene{dupeCount!==1?'s':''} found</div>
@@ -4333,7 +4484,16 @@ function MarketplaceView({onApplyTemplate}){
 /* ── MainApp ── */
 function Workspace(){
   const{user,signOut}=useAuth();
-  const[loadState,setLoadState]=useState('loading');
+  const cacheKey = user ? `nko_cache_ws_${user.id}` : null;
+  const initialCache = useRef(null);
+  if (!initialCache.current && cacheKey) {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) initialCache.current = JSON.parse(raw);
+    } catch {}
+  }
+
+  const[loadState,setLoadState]=useState(()=>initialCache.current ? 'ready' : 'loading');
   const[loadError,setLoadError]=useState('');
   const[loadAttempt,setLoadAttempt]=useState(0);
   const[signOutError,setSignOutError]=useState('');
@@ -4342,18 +4502,32 @@ function Workspace(){
     try{await signOut();}catch{setSignOutError('Could not sign out. Check your connection and try again.');}
   };
   const[view,setView]=useState('dashboard');
-  const[projects,setProjects]=useState([]);const[budgetItems,setBudgetItems]=useState([]);const[advances,setAdvances]=useState([]);const[reconEntries,setReconEntries]=useState([]);const[payees,setPayees]=useState([]);const[scenes,setScenes]=useState([]);const[characters,setCharacters]=useState([]);const[purchaseOrders,setPurchaseOrders]=useState([]);const[collaborators,setCollaborators]=useState([]);const[trialCount,setTrialCount]=useState(0);const[revenueItems,setRevenueItems]=useState([]);const[scheduleDays,setScheduleDays]=useState([]);
+  const[projects,setProjects]=useState(()=>initialCache.current?.projects || []);
+  const[budgetItems,setBudgetItems]=useState(()=>initialCache.current?.budget_items || []);
+  const[advances,setAdvances]=useState(()=>initialCache.current?.advances || []);
+  const[reconEntries,setReconEntries]=useState(()=>initialCache.current?.recon_entries || []);
+  const[payees,setPayees]=useState(()=>initialCache.current?.payees || []);
+  const[scenes,setScenes]=useState(()=>initialCache.current?.scenes ? initialCache.current.scenes.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id})) : []);
+  const[characters,setCharacters]=useState(()=>initialCache.current?.characters || []);
+  const[purchaseOrders,setPurchaseOrders]=useState(()=>initialCache.current?.purchase_orders || []);
+  const[collaborators,setCollaborators]=useState(()=>initialCache.current?.project_collaborators || []);
+  const[trialCount,setTrialCount]=useState(()=>initialCache.current?.trial_count || 0);
+  const[revenueItems,setRevenueItems]=useState(()=>initialCache.current?.revenue_items || []);
+  const[scheduleDays,setScheduleDays]=useState(()=>initialCache.current?.schedule_days || []);
   const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;const s=readOnboarding(user.id);if(s)setDefaultCurrency(s.market);},[user]);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
 
+  const loadAllRef = useRef(null);
   useEffect(()=>{if(!user)return;
     let cancelled=false;
-    setLoadState('loading');setLoadError('');
-    const loadAll=async()=>{
+    const hasCache = Boolean(initialCache.current);
+    if (!hasCache) { setLoadState('loading'); setLoadError(''); }
+    const loadAll=async(silent=false)=>{
       try{
       if(!sb)throw new Error('Database connection is not available. Please check connection and reload.');
+      if(!silent && !hasCache){ setLoadState('loading'); setLoadError(''); }
       const[pr,bi,ad,re,py,sc,ch,po,cb,ts,rv,sdy]=await Promise.all([
         sb.from('projects').select('*').order('created_at',{ascending:false}),
         sb.from('budget_items').select('*'),
@@ -4376,20 +4550,62 @@ function Workspace(){
       if(sc.data)setScenes(sc.data.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id})));
       if(ch.data)setCharacters(ch.data);
       if(po.data)setPurchaseOrders(po.data);
+      let loadedCollabs = [];
       if(cb.data){
         let cached = {};
         try{ cached = JSON.parse(localStorage.getItem('nko_collab_emails') || '{}'); }catch{}
-        setCollaborators(cb.data.map(c=>({...c, email: c.email || cached[c.id] || cached[c.user_id]})));
+        loadedCollabs = cb.data.map(c=>({...c, email: c.email || cached[c.id] || cached[c.user_id]}));
+        setCollaborators(loadedCollabs);
       }
-      setTrialCount(ts.data?.productions_created||0);
+      const tCount = ts.data?.productions_created||0;
+      setTrialCount(tCount);
       if(rv.data)setRevenueItems(rv.data);
       if(sdy.data)setScheduleDays(sdy.data);
       setLoadState('ready');
-      }catch(error){if(!cancelled){setLoadError(error.message||'The workspace could not load. Please try again.');setLoadState('error');}}
+
+      // Persist latest state to localStorage for instantaneous resume when switching apps
+      try {
+        if (cacheKey) {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            projects: pr.data || [],
+            budget_items: bi.data || [],
+            advances: ad.data || [],
+            recon_entries: re.data || [],
+            payees: py.data || [],
+            scenes: sc.data || [],
+            characters: ch.data || [],
+            purchase_orders: po.data || [],
+            project_collaborators: loadedCollabs,
+            trial_count: tCount,
+            revenue_items: rv.data || [],
+            schedule_days: sdy.data || [],
+            ts: Date.now(),
+          }));
+        }
+      } catch {}
+
+      }catch(error){if(!cancelled && !hasCache){setLoadError(error.message||'The workspace could not load. Please try again.');setLoadState('error');}}
     };
-    void loadAll();
+    loadAllRef.current = loadAll;
+    void loadAll(false);
     return()=>{cancelled=true;};
   },[user,loadAttempt]);
+
+  // Re-sync seamlessly when user switches apps or tabs and returns
+  useEffect(() => {
+    if (!user) return;
+    const handleResume = () => {
+      if (document.visibilityState === 'visible' && loadAllRef.current) {
+        void loadAllRef.current(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleResume);
+    window.addEventListener('focus', handleResume);
+    return () => {
+      document.removeEventListener('visibilitychange', handleResume);
+      window.removeEventListener('focus', handleResume);
+    };
+  }, [user]);
 
   const project=projects.find(p=>p.id===currentId)||null;
   const pBudget=budgetItems.filter(i=>i.project_id===currentId);
@@ -4977,15 +5193,15 @@ function Workspace(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
           {view==='dashboard'&&(project?
-            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>p.project_id===currentId)} purchaseOrders={purchaseOrders.filter(po=>po.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
+            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
             :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>p.project_id===currentId)} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
-          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>p.project_id===currentId)} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={project?.user_id===user.id}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}

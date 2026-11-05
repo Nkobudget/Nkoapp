@@ -80,6 +80,17 @@ test('total spend calculation and display are properly configured', () => {
   assert.ok(code.includes("StatCard label={t('statTotalSpend')}"), 'ProductionDashboardView must include Total Spend StatCard');
   assert.ok(code.includes("Overall Production Spend Pace"), 'ProductionDashboardView must show Spend Pace progress bar');
 
+  // Verify ProductionSpendBreakdownPanel exists and is used in BreakdownView
+  assert.ok(code.includes('function ProductionSpendBreakdownPanel'), 'Must define ProductionSpendBreakdownPanel');
+  assert.ok(code.includes('<ProductionSpendBreakdownPanel'), 'BreakdownView must render ProductionSpendBreakdownPanel');
+
+  // Verify matchesProject helper exists and handles project attribution
+  assert.ok(code.includes('const matchesProject ='), 'Must define matchesProject helper');
+
+  // Verify app-switching background recovery in Workspace and ScriptUploader
+  assert.ok(code.includes("handleResume"), 'Workspace must listen for app switching resume');
+  assert.ok(code.includes("nko_cache_ws_"), 'Workspace must cache state to localStorage for seamless app switching');
+
   // Verify Workspace passes reconEntries, purchaseOrders, and onOpenRecon to ProductionDashboardView
   assert.ok(code.includes("reconEntries={pReconEntries}"), 'Workspace must pass reconEntries to ProductionDashboardView');
   assert.ok(code.includes("onOpenRecon={()"), 'Workspace must pass onOpenRecon to ProductionDashboardView');
