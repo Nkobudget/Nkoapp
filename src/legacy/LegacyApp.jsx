@@ -1879,23 +1879,56 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const[collabModalProject,setCollabModalProject]=useState(null);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
-  const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
-  const totalBudgetUSD=budgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const { spentByCur: allSpentByCur, totalUSD: totalSpentUSD } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
-  const savedUSD=totalBudgetUSD-totalSpentUSD;
-  const spendDisplayAll = Object.entries(allSpentByCur).length === 0
+
+  // Only aggregate spend, budget, and unpaid across active projects in the workspace
+  const activeBudgetItems = projects.length > 0
+    ? budgetItems.filter(i => projects.some(p => matchesProject(i.project_id, p.id, p.name)))
+    : [];
+  const activeAdvances = projects.length > 0
+    ? advances.filter(a => projects.some(p => matchesProject(a.project_id, p.id, p.name)))
+    : [];
+  const activePayees = projects.length > 0
+    ? payees.filter(py => projects.some(p => matchesProject(py.project_id, p.id, p.name)))
+    : [];
+  const activePOs = projects.length > 0
+    ? (purchaseOrders || []).filter(po => projects.some(p => matchesProject(po.project_id, p.id, p.name)))
+    : [];
+
+  const unpaid = projects.length > 0
+    ? activePayees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length
+    : 0;
+  const totalBudgetUSD = activeBudgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const { spentByCur: allSpentByCur, totalUSD: totalSpentUSD } = projects.length > 0
+    ? computeTotalSpend(activeAdvances, reconEntries, activePayees, activePOs)
+    : { spentByCur: {}, totalUSD: 0, breakdown: { advances: {}, payees: {}, pos: {} } };
+
+  const hasBudget = totalBudgetUSD > 0;
+  const savedUSD = projects.length === 0 ? 0 : (totalBudgetUSD - totalSpentUSD);
+  const isOverBudget = projects.length > 0 && hasBudget && savedUSD < 0;
+
+  const spendDisplayAll = projects.length === 0 || Object.entries(allSpentByCur).length === 0
     ? `${sym(defaultCurrency || 'NGN')}0`
     : Object.entries(allSpentByCur).length <= 2
       ? Object.entries(allSpentByCur).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ')
       : `≈ $${fmt(totalSpentUSD)}`;
+
+  const spendSubAll = projects.length === 0 || Object.entries(allSpentByCur).length === 0
+    ? t('statAcrossSlate')
+    : (Object.keys(allSpentByCur).some(c => c !== 'USD') ? `${t('statAcrossSlate')} (≈ $${fmt(totalSpentUSD)})` : t('statAcrossSlate'));
+
+  const savedDisplay = projects.length === 0 || (!hasBudget && totalSpentUSD === 0)
+    ? `$0`
+    : `≈ $${fmt(Math.abs(savedUSD))}`;
+  const savedSub = isOverBudget ? t('statOverBudget') : t('statUnderBudget');
+  const savedAccent = isOverBudget ? T.coral : T.sage;
   return(
     <div>
       <div style={{marginBottom:22}}><NkoLogo height={32}/><div style={{fontSize:14,color:T.dim,marginTop:8,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
       {typeof trialCount==='number'&&trialCount<trialLimit&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 14px',marginBottom:16,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{trialLimit-trialCount} of {trialLimit} free productions left</div>}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
         <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
-        <StatCard label={t('statTotalSpend')} value={spendDisplayAll} sub={Object.entries(allSpentByCur).length > 0 && Object.keys(allSpentByCur).some(c => c !== 'USD') ? `${t('statAcrossSlate')} (≈ $${fmt(totalSpentUSD)})` : t('statAcrossSlate')}/>
-        <StatCard label={t('statTotalSaved')} value={`≈ $${fmt(Math.abs(savedUSD))}`} sub={savedUSD<0?t('statOverBudget'):t('statUnderBudget')} accent={savedUSD<0?T.coral:T.sage}/>
+        <StatCard label={t('statTotalSpend')} value={spendDisplayAll} sub={spendSubAll}/>
+        <StatCard label={t('statTotalSaved')} value={savedDisplay} sub={savedSub} accent={savedAccent}/>
         <StatCard label={t('statUnpaid')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
       </div>
       {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
@@ -4913,7 +4946,33 @@ function Workspace(){
       alert("Only the production admin can delete a production.");
       return;
     }
-    for(const id of ids){await purgeReceipts(id);await sb.from('project_collaborators').delete().eq('project_id',id);await sb.from('schedule_days').delete().eq('project_id',id);await sb.from('revenue_items').delete().eq('project_id',id);await sb.from('projects').delete().eq('id',id);}setScheduleDays(p=>p.filter(x=>!ids.includes(x.project_id)));setRevenueItems(p=>p.filter(x=>!ids.includes(x.project_id)));setProjects(p=>p.filter(x=>!ids.includes(x.id)));setBudgetItems(p=>p.filter(x=>!ids.includes(x.project_id)));setAdvances(p=>p.filter(x=>!ids.includes(x.project_id)));setPayees(p=>p.filter(x=>!ids.includes(x.project_id)));setScenes(p=>p.filter(x=>!ids.includes(x.project_id)));setCharacters(p=>p.filter(x=>!ids.includes(x.project_id)));if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}
+    for(const id of ids){
+      await purgeReceipts(id);
+      await sb.from('project_collaborators').delete().eq('project_id',id);
+      await sb.from('schedule_days').delete().eq('project_id',id);
+      await sb.from('revenue_items').delete().eq('project_id',id);
+      await sb.from('budget_items').delete().eq('project_id',id);
+      await sb.from('purchase_orders').delete().eq('project_id',id);
+      await sb.from('payees').delete().eq('project_id',id);
+      const advsToDelete = advances.filter(a => matchesProject(a.project_id, id));
+      for(const a of advsToDelete){
+        await sb.from('recon_entries').delete().eq('advance_id', a.id);
+      }
+      await sb.from('advances').delete().eq('project_id',id);
+      await sb.from('scenes').delete().eq('project_id',id);
+      await sb.from('characters').delete().eq('project_id',id);
+      await sb.from('projects').delete().eq('id',id);
+    }
+    setScheduleDays(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    setRevenueItems(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    setProjects(p=>p.filter(x=>!ids.includes(x.id)));
+    setBudgetItems(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    setAdvances(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    setPayees(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    setPurchaseOrders(p=>(p||[]).filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    setScenes(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    setCharacters(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
+    if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}
   };
   const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data){setBudgetItems(p=>[...p,data]);broadcastActivity('added a budget line');}};
   const addRevenueItem=async item=>{

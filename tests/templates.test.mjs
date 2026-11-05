@@ -94,6 +94,20 @@ test('total spend calculation and display are properly configured', () => {
   // Verify Workspace passes reconEntries, purchaseOrders, and onOpenRecon to ProductionDashboardView
   assert.ok(code.includes("reconEntries={pReconEntries}"), 'Workspace must pass reconEntries to ProductionDashboardView');
   assert.ok(code.includes("onOpenRecon={()"), 'Workspace must pass onOpenRecon to ProductionDashboardView');
+
+  // Verify Dashboard slate spend is strictly scoped to active projects and handles zero productions gracefully
+  assert.ok(code.includes("activeBudgetItems = projects.length > 0"), 'DashboardView must only aggregate budget items for active projects');
+  assert.ok(code.includes("activeAdvances = projects.length > 0"), 'DashboardView must only aggregate advances for active projects');
+  assert.ok(code.includes("activePayees = projects.length > 0"), 'DashboardView must only aggregate payees for active projects');
+  assert.ok(code.includes("activePOs = projects.length > 0"), 'DashboardView must only aggregate POs for active projects');
+  assert.ok(code.includes("projects.length === 0 ? 0 : (totalBudgetUSD - totalSpentUSD)"), 'DashboardView must not calculate negative saved or over budget when projects are empty');
+  assert.ok(code.includes("projects.length === 0 || Object.entries(allSpentByCur).length === 0"), 'DashboardView must display 0 spend when no active productions exist');
+
+  // Verify deleteProjects purges child records in database and state
+  assert.ok(code.includes(".from('purchase_orders').delete().eq('project_id',id)"), 'deleteProjects must purge purchase orders in database');
+  assert.ok(code.includes(".from('budget_items').delete().eq('project_id',id)"), 'deleteProjects must purge budget items in database');
+  assert.ok(code.includes(".from('advances').delete().eq('project_id',id)"), 'deleteProjects must purge advances in database');
+  assert.ok(code.includes(".from('payees').delete().eq('project_id',id)"), 'deleteProjects must purge payees in database');
 });
 
 
