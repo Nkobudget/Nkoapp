@@ -17,43 +17,43 @@
 
 @keyframes iris-glow-pulse {
   0% {
-    transform: scale(0.94);
-    filter: drop-shadow(0 0 10px rgba(254, 237, 97, 0.4)) drop-shadow(0 0 25px rgba(212, 175, 55, 0.25));
-    opacity: 0.85;
+    transform: scale(0.72);
+    filter: grayscale(100%) brightness(0.35) contrast(110%);
+    opacity: 0.35;
   }
   50% {
-    transform: scale(1.06);
-    filter: drop-shadow(0 0 22px rgba(254, 237, 97, 0.95)) drop-shadow(0 0 45px rgba(212, 175, 55, 0.65));
+    transform: scale(1.18);
+    filter: grayscale(0%) brightness(1.1) drop-shadow(0 0 25px rgba(254, 237, 97, 0.95)) drop-shadow(0 0 50px rgba(212, 175, 55, 0.65));
     opacity: 1;
   }
   100% {
-    transform: scale(0.94);
-    filter: drop-shadow(0 0 10px rgba(254, 237, 97, 0.4)) drop-shadow(0 0 25px rgba(212, 175, 55, 0.25));
-    opacity: 0.85;
+    transform: scale(0.72);
+    filter: grayscale(100%) brightness(0.35) contrast(110%);
+    opacity: 0.35;
   }
 }
 
 @keyframes iris-aura-pulse {
   0% {
-    transform: scale(0.85);
-    opacity: 0.3;
+    transform: scale(0.6);
+    opacity: 0;
   }
   50% {
-    transform: scale(1.25);
-    opacity: 0.8;
+    transform: scale(1.35);
+    opacity: 0.85;
   }
   100% {
-    transform: scale(0.85);
-    opacity: 0.3;
+    transform: scale(0.6);
+    opacity: 0;
   }
 }
 
 .nko-iris-glowing-logo {
-  animation: iris-glow-pulse 2.2s infinite ease-in-out;
+  animation: iris-glow-pulse 2.4s infinite ease-in-out;
   will-change: transform, filter, opacity;
 }
 
 .nko-iris-aura {
-  animation: iris-aura-pulse 2.2s infinite ease-in-out;
+  animation: iris-aura-pulse 2.4s infinite ease-in-out;
   will-change: transform, opacity;
 }

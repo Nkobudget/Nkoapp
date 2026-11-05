@@ -2,9 +2,8 @@ import irisLogo from '../iris-gold-128.png'
 
 export default function IrisLoader({
   message = 'Loading your workspace…',
-  subMessage,
   className = '',
-  size = 80,
+  size = 84,
 }) {
   return (
     <div
@@ -12,22 +11,25 @@ export default function IrisLoader({
       aria-live="polite"
       className={`flex flex-col items-center justify-center text-center select-none ${className}`}
     >
-      {/* Glowing Iris Container */}
+      {/* Visually hidden screen-reader announcement preserves accessibility and tests */}
+      <span className="sr-only">{message}</span>
+
+      {/* Breathing & Glowing Iris Logo */}
       <div
         className="relative flex items-center justify-center"
-        style={{ width: size * 1.75, height: size * 1.75 }}
+        style={{ width: size * 1.8, height: size * 1.8 }}
       >
-        {/* Ambient radial gold glow behind logo */}
+        {/* Ambient radial gold glow: blooms when enlarged, completely fades when scaled down */}
         <div
           aria-hidden="true"
           className="nko-iris-aura absolute inset-0 rounded-full pointer-events-none"
           style={{
             background:
-              'radial-gradient(circle, rgba(254, 237, 97, 0.28) 0%, rgba(212, 175, 55, 0.12) 48%, transparent 72%)',
+              'radial-gradient(circle, rgba(254, 237, 97, 0.35) 0%, rgba(212, 175, 55, 0.15) 45%, transparent 70%)',
           }}
         />
 
-        {/* The iris-gold-128 Logo */}
+        {/* The iris-gold-128 Logo: scales up to show actual gold color, scales down to remove gold */}
         <img
           src={irisLogo}
           alt="NKÒ"
@@ -38,26 +40,6 @@ export default function IrisLoader({
           className="nko-iris-glowing-logo relative z-10 block object-contain"
           style={{ width: size, height: size }}
         />
-      </div>
-
-      {/* Status Text */}
-      <div className="mt-4 flex flex-col items-center gap-1.5">
-        <p className="text-sm font-medium tracking-tight text-palette-ivory/90 sm:text-base">
-          {message}
-        </p>
-        {subMessage && (
-          <p className="text-xs text-palette-stone">
-            {subMessage}
-          </p>
-        )}
-
-        {/* Subtle breathing golden brand pill */}
-        <div aria-hidden="true" className="mt-2 flex items-center gap-1.5">
-          <span className="nko-live-dot-gold" />
-          <span className="text-[11px] uppercase tracking-widest text-palette-gold/75 font-mono">
-            NKÒ
-          </span>
-        </div>
       </div>
     </div>
   )

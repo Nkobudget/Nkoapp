@@ -46,6 +46,8 @@ test('iris-gold-128 loading glow up is configured across auth status, screen, an
   assert.ok(irisLoaderCode.includes('nko-iris-aura'), 'IrisLoader must have aura glow animation');
   assert.ok(irisLoaderCode.includes('Loading your workspace'), 'IrisLoader must include Loading your workspace text');
 
+  assert.ok(irisLoaderCode.includes('sr-only'), 'Visual text area must be removed from screen using sr-only');
+
   const authStatusPath = path.resolve('src/auth/AuthStatus.jsx');
   const authStatusCode = fs.readFileSync(authStatusPath, 'utf8');
   assert.ok(authStatusCode.includes('IrisLoader'), 'AuthStatus must render IrisLoader');
