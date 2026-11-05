@@ -1823,24 +1823,58 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
   );
 }
 
+/* ── Centralized Spend Calculation Helper (Recon expenses + Paid POs + Cast/Crew payments) ── */
+const computeTotalSpend = (projectAdvances = [], projectReconEntries = [], projectPayees = [], projectPOs = []) => {
+  const isTopUp = e => !!e.description?.startsWith('[CASH-IN]');
+  const advIds = new Set((projectAdvances || []).map(a => a.id));
+  const advCurMap = {};
+  (projectAdvances || []).forEach(a => { advCurMap[a.id] = a.currency || 'NGN'; });
+
+  const spentByCur = {};
+  (projectReconEntries || []).forEach(e => {
+    if (advIds.has(e.advance_id) && !isTopUp(e)) {
+      const c = advCurMap[e.advance_id] || 'NGN';
+      spentByCur[c] = (spentByCur[c] || 0) + (Number(e.amount) || 0);
+    }
+  });
+  (projectPayees || []).forEach(p => {
+    const c = p.currency || 'NGN';
+    (p.payments || []).forEach(pay => {
+      spentByCur[c] = (spentByCur[c] || 0) + (Number(pay.amount) || 0);
+    });
+  });
+  (projectPOs || []).forEach(po => {
+    if (po.status === 'Paid') {
+      const c = po.currency || 'NGN';
+      spentByCur[c] = (spentByCur[c] || 0) + (Number(po.amount) || 0);
+    }
+  });
+  const totalUSD = Object.entries(spentByCur).reduce((s, [c, amt]) => s + toUSD(amt, c), 0);
+  return { spentByCur, totalUSD };
+};
+
 /* ── Dashboard ── */
-function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
+function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const[collabModalProject,setCollabModalProject]=useState(null);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
-  const advCurrency=id=>advances.find(a=>a.id===id)?.currency||'NGN';
   const totalBudgetUSD=budgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-  const totalSpentUSD=reconEntries.filter(e=>!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
+  const { spentByCur: allSpentByCur, totalUSD: totalSpentUSD } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
   const savedUSD=totalBudgetUSD-totalSpentUSD;
+  const spendDisplayAll = Object.entries(allSpentByCur).length === 0
+    ? `${sym(defaultCurrency || 'NGN')}0`
+    : Object.entries(allSpentByCur).length <= 2
+      ? Object.entries(allSpentByCur).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ')
+      : `≈ $${fmt(totalSpentUSD)}`;
   return(
     <div>
       <div style={{marginBottom:22}}><NkoLogo height={32}/><div style={{fontSize:14,color:T.dim,marginTop:8,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
       {typeof trialCount==='number'&&trialCount<trialLimit&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 14px',marginBottom:16,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{trialLimit-trialCount} of {trialLimit} free productions left</div>}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
         <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
-        <StatCard label={t('statTotalSpend')} value={`≈ $${fmt(totalSpentUSD)}`} sub={t('statAcrossSlate')}/>
+        <StatCard label={t('statTotalSpend')} value={spendDisplayAll} sub={Object.entries(allSpentByCur).length > 0 && Object.keys(allSpentByCur).some(c => c !== 'USD') ? `${t('statAcrossSlate')} (≈ $${fmt(totalSpentUSD)})` : t('statAcrossSlate')}/>
         <StatCard label={t('statTotalSaved')} value={`≈ $${fmt(Math.abs(savedUSD))}`} sub={savedUSD<0?t('statOverBudget'):t('statUnderBudget')} accent={savedUSD<0?T.coral:T.sage}/>
         <StatCard label={t('statUnpaid')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
       </div>
@@ -1859,11 +1893,12 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
           {projects.map(p=>{
             const pi=budgetItems.filter(i=>i.project_id===p.id);const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
             const open=advances.filter(a=>a.project_id===p.id&&a.status!=='reconciled').length;const isSel=selected.has(p.id);
-            const pAdvIds=advances.filter(a=>a.project_id===p.id).map(a=>a.id);
-            const spentTotals={};reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).forEach(e=>{const c=advCurrency(e.advance_id);spentTotals[c]=(spentTotals[c]||0)+(Number(e.amount)||0);});
+            const pAdv=advances.filter(a=>a.project_id===p.id);
+            const pPay=payees.filter(py=>py.project_id===p.id);
+            const pPO=(purchaseOrders||[]).filter(po=>po.project_id===p.id);
+            const { spentByCur: pSpentTotals, totalUSD: pSpentUSD } = computeTotalSpend(pAdv, reconEntries, pPay, pPO);
             const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
-            const spentUSD=reconEntries.filter(e=>pAdvIds.includes(e.advance_id)&&!e.description?.startsWith('[CASH-IN]')).reduce((s,e)=>s+toUSD(Number(e.amount)||0,advCurrency(e.advance_id)),0);
-            const pct=budgetUSD>0?Math.min(100,(spentUSD/budgetUSD)*100):0;const over=spentUSD>budgetUSD;
+            const pct=budgetUSD>0?Math.min(100,(pSpentUSD/budgetUSD)*100):0;const over=pSpentUSD>budgetUSD;
             const isOwner = p.user_id === currentUserId;
             const pCollabs = (collaborators || []).filter(c => c.project_id === p.id);
             const count = pCollabs.length;
@@ -1873,11 +1908,11 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
               <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div>
               <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2,marginBottom:8}}>{p.type}</div>
               <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream,marginBottom:8}}>{Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><div key={c}>{sym(c)}{fmt(a)}</div>)}</div>
-              {budgetUSD>0&&<>
-                <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:6}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>
+              {(budgetUSD>0 || Object.entries(pSpentTotals).length>0)&&<>
+                {budgetUSD>0&&<div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:6}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>}
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
-                  <span>{Object.entries(spentTotals).length===0?'No spend yet':Object.entries(spentTotals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}</span>
-                  <span style={{color:over?T.coral:T.sage}}>{over?'Over pace':`${Math.round(pct)}%`}</span>
+                  <span>{Object.entries(pSpentTotals).length===0?'No spend yet':Object.entries(pSpentTotals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}</span>
+                  {budgetUSD>0&&<span style={{color:over?T.coral:T.sage}}>{over?'Over pace':`${Math.round(pct)}%`}</span>}
                 </div>
               </>}
               <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
@@ -1934,11 +1969,21 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items=[],advances=[],payees=[],onBack,onOpenBudget,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
+function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],onBack,onOpenBudget,onOpenRecon,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
   const{t}=useLang();
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
+  const { spentByCur, totalUSD: spentUSD } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
+  const budgetUSD = items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const spendPct = budgetUSD > 0 ? (spentUSD / budgetUSD) * 100 : 0;
+  const overBudget = spentUSD > budgetUSD && budgetUSD > 0;
+  const spendDisplay = Object.entries(spentByCur).length === 0
+    ? `${sym(project.base_currency || 'NGN')}0`
+    : Object.entries(spentByCur).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
+  const budgetDisplay = Object.entries(totals).length === 0
+    ? `${sym(project.base_currency || 'NGN')}0`
+    : Object.entries(totals).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
   return(
     <div>
       <button onClick={onBack} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',marginBottom:14,padding:0}}>{t('allProductions')}</button>
@@ -1975,11 +2020,25 @@ function ProductionDashboardView({project,items=[],advances=[],payees=[],onBack,
         </div>
       )}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
-        <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')} sub={project.base_currency} onClick={onOpenBudget}/>
-        <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')}/>
-        <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage}/>
+        <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':budgetDisplay} sub={project.base_currency} onClick={onOpenBudget}/>
+        <StatCard label={t('statTotalSpend')} value={spendDisplay} sub={budgetUSD > 0 ? (overBudget ? t('statOverBudget') : `${Math.round(spendPct)}% of budget`) : 'logged spend'} accent={overBudget ? T.coral : T.gold} onClick={onOpenRecon}/>
+        <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')} onClick={onOpenBudget}/>
+        <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage} onClick={onOpenRecon}/>
         <StatCard label={t('statUnpaidCrew')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
       </div>
+      {budgetUSD > 0 && (
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'14px 18px',marginTop:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
+            <span style={{color:T.dim}}>Overall Production Spend Pace</span>
+            <span style={{color:overBudget?T.coral:T.sage,fontWeight:700,fontFamily:'IBM Plex Mono,monospace'}}>
+              {spendDisplay} of {budgetDisplay} ({Math.round(spendPct)}%)
+            </span>
+          </div>
+          <div style={{height:8,background:T.line,borderRadius:4,overflow:'hidden'}}>
+            <div style={{width:`${Math.min(100,spendPct)}%`,height:'100%',background:overBudget?T.coral:T.sage,transition:'width 0.3s ease'}}/>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4918,8 +4977,8 @@ function Workspace(){
         <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
           {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
           {view==='dashboard'&&(project?
-            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} payees={payees.filter(p=>p.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
-            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
+            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>p.project_id===currentId)} purchaseOrders={purchaseOrders.filter(po=>po.project_id===currentId)} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}

@@ -66,4 +66,24 @@ test('iris-gold-128 loading glow up is configured across auth status, screen, an
   assert.ok(indexCss.includes('iris-aura-pulse'), 'src/index.css must define iris-aura-pulse keyframes');
 });
 
+test('total spend calculation and display are properly configured', () => {
+  const legacyAppPath = path.resolve('src/legacy/LegacyApp.jsx');
+  const code = fs.readFileSync(legacyAppPath, 'utf8');
+
+  // Verify computeTotalSpend helper exists
+  assert.ok(code.includes('const computeTotalSpend ='), 'LegacyApp must define computeTotalSpend helper');
+  assert.ok(code.includes("po.status === 'Paid'"), 'computeTotalSpend must account for paid purchase orders');
+  assert.ok(code.includes("p.payments"), 'computeTotalSpend must account for payee payments');
+  assert.ok(code.includes("[CASH-IN]"), 'computeTotalSpend must account for non-top-up advance expenses');
+
+  // Verify ProductionDashboardView includes total spend
+  assert.ok(code.includes("StatCard label={t('statTotalSpend')}"), 'ProductionDashboardView must include Total Spend StatCard');
+  assert.ok(code.includes("Overall Production Spend Pace"), 'ProductionDashboardView must show Spend Pace progress bar');
+
+  // Verify Workspace passes reconEntries, purchaseOrders, and onOpenRecon to ProductionDashboardView
+  assert.ok(code.includes("reconEntries={pReconEntries}"), 'Workspace must pass reconEntries to ProductionDashboardView');
+  assert.ok(code.includes("onOpenRecon={()"), 'Workspace must pass onOpenRecon to ProductionDashboardView');
+});
+
+
 
