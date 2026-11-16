@@ -433,15 +433,14 @@ test('historical root confirmation/recovery callbacks reach the correct gate bra
   }
 })
 
-test('landing Login goes directly to the guarded app, and Google keeps its existing behavior', async () => {
+test('landing Login goes to sign-in chooser, and Google keeps its existing behavior', async () => {
   const t = await setup()
   await t.page.goto(baseURL)
   const login = t.page.locator('header').first().getByRole('link', { name: 'Login', exact: true })
   await login.waitFor()
-  assert.equal(await login.getAttribute('href'), '/app')
+  assert.equal(await login.getAttribute('href'), '/sign-in')
   await login.click()
-  await t.page.waitForURL('**/app')
-  await t.page.getByRole('heading', { name: 'Sign in', exact: true }).waitFor()
+  await t.page.waitForURL('**/sign-in')
   assert.equal(t.state.tableCalls, 0)
   await t.page.getByRole('link', { name: 'NKO home', exact: true }).click()
   await t.page.waitForURL(baseURL)

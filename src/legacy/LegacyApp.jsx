@@ -16,9 +16,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 /* ── Supabase ── */
 /* ── Theme ── */
 const T = {
-  ink:'#141414', panel:'#1C1C1E', hi:'#242424', line:'#3A3A3A',
-  gold:'#FEED61', goldDim:'#8C852E', goldGlow:'rgba(254,237,97,0.12)',
-  cream:'#F0E8D0', dim:'#9A9080', faint:'#5A5A5A',
+  ink:'#000000', panel:'#171717', hi:'#1F1F1F', line:'#292929',
+  gold:'#D4AF37', goldDim:'#8F7322', goldGlow:'rgba(212,175,55,0.14)',
+  cream:'#F5F5F0', dim:'#9B978D', faint:'#6B6862',
   coral:'#E06B52', sage:'#52B07A', sapphire:'#4A90D9',
 };
 
@@ -66,7 +66,7 @@ const expenseCatsForDept=dept=>{
   const specific=EXPENSE_CATS_BY_DEPT[dept]||[];
   return[...specific,...EXPENSE_CATS_UNIVERSAL.filter(c=>!specific.includes(c)),'Miscellaneous'];
 };
-const ACCENT_COLORS=['#FEED61','#E06B52','#52B07A','#4A90D9','#9B7FD4','#F5A623','#2ABFBF','#E8527A'];
+const ACCENT_COLORS=['#D4AF37','#E06B52','#52B07A','#4A90D9','#9B7FD4','#F5A623','#2ABFBF','#E8527A'];
 /* Approximate local-currency-to-USD conversion rates, for the dual currency display on each budget line.
    These are illustrative rates and should be treated as approximate — update RATES_TO_USD as real rates move. */
 const RATES_TO_USD={NGN:1/1550,GHS:1/15.5,KES:1/129,ZAR:1/18.2,UGX:1/3700,TZS:1/2500,XOF:1/605,ETB:1/128,USD:1,GBP:1.27};
@@ -2237,7 +2237,7 @@ const PI_FIELDS=[
   ['postStart','Post-production Start'],['postEnd','Post-production End'],
 ];
 /* ── Phase Cost Summary — manual input for pre/production/post totals ── */
-const PHASE_COLORS=['#7F77DD','#FEED61','#5B9BD5','#D98BA8']; // Pre-Production, Production, Post-Production, PR/Marketing & Distribution — deliberately distinct from sage/coral, which already mean reconciled/over-budget elsewhere in the app
+const PHASE_COLORS=['#7F77DD','#D4AF37','#5B9BD5','#D98BA8']; // Pre-Production, Production, Post-Production, PR/Marketing & Distribution — deliberately distinct from sage/coral, which already mean reconciled/over-budget elsewhere in the app
 function BudgetSummaryHeader({project,items,onSetContingency,onSetTarget}){
   const{t}=useLang();
   const preDepts=PHASES[0].depts,prodDepts=PHASES[1].depts,postDepts=PHASES[2].depts,prDepts=PHASES[3].depts;
@@ -2336,8 +2336,8 @@ function ProductionInfoPanel({project}){
 
 function BrandPanel({project}){
   const{t}=useLang();
-  const[open,setOpen]=useState(false);const[cname,setCname]=useState('');const[ptitle,setPtitle]=useState('');const[logo,setLogo]=useState(null);const[accent,setAccent]=useState('#FEED61');const[saved,setSaved]=useState(false);const lr=useRef();
-  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');setCname(s.companyName||'');setPtitle(s.productionTitle||project.name||'');setLogo(s.logo||null);setAccent(s.accentColor||'#FEED61');setSaved(!!(s.companyName||s.logo));}catch{}},[project?.id]);
+  const[open,setOpen]=useState(false);const[cname,setCname]=useState('');const[ptitle,setPtitle]=useState('');const[logo,setLogo]=useState(null);const[accent,setAccent]=useState('#D4AF37');const[saved,setSaved]=useState(false);const lr=useRef();
+  useEffect(()=>{if(!project)return;try{const s=JSON.parse(localStorage.getItem(`nko_brand_${project.id}`)||'{}');setCname(s.companyName||'');setPtitle(s.productionTitle||project.name||'');setLogo(s.logo||null);setAccent(s.accentColor||'#D4AF37');setSaved(!!(s.companyName||s.logo));}catch{}},[project?.id]);
   const save=()=>{localStorage.setItem(`nko_brand_${project.id}`,JSON.stringify({companyName:cname,productionTitle:ptitle,logo,accentColor:accent}));setSaved(true);setOpen(false);};
   return(
     <div style={{background:T.panel,border:`1px solid ${saved?accent:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>

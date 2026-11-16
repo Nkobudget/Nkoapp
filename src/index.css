@@ -23,7 +23,7 @@
   }
   50% {
     transform: scale(1.18);
-    filter: grayscale(0%) brightness(1.1) drop-shadow(0 0 25px rgba(254, 237, 97, 0.95)) drop-shadow(0 0 50px rgba(212, 175, 55, 0.65));
+    filter: grayscale(0%) brightness(1.1) drop-shadow(0 0 25px rgba(255, 179, 71, 0.85)) drop-shadow(0 0 50px rgba(212, 175, 55, 0.65));
     opacity: 1;
   }
   100% {

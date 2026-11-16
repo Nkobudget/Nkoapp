@@ -63,7 +63,7 @@ const Header = () => {
           <>
             <Link
               ref={loginRef}
-              to="/app"
+              to="/sign-in"
               className="rounded-sm text-white text-sm font-medium hover:text-amber-400 transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-apricot"
             >
               Login

@@ -25,7 +25,7 @@ export default function IrisLoader({
           className="nko-iris-aura absolute inset-0 rounded-full pointer-events-none"
           style={{
             background:
-              'radial-gradient(circle, rgba(254, 237, 97, 0.35) 0%, rgba(212, 175, 55, 0.15) 45%, transparent 70%)',
+              'radial-gradient(circle, rgba(255, 179, 71, 0.3) 0%, rgba(212, 175, 55, 0.16) 45%, transparent 70%)',
           }}
         />
 
