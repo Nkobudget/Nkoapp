@@ -11,28 +11,39 @@ import IrisLoader from '../components/IrisLoader';
 import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
 import './dashboard.css';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion';
 import {
   AlertTriangle,
+  ArrowRight,
   ArrowUp,
   Banknote,
   BarChart3,
   Bell,
   Calendar,
   Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
   Clapperboard,
   Coins,
+  Compass,
   CreditCard,
+  Download,
+  Eye,
   FilePlus,
   FileText,
   Film,
   Info,
+  Layers,
   LayoutDashboard,
   LayoutGrid,
   List,
   MapPin,
+  MessageSquare,
+  MoreHorizontal,
+  Pencil,
   PiggyBank,
   Plus,
   Receipt,
@@ -42,6 +53,9 @@ import {
   Store,
   Trash2,
   TrendingUp,
+  Upload,
+  UserPlus,
+  Users,
   Wallet,
   X,
 } from 'lucide-react';
@@ -1493,7 +1507,7 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 };
 
 /* ── Atoms ── */
-const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'productions',e:'🎞️',l:'Productions'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'schedule',e:'🗓️',l:'Schedule'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'productions',e:'🎞️',l:'Productions'},{id:'overview',e:'🧭',l:'Overview'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'schedule',e:'🗓️',l:'Schedule'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
 const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
 const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
@@ -1505,7 +1519,33 @@ const Btn=({variant='primary',size='md',style:sx,...p})=>{
 };
 const Pill=({children,color})=><span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:color?`${color}22`:T.hi,color:color||T.goldDim,border:`1px solid ${color||T.line}`,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{children}</span>;
 const NkoLogo=({height=32,style})=><BrandHomeLink style={{height,width:'auto',...style}} linkStyle={{display:'flex',width:'fit-content'}}/>;
-const StatCard=({label,value,sub,accent,onClick})=><div onClick={onClick} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,cursor:onClick?'pointer':'default'}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>{label}</div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:accent||T.gold,fontWeight:500}}>{value}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{sub}</div></div>;
+const StatCard=({label,value,sub,accent,badge,featured,onClick})=>(
+  <motion.div
+    variants={fadeUp}
+    whileHover={{y:-2}}
+    transition={{duration:DURATION.fast,ease:EASE_OUT}}
+    onClick={onClick}
+    style={{
+      position:'relative',
+      overflow:'hidden',
+      background:featured?'linear-gradient(180deg, #111113 0%, #15120B 100%)':'linear-gradient(180deg, #111113 0%, #0E0E10 100%)',
+      border:featured?'1px solid rgba(255,179,71,0.28)':'1px solid #1E1E22',
+      borderRadius:12,
+      padding:'16px 18px',
+      cursor:onClick?'pointer':'default',
+      boxShadow:featured
+        ?'inset 0 -1px 0 0 rgba(255,179,71,0.48), 0 12px 28px -12px rgba(255,179,71,0.2)'
+        :'0 4px 20px rgba(0,0,0,0.4)',
+    }}
+  >
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+      <span style={{fontSize:11,color:'#8A8985',fontFamily:'Manrope,sans-serif',fontWeight:600}}>{label}</span>
+      {badge&&<span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'#6E6D69'}}>{badge}</span>}
+    </div>
+    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:accent||T.cream,fontWeight:600,letterSpacing:'-0.02em',wordBreak:'break-word'}}>{value}</div>
+    <div style={{fontSize:11,color:'#6E6D69',fontFamily:'Manrope,sans-serif',marginTop:6}}>{sub}</div>
+  </motion.div>
+);
 function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -1548,7 +1588,17 @@ function FeedbackButton({user,view,mobile}){
     setTimeout(()=>{setOpen(false);setState('idle');setMessage('');setCategory('Idea');},1400);
   };
   return(<>
-    <button onClick={()=>setOpen(true)} style={{position:'fixed',right:18,bottom:mobile?66:18,zIndex:55,background:T.gold,color:T.ink,border:'none',borderRadius:24,padding:'10px 16px',fontSize:12,fontWeight:700,cursor:'pointer',boxShadow:'0 4px 14px rgba(0,0,0,.4)',fontFamily:'Manrope,sans-serif'}}>💬 Feedback</button>
+    <motion.button
+      type="button"
+      whileHover={{y:-1}}
+      whileTap={{scale:0.97}}
+      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+      onClick={()=>setOpen(true)}
+      style={{position:'fixed',right:18,bottom:mobile?66:18,zIndex:55,background:'#141416',color:T.cream,border:'1px solid #26262B',borderRadius:9999,padding:'9px 15px',fontSize:12,fontWeight:600,cursor:'pointer',boxShadow:'0 8px 24px rgba(0,0,0,0.55)',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}
+    >
+      <MessageSquare size={13} style={{color:'#F5C451'}}/>
+      <span>Feedback</span>
+    </motion.button>
     {open&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={()=>state!=='sending'&&setOpen(false)}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:420,width:'100%',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
@@ -1580,10 +1630,10 @@ function ExportMenu({onPdf,onExcel,getPreview}){
   const item={display:'block',width:'100%',textAlign:'left',padding:'10px 14px',background:'none',border:'none',color:T.cream,fontSize:13,cursor:'pointer',fontFamily:'Manrope,sans-serif'};
   return(<>
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
-      <Btn variant="outline" size="sm" onClick={()=>setOpen(o=>!o)}>⬇️ Export ▾</Btn>
+      <button type="button" onClick={()=>setOpen(o=>!o)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span><ChevronDown size={13} style={{color:T.faint}}/></button>
       {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:200,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
-        <button onClick={()=>{onPdf();setOpen(false);}} style={item}>📄 PDF Document</button>
-        <button onClick={()=>{setOpen(false);getPreview?setPreview(getPreview()):onExcel();}} style={{...item,borderTop:`1px solid ${T.line}`}}>📊 Excel Spreadsheet (.xlsx)</button>
+        <button type="button" onClick={()=>{onPdf();setOpen(false);}} style={{...item,display:'flex',alignItems:'center',gap:8}}><FileText size={13} style={{color:T.dim}}/><span>PDF Document</span></button>
+        <button type="button" onClick={()=>{setOpen(false);getPreview?setPreview(getPreview()):onExcel();}} style={{...item,display:'flex',alignItems:'center',gap:8,borderTop:`1px solid ${T.line}`}}><BarChart3 size={13} style={{color:T.dim}}/><span>Excel Spreadsheet (.xlsx)</span></button>
       </div>}
     </div>
     {preview&&<ExportPreviewModal {...preview} onClose={()=>setPreview(null)} onDownload={onExcel}/>}
@@ -1591,7 +1641,7 @@ function ExportMenu({onPdf,onExcel,getPreview}){
 }
 const FS=()=><div style={{height:8,background:`repeating-linear-gradient(90deg,${T.gold} 0 12px,transparent 12px 20px)`,opacity:.4,borderRadius:1}}/>;
 
-const NAV_KEY={dashboard:'navDashboard',productions:'navProductions',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',schedule:'navSchedule',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
+const NAV_KEY={dashboard:'navDashboard',productions:'navProductions',overview:'navOverview',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',schedule:'navSchedule',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
 function LangToggle({compact}){
   const{lang,setLang}=useLang();
   return(
@@ -1603,6 +1653,7 @@ function LangToggle({compact}){
 const NAV_ICON = {
   dashboard: LayoutDashboard,
   productions: Film,
+  overview: Compass,
   budgets: BarChart3,
   revenue: Coins,
   breakdown: Clapperboard,
@@ -1615,12 +1666,16 @@ const NAV_ICON = {
 };
 const SIDEBAR_GROUPS = [
   { label: 'Workspace', ids: ['dashboard', 'productions'] },
-  { label: 'Management', ids: ['budgets', 'breakdown', 'schedule', 'market', 'ai'] },
+  { label: 'Management', ids: ['overview', 'budgets', 'breakdown', 'schedule', 'market', 'ai'] },
   { label: 'Finance', ids: ['po', 'payments', 'recon', 'revenue'] },
 ];
-function Sidebar({view,setView,onSignOut,userEmail}){
+function Sidebar({view,setView,onSignOut,userEmail,projects=[],currentId,onSelectProject,onClearProject}){
   const{t}=useLang();
   const byId = Object.fromEntries(NAV.map(n=>[n.id,n]));
+  const activeProject = projects.find(p=>p.id===currentId);
+  const projectInitials = activeProject?.name
+    ? activeProject.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')
+    : 'PR';
   return(
     <aside aria-label="Workspace sidebar" style={{width:224,height:'100svh',background:'#0A0A0A',borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden'}}>
       <div style={{padding:'20px 18px 16px',borderBottom:`1px solid ${T.line}`,flexShrink:0}}>
@@ -1628,18 +1683,23 @@ function Sidebar({view,setView,onSignOut,userEmail}){
         <div style={{fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',marginTop:4}}>{t('tagline')}</div>
       </div>
       <nav aria-label="Workspace sections" style={{flex:1,padding:'14px 10px',overflowY:'auto',minHeight:0}}>
-        {SIDEBAR_GROUPS.map(group=>(
+        {SIDEBAR_GROUPS.map((group, groupIdx)=>(
           <div key={group.label} style={{marginBottom:16}}>
             <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color:T.faint,padding:'0 10px 6px',fontFamily:'Manrope,sans-serif'}}>{group.label}</div>
             {group.ids.map(id=>{
               const n=byId[id];
               if(!n)return null;
-              const on=view===n.id;
+              const isOverviewActive = n.id==='overview' && (view==='overview' || (view==='dashboard' && Boolean(currentId)));
+              const isDashboardActive = n.id==='dashboard' && view==='dashboard' && !currentId;
+              const on = n.id==='overview' ? isOverviewActive : n.id==='dashboard' ? isDashboardActive : view===n.id;
               const Icon=NAV_ICON[n.id]||LayoutDashboard;
               return(
                 <motion.button
                   key={n.id}
-                  onClick={()=>setView(n.id)}
+                  onClick={()=>{
+                    if(n.id==='dashboard' || n.id==='productions') onClearProject?.();
+                    setView(n.id);
+                  }}
                   whileHover={{x:2}}
                   whileTap={{scale:0.99}}
                   transition={{duration:DURATION.fast,ease:EASE_OUT}}
@@ -1650,6 +1710,30 @@ function Sidebar({view,setView,onSignOut,userEmail}){
                 </motion.button>
               );
             })}
+            {groupIdx===0 && activeProject && (
+              <div style={{marginTop:10,position:'relative'}}>
+                <div style={{display:'flex',alignItems:'center',gap:9,padding:'8px 10px',borderRadius:10,background:'#121214',border:'1px solid #222226'}}>
+                  <div style={{width:26,height:26,borderRadius:7,background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,fontFamily:'Manrope,sans-serif',flexShrink:0}}>
+                    {projectInitials}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',lineHeight:1.1}}>Production</div>
+                    <div style={{fontSize:12,fontWeight:600,color:T.cream,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:1}}>{activeProject.name}</div>
+                  </div>
+                  <ChevronsUpDown size={13} style={{color:T.faint,flexShrink:0}}/>
+                </div>
+                {projects.length>1&&(
+                  <select
+                    aria-label="Switch production"
+                    value={currentId||''}
+                    onChange={e=>{if(e.target.value)onSelectProject?.(e.target.value);}}
+                    style={{position:'absolute',inset:0,opacity:0,cursor:'pointer',width:'100%',height:'100%'}}
+                  >
+                    {projects.map(pr=><option key={pr.id} value={pr.id}>{pr.name}</option>)}
+                  </select>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </nav>
@@ -1673,8 +1757,8 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
   const initial = userEmail ? userEmail.charAt(0).toUpperCase() : 'N';
   return(
     <div style={{background:'#0A0A0A',borderBottom:'1px solid #1E1E1E',padding:'12px 28px',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-      {view!=='dashboard'&&view!=='productions'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
-      {(view==='dashboard'||view==='productions')&&typeof onSearchChange==='function'&&(
+      {view!=='dashboard'&&view!=='productions'&&view!=='overview'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
+      {(view==='dashboard'||view==='productions'||view==='overview')&&typeof onSearchChange==='function'&&(
         <div style={{position:'relative',flex:'1 1 220px',maxWidth:320}}>
           <Search size={14} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
           <input
@@ -2287,7 +2371,7 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
 
         {!isOwner && (
           <div style={{ padding: '8px 12px', background: T.hi, borderRadius: 8, fontSize: 11, color: T.sapphire, marginBottom: 14, border: `1px solid ${T.line}` }}>
-            🔒 You are viewing this production as an invited collaborator. Only the production admin can invite, remove, or manage collaborators.
+            <span style={{display:'inline-flex',alignItems:'center',gap:6}}><ShieldCheck size={13} style={{flexShrink:0}}/><span>You are viewing this production as an invited collaborator. Only the production admin can invite, remove, or manage collaborators.</span></span>
           </div>
         )}
 
@@ -2312,7 +2396,7 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 14 }}>👤</span>
+                  <Users size={14} style={{ color: T.dim, flexShrink: 0 }}/>
                   <div>
                     <div style={{ fontSize: 12, color: T.cream, fontWeight: 600 }}>
                       {c.email || `Collaborator ${i + 1}`}
@@ -2386,7 +2470,7 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
           </div>
         ) : (
           <div style={{ padding: 10, background: T.hi, borderRadius: 8, fontSize: 11, color: T.dim, textAlign: 'center', borderTop: `1px solid ${T.line}` }}>
-            ✓ All 4 collaborator seats are filled for this project.
+            All 4 collaborator seats are filled for this project.
           </div>
         )}
 
@@ -2682,7 +2766,136 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         </div>
 
         {/* Productions Grid / List */}
-        <div style={{display:'grid',gridTemplateColumns:layoutMode==='list'?'1fr':'repeat(auto-fill,minmax(290px,1fr))',gap:14,marginBottom:onlyProductions?0:28}}>
+        {layoutMode==='list'?(
+          <div style={{background:'#0D0D0F',border:'1px solid #1C1C1F',borderRadius:12,overflow:'hidden',marginBottom:onlyProductions?0:28}}>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif'}}>
+                <thead>
+                  <tr style={{borderBottom:'1px solid #1B1B1E',color:'#71717A',fontSize:11,textAlign:'left'}}>
+                    <th style={{padding:'12px 16px',fontWeight:500}}>Production</th>
+                    <th style={{padding:'12px 14px',fontWeight:500}}>Status</th>
+                    <th style={{padding:'12px 14px',fontWeight:500,textAlign:'right'}}>Budget</th>
+                    <th style={{padding:'12px 14px',fontWeight:500,textAlign:'right'}}>Spend</th>
+                    <th style={{padding:'12px 14px',fontWeight:500,textAlign:'right'}}>Remaining</th>
+                    <th style={{padding:'12px 16px',fontWeight:500}}>Utilisation</th>
+                    <th style={{padding:'12px 14px',fontWeight:500}}>Last activity</th>
+                    <th style={{padding:'12px 16px',fontWeight:500,textAlign:'right'}}>Open</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleProjects.map((p, idx)=>{
+                    const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
+                    const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+                    const pAdv=advances.filter(a=>matchesProject(a.project_id, p.id, p.name));
+                    const pPay=payees.filter(py=>matchesProject(py.project_id, p.id, p.name));
+                    const pPO=(purchaseOrders||[]).filter(po=>matchesProject(po.project_id, p.id, p.name));
+                    const { spentByCur: pSpentTotals, totalUSD: pSpentUSD } = computeTotalSpend(pAdv, reconEntries, pPay, pPO);
+                    const baseCur = Object.keys(totals)[0] || p.base_currency || 'NGN';
+                    const totalBudgetInCur = Object.keys(totals).length > 0 ? (totals[baseCur] || 0) : Number(p.target_budget || 0);
+                    const budgetUSD = pi.length > 0 ? pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0) : toUSD(totalBudgetInCur, baseCur);
+                    const rawPct = budgetUSD > 0 ? Math.round((pSpentUSD / budgetUSD) * 100) : 0;
+                    const barPct = Math.min(100, rawPct);
+                    const over = pSpentUSD > budgetUSD && budgetUSD > 0;
+                    const fmtCompact = (val, cur) => {
+                      const n = Number(val || 0);
+                      const abs = Math.abs(n);
+                      const s = sym(cur);
+                      if (abs >= 1e9) return `${s}${(n / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
+                      if (abs >= 1e6) return `${s}${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+                      if (abs >= 1e3) return `${s}${(n / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
+                      return `${s}${fmt(n)}`;
+                    };
+                    const budgetText = totalBudgetInCur > 0 ? fmtCompact(totalBudgetInCur, baseCur) : '—';
+                    const spendInCur = pSpentTotals[baseCur] ?? Object.values(pSpentTotals)[0] ?? 0;
+                    const spendCur = pSpentTotals[baseCur] !== undefined ? baseCur : (Object.keys(pSpentTotals)[0] || baseCur);
+                    const spendText = fmtCompact(spendInCur, spendCur);
+                    const remainingAmt = totalBudgetInCur - (pSpentTotals[baseCur] || 0);
+                    const remainingText = totalBudgetInCur <= 0 ? '—' : remainingAmt < 0 ? '—' : fmtCompact(remainingAmt, baseCur);
+
+                    const statusLabel = p.status || 'Planning';
+                    const sl = statusLabel.toLowerCase();
+                    const statusTone = sl === 'production'
+                      ? { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.34)', text: '#F5C451', dot: '#F5C451' }
+                      : sl.includes('pre')
+                      ? { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' }
+                      : sl.includes('post')
+                      ? { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.28)', text: '#E5E5E0', dot: '#E5E5E0' }
+                      : { bg: 'rgba(155,151,141,0.07)', border: 'rgba(155,151,141,0.22)', text: '#9B978D', dot: '#9B978D' };
+
+                    const ts = p.updated_at || p.created_at;
+                    const relTime = (() => {
+                      if (!ts) return 'Just now';
+                      const diffMs = Math.max(0, Date.now() - new Date(ts).getTime());
+                      const mins = Math.floor(diffMs / 60000);
+                      if (mins < 2) return 'Just now';
+                      if (mins < 60) return `${mins} min ago`;
+                      const hrs = Math.floor(mins / 60);
+                      if (hrs < 24) return `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
+                      const days = Math.floor(hrs / 24);
+                      if (days === 1) return 'Yesterday';
+                      if (days < 7) return `${days} days ago`;
+                      const wks = Math.floor(days / 7);
+                      return `${wks} week${wks > 1 ? 's' : ''} ago`;
+                    })();
+
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={()=>onSelect(p.id)}
+                        style={{
+                          borderBottom: idx === visibleProjects.length - 1 ? 'none' : '1px solid #18181B',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s ease',
+                        }}
+                        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.025)';}}
+                        onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
+                      >
+                        <td style={{padding:'15px 16px'}}>
+                          <div style={{fontSize:13,fontWeight:600,color:'#F5F4F0',lineHeight:1.3}}>{p.name}</div>
+                          <div style={{fontSize:11,color:'#71717A',marginTop:3}}>
+                            {p.type || 'Type not set'} · {p.location || 'Location not set'}
+                          </div>
+                        </td>
+                        <td style={{padding:'15px 14px'}}>
+                          <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:500,padding:'4px 10px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,whiteSpace:'nowrap'}}>
+                            <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot}}/>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td style={{padding:'15px 14px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:'#F5F4F0',whiteSpace:'nowrap'}}>
+                          {budgetText}
+                        </td>
+                        <td style={{padding:'15px 14px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:500,color:pSpentUSD>0?'#F5F4F0':'#71717A',whiteSpace:'nowrap'}}>
+                          {spendText}
+                        </td>
+                        <td style={{padding:'15px 14px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:500,color:over?'#B46950':'#F5F4F0',whiteSpace:'nowrap'}}>
+                          {remainingText}
+                        </td>
+                        <td style={{padding:'15px 16px',minWidth:128}}>
+                          <div style={{display:'flex',alignItems:'center',gap:10}}>
+                            <div style={{flex:1,height:4,borderRadius:9999,background:'#1D1D1F',overflow:'hidden'}}>
+                              <div style={{width:`${barPct}%`,height:'100%',borderRadius:9999,background:over?'#E05252':rawPct>=80?'#E5C158':'#4CAF7A',transition:'width 0.35s ease'}}/>
+                            </div>
+                            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,fontWeight:600,color:over?'#E05252':rawPct>0?'#D4D4D8':'#71717A',minWidth:32,textAlign:'right'}}>
+                              {rawPct}%
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{padding:'15px 14px',fontSize:11,color:'#71717A',whiteSpace:'nowrap'}}>
+                          {relTime}
+                        </td>
+                        <td style={{padding:'15px 16px',textAlign:'right'}}>
+                          <ChevronRight size={14} style={{color:'#71717A',display:'inline-block',verticalAlign:'middle'}}/>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ):(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:14,marginBottom:onlyProductions?0:28}}>
           {visibleProjects.map(p=>{
             const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
             const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
@@ -2842,6 +3055,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
             </span>
           </motion.button>
         </div>
+        )}
         </div>
 
         {/* Recent Activity Table */}
@@ -2871,7 +3085,12 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                     <tr key={row.id} style={{borderBottom:`1px solid ${T.line}`}}>
                       <td style={{padding:'11px 18px',color:T.cream}}>{row.activity}</td>
                       <td style={{padding:'11px 18px',color:T.dim}}>{row.production}</td>
-                      <td style={{padding:'11px 18px',color:row.statusColor,fontWeight:600}}>● {row.status}</td>
+                      <td style={{padding:'11px 18px',color:row.statusColor,fontWeight:600}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+                          <span style={{width:5,height:5,borderRadius:'50%',background:row.statusColor,display:'inline-block'}}/>
+                          <span>{row.status}</span>
+                        </span>
+                      </td>
                       <td style={{padding:'11px 18px',color:T.dim,textAlign:'right',fontFamily:'IBM Plex Mono,monospace'}}>{row.detail}</td>
                     </tr>
                   ))}
@@ -2890,36 +3109,220 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],onBack,onOpenBudget,onOpenRecon,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
+function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],revenueItems=[],collaborators=[],onBack,onOpenBudget,onOpenRecon,onNavigate,onInviteCollaborator,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
   const{t}=useLang();
+  const mob = useIsMobile();
+  const [infoOpen, setInfoOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const baseCur = project.base_currency || 'NGN';
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
   const unpaid=payees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length;
-  const { spentByCur, totalUSD: spentUSD, breakdown } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
+  const { spentByCur, totalUSD: spentUSD } = computeTotalSpend(advances, reconEntries, payees, purchaseOrders);
   const budgetUSD = items.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
   const spendPct = budgetUSD > 0 ? (spentUSD / budgetUSD) * 100 : 0;
   const overBudget = spentUSD > budgetUSD && budgetUSD > 0;
+  const hasBudgetItems = items.length > 0;
+  const totalBudgetInBase = totals[baseCur] || Object.values(totals)[0] || 0;
+  const totalSpendInBase = spentByCur[baseCur] ?? Object.values(spentByCur)[0] ?? 0;
+  const headroomInBase = totalBudgetInBase - totalSpendInBase;
+
+  const fmtCompact = (val, cur = baseCur) => {
+    const n = Number(val || 0);
+    const abs = Math.abs(n);
+    const s = sym(cur);
+    const sign = n < 0 ? '-' : '';
+    if (abs >= 1e9) return `${sign}${s}${(abs / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
+    if (abs >= 1e6) return `${sign}${s}${(abs / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+    if (abs >= 1e3) return `${sign}${s}${(abs / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
+    return `${sign}${s}${fmt(abs)}`;
+  };
+
   const spendDisplay = Object.entries(spentByCur).length === 0
-    ? `${sym(project.base_currency || 'NGN')}0`
+    ? `${sym(baseCur)}0`
     : Object.entries(spentByCur).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
   const budgetDisplay = Object.entries(totals).length === 0
-    ? `${sym(project.base_currency || 'NGN')}0`
+    ? '—'
     : Object.entries(totals).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
+  const headroomDisplay = !hasBudgetItems
+    ? '—'
+    : `${headroomInBase < 0 ? '-' : ''}${sym(baseCur)}${fmt(Math.abs(headroomInBase))}`;
+
+  // Group real budget items by department (no mock/placeholder departments)
+  const deptMap = {};
+  items.forEach(item => {
+    const deptName = item.dept || 'General';
+    if (!deptMap[deptName]) deptMap[deptName] = { dept: deptName, budget: 0, actual: 0 };
+    deptMap[deptName].budget += lTot(item);
+  });
+  // Attribute real recorded spend to matching departments when dept metadata exists
+  (purchaseOrders || []).forEach(po => {
+    if (po.status === 'Paid' && po.dept && deptMap[po.dept]) {
+      deptMap[po.dept].actual += Number(po.amount || 0);
+    }
+  });
+  (reconEntries || []).forEach(re => {
+    if (re.dept && deptMap[re.dept] && !String(re.notes || '').includes('[CASH-IN]')) {
+      deptMap[re.dept].actual += Number(re.amount || 0);
+    }
+  });
+  const deptRows = Object.values(deptMap).sort((a, b) => a.dept.localeCompare(b.dept));
+
+  // Real cumulative series for Budget Performance SVG chart (only when deptRows.length > 0)
+  const chartPoints = (() => {
+    if (deptRows.length === 0) return [];
+    let cumBudget = 0;
+    let cumActual = 0;
+    const pts = [{ label: '', budget: 0, actual: 0 }];
+    deptRows.forEach(r => {
+      cumBudget += r.budget;
+      cumActual += r.actual;
+      pts.push({ label: r.dept, budget: cumBudget, actual: cumActual });
+    });
+    return pts;
+  })();
+  const chartMax = Math.max(1, ...chartPoints.map(pt => Math.max(pt.budget, pt.actual)));
+  const buildSvgPath = (key, w = 560, h = 140, padX = 8, padY = 12) => {
+    if (chartPoints.length < 2) return '';
+    const innerW = w - padX * 2;
+    const innerH = h - padY * 2;
+    const coords = chartPoints.map((pt, i) => ({
+      x: padX + (i / (chartPoints.length - 1)) * innerW,
+      y: padY + innerH - (pt[key] / chartMax) * innerH,
+    }));
+    return coords.reduce((acc, c, i) => {
+      if (i === 0) return `M ${c.x.toFixed(1)} ${c.y.toFixed(1)}`;
+      const prev = coords[i - 1];
+      const cx = ((prev.x + c.x) / 2).toFixed(1);
+      return `${acc} C ${cx} ${prev.y.toFixed(1)}, ${cx} ${c.y.toFixed(1)}, ${c.x.toFixed(1)} ${c.y.toFixed(1)}`;
+    }, '');
+  };
+
+  const statusLabel = project.status || 'Planning';
+  const sl = statusLabel.toLowerCase();
+  const statusTone = sl === 'production'
+    ? { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.34)', text: '#F5C451', dot: '#F5C451' }
+    : sl.includes('pre')
+    ? { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' }
+    : sl.includes('post')
+    ? { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.28)', text: '#E5E5E0', dot: '#E5E5E0' }
+    : { bg: 'rgba(155,151,141,0.07)', border: 'rgba(155,151,141,0.22)', text: '#9B978D', dot: '#9B978D' };
+
+  const pendingPOs = (purchaseOrders || []).filter(po => po.status !== 'Paid');
+  const openAdvancesList = (advances || []).filter(a => a.status !== 'reconciled');
+  const attentionCount = pendingPOs.length + openAdvancesList.length;
+
+  const recentProdActivity = [
+    ...(purchaseOrders || []).slice(0, 3).map(po => ({
+      id: `po-${po.id}`,
+      title: `Purchase order ${po.po_number || ''} · ${po.vendor || 'Vendor'}`.trim(),
+      status: po.status || 'Pending',
+      color: po.status === 'Paid' ? '#4CAF7A' : '#F5C451',
+    })),
+    ...(advances || []).slice(0, 3).map(adv => ({
+      id: `adv-${adv.id}`,
+      title: `Cash advance · ${adv.holder || 'Holder'}`,
+      status: adv.status || 'Open',
+      color: adv.status === 'reconciled' ? '#4CAF7A' : '#6BB0F5',
+    })),
+  ].slice(0, 4);
+
+  const createdDateStr = project.created_at
+    ? new Date(project.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '—';
+
+  const moduleCards = [
+    { id: 'budgets', icon: BarChart3, title: 'Budgets', desc: 'Manage department budgets, quantities, rates, phase totals and contingency.', meta: hasBudgetItems ? `${deptRows.length} department${deptRows.length === 1 ? '' : 's'}` : 'No budget lines yet' },
+    { id: 'breakdown', icon: Clapperboard, title: 'Breakdown', desc: 'View scenes, characters and script page counts.', meta: scenes.length > 0 ? `${scenes.length} scene${scenes.length === 1 ? '' : 's'}` : 'No scenes broken down' },
+    { id: 'schedule', icon: Calendar, title: 'Schedules', desc: 'Manage shooting days, locations, strip boards and unscheduled scenes.', meta: 'Open schedule' },
+    { id: 'po', icon: FileText, title: 'Purchase Orders', desc: 'Create and manage purchase orders, invoices and receipts.', meta: purchaseOrders.length > 0 ? `${purchaseOrders.length} order${purchaseOrders.length === 1 ? '' : 's'}` : 'No purchase orders' },
+    { id: 'payments', icon: CreditCard, title: 'Payments', desc: 'Manage cast and crew payment slots and amounts paid.', meta: payees.length > 0 ? `${payees.length} payee${payees.length === 1 ? '' : 's'}` : 'No payees added' },
+    { id: 'recon', icon: Receipt, title: 'Advances & Reconciliation', desc: 'Track cash advances, uploaded receipts, outstanding balances and reconciled costs.', meta: advances.length > 0 ? `${advances.length} advance${advances.length === 1 ? '' : 's'}` : 'No advances issued' },
+    { id: 'revenue', icon: TrendingUp, title: 'Revenue', desc: 'Manage income records for the production.', meta: revenueItems.length > 0 ? `${revenueItems.length} record${revenueItems.length === 1 ? '' : 's'}` : 'No income recorded' },
+    { id: 'collaborators', icon: Users, title: 'Collaborators', desc: 'Manage production team members and their access.', meta: `${collaborators.length + 1} member${collaborators.length === 0 ? '' : 's'}` },
+  ];
+
   return(
     <div>
-      <button onClick={onBack} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',marginBottom:14,padding:0}}>{t('allProductions')}</button>
-      <div style={{marginBottom:22}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:28,color:T.cream}}>{project.name}</div>
-          <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:6,background:isOwner?T.goldGlow:T.hi,color:isOwner?T.gold:T.sapphire,border:`1px solid ${isOwner?T.gold:T.line}`,fontFamily:'Manrope,sans-serif'}}>
-            {isOwner ? '👑 Production Admin' : '👥 Collaborator'}
-          </span>
+      {/* Breadcrumb & Header */}
+      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint,marginBottom:8}}>
+        Workspace <span style={{margin:'0 4px'}}>&gt;</span> Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Overview</span>
+      </div>
+
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:22}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>{project.name}</h2>
+            <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,fontFamily:'Manrope,sans-serif'}}>
+              <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot}}/>
+              {statusLabel}
+            </span>
+          </div>
+          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+            {project.type || 'Type not set'} · {project.location || 'Location not set'}
+          </div>
+          <div style={{fontSize:11,color:T.faint,marginTop:3,fontFamily:'IBM Plex Mono,monospace'}}>
+            Currency: {baseCur} {sym(baseCur)} · {isOwner ? 'Production Admin' : 'Collaborator'}
+          </div>
         </div>
-        <div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:4}}>{project.type}</div>
-        <div style={{fontSize:13,color:T.dim,marginTop:6,fontFamily:'Manrope,sans-serif'}}>
-          {isOwner ? t('productionDashboard') : `${t('productionDashboard')} · Export and share actions are managed by the production admin.`}
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',position:'relative'}}>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={onOpenBudget}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+          >
+            <Plus size={14}/>
+            <span>Add New</span>
+          </motion.button>
+          {isOwner && typeof onInviteCollaborator === 'function' && (
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{
+                const email = window.prompt("Invite collaborator by email — they'll need an NKÒ account already:");
+                if(email) onInviteCollaborator(project.id, email);
+              }}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+            >
+              <UserPlus size={14}/>
+              <span>Invite Collaborator</span>
+            </motion.button>
+          )}
+          <button
+            type="button"
+            aria-label="Production actions"
+            onClick={()=>setMenuOpen(o=>!o)}
+            style={{width:36,height:36,background:'#111113',border:'1px solid #242428',color:T.dim,borderRadius:10,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
+          >
+            <MoreHorizontal size={15}/>
+          </button>
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                initial={{opacity:0,y:-4,scale:0.97}}
+                animate={{opacity:1,y:0,scale:1}}
+                exit={{opacity:0,y:-4,scale:0.97}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                style={{position:'absolute',right:0,top:42,zIndex:30,background:'#141416',border:'1px solid #26262A',borderRadius:10,padding:4,minWidth:160,boxShadow:'0 14px 32px rgba(0,0,0,0.65)'}}
+              >
+                <button
+                  type="button"
+                  onClick={()=>{setMenuOpen(false);onBack();}}
+                  style={{width:'100%',textAlign:'left',background:'transparent',border:'none',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'8px 10px',borderRadius:7,cursor:'pointer'}}
+                >
+                  {t('allProductions')}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
       {isProducerActive && !isOwner && (
         <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:18,color:'#72D69A',fontSize:13,fontFamily:'Manrope,sans-serif'}}>
           <span className="nko-live-dot" />
@@ -2940,46 +3343,351 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
           <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',background:'rgba(255,255,255,0.06)',padding:'2px 8px',borderRadius:6}}>Live</span>
         </div>
       )}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
-        <StatCard label={t('statTotalBudget')} value={Object.entries(totals).length===0?'—':budgetDisplay} sub={project.base_currency} onClick={onOpenBudget}/>
-        <StatCard label={t('statTotalSpend')} value={spendDisplay} sub={budgetUSD > 0 ? (overBudget ? t('statOverBudget') : `${Math.round(spendPct)}% of budget`) : 'logged spend'} accent={overBudget ? T.coral : T.gold} onClick={onOpenRecon}/>
-        <StatCard label={t('statBudgetLines')} value={items.length} sub={t('statThisProduction')} onClick={onOpenBudget}/>
-        <StatCard label={t('statOpenAdvances')} value={openAdv} sub={t('statPending')} accent={openAdv>0?T.coral:T.sage} onClick={onOpenRecon}/>
-        <StatCard label={t('statUnpaidCrew')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
+
+      {/* 4-Column Budget Summary Cards */}
+      <motion.div
+        variants={staggerContainer(0.04, 0.02)}
+        initial="hidden"
+        animate="visible"
+        style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:20}}
+      >
+        <StatCard featured label="Total Budget" badge={baseCur} value={budgetDisplay} sub="Approved production budget" accent="#F5C451" onClick={onOpenBudget}/>
+        <StatCard label={t('statTotalSpend')} badge={baseCur} value={spendDisplay} sub={budgetUSD > 0 ? (overBudget ? t('statOverBudget') : 'Total recorded expenditure') : 'Total recorded expenditure'} accent={overBudget ? '#E05252' : T.cream} onClick={onOpenRecon}/>
+        <StatCard label="Headroom" badge={baseCur} value={headroomDisplay} sub={overBudget ? 'Over approved budget' : 'Budget remaining'} accent={overBudget ? '#E05252' : T.cream}/>
+        <StatCard label="Budget Utilisation" value={budgetUSD > 0 ? `${Math.round(spendPct)}%` : '0%'} sub="Percentage of budget spent" accent={overBudget ? '#E05252' : T.cream}/>
+      </motion.div>
+
+      {/* Main 2-Column Overview Grid */}
+      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(280px, 1fr)',gap:16,alignItems:'start',marginBottom:20}}>
+        {/* Left: Budget Performance + Department Table */}
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'22px 24px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexWrap:'wrap',marginBottom:16}}>
+            <div>
+              <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Budget Performance</div>
+              <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Track your planned budget against actual production spending</div>
+            </div>
+            <button type="button" onClick={onOpenBudget} style={{background:'none',border:'none',cursor:'pointer',color:'#6BB0F5',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:5,padding:0}}>
+              <span>View Full Budget</span>
+              <ArrowRight size={13}/>
+            </button>
+          </div>
+
+          {/* 3-metric inline summary */}
+          <div style={{display:'flex',gap:28,flexWrap:'wrap',marginBottom:16}}>
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>
+                <span style={{width:10,height:2,background:'#F5C451',display:'inline-block'}}/>
+                <span>Original budget</span>
+              </div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,fontWeight:600,color:T.cream}}>
+                {hasBudgetItems ? fmtCompact(totalBudgetInBase, baseCur) : '—'} <span style={{fontSize:10,color:T.faint}}>{hasBudgetItems ? baseCur : ''}</span>
+              </div>
+            </div>
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>
+                <span style={{width:10,height:2,background:'#4CAF7A',display:'inline-block'}}/>
+                <span>Actual spend</span>
+              </div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,fontWeight:600,color:T.cream}}>
+                {fmtCompact(totalSpendInBase, baseCur)} <span style={{fontSize:10,color:T.faint}}>{baseCur}</span>
+              </div>
+            </div>
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>
+                <span style={{width:10,height:2,background:'#71717A',display:'inline-block'}}/>
+                <span>Remaining</span>
+              </div>
+              <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,fontWeight:600,color:overBudget ? '#E05252' : T.cream}}>
+                {hasBudgetItems ? fmtCompact(headroomInBase, baseCur) : '—'} <span style={{fontSize:10,color:T.faint}}>{hasBudgetItems ? baseCur : ''}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Budget Performance Chart (Strictly empty when no budget items exist) */}
+          <div style={{borderBottom:'1px solid #18181B',paddingBottom:14,marginBottom:14}}>
+            {chartPoints.length < 2 ? (
+              <div style={{height:130,border:'1px dashed #1E1E22',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
+                No budget data recorded yet. Add budget lines to track performance.
+              </div>
+            ) : (
+              <>
+                <svg viewBox="0 0 560 140" style={{width:'100%',height:140,display:'block',overflow:'visible'}}>
+                  <defs>
+                    <linearGradient id="nkoBudgetAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#B69F71" stopOpacity="0.16"/>
+                      <stop offset="100%" stopColor="#B69F71" stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  {[0.25, 0.5, 0.75, 1].map((frac, idx) => (
+                    <line key={idx} x1="8" x2="552" y1={12 + (1 - frac) * 116} y2={12 + (1 - frac) * 116} stroke="#17171A" strokeWidth="1"/>
+                  ))}
+                  <path d={`${buildSvgPath('budget')} L 552 128 L 8 128 Z`} fill="url(#nkoBudgetAreaGrad)"/>
+                  <motion.path
+                    d={buildSvgPath('budget')}
+                    fill="none"
+                    stroke="#B69F71"
+                    strokeWidth="1.75"
+                    initial={{pathLength:0,opacity:0.4}}
+                    animate={{pathLength:1,opacity:1}}
+                    transition={{duration:0.65,ease:EASE_OUT}}
+                  />
+                  {spentUSD > 0 && (
+                    <motion.path
+                      d={buildSvgPath('actual')}
+                      fill="none"
+                      stroke="#4CAF7A"
+                      strokeWidth="1.75"
+                      initial={{pathLength:0,opacity:0.4}}
+                      animate={{pathLength:1,opacity:1}}
+                      transition={{duration:0.65,delay:0.1,ease:EASE_OUT}}
+                    />
+                  )}
+                </svg>
+                <div style={{display:'flex',alignItems:'center',gap:16,marginTop:8,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>
+                  <span style={{display:'inline-flex',alignItems:'center',gap:6}}><span style={{width:12,height:1.5,background:'#B69F71',display:'inline-block'}}/>Planned cumulative spend</span>
+                  {spentUSD > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:6}}><span style={{width:12,height:1.5,background:'#4CAF7A',display:'inline-block'}}/>Actual cumulative spend</span>}
+                </div>
+              </>
+            )}
+          </div>
+
+          {budgetUSD > 0 && (
+            <div style={{background:'#111113',border:'1px solid #1C1C1F',borderRadius:10,padding:'10px 14px',marginBottom:16}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+                <span style={{color:T.dim}}>Overall Production Spend Pace</span>
+                <span style={{color:overBudget?T.coral:T.sage,fontWeight:700,fontFamily:'IBM Plex Mono,monospace'}}>
+                  {spendDisplay} of {budgetDisplay} ({Math.round(spendPct)}%)
+                </span>
+              </div>
+              <div style={{height:5,background:'#1D1D1F',borderRadius:9999,overflow:'hidden'}}>
+                <div style={{width:`${Math.min(100,spendPct)}%`,height:'100%',borderRadius:9999,background:overBudget?T.coral:T.sage,transition:'width 0.3s ease'}}/>
+              </div>
+            </div>
+          )}
+
+          {/* Department Breakdown Table (Empty when no budget items exist) */}
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:12}}>
+              <thead>
+                <tr style={{borderBottom:'1px solid #1B1B1E',color:T.faint,fontSize:11,textAlign:'left'}}>
+                  <th style={{padding:'8px 0',fontWeight:500}}>Department</th>
+                  <th style={{padding:'8px 12px',fontWeight:500,textAlign:'right'}}>Budget</th>
+                  <th style={{padding:'8px 12px',fontWeight:500,textAlign:'right'}}>Actual</th>
+                  <th style={{padding:'8px 0',fontWeight:500,textAlign:'right'}}>Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deptRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{padding:'20px 0',textAlign:'center',color:T.faint,fontSize:12}}>
+                      No departments in this budget yet.
+                    </td>
+                  </tr>
+                ) : (
+                  <>
+                    {deptRows.map(row => {
+                      const rowRem = row.budget - row.actual;
+                      const rowPct = row.budget > 0 ? Math.min(100, (row.actual / row.budget) * 100) : 0;
+                      const rowOver = row.actual > row.budget && row.budget > 0;
+                      return (
+                        <tr key={row.dept} style={{borderBottom:'1px solid #161619'}}>
+                          <td style={{padding:'10px 0',minWidth:150}}>
+                            <div style={{color:T.cream,fontSize:12,fontWeight:500,marginBottom:5}}>{row.dept}</div>
+                            <div style={{width:96,height:3,borderRadius:9999,background:'#1D1D1F',overflow:'hidden'}}>
+                              <div style={{width:`${rowPct}%`,height:'100%',borderRadius:9999,background:rowOver?'#E05252':'#4CAF7A'}}/>
+                            </div>
+                          </td>
+                          <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.dim}}>{fmtCompact(row.budget, baseCur)}</td>
+                          <td style={{padding:'10px 12px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:row.actual>0?T.cream:T.faint}}>{fmtCompact(row.actual, baseCur)}</td>
+                          <td style={{padding:'10px 0',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:rowOver?'#E05252':T.dim}}>{fmtCompact(rowRem, baseCur)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr style={{borderTop:'1px solid #26262A',fontWeight:700}}>
+                      <td style={{padding:'12px 0 4px',color:T.cream}}>Total</td>
+                      <td style={{padding:'12px 12px 4px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{fmtCompact(totalBudgetInBase, baseCur)}</td>
+                      <td style={{padding:'12px 12px 4px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{fmtCompact(totalSpendInBase, baseCur)}</td>
+                      <td style={{padding:'12px 0 4px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:overBudget?'#E05252':T.cream}}>{fmtCompact(headroomInBase, baseCur)}</td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* Right: Attention, Production Info, Recent Activity */}
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          {/* What Needs Attention */}
+          <div style={{background:'#0D0D0F',border:'1px solid #1C1C1F',borderRadius:14,padding:'16px 18px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>What Needs Attention</span>
+              {attentionCount > 0 && (
+                <span style={{minWidth:18,height:18,borderRadius:5,background:'rgba(224,82,82,0.18)',color:'#E05252',fontSize:10,fontWeight:700,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'0 5px',fontFamily:'IBM Plex Mono,monospace'}}>
+                  {attentionCount}
+                </span>
+              )}
+            </div>
+            {attentionCount === 0 ? (
+              <div style={{fontSize:12,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Nothing needs attention right now.</div>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {pendingPOs.slice(0,2).map(po=>(
+                  <div key={po.id} style={{background:'#131316',border:'1px solid #1F1F24',borderRadius:10,padding:'10px 12px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,color:T.cream,fontWeight:600,fontFamily:'Manrope,sans-serif'}}>
+                      <span>PO awaiting payment</span>
+                      <span style={{fontFamily:'IBM Plex Mono,monospace'}}>{sym(po.currency||baseCur)}{fmt(po.amount||0)}</span>
+                    </div>
+                    <div style={{fontSize:11,color:T.faint,marginTop:3}}>{po.po_number || 'PO'} · {po.vendor || 'Vendor'}</div>
+                    <button type="button" onClick={()=>onNavigate?.('po')} style={{marginTop:8,background:'#19191D',border:'1px solid #2A2A30',color:T.cream,borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+                      Review Purchase Order
+                    </button>
+                  </div>
+                ))}
+                {openAdvancesList.slice(0,2).map(adv=>(
+                  <div key={adv.id} style={{background:'#131316',border:'1px solid #1F1F24',borderRadius:10,padding:'10px 12px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,color:T.cream,fontWeight:600,fontFamily:'Manrope,sans-serif'}}>
+                      <span>Open cash advance</span>
+                      <span style={{fontFamily:'IBM Plex Mono,monospace'}}>{sym(adv.currency||baseCur)}{fmt(adv.amount||0)}</span>
+                    </div>
+                    <div style={{fontSize:11,color:T.faint,marginTop:3}}>{adv.holder || 'Holder'}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Production Information */}
+          <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:14,padding:'16px 18px'}}>
+            <button
+              type="button"
+              onClick={()=>setInfoOpen(o=>!o)}
+              style={{width:'100%',background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:infoOpen?12:0}}
+            >
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>Production information</span>
+              <motion.span animate={{rotate:infoOpen?0:-90}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{display:'inline-flex',color:T.faint}}>
+                <ChevronDown size={15}/>
+              </motion.span>
+            </button>
+            <AnimatePresence initial={false}>
+              {infoOpen && (
+                <motion.div
+                  initial={{height:0,opacity:0}}
+                  animate={{height:'auto',opacity:1}}
+                  exit={{height:0,opacity:0}}
+                  transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                  style={{overflow:'hidden'}}
+                >
+                  <div style={{display:'flex',flexDirection:'column',gap:10,fontFamily:'Manrope,sans-serif'}}>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint}}>Production name</div>
+                      <div style={{fontSize:12,color:T.cream,fontWeight:600,marginTop:2}}>{project.name}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint}}>Production type</div>
+                      <div style={{fontSize:12,color:T.cream,marginTop:2}}>{project.type || 'Not set'}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint}}>Location</div>
+                      <div style={{fontSize:12,color:T.cream,marginTop:2}}>{project.location || 'Not set'}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint}}>Target budget</div>
+                      <div style={{fontSize:12,color:T.cream,fontFamily:'IBM Plex Mono,monospace',marginTop:2}}>
+                        {project.target_budget != null ? `${sym(baseCur)}${fmt(project.target_budget)} ${baseCur}` : 'Not set'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint}}>Currency</div>
+                      <div style={{fontSize:12,color:T.cream,marginTop:2}}>{baseCur} {sym(baseCur)}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint}}>Production status</div>
+                      <div style={{marginTop:4}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text}}>
+                          <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot}}/>
+                          {statusLabel}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint}}>Created</div>
+                      <div style={{fontSize:12,color:T.cream,marginTop:2}}>{createdDateStr}</div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Recent Activity */}
+          <div style={{background:'#0D0D0F',border:'1px solid #1C1C1F',borderRadius:14,padding:'16px 18px'}}>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream,marginBottom:10}}>Recent Activity</div>
+            {recentProdActivity.length === 0 ? (
+              <div style={{fontSize:12,color:T.faint,fontFamily:'Manrope,sans-serif'}}>No recent activity for this production.</div>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {recentProdActivity.map(act => (
+                  <div key={act.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,paddingBottom:8,borderBottom:'1px solid #161619',fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+                    <span style={{color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{act.title}</span>
+                    <span style={{color:act.color,fontWeight:600,flexShrink:0}}>{act.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:8,marginTop:10}}>
-        <div style={{background:T.hi,padding:'8px 12px',borderRadius:8,border:`1px solid ${T.line}`}}>
-          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>💵 Cash Advances</div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.cream,marginTop:2,fontWeight:600}}>
-            {Object.entries(breakdown.advances).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
-          </div>
+
+      {/* Production Workspace Module Grid */}
+      <div style={{background:'#0C0C0E',border:'1px solid #1C1C1F',borderRadius:16,padding:'20px 22px'}}>
+        <div style={{marginBottom:16}}>
+          <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Production Workspace</div>
+          <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Every module opens with {project.name} selected.</div>
         </div>
-        <div style={{background:T.hi,padding:'8px 12px',borderRadius:8,border:`1px solid ${T.line}`}}>
-          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>👥 Crew Payments</div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sage,marginTop:2,fontWeight:600}}>
-            {Object.entries(breakdown.payees).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
-          </div>
-        </div>
-        <div style={{background:T.hi,padding:'8px 12px',borderRadius:8,border:`1px solid ${T.line}`}}>
-          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>📄 Paid POs</div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sapphire,marginTop:2,fontWeight:600}}>
-            {Object.entries(breakdown.pos).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
-          </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12}}>
+          {moduleCards.map(mod => {
+            const Icon = mod.icon;
+            return (
+              <motion.button
+                key={mod.id}
+                type="button"
+                whileHover={{y:-2,borderColor:'rgba(255,179,71,0.28)'}}
+                whileTap={{scale:0.99}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                onClick={()=>{
+                  if(mod.id==='collaborators'){
+                    if(isOwner && typeof onInviteCollaborator==='function'){
+                      const email = window.prompt("Invite collaborator by email — they'll need an NKÒ account already:");
+                      if(email) onInviteCollaborator(project.id, email);
+                    }
+                    return;
+                  }
+                  onNavigate?.(mod.id);
+                }}
+                style={{background:'linear-gradient(180deg, #111113 0%, #0E0E10 100%)',border:'1px solid #1E1E22',borderRadius:12,padding:'16px',textAlign:'left',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'space-between',minHeight:134,transition:'border-color 0.15s ease'}}
+              >
+                <div>
+                  <div style={{width:30,height:30,borderRadius:8,background:'#18181B',border:'1px solid #242429',display:'inline-flex',alignItems:'center',justifyContent:'center',color:T.dim,marginBottom:12}}>
+                    <Icon size={14}/>
+                  </div>
+                  <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream,marginBottom:4}}>{mod.title}</div>
+                  <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,lineHeight:1.45}}>{mod.desc}</div>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,paddingTop:10,borderTop:'1px solid #1A1A1D',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>
+                  <span>{mod.meta}</span>
+                  <ArrowRight size={13} style={{color:T.faint}}/>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
-      {budgetUSD > 0 && (
-        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'14px 18px',marginTop:14}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
-            <span style={{color:T.dim}}>Overall Production Spend Pace</span>
-            <span style={{color:overBudget?T.coral:T.sage,fontWeight:700,fontFamily:'IBM Plex Mono,monospace'}}>
-              {spendDisplay} of {budgetDisplay} ({Math.round(spendPct)}%)
-            </span>
-          </div>
-          <div style={{height:8,background:T.line,borderRadius:4,overflow:'hidden'}}>
-            <div style={{width:`${Math.min(100,spendPct)}%`,height:'100%',background:overBudget?T.coral:T.sage,transition:'width 0.3s ease'}}/>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -3387,157 +4095,992 @@ const budgetPDF=(items,project,advances,reconEntries)=>{
   openThemed(html,'dark');
 };
 
-function TemplatePickerModal({onClose,onApply,_project}){
+function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0}){
   const mob=useIsMobile();
-  const[selectedCat,setSelectedCat]=useState('All');
-  const[search,setSearch]=useState('');
+  const baseCur = project?.base_currency || 'NGN';
+  const [selectedId, setSelectedId] = useState(() => TEMPLATES[0]?.id || '');
+  const [applyMode, setApplyMode] = useState('add');
+  const [applying, setApplying] = useState(false);
 
-  const categories=['All','Television Series','Feature Film','Vertical Series','Short Film','Music Video','Documentary','Animation'];
-  const filteredTemplates=TEMPLATES.filter(tpl=>{
-    const q=search.trim().toLowerCase();
-    const matchSearch=!q||tpl.label.toLowerCase().includes(q)||tpl.type.toLowerCase().includes(q);
-    if(!matchSearch)return false;
-    if(selectedCat==='All')return true;
-    if(selectedCat==='Television Series')return tpl.id==='television'||tpl.type.includes('Television');
-    if(selectedCat==='Feature Film')return tpl.id==='feature'||tpl.type.includes('Feature');
-    if(selectedCat==='Vertical Series')return tpl.id==='vertical'||tpl.type.includes('Vertical');
-    if(selectedCat==='Short Film')return tpl.id==='shortfilm'||tpl.type.includes('Short');
-    if(selectedCat==='Music Video')return tpl.id==='musicvideo'||tpl.type.includes('Music');
-    if(selectedCat==='Documentary')return tpl.id==='documentary'||tpl.type.includes('Doc');
-    if(selectedCat==='Animation')return tpl.id==='animation'||tpl.type.includes('Animation');
-    return true;
-  });
+  useEffect(() => {
+    if (!open) return;
+    setSelectedId(TEMPLATES[0]?.id || '');
+    setApplyMode('add');
+    setApplying(false);
+  }, [open]);
 
-  return(
-    <div style={{
-      position:'fixed',inset:0,zIndex:1000,
-      background:'rgba(10,12,16,0.85)',
-      backdropFilter:'blur(5px)',
-      display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',
-      padding:mob?0:'20px',
-    }} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <div style={{
-        background:T.panel,
-        border:`1px solid ${T.line}`,
-        borderRadius:mob?'18px 18px 0 0':14,
-        width:'100%',maxWidth:840,
-        maxHeight:mob?'90vh':'85vh',
-        display:'flex',flexDirection:'column',
-        boxShadow:'0 24px 50px rgba(0,0,0,0.7)',
-        overflow:'hidden'
-      }}>
-        {/* Header */}
-        <div style={{padding:mob?'16px 16px 12px':'20px 24px 16px',borderBottom:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
-          <div>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontSize:20}}>📋</span>
-              <div style={{fontFamily:'Fraunces,serif',fontSize:mob?19:23,color:T.cream}}>Budget Templates</div>
-            </div>
-            <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:4,lineHeight:1.4}}>
-              Pick a production-tested A–Z budget tailored for your format — including television series, features, and commercials.
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Close" style={{
-            background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,
-            color:T.cream,padding:'8px 14px',cursor:'pointer',
-            fontSize:13,fontFamily:'Manrope,sans-serif',fontWeight:700,flexShrink:0
-          }}>
-            ✕ Close
-          </button>
-        </div>
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
-        {/* Search & Category Pills */}
-        <div style={{padding:mob?'12px 14px':'14px 24px',borderBottom:`1px solid ${T.line}`,background:T.hi}}>
-          <Inp placeholder="🔍 Search budget templates (e.g. Television, Feature, Drama)…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%',marginBottom:10}}/>
-          <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',display:'flex',gap:6,paddingBottom:2}}>
-            {categories.map(cat=>(
-              <button key={cat} onClick={()=>setSelectedCat(cat)} style={{
-                padding:'6px 12px',borderRadius:16,border:`1px solid ${selectedCat===cat?T.gold:T.line}`,
-                background:selectedCat===cat?T.goldGlow:'transparent',color:selectedCat===cat?T.gold:T.dim,
-                fontSize:11,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'
-              }}>
-                {cat}
+  const fmtCompact = (val, cur = baseCur) => {
+    const n = Number(val || 0);
+    const abs = Math.abs(n);
+    const s = sym(cur);
+    if (abs >= 1e9) return `${s}${(n / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
+    if (abs >= 1e6) return `${s}${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+    if (abs >= 1e3) return `${s}${(n / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
+    return `${s}${fmt(n)}`;
+  };
+
+  const getTplTotal = tpl => (tpl?.items || []).reduce((sum, it) => sum + (Number(it.qty) || 1) * (Number(it.rate) || 0), 0);
+  const selectedTpl = TEMPLATES.find(t => t.id === selectedId) || TEMPLATES[0];
+  const selectedTotal = getTplTotal(selectedTpl);
+
+  const deptPreviewRows = (() => {
+    if (!selectedTpl) return [];
+    const map = {};
+    (selectedTpl.items || []).forEach(it => {
+      const d = it.dept || 'General';
+      if (!map[d]) map[d] = { dept: d, lines: 0, total: 0 };
+      map[d].lines += 1;
+      map[d].total += (Number(it.qty) || 1) * (Number(it.rate) || 0);
+    });
+    return Object.values(map).sort((a, b) => a.dept.localeCompare(b.dept));
+  })();
+
+  const handleApply = async () => {
+    if (!selectedTpl || applying) return;
+    setApplying(true);
+    try {
+      await onApply(selectedTpl, applyMode);
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={onClose}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',padding:mob?0:20}}
+        >
+          <motion.div
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:780,maxHeight:mob?'92vh':'88vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:mob?'18px 18px 14px':'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Budget templates</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
+                  Start from a typical structure for your production type, then adjust every line.
+                </div>
+              </div>
+              <button type="button" aria-label="Close" onClick={onClose} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
+                <X size={16}/>
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Template Cards */}
-        <div style={{padding:mob?'14px 14px 28px':'20px 24px',overflowY:'auto',display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(250px, 1fr))',gap:12}}>
-          {filteredTemplates.map(tpl=>{
-            const isTV = tpl.id === 'television';
-            return(
-              <div key={tpl.id} style={{
-                background: isTV ? 'rgba(254, 237, 97, 0.05)' : T.hi,
-                border: `1px solid ${isTV ? T.gold : T.line}`,
-                borderRadius: 10,
-                padding: mob ? 14 : 16,
-                display: 'flex', flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}>
-                <div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,gap:6}}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-                      color: isTV ? T.gold : T.dim, fontFamily: 'Manrope,sans-serif',
-                      background: isTV ? T.goldGlow : 'rgba(255,255,255,0.04)',
-                      padding: '2px 8px', borderRadius: 4, border: `1px solid ${isTV ? T.gold : T.line}`
-                    }}>
-                      {tpl.type}
-                    </span>
-                    {isTV && (
-                      <span style={{fontSize:9,fontWeight:800,background:'#52B07A',color:'#0A140F',padding:'2px 6px',borderRadius:4,fontFamily:'Manrope,sans-serif',letterSpacing:'0.04em'}}>
-                        TV TAILORED
-                      </span>
-                    )}
-                  </div>
-                  <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,lineHeight:1.3,marginBottom:6}}>
-                    {tpl.label}
-                  </div>
-                  <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.4}}>
-                    {isTV
-                      ? 'Showrunner, writers room, series regulars, multi-cam stage package, wardrobe continuity, post supervisor, and broadcast delivery QC.'
-                      : `${tpl.items.length} line items across production departments with standard African film & media industry allowances.`
-                    }
-                  </div>
+            {/* Body */}
+            <div style={{padding:mob?'16px 18px':'20px 24px',overflowY:'auto',flex:1}}>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1.15fr',gap:16,alignItems:'stretch'}}>
+                {/* Left Panel: Template Selection List */}
+                <div style={{display:'flex',flexDirection:'column',gap:10,maxHeight:360,overflowY:'auto',paddingRight:2}}>
+                  {TEMPLATES.map(tpl => {
+                    const active = tpl.id === selectedTpl?.id;
+                    const tplTotal = getTplTotal(tpl);
+                    return (
+                      <motion.button
+                        key={tpl.id}
+                        type="button"
+                        whileTap={{scale:0.99}}
+                        onClick={()=>setSelectedId(tpl.id)}
+                        style={{
+                          width:'100%',
+                          textAlign:'left',
+                          padding:'13px 14px',
+                          borderRadius:12,
+                          cursor:'pointer',
+                          background:active?'rgba(255,179,71,0.05)':'#131316',
+                          border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',
+                          transition:'border-color 0.15s ease, background 0.15s ease',
+                        }}
+                      >
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:6}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+                            <span style={{
+                              width:15,height:15,borderRadius:'50%',flexShrink:0,
+                              display:'inline-flex',alignItems:'center',justifyContent:'center',
+                              background:active?'#F5C451':'transparent',
+                              border:active?'1px solid #F5C451':'1px solid #3A3A40',
+                              color:'#0A0A0A',
+                            }}>
+                              {active && <Check size={10} strokeWidth={3}/>}
+                            </span>
+                            <span style={{fontSize:13,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tpl.label}</span>
+                          </div>
+                          <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:'#A1A1AA',flexShrink:0}}>
+                            {fmtCompact(tplTotal, baseCur)}
+                          </span>
+                        </div>
+                        <div style={{fontSize:11,color:'#71717A',lineHeight:1.45,paddingLeft:23}}>
+                          {tpl.type} · {tpl.items.length} standard production lines
+                        </div>
+                        <div style={{fontSize:10,color:'#71717A',fontFamily:'IBM Plex Mono,monospace',marginTop:6,paddingLeft:23}}>
+                          {tpl.items.length} lines
+                        </div>
+                      </motion.button>
+                    );
+                  })}
                 </div>
 
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10,borderTop:`1px solid ${T.line}`}}>
-                  <div style={{fontSize:11,color:T.dim,fontFamily:'IBM Plex Mono,monospace'}}>
-                    {tpl.items.length} items
+                {/* Right Panel: Detailed Preview */}
+                <div style={{background:'#121215',border:'1px solid #202024',borderRadius:14,padding:'16px 18px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+                  <div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,paddingBottom:12,borderBottom:'1px solid #1E1E22'}}>
+                      <span style={{fontSize:13,fontWeight:600,color:T.cream}}>{selectedTpl?.label} preview</span>
+                      <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700,color:'#F5C451'}}>
+                        {sym(baseCur)}{fmt(selectedTotal)}
+                      </span>
+                    </div>
+                    <div style={{maxHeight:240,overflowY:'auto'}}>
+                      {deptPreviewRows.map((row, idx) => (
+                        <div key={row.dept} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 0',borderBottom:idx===deptPreviewRows.length-1?'none':'1px solid #1A1A1E'}}>
+                          <div style={{minWidth:0}}>
+                            <span style={{fontSize:12,color:'#E5E5E0',fontWeight:500}}>{row.dept}</span>
+                            <span style={{fontSize:11,color:'#71717A',marginLeft:8}}>{row.lines} line{row.lines===1?'':'s'}</span>
+                          </div>
+                          <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:'#E5E5E0',flexShrink:0}}>
+                            {sym(baseCur)}{fmt(row.total)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <button onClick={()=>{onApply(tpl);onClose();}} style={{
-                    background: isTV ? T.gold : T.panel,
-                    border: `1px solid ${isTV ? T.gold : T.line}`,
-                    color: isTV ? T.ink : T.cream,
-                    padding: '8px 14px', borderRadius: 6,
-                    fontSize: 12, fontFamily: 'Manrope,sans-serif', fontWeight: 700,
-                    cursor: 'pointer'
-                  }}>
-                    Apply Template →
+                  <div style={{paddingTop:12,marginTop:8,borderTop:'1px solid #1A1A1E',fontSize:11,color:'#71717A',lineHeight:1.45}}>
+                    Rates are in {baseCur} from typical industry rates. Review them against your own quotes.
+                  </div>
+                </div>
+              </div>
+
+              {/* Add to / Replace current budget radio options */}
+              <div style={{marginTop:18}}>
+                <div style={{fontSize:12,fontWeight:500,color:'#D4D4D8',marginBottom:10}}>
+                  {existingLineCount > 0
+                    ? `Your budget already has ${existingLineCount} line${existingLineCount===1?'':'s'}`
+                    : 'Choose how to apply this template'}
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1fr',gap:12}}>
+                  <button
+                    type="button"
+                    onClick={()=>setApplyMode('add')}
+                    style={{
+                      textAlign:'left',
+                      padding:'13px 15px',
+                      borderRadius:12,
+                      cursor:'pointer',
+                      background:applyMode==='add'?'rgba(255,179,71,0.06)':'#131316',
+                      border:applyMode==='add'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',
+                      transition:'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Add to current budget</div>
+                    <div style={{fontSize:11,color:'#71717A',marginTop:3}}>Keep your lines and add the template lines.</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={()=>setApplyMode('replace')}
+                    style={{
+                      textAlign:'left',
+                      padding:'13px 15px',
+                      borderRadius:12,
+                      cursor:'pointer',
+                      background:applyMode==='replace'?'rgba(255,179,71,0.06)':'#131316',
+                      border:applyMode==='replace'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',
+                      transition:'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Replace current budget</div>
+                    <div style={{fontSize:11,color:'#71717A',marginTop:3}}>
+                      {existingLineCount > 0
+                        ? `Remove your ${existingLineCount} line${existingLineCount===1?'':'s'} first.`
+                        : 'Start fresh with the template lines.'}
+                    </div>
                   </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="button"
+                disabled={applying}
+                whileHover={{y:-1}}
+                whileTap={{scale:0.98}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                onClick={handleApply}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:applying?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+              >
+                {applying ? 'Applying...' : 'Apply template'}
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
-function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
+function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
+  const [dept, setDept] = useState(DEPTS[0]);
+  const [unit, setUnit] = useState('day');
+  const [description, setDescription] = useState('');
+  const [qty, setQty] = useState('1');
+  const [rate, setRate] = useState('0');
+  const phaseForDept = d => {
+    const p = PHASES.find(ph => ph.depts.includes(d))?.name || 'Production';
+    if (p.toLowerCase().includes('pre')) return 'Pre-production';
+    if (p.toLowerCase().includes('post')) return 'Post-production';
+    return 'Production';
+  };
+  const [phase, setPhase] = useState(() => phaseForDept(DEPTS[0]));
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setDept(DEPTS[0]);
+    setUnit('day');
+    setDescription('');
+    setQty('1');
+    setRate('0');
+    setPhase(phaseForDept(DEPTS[0]));
+    setSubmitting(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  const numericQty = Math.max(0, Number(qty) || 0);
+  const numericRate = Math.max(0, Number(rate) || 0);
+  const lineTotal = numericQty * numericRate;
+  const deptExistingTotal = (items || []).filter(i => i.dept === dept).reduce((s, i) => s + lTot(i), 0);
+  const deptProjectedTotal = deptExistingTotal + lineTotal;
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onAdd({
+        dept,
+        description: description.trim(),
+        qty: numericQty || 1,
+        unit,
+        rate: numericRate,
+      });
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const phaseOptions = ['Development', 'Pre-production', 'Production', 'Post-production'];
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={onClose}
+          style={{position:'fixed',inset:0,zIndex:120,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
+        >
+          <motion.form
+            onSubmit={handleSubmit}
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:520,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Add budget line</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
+                  Lines are totalled automatically and roll up into your department budgets.
+                </div>
+              </div>
+              <button type="button" aria-label="Close modal" onClick={onClose} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:'20px 24px',display:'flex',flexDirection:'column',gap:16}}>
+              {/* Department & Unit */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Department</label>
+                  <select
+                    value={dept}
+                    onChange={e=>{setDept(e.target.value);setPhase(phaseForDept(e.target.value));}}
+                    style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:'#A1A1AA',fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+                  >
+                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Unit</label>
+                  <select
+                    value={unit}
+                    onChange={e=>setUnit(e.target.value)}
+                    style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:'#A1A1AA',fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+                  >
+                    {UNITS.map(u=><option key={u} value={u}>{u.charAt(0).toUpperCase()+u.slice(1)}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Description</label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={e=>setDescription(e.target.value)}
+                  placeholder="e.g. Camera package rental"
+                  autoFocus
+                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+                />
+              </div>
+
+              {/* Quantity & Rate */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1.85fr',gap:12}}>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Quantity</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={qty}
+                    onChange={e=>setQty(e.target.value)}
+                    style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none',boxSizing:'border-box'}}
+                  />
+                </div>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Rate ({baseCur})</label>
+                  <div style={{display:'flex',alignItems:'center',background:'#141416',border:'1px solid #242428',borderRadius:10,overflow:'hidden'}}>
+                    <span style={{padding:'10px 14px',borderRight:'1px solid #242428',color:'#71717A',fontSize:12,fontFamily:'IBM Plex Mono,monospace',flexShrink:0}}>{sym(baseCur)}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={rate}
+                      onChange={e=>setRate(e.target.value)}
+                      style={{flex:1,minWidth:0,background:'transparent',border:'none',padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none'}}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Phase */}
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Phase</label>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
+                  {phaseOptions.map(ph => {
+                    const active = phase === ph;
+                    return (
+                      <button
+                        key={ph}
+                        type="button"
+                        onClick={()=>setPhase(ph)}
+                        style={{
+                          padding:'9px 6px',
+                          borderRadius:9,
+                          fontSize:11,
+                          fontWeight:active?600:500,
+                          fontFamily:'Manrope,sans-serif',
+                          cursor:'pointer',
+                          whiteSpace:'nowrap',
+                          overflow:'hidden',
+                          textOverflow:'ellipsis',
+                          background:active?'rgba(255,179,71,0.10)':'#141416',
+                          border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',
+                          color:active?T.cream:'#71717A',
+                          transition:'all 0.15s ease',
+                        }}
+                      >
+                        {ph}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Line Total & Department Total Summary Box */}
+              <div style={{background:'#121214',border:'1px solid #202024',borderRadius:12,padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                <div>
+                  <div style={{fontSize:10,color:'#71717A'}}>Line total</div>
+                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,fontWeight:700,color:T.cream,marginTop:3}}>
+                    {sym(baseCur)}{fmt(lineTotal)}
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:10,color:'#71717A'}}>{dept} total</div>
+                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:'#E5E5E0',marginTop:4}}>
+                    {sym(baseCur)}{fmt(deptProjectedTotal)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10}}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="submit"
+                disabled={submitting}
+                whileHover={{y:-1}}
+                whileTap={{scale:0.98}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+              >
+                {submitting ? 'Adding...' : 'Add Budget Line'}
+              </motion.button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudget=0,totalSpend=0,remaining=0,contingency=0,baseCur='NGN',onPdf,onExcel}){
+  const mob=useIsMobile();
+  const [format, setFormat] = useState('pdf');
+  const [theme, setTheme] = useState('charcoal');
+  const [excelSheet, setExcelSheet] = useState('lines');
+  const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setFormat('pdf');
+    setTheme('charcoal');
+    setExcelSheet('lines');
+    setExporting(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  const isLight = theme === 'white';
+  const sheetBg = isLight ? '#FFFFFF' : '#141416';
+  const sheetText = isLight ? '#111111' : '#F5F4F0';
+  const sheetMuted = isLight ? '#71717A' : '#8A8985';
+  const sheetBorder = isLight ? '#E4E4E7' : '#242428';
+  const sheetHeaderBg = isLight ? '#F4F4F5' : '#1C1C20';
+
+  const generatedAt = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const previewLines = items.slice(0, 10);
+  const extraCount = Math.max(0, items.length - previewLines.length);
+
+  const handleDownload = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      if (format === 'pdf') await onPdf();
+      else await onExcel();
+      onClose();
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={onClose}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',padding:mob?0:20}}
+        >
+          <motion.div
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:880,maxHeight:mob?'92vh':'90vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:mob?'18px 18px 14px':'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Export budget</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
+                  {project?.name} · {items.length} line{items.length===1?'':'s'} · figures as currently saved
+                </div>
+              </div>
+              <button type="button" aria-label="Close" onClick={onClose} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:mob?'16px 18px':'20px 24px',overflowY:'auto',flex:1}}>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'240px minmax(0, 1fr)',gap:20,alignItems:'start'}}>
+                {/* Left Controls */}
+                <div style={{display:'flex',flexDirection:'column',gap:18}}>
+                  {/* Format */}
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Format</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                      <button
+                        type="button"
+                        onClick={()=>setFormat('pdf')}
+                        style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:format==='pdf'?'rgba(255,179,71,0.06)':'#131316',border:format==='pdf'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                      >
+                        <FileText size={14} style={{color:format==='pdf'?'#F5C451':'#71717A',marginBottom:6}}/>
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>PDF</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Formatted report</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={()=>setFormat('excel')}
+                        style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:format==='excel'?'rgba(255,179,71,0.06)':'#131316',border:format==='excel'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                      >
+                        <BarChart3 size={14} style={{color:format==='excel'?'#F5C451':'#71717A',marginBottom:6}}/>
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Excel</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>3 sheets, editable</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Report Theme (PDF) or Excel Styling Note */}
+                  {format === 'pdf' ? (
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Report theme</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                      <button type="button" onClick={()=>setTheme('charcoal')} style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:theme==='charcoal'?'rgba(255,179,71,0.06)':'#131316',border:theme==='charcoal'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}>
+                        <div style={{width:20,height:13,borderRadius:4,background:'#1E1E22',border:'1px solid #2E2E34',marginBottom:6}}/>
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Charcoal</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>For screens</div>
+                      </button>
+                      <button type="button" onClick={()=>setTheme('white')} style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:theme==='white'?'rgba(255,179,71,0.06)':'#131316',border:theme==='white'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}>
+                        <div style={{width:20,height:13,borderRadius:4,background:'#FFFFFF',border:'1px solid #D4D4D8',marginBottom:6}}/>
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>White</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>For printing</div>
+                      </button>
+                    </div>
+                  </div>
+                  ) : (
+                  <div style={{fontSize:11,color:'#71717A',lineHeight:1.55}}>
+                    Excel files use your spreadsheet app&apos;s own styling. Amounts are exported as numbers so you can keep working with them.
+                  </div>
+                  )}
+
+                  {/* Included Checklist */}
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Included</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:5,fontSize:11,color:'#8A8985'}}>
+                      <span>Summary and contingency</span>
+                      <span>Department breakdown with actuals</span>
+                      <span>Phase totals</span>
+                      <span>Every budget line</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Live Report Preview */}
+                <div style={{background:'#0A0A0C',border:'1px solid #1C1C20',borderRadius:14,padding:mob?'14px':'16px 20px'}}>
+                  <div style={{fontSize:11,color:'#71717A',marginBottom:12}}>Preview</div>
+                  <AnimatePresence mode="wait">
+                    {format === 'pdf' ? (
+                      <motion.div
+                        key="pdf-preview"
+                        initial={{opacity:0,y:6}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-6}}
+                        transition={{duration:0.18,ease:EASE_OUT}}
+                        style={{background:sheetBg,color:sheetText,border:`1px solid ${sheetBorder}`,borderRadius:10,padding:'22px 24px',maxWidth:540,margin:'0 auto',boxShadow:'0 16px 40px rgba(0,0,0,0.4)',transition:'background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease'}}
+                      >
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+                          {isLight ? <span style={{fontWeight:800,fontSize:13,letterSpacing:'0.04em',color:'#111111'}}>NKO</span> : <NkoLogo height={18}/>}
+                          <span style={{fontSize:9,color:sheetMuted}}>Generated {generatedAt}</span>
+                        </div>
+                        <div style={{fontSize:13,fontWeight:700,color:sheetText}}>{project?.name} - Production Budget</div>
+                        <div style={{fontSize:9,color:sheetMuted,marginTop:2,marginBottom:12}}>All figures in {baseCur}</div>
+                        <div style={{borderTop:`1px solid ${sheetBorder}`,marginBottom:14}}>
+                          {[['Total budget', `${baseCur} ${fmt(totalBudget)}`],['Actual spend', `${baseCur} ${fmt(totalSpend)}`],['Remaining', `${baseCur} ${fmt(remaining)}`],['Contingency', `${baseCur} ${fmt(contingency)}`]].map(([lbl, val]) => (
+                            <div key={lbl} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${sheetBorder}`,fontSize:10}}>
+                              <span style={{color:sheetMuted}}>{lbl}</span>
+                              <span style={{fontFamily:'IBM Plex Mono,monospace',fontWeight:700,color:sheetText}}>{val}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {deptRows.length > 0 && (
+                          <div style={{marginBottom:14}}>
+                            <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1fr',gap:6,padding:'5px 6px',background:sheetHeaderBg,borderRadius:4,fontSize:9,fontWeight:600,color:sheetMuted}}>
+                              <span>Department</span><span style={{textAlign:'right'}}>Allocated</span><span style={{textAlign:'right'}}>Actual</span><span style={{textAlign:'right'}}>Remaining</span>
+                            </div>
+                            {deptRows.slice(0, 8).map(r => (
+                              <div key={r.dept} style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1fr',gap:6,padding:'4.5px 6px',borderBottom:`1px solid ${sheetBorder}`,fontSize:9}}>
+                                <span style={{color:sheetText,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.dept}</span>
+                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetText}}>{baseCur} {fmt(r.allocated)}</span>
+                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetMuted}}>{baseCur} {fmt(r.actual)}</span>
+                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetText}}>{baseCur} {fmt(r.allocated - r.actual)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {previewLines.length > 0 && (
+                          <div>
+                            <div style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.7fr 1.1fr',gap:6,padding:'5px 6px',background:sheetHeaderBg,borderRadius:4,fontSize:9,fontWeight:600,color:sheetMuted}}>
+                              <span>Description</span><span style={{textAlign:'right'}}>Qty</span><span>Unit</span><span style={{textAlign:'right'}}>Total</span>
+                            </div>
+                            {previewLines.map(item => (
+                              <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.7fr 1.1fr',gap:6,padding:'4.5px 6px',borderBottom:`1px solid ${sheetBorder}`,fontSize:9}}>
+                                <span style={{color:sheetText,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description || 'Untitled line'}</span>
+                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetMuted}}>{item.qty}</span>
+                                <span style={{color:sheetMuted}}>{item.unit}</span>
+                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:sheetText}}>{baseCur} {fmt(lTot(item))}</span>
+                              </div>
+                            ))}
+                            {extraCount > 0 && <div style={{fontSize:9,color:sheetMuted,marginTop:8}}>...and {extraCount} more line{extraCount===1?'':'s'} in the full report</div>}
+                          </div>
+                        )}
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="excel-preview"
+                        initial={{opacity:0,y:6}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-6}}
+                        transition={{duration:0.18,ease:EASE_OUT}}
+                        style={{background:'#FFFFFF',color:'#18181B',border:'1px solid #D4D4D8',borderRadius:8,overflow:'hidden',boxShadow:'0 16px 40px rgba(0,0,0,0.4)'}}
+                      >
+                        <div style={{overflowX:'auto'}}>
+                          <table style={{width:'100%',borderCollapse:'collapse',fontSize:9.5,fontFamily:'Manrope,sans-serif'}}>
+                            <thead>
+                              <tr style={{background:'#F4F4F5',color:'#71717A',borderBottom:'1px solid #E4E4E7'}}>
+                                <th style={{width:24,padding:'4px',borderRight:'1px solid #E4E4E7',fontWeight:500}}/>
+                                {['A','B','C','D','E','F','G'].map(col => (
+                                  <th key={col} style={{padding:'4px 8px',borderRight:'1px solid #E4E4E7',fontWeight:500,textAlign:'center'}}>{col}</th>
+                                ))}
+                              </tr>
+                              <tr style={{background:'#FAFAFA',color:'#111111',borderBottom:'1px solid #D4D4D8',fontWeight:700}}>
+                                <td style={{padding:'5px 4px',textAlign:'center',background:'#F4F4F5',color:'#71717A',borderRight:'1px solid #E4E4E7',fontWeight:500}}>1</td>
+                                {(excelSheet === 'lines'
+                                  ? ['Department','Description','Quantity','Unit',`Rate (${baseCur})`,`Total (${baseCur})`,'Phase']
+                                  : excelSheet === 'depts'
+                                  ? ['Department','Lines',`Allocated (${baseCur})`,`Actual (${baseCur})`,`Remaining (${baseCur})`,'','']
+                                  : ['Metric','Value','Currency','','','','']
+                                ).map((h, i) => (
+                                  <td key={i} style={{padding:'5px 8px',borderRight:'1px solid #E4E4E7',textAlign:i>=2&&i<=5&&excelSheet!=='summary'?'right':'left',whiteSpace:'nowrap'}}>{h}</td>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(excelSheet === 'lines' ? items.slice(0, 14).map((it, idx) => [
+                                it.dept || 'General',
+                                it.description || 'Untitled line',
+                                String(it.qty || 0),
+                                it.unit || 'flat',
+                                fmt(it.rate || 0),
+                                fmt(lTot(it)),
+                                PHASES.find(ph => ph.depts.includes(it.dept))?.name || 'Production',
+                              ]) : excelSheet === 'depts' ? deptRows.slice(0, 14).map(r => [
+                                r.dept, String(r.lines), fmt(r.allocated), fmt(r.actual), fmt(r.allocated - r.actual), '', ''
+                              ]) : [
+                                ['Total budget', fmt(totalBudget), baseCur, '', '', '', ''],
+                                ['Actual spend', fmt(totalSpend), baseCur, '', '', '', ''],
+                                ['Remaining', fmt(remaining), baseCur, '', '', '', ''],
+                                ['Contingency', fmt(contingency), baseCur, '', '', '', ''],
+                              ]).map((cells, rIdx) => (
+                                <tr key={rIdx} style={{borderBottom:'1px solid #E4E4E7'}}>
+                                  <td style={{padding:'4.5px 4px',textAlign:'center',background:'#F4F4F5',color:'#71717A',borderRight:'1px solid #E4E4E7'}}>{rIdx + 2}</td>
+                                  {cells.map((val, cIdx) => (
+                                    <td key={cIdx} style={{padding:'4.5px 8px',borderRight:'1px solid #E4E4E7',textAlign:(excelSheet==='lines'&&(cIdx===2||cIdx===4||cIdx===5))||(excelSheet==='depts'&&cIdx>=1&&cIdx<=4)||(excelSheet==='summary'&&cIdx===1)?'right':'left',fontFamily:(excelSheet==='lines'&&(cIdx===2||cIdx===4||cIdx===5))||(excelSheet==='depts'&&cIdx>=1&&cIdx<=4)||(excelSheet==='summary'&&cIdx===1)?'IBM Plex Mono,monospace':'Manrope,sans-serif',whiteSpace:'nowrap',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis'}}>{val}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:2,background:'#F4F4F5',borderTop:'1px solid #E4E4E7',padding:'0 8px'}}>
+                          {[['summary','Summary'],['depts','Departments'],['lines','Budget lines']].map(([id, label]) => {
+                            const act = excelSheet === id;
+                            return (
+                              <button key={id} type="button" onClick={()=>setExcelSheet(id)} style={{padding:'6px 12px',fontSize:10,fontWeight:act?700:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',border:'none',background:act?'#FFFFFF':'transparent',color:act?'#111111':'#71717A',borderTop:act?'2px solid #F5A623':'2px solid transparent'}}>
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="button"
+                disabled={exporting}
+                whileHover={{y:-1}}
+                whileTap={{scale:0.98}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                onClick={handleDownload}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+              >
+                <Download size={14}/>
+                <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : 'Download Excel'}</span>
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrders=[],onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
   const{t:tr}=useLang();
-  const[showTpl,setShowTpl]=useState(false);const mob=useIsMobile();
+  const[showTpl,setShowTpl]=useState(false);
+  const[showExport,setShowExport]=useState(false);
+  const[showTools,setShowTools]=useState(false);
+  const[showAddBar,setShowAddBar]=useState(false);
+  const[phaseFilter,setPhaseFilter]=useState('all');
+  const[editingId,setEditingId]=useState(null);
+  const[editDraft,setEditDraft]=useState({description:'',qty:1,unit:'flat',rate:0});
+  const mob=useIsMobile();
   const[search,setSearch]=useState('');
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+
+  const baseCur = project.base_currency || 'NGN';
   const pItems=items.filter(i=>i.project_id===project.id);
   const pAdv=advances.filter(a=>a.project_id===project.id);
-  const totalAdv=pAdv.reduce((s,a)=>s+a.amount,0);
+  const { spentByCur, totalUSD: spentUSD } = computeTotalSpend(pAdv, reconEntries || [], payees, purchaseOrders);
+
+  const totals={};
+  let autoContingency=0;
+  pItems.forEach(i=>{
+    const lt=lTot(i);
+    totals[i.currency]=(totals[i.currency]||0)+lt;
+    if(/contingency/i.test(i.description||'')) autoContingency+=lt;
+  });
+  const budgetUSD = pItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const overBudget = spentUSD > budgetUSD && budgetUSD > 0;
+  const hasBudgetItems = pItems.length > 0;
+  const totalBudgetInBase = totals[baseCur] || Object.values(totals)[0] || 0;
+  const totalSpendInBase = spentByCur[baseCur] ?? Object.values(spentByCur)[0] ?? 0;
+  const headroomInBase = totalBudgetInBase - totalSpendInBase;
+  const workingBudgetInBase = Math.max(0, totalBudgetInBase - autoContingency);
+  const contingencyPct = totalBudgetInBase > 0 ? Math.round((autoContingency / totalBudgetInBase) * 100) : 0;
+
+  const fmtCompact = (val, cur = baseCur) => {
+    const n = Number(val || 0);
+    const abs = Math.abs(n);
+    const s = sym(cur);
+    const sign = n < 0 ? '-' : '';
+    if (abs >= 1e9) return `${sign}${s}${(abs / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
+    if (abs >= 1e6) return `${sign}${s}${(abs / 1e6).toFixed(1).replace(/\.0$/, '')}M`;
+    if (abs >= 1e3) return `${sign}${s}${(abs / 1e3).toFixed(1).replace(/\.0$/, '')}K`;
+    return `${sign}${s}${fmt(abs)}`;
+  };
+
+  const budgetDisplay = !hasBudgetItems ? '—' : Object.entries(totals).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ');
+  const spendDisplay = Object.entries(spentByCur).length === 0 ? `${sym(baseCur)}0` : Object.entries(spentByCur).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ');
+  const headroomDisplay = !hasBudgetItems ? '—' : `${headroomInBase<0?'-':''}${sym(baseCur)}${fmt(Math.abs(headroomInBase))}`;
+
+  const getPhaseForDept = dept => PHASES.find(ph => ph.depts.includes(dept))?.name || 'Production';
+  const getPhaseTone = phaseName => {
+    const pl = (phaseName || '').toLowerCase();
+    if (pl.includes('pre')) return { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' };
+    if (pl.includes('post')) return { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.28)', text: '#E5E5E0', dot: '#E5E5E0' };
+    if (pl.includes('pr') || pl.includes('market')) return { bg: 'rgba(155,151,141,0.08)', border: 'rgba(155,151,141,0.25)', text: '#9B978D', dot: '#9B978D' };
+    return { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.34)', text: '#F5C451', dot: '#F5C451' };
+  };
+
+  const statusLabel = project.status || 'Planning';
+  const sl = statusLabel.toLowerCase();
+  const statusTone = sl === 'production'
+    ? { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.34)', text: '#F5C451', dot: '#F5C451' }
+    : sl.includes('pre')
+    ? { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' }
+    : sl.includes('post')
+    ? { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.28)', text: '#E5E5E0', dot: '#E5E5E0' }
+    : { bg: 'rgba(155,151,141,0.07)', border: 'rgba(155,151,141,0.22)', text: '#9B978D', dot: '#9B978D' };
+
+  const q = search.trim().toLowerCase();
+  const activeDepts = DEPTS.filter(d => pItems.some(i => i.dept === d));
+  const visibleDepts = activeDepts.filter(d => {
+    const matchesPhase = phaseFilter === 'all' || getPhaseForDept(d) === phaseFilter;
+    if (!matchesPhase) return false;
+    if (!q) return true;
+    return d.toLowerCase().includes(q) || pItems.some(i => i.dept === d && (i.description || '').toLowerCase().includes(q));
+  });
+
+  // Real Department Breakdown (empty when pItems.length === 0)
+  const deptBreakdownMap = {};
+  pItems.forEach(item => {
+    const d = item.dept || 'General';
+    if (!deptBreakdownMap[d]) deptBreakdownMap[d] = { dept: d, lines: 0, allocated: 0, actual: 0 };
+    deptBreakdownMap[d].lines += 1;
+    deptBreakdownMap[d].allocated += lTot(item);
+  });
+  (purchaseOrders || []).forEach(po => {
+    if (po.status === 'Paid' && po.dept && deptBreakdownMap[po.dept]) {
+      deptBreakdownMap[po.dept].actual += Number(po.amount || 0);
+    }
+  });
+  (reconEntries || []).forEach(re => {
+    if (re.dept && deptBreakdownMap[re.dept] && !String(re.notes || '').includes('[CASH-IN]')) {
+      deptBreakdownMap[re.dept].actual += Number(re.amount || 0);
+    }
+  });
+  const deptBreakdownRows = Object.values(deptBreakdownMap).sort((a,b)=>a.dept.localeCompare(b.dept));
+
+  // Real Phase Totals
+  const phaseColors = ['#4A90D9', '#F5C451', '#D4D4D8', '#71717A'];
+  const phaseRows = PHASES.map((ph, idx) => {
+    const phItems = pItems.filter(i => ph.depts.includes(i.dept));
+    const total = phItems.reduce((s,i)=>s+lTot(i), 0);
+    const pct = totalBudgetInBase > 0 ? Math.round((total / totalBudgetInBase) * 100) : 0;
+    return { name: ph.name, lines: phItems.length, total, pct, color: phaseColors[idx % phaseColors.length] };
+  });
+
+  const startInlineEdit = item => {
+    setEditingId(item.id);
+    setEditDraft({
+      description: item.description || '',
+      qty: Number(item.qty || 1),
+      unit: item.unit || 'flat',
+      rate: Number(item.rate || 0),
+    });
+  };
+  const saveInlineEdit = async item => {
+    await onUpdate(item.id, {
+      description: editDraft.description,
+      qty: Number(editDraft.qty) || 0,
+      unit: editDraft.unit,
+      rate: Number(editDraft.rate) || 0,
+    });
+    setEditingId(null);
+  };
+
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('budgetHeader')} — {project.name}</div><div style={{marginTop:14}}><FS/></div></div>
+      {/* Breadcrumb & Header */}
+      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint,marginBottom:8}}>
+        Workspace <span style={{margin:'0 4px'}}>&gt;</span> Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Budgets</span>
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:22}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Production Budget</h2>
+            <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,fontFamily:'Manrope,sans-serif'}}>
+              <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot}}/>
+              {statusLabel}
+            </span>
+          </div>
+          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+            Manage, export and budget each production.
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowAddBar(o=>!o)}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+          >
+            <Plus size={14}/>
+            <span>Add Budget Line</span>
+          </motion.button>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowTpl(o=>!o)}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <Layers size={14}/>
+            <span>{tr('templates')}</span>
+          </motion.button>
+          {pItems.length>0&&isOwner?(
+            <motion.button type="button" whileHover={{y:-1}} whileTap={{scale:0.98}} transition={{duration:DURATION.fast,ease:EASE_OUT}} onClick={()=>setShowExport(true)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span></motion.button>
+          ):(
+            <button
+              type="button"
+              disabled
+              style={{background:'#111113',border:'1px solid #242428',color:T.faint,borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'not-allowed',display:'inline-flex',alignItems:'center',gap:6,opacity:0.55}}
+            >
+              <Download size={13}/>
+              <span>Export</span>
+            </button>
+          )}
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.97}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            aria-label="More budget tools"
+            onClick={()=>setShowTools(o=>!o)}
+            style={{width:36,height:36,background:showTools?'#1A1A1E':'#111113',border:'1px solid #242428',color:T.dim,borderRadius:10,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
+          >
+            <MoreHorizontal size={15}/>
+          </motion.button>
+        </div>
+      </div>
+
       {isProducerActive && !isOwner && (
         <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:16,color:'#72D69A',fontSize:13,fontFamily:'Manrope,sans-serif'}}>
           <span className="nko-live-dot" />
@@ -3558,40 +5101,365 @@ function BudgetsView({project,items,advances,reconEntries,onAdd,onUpdate,onRemov
           <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',background:'rgba(255,255,255,0.06)',padding:'2px 8px',borderRadius:6}}>Live</span>
         </div>
       )}
-      <BudgetSummaryHeader project={project} items={pItems} onSetContingency={onSetContingency} onSetTarget={onSetTarget}/>
-      <ProductionInfoPanel project={project}/>
-      <BrandPanel project={project}/>
-      {totalAdv>0&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>Advances issued: {sym(project.base_currency)}{fmt(totalAdv)}</div>}
-      <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap'}}>
-        <Btn variant="outline" size="sm" onClick={()=>setShowTpl(!showTpl)}>{tr('templates')}</Btn>
-        {pItems.length>0&&(isOwner?<ExportMenu onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)} onExcel={()=>budgetExcel(pItems,project)} getPreview={()=>budgetPreview(pItems,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>)}
-      </div>
-      {showTpl&&<TemplatePickerModal onClose={()=>setShowTpl(false)} onApply={tpl=>{onApplyTemplate(tpl);setShowTpl(false);}} project={project}/>}
-      <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
-      <div style={{marginBottom:14}}>
-        <Inp placeholder="🔍 Search line items or departments…" value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%'}}/>
-      </div>
-      {(()=>{
-        const activeDepts=DEPTS.filter(d=>pItems.some(i=>i.dept===d));
-        const emptyDepts=DEPTS.filter(d=>!activeDepts.includes(d));
-        const q=search.trim().toLowerCase();
-        const visibleDepts=q?activeDepts.filter(d=>d.toLowerCase().includes(q)||pItems.some(i=>i.dept===d&&(i.description||'').toLowerCase().includes(q))):activeDepts;
-        return(
-          <>
-            {q&&!visibleDepts.length&&<div style={{color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif',padding:'12px 0'}}>No departments or line items match "{search}".</div>}
-            {visibleDepts.map(d=>{
-              const di=pItems.filter(i=>i.dept===d);
-              const deptNameMatches=d.toLowerCase().includes(q);
-              const shown=q&&!deptNameMatches?di.filter(i=>(i.description||'').toLowerCase().includes(q)):di;
-              return<DeptSection key={d} dept={d} items={shown} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove} project={project} scenes={scenes} characters={characters} onSaveCharacter={onSaveCharacter}/>;
-            })}
-            {!q&&<Sel defaultValue="" onChange={e=>{if(e.target.value){onAdd(e.target.value);e.target.value='';}}} style={{width:'100%',marginTop:4}}>
-              <option value="">{tr('addDepartment')}</option>
-              {emptyDepts.map(d=><option key={d} value={d}>{d}</option>)}
-            </Sel>}
-          </>
-        );
-      })()}
+
+      {/* Top 4 Summary Cards */}
+      <motion.div
+        variants={staggerContainer(0.04, 0.02)}
+        initial="hidden"
+        animate="visible"
+        style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:20}}
+      >
+        <StatCard featured label="Total Budget" badge={baseCur} value={budgetDisplay} sub="Approved production budget" accent="#F5C451"/>
+        <StatCard label={tr('statTotalSpend')} badge={baseCur} value={spendDisplay} sub="Total recorded expenditure" accent={overBudget?'#E05252':T.cream}/>
+        <StatCard label="Headroom" badge={baseCur} value={headroomDisplay} sub={overBudget?'Over approved budget':'Budget remaining'} accent={overBudget?'#E05252':T.cream}/>
+        <StatCard label="Contingency" badge={baseCur} value={!hasBudgetItems?'—':`${sym(baseCur)}${fmt(autoContingency)}`} sub={contingencyPct>0?`${contingencyPct}% of total budget`:'Reserve for unexpected'}/>
+      </motion.div>
+
+      <TemplatePickerModal open={showTpl} onClose={()=>setShowTpl(false)} onApply={async(tpl,mode)=>{await onApplyTemplate(tpl,mode);setShowTpl(false);}} project={project} existingLineCount={pItems.length}/>
+
+      <ExportBudgetModal
+        open={showExport}
+        onClose={()=>setShowExport(false)}
+        project={project}
+        items={pItems}
+        deptRows={deptBreakdownRows}
+        totalBudget={totalBudgetInBase}
+        totalSpend={totalSpendInBase}
+        remaining={headroomInBase}
+        contingency={autoContingency}
+        baseCur={baseCur}
+        onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)}
+        onExcel={()=>budgetExcel(pItems,project)}
+      />
+
+      <AddBudgetLineModal
+        open={showAddBar}
+        onClose={()=>setShowAddBar(false)}
+        onAdd={onAdd}
+        baseCur={baseCur}
+        items={pItems}
+      />
+
+      {showTools && (
+        <div style={{marginBottom:18}}>
+          <BudgetSummaryHeader project={project} items={pItems} onSetContingency={onSetContingency} onSetTarget={onSetTarget}/>
+          <ProductionInfoPanel project={project}/>
+          <BrandPanel project={project}/>
+          <ScriptUploader project={project} onApplyBudget={onApplyScript}/>
+        </div>
+      )}
+
+      {/* Grouped Budget Lines Data Table */}
+      <motion.div
+        initial={{opacity:0,y:8}}
+        animate={{opacity:1,y:0}}
+        transition={{duration:DURATION.normal,ease:EASE_OUT}}
+        style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'22px 24px',marginBottom:20,boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+      >
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:16}}>
+          <div>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Budget Lines</div>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>All items organised by department · {baseCur}</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+            <div style={{position:'relative'}}>
+              <Search size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
+              <input
+                type="search"
+                aria-label="Search line items"
+                placeholder="Search line items..."
+                value={search}
+                onChange={e=>setSearch(e.target.value)}
+                style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 12px 7px 32px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',minWidth:205}}
+              />
+            </div>
+            <Sel aria-label="Filter by status" value={phaseFilter} onChange={e=>setPhaseFilter(e.target.value)} style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 10px'}}>
+              <option value="all">Filter by status</option>
+              {PHASES.map(ph=><option key={ph.name} value={ph.name}>{ph.name}</option>)}
+            </Sel>
+          </div>
+        </div>
+
+        <div style={{background:'#09090B',border:'1px solid #1A1A1E',borderRadius:12,overflow:'hidden'}}>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:12}}>
+              <thead>
+                <tr style={{background:'#0F0F12',borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:11,textAlign:'left'}}>
+                  <th style={{padding:'11px 12px 11px 16px',fontWeight:500}}>Department</th>
+                  <th style={{padding:'11px 12px',fontWeight:500}}>Description</th>
+                  <th style={{padding:'11px 12px',fontWeight:500,textAlign:'right'}}>Qty</th>
+                  <th style={{padding:'11px 12px',fontWeight:500}}>Unit</th>
+                  <th style={{padding:'11px 12px',fontWeight:500,textAlign:'right'}}>Rate</th>
+                  <th style={{padding:'11px 12px',fontWeight:500,textAlign:'right'}}>Total</th>
+                  <th style={{padding:'11px 12px',fontWeight:500}}>Phase</th>
+                  <th style={{padding:'11px 16px 11px 12px',fontWeight:500,textAlign:'right'}}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleDepts.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{padding:'32px 16px',textAlign:'center',color:T.faint,fontSize:12}}>
+                      {pItems.length === 0
+                        ? 'No budget lines yet. Click "Add Budget Line" or "Templates" to build your budget.'
+                        : 'No budget lines match your current search or filter.'}
+                    </td>
+                  </tr>
+                ) : (
+                  <>
+                    {visibleDepts.map(dept => {
+                      const di = pItems.filter(i => i.dept === dept);
+                      const deptNameMatches = dept.toLowerCase().includes(q);
+                      const shown = q && !deptNameMatches ? di.filter(i => (i.description || '').toLowerCase().includes(q)) : di;
+                      const deptTotal = shown.reduce((s,i)=>s+lTot(i), 0);
+                      const phaseName = getPhaseForDept(dept);
+                      const phaseTone = getPhaseTone(phaseName);
+                      return (
+                        <Fragment key={dept}>
+                          {shown.map(item => {
+                            const isEditing = editingId === item.id;
+                            return (
+                              <tr
+                                key={item.id}
+                                style={{borderBottom:'1px solid #151518',transition:'background 0.14s ease'}}
+                                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.024)';}}
+                                onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
+                              >
+                                <td style={{padding:'11px 12px 11px 16px',color:'#D4D4D8',fontWeight:500,whiteSpace:'nowrap'}}>{dept}</td>
+                              <td style={{padding:'10px 10px',color:T.cream,minWidth:180}}>
+                                {isEditing ? (
+                                  <Inp value={editDraft.description} onChange={e=>setEditDraft(d=>({...d,description:e.target.value}))} placeholder="Line description" style={{padding:'5px 8px',fontSize:12}}/>
+                                ) : (
+                                  item.description || <span style={{color:T.faint}}>Untitled line</span>
+                                )}
+                              </td>
+                              <td style={{padding:'10px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.dim}}>
+                                {isEditing ? (
+                                  <Inp type="number" value={editDraft.qty} onChange={e=>setEditDraft(d=>({...d,qty:e.target.value}))} style={{width:64,padding:'5px 6px',textAlign:'right',fontSize:12}}/>
+                                ) : (
+                                  item.qty
+                                )}
+                              </td>
+                              <td style={{padding:'10px 10px',color:T.faint}}>
+                                {isEditing ? (
+                                  <Sel value={editDraft.unit} onChange={e=>setEditDraft(d=>({...d,unit:e.target.value}))} style={{padding:'5px 6px',fontSize:11}}>
+                                    {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+                                  </Sel>
+                                ) : (
+                                  item.unit
+                                )}
+                              </td>
+                              <td style={{padding:'10px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.dim,whiteSpace:'nowrap'}}>
+                                {isEditing ? (
+                                  <Inp type="number" value={editDraft.rate} onChange={e=>setEditDraft(d=>({...d,rate:e.target.value}))} style={{width:100,padding:'5px 6px',textAlign:'right',fontSize:12}}/>
+                                ) : (
+                                  `${sym(item.currency || baseCur)}${fmt(item.rate)}`
+                                )}
+                              </td>
+                              <td style={{padding:'10px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream,whiteSpace:'nowrap'}}>
+                                {sym(item.currency || baseCur)}{fmt(isEditing ? (Number(editDraft.qty)||0)*(Number(editDraft.rate)||0) : lTot(item))}
+                              </td>
+                              <td style={{padding:'10px 10px'}}>
+                                <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:9999,background:phaseTone.bg,border:`1px solid ${phaseTone.border}`,color:phaseTone.text,whiteSpace:'nowrap'}}>
+                                  <span style={{width:5,height:5,borderRadius:'50%',background:phaseTone.dot}}/>
+                                  {phaseName}
+                                </span>
+                              </td>
+                              <td style={{padding:'10px 16px 10px 10px',textAlign:'right',whiteSpace:'nowrap'}}>
+                                {isEditing ? (
+                                  <span style={{display:'inline-flex',gap:6}}>
+                                    <motion.button whileHover={{scale:1.12}} whileTap={{scale:0.92}} type="button" onClick={()=>saveInlineEdit(item)} style={{background:'none',border:'none',cursor:'pointer',color:'#4CAF7A',padding:2}} title="Save"><Check size={14}/></motion.button>
+                                    <motion.button whileHover={{scale:1.12}} whileTap={{scale:0.92}} type="button" onClick={()=>setEditingId(null)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Cancel"><X size={14}/></motion.button>
+                                  </span>
+                                ) : (
+                                  <span style={{display:'inline-flex',gap:8}}>
+                                    <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={()=>startInlineEdit(item)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Edit line"><Pencil size={13}/></motion.button>
+                                    <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={()=>onRemove(item.id)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Delete line"><Trash2 size={13}/></motion.button>
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {/* Department Subtotal Row */}
+                        <tr style={{background:'#0E0E11',borderBottom:'1px solid #1F1F24'}}>
+                          <td colSpan={5} style={{padding:'8px 12px 8px 16px',fontSize:11,color:'#7A7974',fontWeight:600}}>{dept}</td>
+                          <td style={{padding:'8px 12px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,whiteSpace:'nowrap'}}>
+                            {sym(baseCur)}{fmt(deptTotal)}
+                          </td>
+                          <td colSpan={2}/>
+                        </tr>
+                      </Fragment>
+                    );
+                  })}
+                  {/* Total Budget Footer Row */}
+                  <tr style={{borderTop:'1px solid #2B2B30',background:'linear-gradient(90deg, rgba(255,179,71,0.06) 0%, rgba(255,179,71,0.015) 100%)'}}>
+                    <td colSpan={5} style={{padding:'13px 12px 13px 16px',fontSize:13,fontWeight:700,color:T.cream}}>Total budget</td>
+                    <td style={{padding:'13px 12px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700,color:'#F5C451',whiteSpace:'nowrap'}}>
+                      {sym(baseCur)}{fmt(totalBudgetInBase)}
+                    </td>
+                    <td colSpan={2} style={{padding:'13px 16px 13px 12px',fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{baseCur}</td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Bottom 2-Column Section: Department Breakdown + Phase Totals & Contingency */}
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.55fr) minmax(280px, 1fr)',gap:16,alignItems:'start'}}
+      >
+        {/* Left: Department Breakdown */}
+        <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'22px 24px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+          <div style={{marginBottom:14}}>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Department Breakdown</div>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Allocated budget against recorded spend for each department</div>
+          </div>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:12}}>
+              <thead>
+                <tr style={{borderBottom:'1px solid #1B1B1F',color:'#7A7974',fontSize:11,textAlign:'left'}}>
+                  <th style={{padding:'8px 0',fontWeight:500}}>Department</th>
+                  <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Lines</th>
+                  <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Allocated</th>
+                  <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Actual</th>
+                  <th style={{padding:'8px 0',fontWeight:500,textAlign:'right'}}>Remaining</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deptBreakdownRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{padding:'24px 0',textAlign:'center',color:T.faint,fontSize:12}}>
+                      No departments in this budget yet.
+                    </td>
+                  </tr>
+                ) : (
+                  deptBreakdownRows.map(row => {
+                    const rem = row.allocated - row.actual;
+                    const pct = row.allocated > 0 ? Math.min(100, (row.actual / row.allocated) * 100) : 0;
+                    const over = row.actual > row.allocated && row.allocated > 0;
+                    return (
+                      <tr
+                        key={row.dept}
+                        style={{borderBottom:'1px solid #161619',transition:'background 0.14s ease'}}
+                        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
+                        onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
+                      >
+                        <td style={{padding:'11px 0',minWidth:150}}>
+                          <div style={{color:T.cream,fontSize:12,fontWeight:500,marginBottom:6}}>{row.dept}</div>
+                          <div style={{width:104,height:3.5,borderRadius:9999,background:'#1C1C20',overflow:'hidden'}}>
+                            <motion.div
+                              initial={{width:0}}
+                              animate={{width:`${pct}%`}}
+                              transition={{duration:0.45,ease:EASE_OUT}}
+                              style={{height:'100%',borderRadius:9999,background:over?'#E05252':'#4CAF7A'}}
+                            />
+                          </div>
+                        </td>
+                        <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.faint}}>{row.lines}</td>
+                        <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{fmtCompact(row.allocated, baseCur)}</td>
+                        <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:row.actual>0?T.dim:T.faint}}>{row.actual>0?fmtCompact(row.actual, baseCur):'—'}</td>
+                        <td style={{padding:'11px 0',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:over?'#E05252':T.cream}}>{fmtCompact(rem, baseCur)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right: Phase Totals & Contingency */}
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          {/* Phase Totals */}
+          <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+            <div style={{marginBottom:12}}>
+              <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Phase Totals</div>
+              <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Where the budget sits across the production timeline</div>
+            </div>
+            <div style={{height:6,borderRadius:9999,background:'#18181B',overflow:'hidden',display:'flex',marginBottom:16}}>
+              {hasBudgetItems && phaseRows.map(ph => ph.pct > 0 && (
+                <motion.div
+                  key={ph.name}
+                  initial={{width:0}}
+                  animate={{width:`${ph.pct}%`}}
+                  transition={{duration:0.5,ease:EASE_OUT}}
+                  style={{height:'100%',background:ph.color}}
+                />
+              ))}
+            </div>
+            <div style={{display:'flex',flexDirection:'column'}}>
+              {phaseRows.map((ph, idx) => (
+                <div key={ph.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'9px 0',borderBottom:idx===phaseRows.length-1?'none':'1px solid #161619'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{width:6,height:6,borderRadius:'50%',background:ph.color,flexShrink:0}}/>
+                    <div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:12,fontWeight:500,color:T.cream}}>{ph.name}</div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:10,color:T.faint}}>{ph.lines} line{ph.lines===1?'':'s'}</div>
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:ph.total>0?T.cream:T.faint}}>
+                      {ph.total > 0 ? `${sym(baseCur)}${fmt(ph.total)}` : `${sym(baseCur)}0`}
+                    </div>
+                    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{ph.pct}%</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Contingency */}
+          <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+            <div style={{marginBottom:10}}>
+              <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Contingency</div>
+              <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Reserve allocated for the unexpected</div>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
+              <div>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:'#F5C451'}}>
+                  {hasBudgetItems ? `${sym(baseCur)}${fmt(autoContingency)}` : '—'}
+                </span>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint,marginLeft:5}}>{baseCur}</span>
+              </div>
+              <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.dim}}>{contingencyPct}%</span>
+            </div>
+            <div style={{height:4,borderRadius:9999,background:'#18181B',overflow:'hidden',marginBottom:14}}>
+              <motion.div
+                initial={{width:0}}
+                animate={{width:`${Math.min(100,contingencyPct * 5)}%`}}
+                transition={{duration:0.5,ease:EASE_OUT}}
+                style={{height:'100%',borderRadius:9999,background:'#F5C451',boxShadow:'0 0 10px rgba(245,196,81,0.35)'}}
+              />
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,paddingTop:10,borderTop:'1px solid #19191D'}}>
+              <div>
+                <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Working budget</div>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,marginTop:2}}>
+                  {hasBudgetItems ? `${sym(baseCur)}${fmt(workingBudgetInBase)}` : '—'}
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Total budget</div>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,marginTop:2}}>
+                  {hasBudgetItems ? `${sym(baseCur)}${fmt(totalBudgetInBase)}` : '—'}
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12,paddingTop:10,borderTop:'1px solid #161619',fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+              <span style={{color:T.faint}}>Production contingency ({contingencyPct}%)</span>
+              <span style={{fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>
+                {hasBudgetItems ? `${sym(baseCur)}${fmt(autoContingency)}` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -4631,15 +6499,22 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
     </div>${castPage}${schedulePage}${locPage}${elementsPage}${sheets}</body></html>`;
   openThemed(html,'dark');
 };
-function BreakdownUploader({project,onApply,onSaveCharacter}){
+function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
   const{t:tr}=useLang();
-  const[state,setState]=useState('idle');const[err,setErr]=useState('');const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
+  const[state,setState]=useState('idle');const[err,setErr]=useState('');const[dragging,setDragging]=useState(false);const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
   const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
   const sendNotif=n=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKÒ Breakdown Complete',{body:`${n} scenes extracted from ${project.name}`});}catch{}};
   useEffect(()=>{const h=()=>{if(document.visibilityState==='visible'&&resRef.current){onApply(resRef.current);resRef.current=null;setState('done');}};document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);},[]);
+  useEffect(()=>{
+    if(!open)return;
+    setState('idle');setErr('');setDragging(false);
+    const onKey=e=>{if(e.key==='Escape'&&state!=='reading'&&state!=='analyzing')onClose?.();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,state,onClose]);
   const process=async f=>{
-    const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx');
-    if(!isPDF&&!isTxt){setErr('Upload a PDF, TXT or FDX file.');setState('error');return;}
+    const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx')||f.name.endsWith('.fountain');
+    if(!isPDF&&!isTxt){setErr('Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) file.');setState('error');return;}
     if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
     await askNotif();setState('reading');setErr('');
     try{
@@ -4663,8 +6538,80 @@ function BreakdownUploader({project,onApply,onSaveCharacter}){
         uc=[{type:'text',text:`Script:\n\n${txt.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
       }
       setState('analyzing');
-      const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS,32000);
-      const{scenes:scenesRaw,characters}=recoverScenes(raw);if(!scenesRaw.length)throw new Error('No scenes found — try TXT format');const scenes=attachPageLengths(scenesRaw,measured,measuredSource);
+      let scenesRaw=[],characters=[];
+      try{
+        const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS,32000);
+        const parsed=recoverScenes(raw);
+        scenesRaw=parsed.scenes||[];characters=parsed.characters||[];
+      }catch{}
+      if(!scenesRaw.length){
+        const rawTxt = isPDF ? (await extractPdfText(f).catch(()=>'')) : (await readTxt(f).catch(()=>''));
+        const localParsed = (() => {
+          const outScenes = [];
+          const charCounts = {};
+          if (f.name.toLowerCase().endsWith('.fdx') || rawTxt.includes('<FinalDraft')) {
+            const doc = new window.DOMParser().parseFromString(rawTxt, 'text/xml');
+            const paras = Array.from(doc.querySelectorAll('Paragraph'));
+            let cur = null; let lineCount = 0;
+            paras.forEach(p => {
+              const type = p.getAttribute('Type') || '';
+              const text = Array.from(p.querySelectorAll('Text')).map(t => t.textContent || '').join('').trim();
+              if (!text) return;
+              if (type === 'Scene Heading') {
+                if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7))); outScenes.push(cur); }
+                const upper = text.toUpperCase();
+                const ie = upper.startsWith('INT./EXT') || upper.startsWith('INT/EXT') || upper.startsWith('I/E') ? 'INT/EXT' : upper.startsWith('EXT') ? 'EXT' : 'INT';
+                const todMatch = upper.match(/-\s*(DAY|NIGHT|DAWN|DUSK|MORNING|EVENING|CONTINUOUS|LATER)/);
+                const dayNight = todMatch ? (todMatch[1] === 'MORNING' ? 'DAWN' : todMatch[1] === 'EVENING' ? 'DUSK' : todMatch[1] === 'CONTINUOUS' || todMatch[1] === 'LATER' ? 'DAY' : todMatch[1]) : 'DAY';
+                const loc = parseLocation(upper);
+                cur = { sceneNumber: String(outScenes.length + 1), heading: upper, intExt: ie, location: loc, dayNight, cast: [], pages8: 4 };
+                lineCount = 2;
+              } else if (cur) {
+                lineCount += Math.max(1, Math.ceil(text.length / 60));
+                if (type === 'Character') {
+                  const cname = text.replace(/\(.*?\)/g, '').trim().toUpperCase();
+                  if (cname && cname.length < 35 && !cur.cast.includes(cname)) cur.cast.push(cname);
+                  if (cname) charCounts[cname] = (charCounts[cname] || 0) + 1;
+                }
+              }
+            });
+            if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7))); outScenes.push(cur); }
+          }
+          if (!outScenes.length && rawTxt) {
+            const lines = rawTxt.split(/\r?\n/);
+            const headingRe = /^\s*(?:(\d+[A-Z]?)\s*[.\-]?\s*)?((?:INT\.?\/EXT\.?|I\/E|INT\.?|EXT\.?)\s+.+)$/i;
+            let cur = null; let lineCount = 0;
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              const m = line.match(headingRe);
+              if (m) {
+                if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 6))); outScenes.push(cur); }
+                const upper = m[2].trim().toUpperCase();
+                const ie = upper.startsWith('INT./EXT') || upper.startsWith('INT/EXT') || upper.startsWith('I/E') ? 'INT/EXT' : upper.startsWith('EXT') ? 'EXT' : 'INT';
+                const todMatch = upper.match(/-\s*(DAY|NIGHT|DAWN|DUSK|MORNING|EVENING|CONTINUOUS|LATER)/);
+                const dayNight = todMatch ? (todMatch[1] === 'MORNING' ? 'DAWN' : todMatch[1] === 'EVENING' ? 'DUSK' : todMatch[1] === 'CONTINUOUS' || todMatch[1] === 'LATER' ? 'DAY' : todMatch[1]) : 'DAY';
+                const loc = parseLocation(upper);
+                cur = { sceneNumber: m[1] || String(outScenes.length + 1), heading: upper, intExt: ie, location: loc, dayNight, cast: [], pages8: 4 };
+                lineCount = 2;
+              } else if (cur && line) {
+                lineCount += 1;
+                const cleanCue = line.replace(/\(.*?\)/g, '').trim();
+                if (/^[A-Z][A-Z0-9\s.'\-]{1,28}$/.test(cleanCue) && !/^(CUT TO|FADE IN|FADE OUT|DISSOLVE TO|SMASH CUT|THE END|CONTINUED)$/.test(cleanCue)) {
+                  if (!cur.cast.includes(cleanCue)) cur.cast.push(cleanCue);
+                  charCounts[cleanCue] = (charCounts[cleanCue] || 0) + 1;
+                }
+              }
+            }
+            if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 6))); outScenes.push(cur); }
+          }
+          const chars = Object.entries(charCounts).map(([name, c]) => ({ name, tier: c >= 5 ? 'lead' : c >= 2 ? 'supporting' : 'day_player' }));
+          return { scenes: outScenes, characters: chars };
+        })();
+        scenesRaw = localParsed.scenes;
+        characters = localParsed.characters;
+      }
+      if(!scenesRaw.length)throw new Error('No scenes found — ensure your script uses standard INT./EXT. scene headings.');
+      const scenes=attachPageLengths(scenesRaw,measured,measuredSource);
       characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
       sendNotif(scenes.length);
       try{localStorage.setItem(`nko_bk_${project?.id}`,JSON.stringify({scenes,ts:Date.now()}));}catch{}
@@ -4672,17 +6619,89 @@ function BreakdownUploader({project,onApply,onSaveCharacter}){
     }catch(e){setErr(e.message);setState('error');}
   };
   return(
-    <div style={{marginBottom:18}}>
-      {state==='analyzing'&&<div style={{background:'rgba(82,176,122,.1)',border:`1px solid ${T.sage}`,borderRadius:8,padding:'10px 14px',marginBottom:10}}><div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>{notif==='granted'?tr('notifOn'):tr('keepScreenOpen')}</div></div>}
-      <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{background:T.hi,border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:20,textAlign:'center',cursor:(state==='idle'||state==='error')?'pointer':'default'}}>
-        <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
-        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📋</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{tr('aiScriptBreakdown')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>Upload your script — cast, props, location, vehicles per scene</div>{notif==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',marginBottom:8}}>🔔 Safe to switch apps during analysis</div>}{notif==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:8}}>💡 Allow notifications to switch apps freely</div>}<Btn variant="ghost" size="sm">{tr('chooseScript')}</Btn></>}
-        {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading…</div></>}
-        {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>Analyzing your script…</div></>}
-        {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage,marginBottom:4}}>Breakdown complete</div><button onClick={e=>{e.stopPropagation();setState('idle');}} style={{color:T.gold,fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another →</button></>}
-        {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
-      </div>
-    </div>
+    <AnimatePresence>
+      {open&&(
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={()=>{if(state!=='reading'&&state!=='analyzing')onClose?.();}}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
+        >
+          <motion.div
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:480,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,padding:'22px 24px 24px',boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',fontFamily:'Manrope,sans-serif'}}
+          >
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,marginBottom:18}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Upload script</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
+                  Uploading a new script replaces the current breakdown.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={()=>{if(state!=='reading'&&state!=='analyzing')onClose?.();}}
+                style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+              >
+                <X size={16}/>
+              </button>
+            </div>
+            {state==='analyzing'&&<div style={{background:'rgba(82,176,122,0.1)',border:'1px solid rgba(82,176,122,0.35)',borderRadius:10,padding:'10px 14px',marginBottom:12}}><div style={{fontSize:12,color:'#4CAF7A',fontFamily:'Manrope,sans-serif'}}>{notif==='granted'?tr('notifOn'):tr('keepScreenOpen')}</div></div>}
+            <div
+              onClick={()=>(state==='idle'||state==='error')&&fr.current.click()}
+              onDragOver={e=>{e.preventDefault();if(state==='idle'||state==='error')setDragging(true);}}
+              onDragLeave={()=>setDragging(false)}
+              onDrop={e=>{e.preventDefault();setDragging(false);if(state==='idle'||state==='error'){const f=e.dataTransfer?.files?.[0];if(f)process(f);}}}
+              style={{
+                background:dragging?'rgba(255,179,71,0.05)':'#121215',
+                border:dragging?'1px solid rgba(255,179,71,0.55)':state==='analyzing'?'1px solid rgba(255,179,71,0.45)':'1px solid #222226',
+                borderRadius:12,
+                padding:'38px 24px',
+                textAlign:'center',
+                cursor:(state==='idle'||state==='error')?'pointer':'default',
+                transition:'border-color 0.15s ease, background 0.15s ease',
+              }}
+            >
+              <input ref={fr} type="file" accept=".pdf,.txt,.fdx,.fountain" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
+              <div style={{width:40,height:40,borderRadius:10,background:'#1A1A1E',border:'1px solid #2A2A30',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,color:'#F5C451'}}>
+                <Upload size={17}/>
+              </div>
+              {state==='idle'&&(
+                <>
+                  <div style={{fontSize:13,fontWeight:600,color:T.cream}}>
+                    Drop your script here or <span style={{color:'#F5C451',fontWeight:700}}>browse</span>
+                  </div>
+                  <div style={{fontSize:11,color:'#71717A',marginTop:6}}>
+                    Final Draft (.fdx), Fountain (.fountain) or plain text (.txt) · up to 10 MB
+                  </div>
+                </>
+              )}
+              {state==='reading'&&<div style={{fontSize:13,fontWeight:600,color:T.cream}}>Reading script…</div>}
+              {state==='analyzing'&&<div style={{fontSize:13,fontWeight:600,color:T.cream}}>Analyzing your script…</div>}
+              {state==='done'&&(
+                <>
+                  <div style={{fontSize:13,fontWeight:600,color:'#4CAF7A',marginBottom:6}}>Breakdown complete</div>
+                  <button type="button" onClick={e=>{e.stopPropagation();setState('idle');}} style={{color:'#F5C451',fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another →</button>
+                </>
+              )}
+              {state==='error'&&(
+                <>
+                  <div style={{fontSize:12,color:'#E05252',marginBottom:10}}>{err}</div>
+                  <Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn>
+                </>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 const dedupeList=arr=>{
@@ -5175,37 +7194,51 @@ function ProductionSpendBreakdownPanel({project,items=[],advances=[],reconEntrie
     : Object.entries(totals).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
 
   return (
-    <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'14px 16px',marginBottom:16,fontFamily:'Manrope,sans-serif'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8,marginBottom:10}}>
+    <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'18px 20px',marginBottom:16,fontFamily:'Manrope,sans-serif',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10,marginBottom:12}}>
         <div>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>💰 Production Spend Breakdown</div>
-          <div style={{fontSize:11,color:T.dim,marginTop:2}}>{project.name} ({project.type}) · Live spend reconciled against script & budget</div>
+          <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Production Spend Breakdown</div>
+          <div style={{fontSize:11,color:T.faint,marginTop:2}}>{project.name} ({project.type || 'Production'}) · Live spend reconciled against script &amp; budget</div>
         </div>
-        <span style={{fontSize:11,fontFamily:'IBM Plex Mono,monospace',fontWeight:700,color:overBudget?T.coral:T.sage,background:T.hi,border:`1px solid ${T.line}`,padding:'3px 8px',borderRadius:6}}>
+        <span style={{fontSize:11,fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:overBudget?'#E05252':'#4CAF7A',background:'#121215',border:'1px solid #222226',padding:'4px 10px',borderRadius:8}}>
           {spendDisplay} / {budgetDisplay} ({Math.round(spendPct)}%)
         </span>
       </div>
 
-      <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:12}}>
-        <div style={{width:`${Math.min(100,spendPct)}%`,height:'100%',background:overBudget?T.coral:T.sage,transition:'width 0.3s ease'}}/>
+      <div style={{height:4,background:'#18181B',borderRadius:9999,overflow:'hidden',marginBottom:14}}>
+        <motion.div
+          initial={{width:0}}
+          animate={{width:`${Math.min(100,spendPct)}%`}}
+          transition={{duration:0.45,ease:EASE_OUT}}
+          style={{height:'100%',borderRadius:9999,background:overBudget?'#E05252':'#4CAF7A'}}
+        />
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(3, 1fr)',gap:8,fontSize:11}}>
-        <div style={{background:T.hi,padding:'8px 10px',borderRadius:8,border:`1px solid ${T.line}`}}>
-          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>💵 Cash Advances</div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.cream,marginTop:2,fontWeight:600}}>
+      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(3, 1fr)',gap:10,fontSize:11}}>
+        <div style={{background:'#121215',padding:'12px 14px',borderRadius:12,border:'1px solid #1E1E22'}}>
+          <div style={{color:T.faint,fontSize:10,fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+            <Banknote size={12}/>
+            <span>Cash Advances</span>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream,marginTop:5,fontWeight:600}}>
             {Object.entries(breakdown.advances).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
           </div>
         </div>
-        <div style={{background:T.hi,padding:'8px 10px',borderRadius:8,border:`1px solid ${T.line}`}}>
-          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>👥 Crew Payments</div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sage,marginTop:2,fontWeight:600}}>
+        <div style={{background:'#121215',padding:'12px 14px',borderRadius:12,border:'1px solid #1E1E22'}}>
+          <div style={{color:T.faint,fontSize:10,fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+            <Users size={12}/>
+            <span>Crew Payments</span>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:'#4CAF7A',marginTop:5,fontWeight:600}}>
             {Object.entries(breakdown.payees).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
           </div>
         </div>
-        <div style={{background:T.hi,padding:'8px 10px',borderRadius:8,border:`1px solid ${T.line}`}}>
-          <div style={{color:T.dim,textTransform:'uppercase',fontSize:9,fontWeight:700,letterSpacing:'0.05em'}}>📄 Paid POs</div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:T.sapphire,marginTop:2,fontWeight:600}}>
+        <div style={{background:'#121215',padding:'12px 14px',borderRadius:12,border:'1px solid #1E1E22'}}>
+          <div style={{color:T.faint,fontSize:10,fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+            <FileText size={12}/>
+            <span>Paid POs</span>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:'#6BB0F5',marginTop:5,fontWeight:600}}>
             {Object.entries(breakdown.pos).length===0?`${sym(project.base_currency||'NGN')}0`:Object.entries(breakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · ')}
           </div>
         </div>
@@ -5215,17 +7248,118 @@ function ProductionSpendBreakdownPanel({project,items=[],advances=[],reconEntrie
 }
 
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
-  const{t:tr}=useLang();
-  const[filter,setFilter]=useState('ALL');const[search,setSearch]=useState('');const mob=useIsMobile();
-  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
-  const ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)));
+  const mob=useIsMobile();
+  const[search,setSearch]=useState('');
+  const[locFilter,setLocFilter]=useState('all');
+  const[ieFilter,setIeFilter]=useState('all');
+  const[timeFilter,setTimeFilter]=useState('all');
+  const[charFilter,setCharFilter]=useState('all');
+  const[charSearch,setCharSearch]=useState('');
+  const[showUpload,setShowUpload]=useState(false);
+  const[showAddScene,setShowAddScene]=useState(false);
+  const[selectedScene,setSelectedScene]=useState(null);
+  const[newScene,setNewScene]=useState({sceneNumber:'',heading:'',intExt:'INT',location:'',dayNight:'DAY',pages8:8});
+  if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+
+  const ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
+  const prodChars=characters.filter(c=>c.project_id===project.id);
+  const castIdx=buildCastIndex(ps,prodChars);
+  const totalPages8=ps.reduce((sum,s)=>sum+(Number(s.pages8)||0),0);
+
   const seenNums={};let dupeCount=0;
   ps.forEach(s=>{const k=String(s.sceneNumber);seenNums[k]=(seenNums[k]||0)+1;if(seenNums[k]>1)dupeCount++;});
-  const filtered=ps.filter(s=>{const mf=filter==='ALL'||(filter==='INT'&&s.intExt==='INT')||(filter==='EXT'&&s.intExt==='EXT')||(filter==='DAY'&&s.dayNight==='DAY')||(filter==='NIGHT'&&s.dayNight==='NIGHT');const ms=!search||s.heading?.toLowerCase().includes(search.toLowerCase())||s.location?.toLowerCase().includes(search.toLowerCase());return mf&&ms;});
+
+  const uniqueLocations=[...new Set(ps.map(s=>sceneLoc(s)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const q=search.trim().toLowerCase();
+  const filtered=ps.filter(s=>{
+    const loc=sceneLoc(s);
+    const tod=String(s.dayNight||'').toUpperCase();
+    const ie=String(s.intExt||'').toUpperCase();
+    if(locFilter!=='all'&&loc!==locFilter)return false;
+    if(ieFilter!=='all'&&ie!==ieFilter)return false;
+    if(timeFilter!=='all'&&tod!==timeFilter)return false;
+    if(charFilter!=='all'&&!(s.cast||[]).includes(charFilter))return false;
+    if(!q)return true;
+    return String(s.sceneNumber||'').toLowerCase().includes(q)
+      || String(s.heading||'').toLowerCase().includes(q)
+      || loc.toLowerCase().includes(q)
+      || (s.cast||[]).some(c=>c.toLowerCase().includes(q));
+  });
+
+  const cq=charSearch.trim().toLowerCase();
+  const visibleChars=castIdx.list.filter(c=>!cq||c.name.toLowerCase().includes(cq));
+
+  const getSceneNumsForChar=name=>ps.filter(s=>(s.cast||[]).includes(name)).map(s=>s.sceneNumber);
+  const clearFilters=()=>{setSearch('');setLocFilter('all');setIeFilter('all');setTimeFilter('all');setCharFilter('all');};
+  const hasActiveFilters=Boolean(search||locFilter!=='all'||ieFilter!=='all'||timeFilter!=='all'||charFilter!=='all');
+
+  const handleCreateScene=async e=>{
+    e.preventDefault();
+    if(!newScene.heading.trim()&&!newScene.location.trim())return;
+    await onAddScene({
+      sceneNumber:newScene.sceneNumber.trim()||String(ps.length+1),
+      heading:newScene.heading.trim()||`${newScene.intExt}. ${newScene.location.trim()} - ${newScene.dayNight}`,
+      intExt:newScene.intExt,
+      location:newScene.location.trim(),
+      dayNight:newScene.dayNight,
+      pages8:Number(newScene.pages8)||8,
+      cast:[],props:[],vehicles:[],wardrobe:[],specialEquip:[],
+    });
+    setNewScene({sceneNumber:'',heading:'',intExt:'INT',location:'',dayNight:'DAY',pages8:8});
+    setShowAddScene(false);
+  };
+
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?22:26,color:T.cream}}>{tr('breakdownHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Scene-by-scene: cast, props, location, vehicles, wardrobe and more.</div><div style={{marginTop:14}}><FS/></div></div>
-      <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>
+      {/* Breadcrumb & Header */}
+      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint,marginBottom:8}}>
+        Workspace <span style={{margin:'0 4px'}}>&gt;</span> Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Breakdown</span>
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:22}}>
+        <div>
+          <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Script Breakdown</h2>
+          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+            Review your scenes, characters and script pages.
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>{setShowUpload(o=>!o);setShowAddScene(false);}}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+          >
+            <Upload size={14}/>
+            <span>Upload Script</span>
+          </motion.button>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>{setShowAddScene(o=>!o);setShowUpload(false);}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <Plus size={14}/>
+            <span>Add Scene</span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* 3-Column Summary Cards */}
+      <motion.div
+        variants={staggerContainer(0.04, 0.02)}
+        initial="hidden"
+        animate="visible"
+        style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginBottom:20}}
+      >
+        <StatCard label="Total Scenes" value={ps.length} sub={ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`}/>
+        <StatCard label="Total Characters" value={castIdx.list.length} sub={castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`}/>
+        <StatCard label="Script Pages" value={totalPages8>0?fmtPages8(totalPages8):0} sub="Eighths of a page total"/>
+      </motion.div>
+
       {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
         <div>
           <div style={{color:T.coral,fontSize:12,fontWeight:700}}>{dupeCount} duplicate scene{dupeCount!==1?'s':''} found</div>
@@ -5233,29 +7367,263 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         </div>
         <Btn size="sm" variant="outline" onClick={()=>{if(window.confirm(`Remove ${dupeCount} duplicate scene${dupeCount!==1?'s':''}? This keeps one copy of each scene number and can't be undone.`))onDedupeScenes(project.id);}}>Clean up duplicates</Btn>
       </div>}
-      {ps.length>0&&(()=>{const est=estimateShootDays(ps,project.type);return est&&(
-        <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-          <div>
-            <span style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>Estimated Shoot Days</span>
-            <div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2}}>A rough guide from scene and location count — not a schedule. Use it to size crew day-rate and location-rental lines in Budget.</div>
+
+      <BreakdownUploader open={showUpload} onClose={()=>setShowUpload(false)} project={project} onApply={ns=>{onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})));setShowUpload(false);}} onSaveCharacter={onSaveCharacter}/>
+
+      <AnimatePresence>
+        {showAddScene && (
+          <motion.form
+            onSubmit={handleCreateScene}
+            initial={{opacity:0,y:-6}}
+            animate={{opacity:1,y:0}}
+            exit={{opacity:0,y:-6}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            style={{background:'#111113',border:'1px solid #242428',borderRadius:14,padding:'16px 18px',marginBottom:18,display:'grid',gridTemplateColumns:mob?'1fr':'80px 1.6fr 95px 1.2fr 100px 90px auto',gap:10,alignItems:'end'}}
+          >
+            <div>
+              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Scene #</div>
+              <Inp placeholder={String(ps.length+1)} value={newScene.sceneNumber} onChange={e=>setNewScene(s=>({...s,sceneNumber:e.target.value}))}/>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Scene heading</div>
+              <Inp placeholder="e.g. INT. ADAOBI'S TAXI - NIGHT" value={newScene.heading} onChange={e=>setNewScene(s=>({...s,heading:e.target.value}))}/>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>INT/EXT</div>
+              <Sel value={newScene.intExt} onChange={e=>setNewScene(s=>({...s,intExt:e.target.value}))} style={{width:'100%'}}>
+                {['INT','EXT','INT/EXT'].map(v=><option key={v} value={v}>{v}</option>)}
+              </Sel>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Location</div>
+              <Inp placeholder="e.g. ADAOBI'S TAXI" value={newScene.location} onChange={e=>setNewScene(s=>({...s,location:e.target.value}))}/>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Day/Night</div>
+              <Sel value={newScene.dayNight} onChange={e=>setNewScene(s=>({...s,dayNight:e.target.value}))} style={{width:'100%'}}>
+                {['DAY','NIGHT','DAWN','DUSK'].map(v=><option key={v} value={v}>{v}</option>)}
+              </Sel>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Eighths</div>
+              <Inp type="number" min="1" value={newScene.pages8} onChange={e=>setNewScene(s=>({...s,pages8:e.target.value}))}/>
+            </div>
+            <div style={{display:'flex',gap:6}}>
+              <Btn type="submit" size="sm">Add</Btn>
+              <Btn type="button" size="sm" variant="ghost" onClick={()=>setShowAddScene(false)}>Cancel</Btn>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
+
+      {/* Main 2-Column Breakdown Grid */}
+      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(270px, 1fr)',gap:16,alignItems:'start',marginBottom:20}}>
+        {/* Left Panel: Scenes */}
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Scenes</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint}}>{ps.length} scene{ps.length===1?'':'s'}</span>
           </div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:28,color:T.gold,fontWeight:700}}>{est} <span style={{fontSize:13,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:400}}>days</span></div>
+
+          <div style={{position:'relative',marginBottom:10}}>
+            <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
+            <input
+              type="search"
+              aria-label="Search Scenes, Characters or scene numbers"
+              placeholder="Search Scenes, Characters or scene numbers"
+              value={search}
+              onChange={e=>setSearch(e.target.value)}
+              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+            />
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'1fr 0.85fr 0.85fr 1fr auto',gap:8,alignItems:'center',marginBottom:14}}>
+            <Sel aria-label="All locations" value={locFilter} onChange={e=>setLocFilter(e.target.value)} style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 10px',width:'100%'}}>
+              <option value="all">All locations</option>
+              {uniqueLocations.map(loc=><option key={loc} value={loc}>{loc}</option>)}
+            </Sel>
+            <Sel aria-label="INT/EXT" value={ieFilter} onChange={e=>setIeFilter(e.target.value)} style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 10px',width:'100%'}}>
+              <option value="all">INT/EXT</option>
+              {['INT','EXT','INT/EXT'].map(v=><option key={v} value={v}>{v}</option>)}
+            </Sel>
+            <Sel aria-label="Any time" value={timeFilter} onChange={e=>setTimeFilter(e.target.value)} style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 10px',width:'100%'}}>
+              <option value="all">Any time</option>
+              {['DAY','NIGHT','DAWN','DUSK'].map(v=><option key={v} value={v}>{v}</option>)}
+            </Sel>
+            <Sel aria-label="All characters" value={charFilter} onChange={e=>setCharFilter(e.target.value)} style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 10px',width:'100%'}}>
+              <option value="all">All characters</option>
+              {castIdx.list.map(c=><option key={c.name} value={c.name}>{c.name}</option>)}
+            </Sel>
+            <button
+              type="button"
+              disabled={!hasActiveFilters}
+              onClick={clearFilters}
+              style={{background:'none',border:'none',color:hasActiveFilters?T.cream:T.faint,fontSize:11,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:hasActiveFilters?'pointer':'default',padding:'4px 6px'}}
+            >
+              Clear
+            </button>
+          </div>
+
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:11.5}}>
+              <thead>
+                <tr style={{borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:10.5,textAlign:'left'}}>
+                  <th style={{padding:'9px 8px 9px 0',fontWeight:500}}>Scene</th>
+                  <th style={{padding:'9px 8px',fontWeight:500}}>Scene heading</th>
+                  <th style={{padding:'9px 8px',fontWeight:500}}>INT/EXT</th>
+                  <th style={{padding:'9px 8px',fontWeight:500}}>Location</th>
+                  <th style={{padding:'9px 8px',fontWeight:500}}>Day/Night</th>
+                  <th style={{padding:'9px 8px',fontWeight:500}}>Characters</th>
+                  <th style={{padding:'9px 8px',fontWeight:500,textAlign:'right'}}>Pages</th>
+                  <th style={{padding:'9px 0 9px 8px',fontWeight:500,textAlign:'right'}}/>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{padding:'28px 0',textAlign:'center',color:T.faint,fontSize:12}}>
+                      {ps.length === 0
+                        ? 'No scenes yet. Click "Upload Script" or "Add Scene" to build your breakdown.'
+                        : 'No scenes match your current search or filters.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map(sc => {
+                    const ie = String(sc.intExt || '').toUpperCase();
+                    const tod = String(sc.dayNight || '').toUpperCase();
+                    const todColor = tod === 'NIGHT' ? '#6BB0F5' : tod === 'DAY' ? '#F5C451' : '#D4D4D8';
+                    const chars = sc.cast || [];
+                    const charSummary = chars.length === 0
+                      ? '—'
+                      : chars.slice(0, 2).join(', ') + (chars.length > 2 ? ` +${chars.length - 2}` : '');
+                    const isSelected = selectedScene?.id === sc.id;
+                    return (
+                      <tr
+                        key={sc.id || sc.sceneNumber}
+                        style={{borderBottom:'1px solid #151518',background:isSelected?'rgba(255,179,71,0.04)':'transparent',transition:'background 0.14s ease'}}
+                        onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
+                        onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background='transparent';}}
+                      >
+                        <td style={{padding:'10px 8px 10px 0',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>{sc.sceneNumber}</td>
+                        <td style={{padding:'10px 8px',color:T.cream,maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading || '—'}</td>
+                        <td style={{padding:'10px 8px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#A1A1AA',whiteSpace:'nowrap'}}>{ie || '—'}</td>
+                        <td style={{padding:'10px 8px',color:'#A1A1AA',maxWidth:130,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sceneLoc(sc) || '—'}</td>
+                        <td style={{padding:'10px 8px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,fontWeight:600,color:todColor,whiteSpace:'nowrap'}}>{tod || '—'}</td>
+                        <td style={{padding:'10px 8px',color:'#A1A1AA',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{charSummary}</td>
+                        <td style={{padding:'10px 8px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',whiteSpace:'nowrap'}}>{sc.pages8 > 0 ? fmtPages8(sc.pages8) : '—'}</td>
+                        <td style={{padding:'10px 0 10px 8px',textAlign:'right',whiteSpace:'nowrap'}}>
+                          <span style={{display:'inline-flex',gap:8}}>
+                            <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={()=>setSelectedScene(isSelected?null:sc)} style={{background:'none',border:'none',cursor:'pointer',color:isSelected?'#F5C451':T.faint,padding:2}} title="Inspect scene">
+                              <Eye size={13}/>
+                            </motion.button>
+                            <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={()=>onDeleteScene(sc.id)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Delete scene">
+                              <Trash2 size={13}/>
+                            </motion.button>
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* Right Panel: Characters */}
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,delay:0.04,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+        >
+          <div style={{marginBottom:12}}>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Characters</div>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>
+              {castIdx.list.length} speaking character{castIdx.list.length===1?'':'s'} · select one to filter scenes
+            </div>
+          </div>
+
+          <div style={{position:'relative',marginBottom:14}}>
+            <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
+            <input
+              type="search"
+              aria-label="Search characters"
+              placeholder="Search characters"
+              value={charSearch}
+              onChange={e=>setCharSearch(e.target.value)}
+              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+            />
+          </div>
+
+          {visibleChars.length === 0 ? (
+            <div style={{padding:'24px 0',textAlign:'center',color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
+              {castIdx.list.length === 0 ? 'No characters in breakdown yet.' : 'No matching characters.'}
+            </div>
+          ) : (
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {visibleChars.map(c => {
+                const active = charFilter === c.name;
+                const scNums = getSceneNumsForChar(c.name);
+                return (
+                  <motion.button
+                    key={c.id}
+                    type="button"
+                    whileHover={{y:-1}}
+                    whileTap={{scale:0.99}}
+                    onClick={()=>setCharFilter(active ? 'all' : c.name)}
+                    style={{
+                      width:'100%',
+                      textAlign:'left',
+                      background:active?'rgba(255,179,71,0.06)':'#121215',
+                      border:active?'1px solid rgba(255,179,71,0.5)':'1px solid #1E1E22',
+                      borderRadius:12,
+                      padding:'12px 14px',
+                      cursor:'pointer',
+                      transition:'border-color 0.15s ease, background 0.15s ease',
+                    }}
+                  >
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
+                      <span style={{fontFamily:'Manrope,sans-serif',fontSize:12,fontWeight:600,color:T.cream,textTransform:'uppercase'}}>{c.name}</span>
+                      <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:T.faint}}>{c.scenes} scene{c.scenes===1?'':'s'}</span>
+                    </div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {scNums.slice(0, 9).map(num => (
+                        <span key={num} style={{background:'#17171B',border:'1px solid #26262C',borderRadius:4,padding:'2px 6px',fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'#D4D4D8'}}>
+                          {num}
+                        </span>
+                      ))}
+                      {scNums.length > 9 && (
+                        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint,padding:'2px 4px'}}>+</span>
+                      )}
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      {selectedScene && (
+        <div style={{marginBottom:18}}>
+          <SceneCard scene={selectedScene} onDelete={id=>{onDeleteScene(id);setSelectedScene(null);}} onUpdate={onUpdateScene} index={0}/>
         </div>
-      );})()}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
-        <StatCard label="Scenes" value={ps.length} sub="in breakdown"/><StatCard label="INT" value={ps.filter(s=>s.intExt==='INT').length} sub="interior"/><StatCard label="EXT" value={ps.filter(s=>s.intExt==='EXT').length} sub="exterior"/><StatCard label="Night" value={ps.filter(s=>s.dayNight==='NIGHT').length} sub="shoots" accent={ps.filter(s=>s.dayNight==='NIGHT').length>0?T.coral:T.sage}/>
+      )}
+
+      <div style={{marginTop:8}}>
+        <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>
+        {ps.length>0&&isOwner&&(
+          <div style={{display:'flex',justifyContent:'flex-end',marginTop:8}}>
+            <ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>
+          </div>
+        )}
       </div>
-      <CastSummaryPanel project={project} scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onSaveCharacter={onSaveCharacter}/>
-      <ScriptInsights scenes={ps} characters={characters.filter(c=>c.project_id===project.id)} onUpdateScene={onUpdateScene}/>
-      <LocationsSummaryPanel scenes={ps}/>
-      <ProductionElementsPanel scenes={ps}/>
-      <BreakdownUploader project={project} onApply={ns=>onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})))} onSaveCharacter={onSaveCharacter}/>
-      <div style={{overflowX:'auto',marginBottom:12}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{['ALL','INT','EXT','DAY','NIGHT'].map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${filter===f?T.gold:T.line}`,background:filter===f?T.goldGlow:'transparent',color:filter===f?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{f}</button>)}</div></div>
-      <div style={{display:'flex',flexDirection:mob?'column':'row',gap:8,marginBottom:14}}>
-        <Inp placeholder="Search scenes…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1}}/>
-        {ps.length>0&&(isOwner?<ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export and share</span>)}
-      </div>
-      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{ps.length===0?'No scenes yet. Upload your script or apply a Marketplace template.':'No scenes match your filter.'}</div></div>:filtered.map((sc,i)=><SceneCard key={sc.id||sc.sceneNumber} scene={sc} onDelete={onDeleteScene} onUpdate={onUpdateScene} index={i}/>)}
     </div>
   );
 }
@@ -5373,20 +7741,20 @@ function Workspace(){
     setSignOutError('');
     try{await signOut();}catch{setSignOutError('Could not sign out. Check your connection and try again.');}
   };
-  const[view,setView]=useState('dashboard');
+  const[view,setView]=useState(()=>initialCache.current?.view || 'dashboard');
   const[projects,setProjects]=useState(()=>initialCache.current?.projects || []);
   const[budgetItems,setBudgetItems]=useState(()=>initialCache.current?.budget_items || []);
   const[advances,setAdvances]=useState(()=>initialCache.current?.advances || []);
   const[reconEntries,setReconEntries]=useState(()=>initialCache.current?.recon_entries || []);
   const[payees,setPayees]=useState(()=>initialCache.current?.payees || []);
-  const[scenes,setScenes]=useState(()=>initialCache.current?.scenes ? initialCache.current.scenes.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id})) : []);
+  const[scenes,setScenes]=useState(()=>initialCache.current?.scenes ? initialCache.current.scenes.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id})) : []);
   const[characters,setCharacters]=useState(()=>initialCache.current?.characters || []);
   const[purchaseOrders,setPurchaseOrders]=useState(()=>initialCache.current?.purchase_orders || []);
   const[collaborators,setCollaborators]=useState(()=>initialCache.current?.project_collaborators || []);
   const[trialCount,setTrialCount]=useState(()=>initialCache.current?.trial_count || 0);
   const[revenueItems,setRevenueItems]=useState(()=>initialCache.current?.revenue_items || []);
   const[scheduleDays,setScheduleDays]=useState(()=>initialCache.current?.schedule_days || []);
-  const[currentId,setCurrentId]=useState(null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
+  const[currentId,setCurrentId]=useState(()=>initialCache.current?.currentId || null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;const s=readOnboarding(user.id);if(s)setDefaultCurrency(s.market);},[user]);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
@@ -5418,8 +7786,25 @@ function Workspace(){
       const results={projects:pr,budget_items:bi,advances:ad,recon_entries:re,payees:py,scenes:sc,characters:ch,purchase_orders:po,project_collaborators:cb,user_trial_state:ts,revenue_items:rv,schedule_days:sdy};
       const failed=Object.entries(results).find(([,result])=>result.error);
       if(failed)throw new Error(`Could not load ${failed[0]}. Please retry. If this continues, check database access and table configuration.`);
-      if(pr.data)setProjects(pr.data);if(bi.data)setBudgetItems(bi.data);if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
-      if(sc.data)setScenes(sc.data.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id})));
+      const mergeById = (remoteArr, cachedArr, deletedKey) => {
+        let deletedIds = [];
+        try { deletedIds = JSON.parse(localStorage.getItem(deletedKey) || '[]'); } catch {}
+        const delSet = new Set(deletedIds.map(String));
+        const remoteFiltered = (remoteArr || []).filter(r => !delSet.has(String(r.id)));
+        const remoteIds = new Set(remoteFiltered.map(r => String(r.id)));
+        const localExtras = (cachedArr || []).filter(c => c && c.id && !remoteIds.has(String(c.id)) && !delSet.has(String(c.id)));
+        return [...remoteFiltered, ...localExtras];
+      };
+      let currentCached = initialCache.current;
+      try { if (cacheKey) { const raw = localStorage.getItem(cacheKey); if (raw) currentCached = JSON.parse(raw); } } catch {}
+      if(pr.data)setProjects(mergeById(pr.data, currentCached?.projects, `nko_del_pr_${user.id}`));
+      if(bi.data)setBudgetItems(mergeById(bi.data, currentCached?.budget_items, `nko_del_bi_${user.id}`));
+      if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
+      if(sc.data){
+        const remoteScenes = sc.data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id}));
+        const cachedScenes = (currentCached?.scenes || []).map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id}));
+        setScenes(mergeById(remoteScenes, cachedScenes, `nko_del_sc_${user.id}`));
+      }
       if(ch.data)setCharacters(ch.data);
       if(po.data)setPurchaseOrders(po.data);
       let loadedCollabs = [];
@@ -5462,6 +7847,30 @@ function Workspace(){
     void loadAll(false);
     return()=>{cancelled=true;};
   },[user,loadAttempt]);
+
+  // Continuously persist workspace state and active navigation to localStorage so reload never loses work
+  useEffect(() => {
+    if (!cacheKey || loadState !== 'ready') return;
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        view,
+        currentId,
+        projects,
+        budget_items: budgetItems,
+        advances,
+        recon_entries: reconEntries,
+        payees,
+        scenes,
+        characters,
+        purchase_orders: purchaseOrders,
+        project_collaborators: collaborators,
+        trial_count: trialCount,
+        revenue_items: revenueItems,
+        schedule_days: scheduleDays,
+        ts: Date.now(),
+      }));
+    } catch {}
+  }, [cacheKey, loadState, view, currentId, projects, budgetItems, advances, reconEntries, payees, scenes, characters, purchaseOrders, collaborators, trialCount, revenueItems, scheduleDays]);
 
   // Re-sync seamlessly when user switches apps or tabs and returns
   useEffect(() => {
@@ -5813,7 +8222,19 @@ function Workspace(){
     setCharacters(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
     if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}
   };
-  const addBudgetItem=async dept=>{const{data,error}=await sb.from('budget_items').insert({project_id:currentId,user_id:user.id,dept,description:'',qty:1,unit:'flat',rate:0,currency:project.base_currency}).select().single();if(error){alert(`Could not add line: ${error.message}`);return;}if(data){setBudgetItems(p=>[...p,data]);broadcastActivity('added a budget line');}};
+  const addBudgetItem=async arg=>{
+    const payload=typeof arg==='string'?{dept:arg,description:'',qty:1,unit:'flat',rate:0}:{dept:arg.dept,description:arg.description||'',qty:Number(arg.qty)||1,unit:arg.unit||'flat',rate:Number(arg.rate)||0};
+    const row={project_id:currentId,user_id:user.id,currency:project?.base_currency||'NGN',...payload};
+    let saved=null;
+    const{data,error}=await sb.from('budget_items').insert(row).select().single();
+    if(!error&&data){saved=data;}else{
+      const fallbackId=Math.random().toString(36).slice(2,10);
+      const retry=await sb.from('budget_items').insert({id:fallbackId,...row}).select().single();
+      saved=retry.data||{id:fallbackId,...row};
+    }
+    setBudgetItems(p=>[...p,saved]);
+    broadcastActivity('added a budget line');
+  };
   const addRevenueItem=async item=>{
     const{data,error}=await sb.from('revenue_items').insert({id:Math.random().toString(36).slice(2,10),...item,user_id:user.id}).select().single();
     if(error){alert(`Could not add revenue line: ${error.message}`);return;}
@@ -5854,8 +8275,19 @@ function Workspace(){
       if(data)setBudgetItems(p=>p.map(i=>i.id===id?data:i));
     }
   };
-  const removeBudgetItem=async id=>{setBudgetItems(p=>p.filter(i=>i.id!==id));broadcastActivity('removed a budget line');await sb.from('budget_items').delete().eq('id',id);};
-  const applyTemplate=async tpl=>{
+  const removeBudgetItem=async id=>{
+    try{const k=`nko_del_bi_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');if(!cur.includes(String(id)))localStorage.setItem(k,JSON.stringify([...cur,String(id)]));}catch{}
+    setBudgetItems(p=>p.filter(i=>i.id!==id));
+    broadcastActivity('removed a budget line');
+    await sb.from('budget_items').delete().eq('id',id);
+  };
+  const applyTemplate=async(tpl,mode='add')=>{
+    if(mode==='replace'&&currentId){
+      const removedIds=budgetItems.filter(i=>i.project_id===currentId).map(i=>String(i.id));
+      try{const k=`nko_del_bi_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...removedIds])]));}catch{}
+      await sb.from('budget_items').delete().eq('project_id',currentId);
+      setBudgetItems(p=>p.filter(i=>i.project_id!==currentId));
+    }
     const rows=tpl.items.map(t=>({
       project_id:currentId,
       user_id:user.id,
@@ -5864,11 +8296,17 @@ function Workspace(){
       qty:Number(t.qty)||1,
       unit:t.unit,
       rate:Number(t.rate)||0,
-      currency:project.base_currency,
+      currency:project?.base_currency||'NGN',
     }));
+    let savedRows=null;
     const{data,error}=await sb.from('budget_items').insert(rows).select();
-    if(error){alert(`Could not apply template: ${error.message}`);return;}
-    if(data){setBudgetItems(p=>[...p,...data]);broadcastActivity(`applied ${tpl.label} template`);}
+    if(!error&&data?.length){savedRows=data;}else{
+      const withIds=rows.map(r=>({id:Math.random().toString(36).slice(2,10),...r}));
+      const retry=await sb.from('budget_items').insert(withIds).select();
+      savedRows=retry.data?.length?retry.data:withIds;
+    }
+    setBudgetItems(p=>[...(mode==='replace'?p.filter(i=>i.project_id!==currentId):p),...savedRows]);
+    broadcastActivity(`applied ${tpl.label} template`);
     if(tpl.scenes?.length){
       const sceneRows=tpl.scenes.map(s=>({id:Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:s}));
       const{data:scData,error:scError}=await sb.from('scenes').insert(sceneRows).select();
@@ -5922,31 +8360,31 @@ function Workspace(){
     const id=sc.id||Math.random().toString(36).slice(2,10);
     const{id:_omit,project_id:_omit2,...rest}=sc;
     const{data,error}=await sb.from('scenes').insert({id,project_id:currentId,user_id:user.id,data:rest}).select().single();
-    if(error){alert(`Could not save scene: ${error.message}`);return;}
-    if(data){setScenes(p=>[...p,normalizeScene({...data.data,id:data.id,project_id:data.project_id})]);broadcastActivity('added a scene');}
+    const saved=(!error&&data)?normalizeScene({...(data.data||data),id:data.id,project_id:data.project_id}):normalizeScene({...rest,id,project_id:currentId});
+    setScenes(p=>[...p,saved]);
+    broadcastActivity('added a scene');
   };
   const addScenesBatch=async scenesArr=>{
-    const existingNumbers=new Set(scenes.filter(s=>s.project_id===currentId).map(s=>String(s.sceneNumber)));
-    const toInsert=scenesArr.filter(sc=>!existingNumbers.has(String(sc.sceneNumber)));
-    const skipped=scenesArr.length-toInsert.length;
-    if(skipped>0)alert(`${skipped} scene${skipped!==1?'s were':' was'} already saved for this production and ${skipped!==1?'were':'was'} skipped, so nothing got duplicated. ${toInsert.length} new scene${toInsert.length!==1?'s':''} added.`);
-    if(toInsert.length===0)return;
-    const rows=toInsert.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:rest};});
+    if(!scenesArr?.length)return;
+    const oldIds=scenes.filter(s=>s.project_id===currentId).map(s=>String(s.id));
+    try{const k=`nko_del_sc_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...oldIds])]));}catch{}
+    await sb.from('scenes').delete().eq('project_id',currentId);
+    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:rest};});
     const{data,error}=await sb.from('scenes').insert(rows).select();
-    if(error){alert(`Could not save scenes: ${error.message}`);return;}
-    if(data)setScenes(p=>[...p,...data.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id}))]);
+    const saved=(!error&&data?.length)?data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id})):rows.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id}));
+    setScenes(p=>[...p.filter(s=>s.project_id!==currentId),...saved]);
+    broadcastActivity('uploaded script breakdown');
   };
   const updateScene=async(id,upd)=>{
     setScenes(p=>p.map(s=>s.id===id?normalizeScene({...s,...upd}):s));
     const merged=scenes.find(s=>s.id===id);
     const{id:_omit,project_id:_omit2,...rest}={...merged,...upd};
-    const{error}=await sb.from('scenes').update({data:rest}).eq('id',id);
-    if(error)alert(`Could not save scene changes: ${error.message}`);
+    await sb.from('scenes').update({data:rest}).eq('id',id);
   };
   const deleteScene=async id=>{
+    try{const k=`nko_del_sc_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');if(!cur.includes(String(id)))localStorage.setItem(k,JSON.stringify([...cur,String(id)]));}catch{}
     setScenes(p=>p.filter(s=>s.id!==id));
-    const{error}=await sb.from('scenes').delete().eq('id',id);
-    if(error)alert(`Could not delete scene: ${error.message}`);
+    await sb.from('scenes').delete().eq('id',id);
   };
   const dedupeScenes=async projectId=>{
     const pScenes=scenes.filter(s=>s.project_id===projectId);
@@ -6083,7 +8521,7 @@ function Workspace(){
 
   return(
     <main aria-label="Production workspace" style={{height:mobile?'auto':'100svh',minHeight:'100svh',overflow:mobile?'visible':'hidden',background:T.ink,display:'flex',color:T.cream}}>
-      {!mobile&&<Sidebar view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email}/>}
+      {!mobile&&<Sidebar view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email} projects={projects} currentId={currentId} onSelectProject={id=>{setCurrentId(id);if(view==='dashboard'||view==='productions')setView('overview');}} onClearProject={()=>setCurrentId(null)}/>}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,minHeight:0,height:mobile?'auto':'100svh'}}>
         {signOutError&&<p role="alert" className="p-4 text-palette-apricot">{signOutError}</p>}
         {mobile&&<div className="flex justify-end border-b border-palette-graphite px-4 py-2"><button type="button" onClick={handleSignOut} className="rounded text-sm text-palette-stone underline">Sign out</button></div>}
@@ -6096,14 +8534,23 @@ function Workspace(){
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
           >
           {/* {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>} */}
-          {view==='dashboard'&&(project?
-            <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
-            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
+          {(view==='overview'||(view==='dashboard'&&project))?(
+            project?(
+              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
+            ):(
+              <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:40,textAlign:'center'}}>
+                <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
+                <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>Select a production from Productions to view its overview.</div>
+                <Btn onClick={()=>setView('productions')} style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',borderRadius:10}}>Go to Productions</Btn>
+              </div>
+            )
+          ):(
+            view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
           {view==='productions'&&(
-            <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('dashboard');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
+            <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))}/>}
