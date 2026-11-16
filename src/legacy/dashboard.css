@@ -85,3 +85,14 @@
   animation: iris-aura-pulse 2.4s infinite ease-in-out;
   will-change: transform, opacity;
 }
+
+.nko-dashboard,
+.nko-dashboard * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nko-dashboard::-webkit-scrollbar,
+.nko-dashboard *::-webkit-scrollbar {
+  display: none;
+}

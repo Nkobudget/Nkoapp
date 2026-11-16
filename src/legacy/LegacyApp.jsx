@@ -12,6 +12,39 @@ import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
 import './dashboard.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion';
+import {
+  AlertTriangle,
+  ArrowUp,
+  Banknote,
+  BarChart3,
+  Bell,
+  Calendar,
+  Check,
+  Clapperboard,
+  Coins,
+  CreditCard,
+  FilePlus,
+  FileText,
+  Film,
+  Info,
+  LayoutDashboard,
+  LayoutGrid,
+  List,
+  MapPin,
+  PiggyBank,
+  Plus,
+  Receipt,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Store,
+  Trash2,
+  TrendingUp,
+  Wallet,
+  X,
+} from 'lucide-react';
 
 /* ── Supabase ── */
 /* ── Theme ── */
@@ -1460,7 +1493,7 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 };
 
 /* ── Atoms ── */
-const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'schedule',e:'🗓️',l:'Schedule'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
+const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'productions',e:'🎞️',l:'Productions'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'schedule',e:'🗓️',l:'Schedule'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
 const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
 const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
@@ -1558,47 +1591,108 @@ function ExportMenu({onPdf,onExcel,getPreview}){
 }
 const FS=()=><div style={{height:8,background:`repeating-linear-gradient(90deg,${T.gold} 0 12px,transparent 12px 20px)`,opacity:.4,borderRadius:1}}/>;
 
-const NAV_KEY={dashboard:'navDashboard',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',schedule:'navSchedule',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
+const NAV_KEY={dashboard:'navDashboard',productions:'navProductions',budgets:'navBudgets',revenue:'navRevenue',breakdown:'navBreakdown',schedule:'navSchedule',recon:'navRecon',payments:'navPayments',po:'navPO',market:'navMarketplace',ai:'navAI'};
 function LangToggle({compact}){
   const{lang,setLang}=useLang();
   return(
-    <div style={{display:'flex',border:`1px solid ${T.line}`,borderRadius:6,overflow:'hidden',flexShrink:0}}>
-      {['en','fr'].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:compact?'4px 8px':'5px 10px',background:lang===l?T.gold:'transparent',color:lang===l?T.ink:T.dim,border:'none',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{l.toUpperCase()}</button>)}
+    <div style={{display:'flex',background:'#121212',border:'1px solid #242424',borderRadius:8,padding:2,gap:2,flexShrink:0}}>
+      {['en','fr'].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:compact?'4px 9px':'5px 10px',borderRadius:6,background:lang===l?'#222222':'transparent',color:lang===l?T.cream:T.faint,border:'none',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',transition:'background 0.15s, color 0.15s'}}>{l.toUpperCase()}</button>)}
     </div>
   );
 }
+const NAV_ICON = {
+  dashboard: LayoutDashboard,
+  productions: Film,
+  budgets: BarChart3,
+  revenue: Coins,
+  breakdown: Clapperboard,
+  schedule: Calendar,
+  recon: Receipt,
+  payments: CreditCard,
+  po: FileText,
+  market: Store,
+  ai: Sparkles,
+};
+const SIDEBAR_GROUPS = [
+  { label: 'Workspace', ids: ['dashboard', 'productions'] },
+  { label: 'Management', ids: ['budgets', 'breakdown', 'schedule', 'market', 'ai'] },
+  { label: 'Finance', ids: ['po', 'payments', 'recon', 'revenue'] },
+];
 function Sidebar({view,setView,onSignOut,userEmail}){
   const{t}=useLang();
+  const byId = Object.fromEntries(NAV.map(n=>[n.id,n]));
   return(
-    <div style={{width:210,minHeight:'100vh',background:T.panel,borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0}}>
-      <div style={{padding:'22px 18px 14px'}}>
-        <NkoLogo height={26}/>
-        <div style={{fontSize:9,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',marginTop:2}}>{t('tagline')}</div>
+    <aside aria-label="Workspace sidebar" style={{width:224,height:'100svh',background:'#0A0A0A',borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden'}}>
+      <div style={{padding:'20px 18px 16px',borderBottom:`1px solid ${T.line}`,flexShrink:0}}>
+        <NkoLogo height={24}/>
+        <div style={{fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',marginTop:4}}>{t('tagline')}</div>
       </div>
-      <FS/>
-      <nav aria-label="Workspace sections" style={{flex:1,padding:'14px 10px'}}>
-        {NAV.map(n=>{const on=view===n.id;return<button key={n.id} onClick={()=>setView(n.id)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:8,border:'none',cursor:'pointer',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,textAlign:'left',marginBottom:2,borderLeft:`2px solid ${on?T.gold:'transparent'}`}}><span style={{fontSize:15}}>{n.e}</span>{t(NAV_KEY[n.id])}</button>;})}
+      <nav aria-label="Workspace sections" style={{flex:1,padding:'14px 10px',overflowY:'auto',minHeight:0}}>
+        {SIDEBAR_GROUPS.map(group=>(
+          <div key={group.label} style={{marginBottom:16}}>
+            <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color:T.faint,padding:'0 10px 6px',fontFamily:'Manrope,sans-serif'}}>{group.label}</div>
+            {group.ids.map(id=>{
+              const n=byId[id];
+              if(!n)return null;
+              const on=view===n.id;
+              const Icon=NAV_ICON[n.id]||LayoutDashboard;
+              return(
+                <motion.button
+                  key={n.id}
+                  onClick={()=>setView(n.id)}
+                  whileHover={{x:2}}
+                  whileTap={{scale:0.99}}
+                  transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'8px 11px',borderRadius:10,border:on?'1px solid rgba(255,179,71,0.2)':'1px solid transparent',cursor:'pointer',background:on?'linear-gradient(90deg, rgba(255,179,71,0.12) 0%, rgba(255,255,255,0.03) 100%)':'transparent',color:on?T.cream:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:on?600:500,textAlign:'left',marginBottom:3,boxShadow:on?'inset 0 1px 0 rgba(255,255,255,0.04)':'none',transition:'background 0.15s, color 0.15s, border-color 0.15s'}}
+                >
+                  <Icon size={15} strokeWidth={1.75} style={{color:on?T.cream:T.faint,flexShrink:0}}/>
+                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t(NAV_KEY[n.id])}</span>
+                </motion.button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
-      <div style={{padding:'14px 16px',borderTop:`1px solid ${T.line}`}}>
-        <div style={{marginBottom:12}}><LangToggle/></div>
-        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-          <div style={{width:34,height:34,borderRadius:'50%',background:T.hi,border:`1px solid ${T.goldDim}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:T.gold,fontWeight:700,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{userEmail?.charAt(0).toUpperCase()||'?'}</div>
-          <div style={{overflow:'hidden'}}><div style={{fontSize:11,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t('studio')}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div></div>
+      <div style={{padding:'12px',borderTop:`1px solid ${T.line}`,flexShrink:0}}>
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px',marginBottom:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:32,height:32,borderRadius:'50%',background:T.hi,border:`1px solid ${T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:T.cream,fontWeight:700,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{userEmail?.charAt(0).toUpperCase()||'?'}</div>
+            <div style={{overflow:'hidden',minWidth:0}}>
+              <div style={{fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t('studio')}</div>
+              <div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div>
+            </div>
+          </div>
         </div>
-        <Btn variant="ghost" size="sm" onClick={onSignOut} style={{width:'100%'}}>{t('signOut')}</Btn>
+        <Btn variant="ghost" size="sm" onClick={onSignOut} style={{width:'100%',color:T.dim}}>{t('signOut')}</Btn>
       </div>
-    </div>
+    </aside>
   );
 }
-function TopBar({view,setView,projects,currentId,onSelect,onCreate,isProducerActive,otherActiveCount,isOwner,liveActivityText}){
+function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,onSearchChange,userEmail,onAskNko,askOpen,isProducerActive,otherActiveCount,isOwner,liveActivityText}){
   const{t}=useLang();
+  const initial = userEmail ? userEmail.charAt(0).toUpperCase() : 'N';
   return(
-    <div style={{background:T.panel,borderBottom:`1px solid ${T.line}`,padding:'10px 16px',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-      {view!=='dashboard'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
-      <Sel aria-label="Select production" value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,minWidth:140,maxWidth:280}}>
-        <option value="">{t('selectProduction')}</option>
-        {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
-      </Sel>
+    <div style={{background:'#0A0A0A',borderBottom:'1px solid #1E1E1E',padding:'12px 28px',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+      {view!=='dashboard'&&view!=='productions'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
+      {(view==='dashboard'||view==='productions')&&typeof onSearchChange==='function'&&(
+        <div style={{position:'relative',flex:'1 1 220px',maxWidth:320}}>
+          <Search size={14} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
+          <input
+            type="search"
+            aria-label="Search productions"
+            value={searchQuery||''}
+            onChange={e=>onSearchChange(e.target.value)}
+            placeholder="Search productions"
+            style={{width:'100%',background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+          />
+        </div>
+      )}
+      {((view!=='dashboard'&&view!=='productions') || Boolean(currentId)) && (
+        <Sel aria-label="Select production" value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{minWidth:150,maxWidth:230,background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'8px 12px',color:T.dim}}>
+          <option value="">{t('selectProduction')}</option>
+          {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+        </Sel>
+      )}
       {currentId && (
         isProducerActive && !isOwner ? (
           <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(82,176,122,0.15)',border:'1px solid #52B07A',borderRadius:20,padding:'4px 10px',fontSize:11,color:'#72D69A',fontFamily:'Manrope,sans-serif',fontWeight:600}}>
@@ -1614,9 +1708,222 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,isProducerAct
           </div>
         ) : null
       )}
-      <Btn onClick={onCreate} size="sm">{t('newBtn')}</Btn>
-      <LangToggle compact/>
+      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <motion.button
+          type="button"
+          aria-expanded={!!askOpen}
+          aria-haspopup="dialog"
+          whileHover={{scale:1.02}}
+          whileTap={{scale:0.98}}
+          transition={{duration:DURATION.fast,ease:EASE_OUT}}
+          onClick={onAskNko}
+          style={{display:'inline-flex',alignItems:'center',gap:7,background:'linear-gradient(135deg, #FFF8EA 0%, #FFE4B0 100%)',color:'#111111',border:'1px solid rgba(255,224,160,0.65)',borderRadius:9999,padding:'7px 16px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',boxShadow:'0 0 22px rgba(255,179,71,0.34), 0 2px 10px rgba(255,179,71,0.22)'}}
+        >
+          <Sparkles size={13}/>
+          <span>Ask NKÒ</span>
+        </motion.button>
+        <LangToggle compact/>
+        <button
+          type="button"
+          aria-label="Notifications"
+          onClick={onCreate}
+          title={t('newBtn')}
+          style={{width:32,height:32,borderRadius:'50%',background:'#121212',border:'1px solid #242424',color:T.dim,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+        >
+          <Bell size={14}/>
+        </button>
+        <div
+          aria-hidden="true"
+          style={{width:32,height:32,borderRadius:'50%',background:'#1C1C1E',border:'1px solid #2C2C2E',color:T.cream,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,fontFamily:'Manrope,sans-serif'}}
+        >
+          {initial}
+        </div>
+      </div>
     </div>
+  );
+}
+function AskNkoPanel({open,onClose,userEmail,projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],defaultCurrency='NGN'}){
+  const[query,setQuery]=useState('');
+  const[answer,setAnswer]=useState(null);
+
+  useEffect(()=>{
+    if(!open)return;
+    const onKey=e=>{if(e.key==='Escape')onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,onClose]);
+
+  const userHandle=userEmail?userEmail.split('@')[0]:'';
+  const displayName=userHandle?userHandle.charAt(0).toUpperCase()+userHandle.slice(1):'there';
+  const firstProjName=projects[0]?.name||'Lagos After Dark';
+
+  const suggestions=[
+    {id:'spend',Icon:Wallet,text:'How much have we spent across all productions this month?'},
+    {id:'over',Icon:AlertTriangle,text:'Which productions are over budget?'},
+    {id:'due',Icon:Banknote,text:'What payments are due this week?'},
+    {id:'summarise',Icon:Clapperboard,text:`Summarise ${firstProjName}'s budget`},
+    {id:'receipts',Icon:Receipt,text:'Which receipts are waiting for approval?'},
+    {id:'remaining',Icon:PiggyBank,text:'How much budget is left across the studio?'},
+  ];
+
+  const handleAsk=promptText=>{
+    const text=(promptText||'').trim();
+    if(!text)return;
+    const activeBudgetItems=projects.length>0?budgetItems.filter(i=>projects.some(p=>matchesProject(i.project_id,p.id,p.name))):[];
+    const activeAdvances=projects.length>0?advances.filter(a=>projects.some(p=>matchesProject(a.project_id,p.id,p.name))):[];
+    const activePayees=projects.length>0?payees.filter(py=>projects.some(p=>matchesProject(py.project_id,p.id,p.name))):[];
+    const activePOs=projects.length>0?(purchaseOrders||[]).filter(po=>projects.some(p=>matchesProject(po.project_id,p.id,p.name))):[];
+    const {spentByCur,totalUSD:totalSpentUSD}=projects.length>0?computeTotalSpend(activeAdvances,reconEntries,activePayees,activePOs):{spentByCur:{},totalUSD:0};
+    const totalBudgetUSD=activeBudgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+    const spendSummary=Object.entries(spentByCur).length?Object.entries(spentByCur).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' · '):`${sym(defaultCurrency)}0`;
+    const unpaidCount=activePayees.filter(p=>(p.payments||[]).reduce((s,x)=>s+x.amount,0)<p.agreed_fee).length;
+    const openAdvCount=activeAdvances.filter(a=>a.status!=='reconciled').length;
+    const overProjs=projects.filter(p=>{
+      const pi=budgetItems.filter(i=>matchesProject(i.project_id,p.id,p.name));
+      const bUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+      const {totalUSD:sUSD}=computeTotalSpend(
+        advances.filter(a=>matchesProject(a.project_id,p.id,p.name)),
+        reconEntries,
+        payees.filter(py=>matchesProject(py.project_id,p.id,p.name)),
+        (purchaseOrders||[]).filter(po=>matchesProject(po.project_id,p.id,p.name))
+      );
+      return bUSD>0&&sUSD>bUSD;
+    });
+
+    let reply='';
+    const lower=text.toLowerCase();
+    if(lower.includes('over budget')){
+      reply=overProjs.length?`${overProjs.length} production(s) currently exceed budget: ${overProjs.map(p=>p.name).join(', ')}.`:'All active productions are currently within budget.';
+    }else if(lower.includes('payment')||lower.includes('due')){
+      reply=unpaidCount>0?`There are ${unpaidCount} cast/crew payee(s) with pending balances across ${projects.length} production(s).`:'All logged cast & crew payments are up to date.';
+    }else if(lower.includes('receipt')||lower.includes('approval')){
+      reply=openAdvCount>0?`${openAdvCount} cash advance(s) are currently open and awaiting receipt reconciliation.`:'No cash advances are waiting for reconciliation.';
+    }else if(lower.includes('left')||lower.includes('remaining')){
+      const remUSD=Math.max(0,totalBudgetUSD-totalSpentUSD);
+      reply=`Across ${projects.length} production(s), total logged spend is ${spendSummary} with approximately $${fmt(remUSD)} USD eq. in remaining budget headroom.`;
+    }else{
+      reply=`Across ${projects.length} active production(s), total logged spend is ${spendSummary} (≈ $${fmt(totalSpentUSD)} USD eq.), with ${openAdvCount} open advance(s) and ${unpaidCount} pending payee balance(s).`;
+    }
+    setAnswer({question:text,reply});
+    setQuery('');
+  };
+
+  return(
+    <AnimatePresence>
+      {open&&(
+        <>
+          <motion.div
+            key="ask-nko-backdrop"
+            initial={{opacity:0}}
+            animate={{opacity:1}}
+            exit={{opacity:0}}
+            transition={{duration:0.18,ease:EASE_OUT}}
+            onClick={onClose}
+            style={{position:'fixed',inset:0,zIndex:90,background:'rgba(0,0,0,0.4)',backdropFilter:'blur(2px)'}}
+          />
+          <motion.section
+            key="ask-nko-panel"
+            role="dialog"
+            aria-label="Ask NKÒ"
+            initial={{opacity:0,scale:0.72,y:-18,filter:'blur(6px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.76,y:-14,filter:'blur(4px)',transition:{duration:0.18,ease:[0.32,0,0.67,0]}}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.8}}
+            style={{position:'fixed',top:62,right:24,zIndex:95,width:'min(404px, calc(100vw - 24px))',maxHeight:'min(710px, calc(100svh - 82px))',transformOrigin:'top right',background:'#0D0D0D',border:'1px solid #242424',borderRadius:16,boxShadow:'0 24px 64px rgba(0,0,0,0.78), 0 0 0 1px rgba(255,255,255,0.03)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'16px 20px',borderBottom:'1px solid #1E1E1E',flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:12,minWidth:0}}>
+                <div style={{width:34,height:34,borderRadius:9,background:'rgba(255,179,71,0.12)',border:'1px solid rgba(255,179,71,0.26)',color:'#FFB347',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <Sparkles size={16}/>
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0',lineHeight:1.25}}>Ask NKÒ</div>
+                  <div style={{fontSize:11,color:'#8E8A80',marginTop:2}}>Answers from your workspace data</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close Ask NKÒ"
+                onClick={onClose}
+                style={{width:28,height:28,borderRadius:8,background:'transparent',border:'none',color:'#8E8A80',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+              >
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{flex:1,overflowY:'auto',padding:'22px 20px 18px'}}>
+              <h3 style={{margin:0,fontSize:21,lineHeight:1.26,fontWeight:600,letterSpacing:'-0.025em',color:'#F5F5F0'}}>
+                Hi {displayName}, what would you like to know?
+              </h3>
+              <p style={{margin:'8px 0 0',fontSize:13,lineHeight:1.5,color:'#8E8A80'}}>
+                Ask about your productions, budgets, spending and payments.
+              </p>
+
+              {answer?(
+                <div style={{marginTop:22}}>
+                  <div style={{background:'#141414',border:'1px solid #242424',borderRadius:12,padding:'14px 16px',marginBottom:12}}>
+                    <div style={{fontSize:11,color:'#FFB347',fontWeight:600,marginBottom:6}}>{answer.question}</div>
+                    <div style={{fontSize:13,lineHeight:1.6,color:'#E5E5E0'}}>{answer.reply}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={()=>setAnswer(null)}
+                    style={{background:'none',border:'none',color:'#8E8A80',fontSize:12,fontWeight:600,cursor:'pointer',padding:0}}
+                  >
+                    ← Back to suggested questions
+                  </button>
+                </div>
+              ):(
+                <div style={{marginTop:22}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#8E8A80',marginBottom:10}}>Suggested</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:9}}>
+                    {suggestions.map(({id,Icon,text})=>(
+                      <motion.button
+                        key={id}
+                        type="button"
+                        whileHover={{x:2,borderColor:'#383838'}}
+                        whileTap={{scale:0.99}}
+                        transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                        onClick={()=>handleAsk(text)}
+                        style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:11,background:'#131313',border:'1px solid #242424',color:'#E5E5E0',fontSize:13,lineHeight:1.4,textAlign:'left',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                      >
+                        <Icon size={15} strokeWidth={1.6} style={{color:'#8E8A80',flexShrink:0}}/>
+                        <span>{text}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom input bar */}
+            <form
+              onSubmit={e=>{e.preventDefault();handleAsk(query);}}
+              style={{padding:'14px 16px',borderTop:'1px solid #1E1E1E',background:'#0B0B0B',flexShrink:0}}
+            >
+              <div style={{display:'flex',alignItems:'center',gap:8,background:'#121212',border:'1px solid #262626',borderRadius:12,padding:'6px 6px 6px 14px'}}>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e=>setQuery(e.target.value)}
+                  placeholder="Ask anything about your productions..."
+                  style={{flex:1,minWidth:0,background:'transparent',border:'none',color:'#F5F5F0',fontSize:13,outline:'none',fontFamily:'Manrope,sans-serif'}}
+                />
+                <button
+                  type="submit"
+                  aria-label="Send question"
+                  style={{width:32,height:32,borderRadius:8,background:query.trim()?'#FFB347':'#242424',color:query.trim()?'#0A0A0A':'#9B978D',border:'none',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,transition:'background 0.15s, color 0.15s'}}
+                >
+                  <ArrowUp size={15}/>
+                </button>
+              </div>
+            </form>
+          </motion.section>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 function MobileNav({view,setView}){
@@ -1629,21 +1936,291 @@ function MobileNav({view,setView}){
 }
 
 /* ── New Project Modal ── */
-function NewProjectModal({onClose,onCreate,defaultCurrency='NGN'}){
-  const[name,setName]=useState('');const[type,setType]=useState(PROJ_TYPES[0]);const[cur,setCur]=useState(defaultCurrency);
-  const create=async()=>{if(name)await onCreate({name,type,base_currency:cur});};
+const CURRENCY_LABELS = {
+  NGN: 'Nigerian Naira (NGN ₦)',
+  GHS: 'Ghanaian Cedi (GHS ₵)',
+  KES: 'Kenyan Shilling (KES KSh)',
+  ZAR: 'South African Rand (ZAR R)',
+  UGX: 'Ugandan Shilling (UGX USh)',
+  TZS: 'Tanzanian Shilling (TZS TSh)',
+  XOF: 'West African CFA (XOF Fr)',
+  ETB: 'Ethiopian Birr (ETB Br)',
+  USD: 'US Dollar (USD $)',
+  GBP: 'British Pound (GBP £)',
+};
+function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='NGN'}){
+  const[name,setName]=useState('');
+  const[cur,setCur]=useState(defaultCurrency||'NGN');
+  const[budgetInput,setBudgetInput]=useState('');
+  const[busy,setBusy]=useState(false);
+  const[created,setCreated]=useState(null);
+
+  useEffect(()=>{
+    if(!open){
+      setName('');
+      setCur(defaultCurrency||'NGN');
+      setBudgetInput('');
+      setBusy(false);
+      setCreated(null);
+      return;
+    }
+    const onKey=e=>{if(e.key==='Escape'&&!busy)onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,defaultCurrency,busy,onClose]);
+
+  const trimmedName=name.trim();
+  const parsedBudget=Number(String(budgetInput).replace(/[^0-9.]/g,''));
+  const hasBudget=budgetInput.trim().length>0 && Number.isFinite(parsedBudget) && parsedBudget>0;
+  const canCreate=Boolean(trimmedName) && !busy;
+
+  const create=async e=>{
+    e?.preventDefault();
+    if(!canCreate)return;
+    setBusy(true);
+    const payload={
+      name:trimmedName,
+      type:PROJ_TYPES[0],
+      base_currency:cur,
+      ...(hasBudget?{target_budget:parsedBudget}:{}),
+    };
+    const result=await onCreate(payload);
+    setBusy(false);
+    if(result){
+      setCreated({
+        id:result.id,
+        name:result.name||trimmedName,
+        currency:result.base_currency||cur,
+        targetBudget:hasBudget?parsedBudget:null,
+      });
+    }
+  };
+
+  const formattedBudget=created?.targetBudget!=null
+    ? `${sym(created.currency)}${fmt(created.targetBudget)}`
+    : 'Not set';
+
   return(
-    <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.88)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
-      <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:26,width:'100%',maxWidth:380}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:18}}>New production</div>
-        <div style={{display:'flex',flexDirection:'column',gap:10}}>
-          <Inp placeholder="Production name" value={name} onChange={e=>setName(e.target.value)}/>
-          <Sel value={type} onChange={e=>setType(e.target.value)} style={{width:'100%'}}>{PROJ_TYPES.map(t=><option key={t}>{t}</option>)}</Sel>
-          <Sel value={cur} onChange={e=>setCur(e.target.value)} style={{width:'100%'}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code} — {c.symbol}</option>)}</Sel>
-          <div style={{display:'flex',gap:8,marginTop:4}}><Btn onClick={create}>Create</Btn><Btn variant="ghost" onClick={onClose}>Cancel</Btn></div>
-        </div>
-      </div>
-    </div>
+    <AnimatePresence>
+      {open&&(
+        <motion.div
+          key="new-project-backdrop"
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.2,ease:EASE_OUT}}
+          onClick={()=>{if(!busy)onClose();}}
+          style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:110}}
+        >
+          <motion.div
+            key="new-project-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={created?'Production created':'Create new production'}
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.78,y:16,filter:'blur(6px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.82,y:12,filter:'blur(4px)',transition:{duration:0.18,ease:[0.32,0,0.67,0]}}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.8}}
+            style={{background:'#18181A',border:'1px solid #2A2A2D',borderRadius:16,width:'100%',maxWidth:468,boxShadow:'0 28px 80px rgba(0,0,0,0.82), 0 0 0 1px rgba(255,255,255,0.03)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {!created?(
+                <motion.form
+                  key="step-create"
+                  onSubmit={create}
+                  initial={{opacity:0,scale:0.96,y:8}}
+                  animate={{opacity:1,scale:1,y:0}}
+                  exit={{opacity:0,scale:0.96,y:-8}}
+                  transition={{duration:0.18,ease:EASE_OUT}}
+                  style={{padding:'24px 26px 26px'}}
+                >
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                    <span style={{fontSize:11,fontWeight:600,color:'#D4AF37',letterSpacing:'0.01em'}}>New production</span>
+                    <button
+                      type="button"
+                      aria-label="Close modal"
+                      disabled={busy}
+                      onClick={onClose}
+                      style={{width:26,height:26,borderRadius:7,background:'transparent',border:'none',color:'#8E8A80',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+                    >
+                      <X size={15}/>
+                    </button>
+                  </div>
+
+                  <h3 style={{margin:'6px 0 0',fontSize:22,lineHeight:1.25,fontWeight:600,letterSpacing:'-0.025em',color:'#F5F5F0'}}>
+                    Let&apos;s start something new.
+                  </h3>
+                  <p style={{margin:'6px 0 0',fontSize:13,lineHeight:1.5,color:'#8E8A80'}}>
+                    Give your production a name and set its budget. You can add more details as you go.
+                  </p>
+
+                  <div style={{marginTop:20,display:'flex',flexDirection:'column',gap:16}}>
+                    <div>
+                      <label htmlFor="new-prod-name" style={{display:'block',fontSize:12,fontWeight:500,color:'#F5F5F0',marginBottom:7}}>
+                        Production name
+                      </label>
+                      <input
+                        id="new-prod-name"
+                        type="text"
+                        autoFocus
+                        value={name}
+                        disabled={busy}
+                        onChange={e=>setName(e.target.value)}
+                        placeholder="e.g. The Last Summer"
+                        style={{width:'100%',boxSizing:'border-box',background:'#121213',border:'1px solid #2C2C2E',borderRadius:10,padding:'10px 14px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
+                      />
+                      <div style={{marginTop:6,display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#8E8A80'}}>
+                        <Info size={12} style={{flexShrink:0}}/>
+                        <span>Enter a name for your production.</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="new-prod-currency" style={{display:'block',fontSize:12,fontWeight:500,color:'#F5F5F0',marginBottom:7}}>
+                        Currency
+                      </label>
+                      <select
+                        id="new-prod-currency"
+                        value={cur}
+                        disabled={busy}
+                        onChange={e=>setCur(e.target.value)}
+                        style={{width:'100%',boxSizing:'border-box',background:'#121213',border:'1px solid #2C2C2E',borderRadius:10,padding:'10px 14px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
+                      >
+                        {CURRENCIES.map(c=>(
+                          <option key={c.code} value={c.code} style={{background:'#121213',color:'#F5F5F0'}}>
+                            {CURRENCY_LABELS[c.code]||`${c.code} (${c.symbol})`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="new-prod-budget" style={{display:'block',fontSize:12,fontWeight:500,color:'#F5F5F0',marginBottom:7}}>
+                        Target budget in {cur}
+                      </label>
+                      <div style={{display:'flex',alignItems:'center',background:'#121213',border:'1px solid #2C2C2E',borderRadius:10,overflow:'hidden'}}>
+                        <span style={{padding:'10px 13px',borderRight:'1px solid #242426',fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:'#9B978D',flexShrink:0}}>
+                          {sym(cur)}
+                        </span>
+                        <input
+                          id="new-prod-budget"
+                          type="text"
+                          inputMode="numeric"
+                          value={budgetInput}
+                          disabled={busy}
+                          onChange={e=>setBudgetInput(e.target.value)}
+                          placeholder="Enter production budget"
+                          style={{flex:1,minWidth:0,background:'transparent',border:'none',padding:'10px 12px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
+                        />
+                        <span style={{paddingRight:13,fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#6B6862',flexShrink:0}}>
+                          {cur}
+                        </span>
+                      </div>
+                      <div style={{marginTop:6,fontSize:11,color:'#8E8A80'}}>
+                        Your planned spending limit for this production.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{marginTop:24,display:'flex',justifyContent:'flex-end',alignItems:'center',gap:10}}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={onClose}
+                      style={{background:'transparent',border:'1px solid #2E2E32',borderRadius:10,padding:'9px 16px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                    >
+                      Cancel
+                    </button>
+                    <motion.button
+                      type="submit"
+                      disabled={!canCreate}
+                      whileHover={canCreate?{scale:1.015}:undefined}
+                      whileTap={canCreate?{scale:0.985}:undefined}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      style={{background:canCreate?'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)':'#252528',color:canCreate?'#0A0A0A':'#8E8A80',border:'none',borderRadius:10,padding:'9px 18px',fontSize:13,fontWeight:600,cursor:canCreate?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6,boxShadow:canCreate?'0 6px 20px rgba(255,179,71,0.28)':'none',fontFamily:'Manrope,sans-serif'}}
+                    >
+                      <span>{busy?'Creating…':'Create Production'}</span>
+                      {!busy&&<span>→</span>}
+                    </motion.button>
+                  </div>
+                </motion.form>
+              ):(
+                <motion.div
+                  key="step-ready"
+                  initial={{opacity:0,scale:0.94,y:10}}
+                  animate={{opacity:1,scale:1,y:0}}
+                  exit={{opacity:0,scale:0.96,y:-8}}
+                  transition={{type:'spring',stiffness:380,damping:30}}
+                  style={{padding:'26px 28px 28px',textAlign:'center',position:'relative'}}
+                >
+                  <button
+                    type="button"
+                    aria-label="Close modal"
+                    onClick={onClose}
+                    style={{position:'absolute',top:20,right:20,width:26,height:26,borderRadius:7,background:'transparent',border:'none',color:'#8E8A80',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+                  >
+                    <X size={15}/>
+                  </button>
+
+                  <motion.div
+                    initial={{scale:0.6,opacity:0}}
+                    animate={{scale:1,opacity:1}}
+                    transition={{type:'spring',stiffness:450,damping:26,delay:0.05}}
+                    style={{width:44,height:44,borderRadius:'50%',margin:'4px auto 0',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.36)',color:'#D4AF37',display:'flex',alignItems:'center',justifyContent:'center'}}
+                  >
+                    <Check size={18} strokeWidth={2.25}/>
+                  </motion.div>
+
+                  <h3 style={{margin:'16px 0 0',fontSize:21,lineHeight:1.25,fontWeight:600,letterSpacing:'-0.025em',color:'#F5F5F0'}}>
+                    Your production is ready.
+                  </h3>
+                  <p style={{margin:'6px 0 0',fontSize:13,color:'#8E8A80'}}>
+                    <span style={{color:'#E5E5E0',fontWeight:500}}>{created.name}</span> has been created successfully.
+                  </p>
+
+                  <div style={{marginTop:22,display:'grid',gridTemplateColumns:'1fr 1fr',border:'1px solid #2A2A2D',borderRadius:12,background:'#141416',overflow:'hidden',textAlign:'left'}}>
+                    <div style={{padding:'13px 16px'}}>
+                      <div style={{fontSize:11,color:'#8E8A80'}}>Target budget</div>
+                      <div style={{marginTop:4,fontFamily:'IBM Plex Mono,monospace',fontSize:14,fontWeight:600,color:'#F5F5F0'}}>
+                        {formattedBudget}
+                      </div>
+                    </div>
+                    <div style={{padding:'13px 16px',borderLeft:'1px solid #2A2A2D'}}>
+                      <div style={{fontSize:11,color:'#8E8A80'}}>Status</div>
+                      <div style={{marginTop:4,fontSize:14,fontWeight:600,color:'#F5F5F0'}}>
+                        Planning
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{marginTop:24,display:'flex',justifyContent:'center',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      style={{background:'#141416',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                    >
+                      Back to dashboard
+                    </button>
+                    <motion.button
+                      type="button"
+                      whileHover={{scale:1.02}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={()=>{onOpenProject?.(created.id);onClose();}}
+                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32)',fontFamily:'Manrope,sans-serif'}}
+                    >
+                      <span>Open Production</span>
+                      <span>→</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -1874,10 +2451,12 @@ const computeTotalSpend = (projectAdvances = [], projectReconEntries = [], proje
 };
 
 /* ── Dashboard ── */
-function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit}){
+function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit,searchQuery='',userEmail='',onlyProductions=false}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const[collabModalProject,setCollabModalProject]=useState(null);
+  const[typeFilter,setTypeFilter]=useState('all');
+  const[layoutMode,setLayoutMode]=useState('grid');
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
 
   // Only aggregate spend, budget, and unpaid across active projects in the workspace
@@ -1906,6 +2485,17 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
   const savedUSD = projects.length === 0 ? 0 : (totalBudgetUSD - totalSpentUSD);
   const isOverBudget = projects.length > 0 && hasBudget && savedUSD < 0;
 
+  const budgetByCur = {};
+  activeBudgetItems.forEach(i => {
+    const cur = i.currency || defaultCurrency || 'NGN';
+    budgetByCur[cur] = (budgetByCur[cur] || 0) + lTot(i);
+  });
+  const budgetDisplayAll = projects.length === 0 || Object.entries(budgetByCur).length === 0
+    ? `${sym(defaultCurrency || 'NGN')}0`
+    : Object.entries(budgetByCur).length <= 2
+      ? Object.entries(budgetByCur).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ')
+      : `≈ $${fmt(totalBudgetUSD)}`;
+
   const spendDisplayAll = projects.length === 0 || Object.entries(allSpentByCur).length === 0
     ? `${sym(defaultCurrency || 'NGN')}0`
     : Object.entries(allSpentByCur).length <= 2
@@ -1921,29 +2511,179 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
     : `≈ $${fmt(Math.abs(savedUSD))}`;
   const savedSub = isOverBudget ? t('statOverBudget') : t('statUnderBudget');
   const savedAccent = isOverBudget ? T.coral : T.sage;
+  const overallSpendPct = totalBudgetUSD > 0 ? Math.min(100, Math.round((totalSpentUSD / totalBudgetUSD) * 100)) : 0;
+
+  const hour = new Date().getHours();
+  const greetingPrefix = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const userHandle = userEmail ? userEmail.split('@')[0] : '';
+  const displayName = userHandle ? userHandle.charAt(0).toUpperCase() + userHandle.slice(1) : t('studio');
+
+  const uniqueTypes = Array.from(new Set(projects.map(p => p.type).filter(Boolean)));
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const visibleProjects = projects.filter(p => {
+    const matchesType = typeFilter === 'all' || p.type === typeFilter;
+    const matchesQuery = !normalizedQuery || (p.name || '').toLowerCase().includes(normalizedQuery) || (p.type || '').toLowerCase().includes(normalizedQuery);
+    return matchesType && matchesQuery;
+  });
+
+  const projectNameById = Object.fromEntries(projects.map(p => [p.id, p.name]));
+  const recentRows = [
+    ...activePOs.slice(0, 3).map(po => ({
+      id: `po-${po.id}`,
+      activity: `Purchase order ${po.po_number || po.vendor || ''}`.trim(),
+      production: projectNameById[po.project_id] || 'Production',
+      status: po.status || 'Pending',
+      statusColor: po.status === 'Paid' ? T.sage : T.gold,
+      detail: `${sym(po.currency || defaultCurrency || 'NGN')}${fmt(po.amount || 0)}`,
+    })),
+    ...activeAdvances.slice(0, 3).map(adv => ({
+      id: `adv-${adv.id}`,
+      activity: `Cash advance — ${adv.recipient || adv.purpose || 'Crew'}`,
+      production: projectNameById[adv.project_id] || 'Production',
+      status: adv.status === 'reconciled' ? 'Reconciled' : 'Open',
+      statusColor: adv.status === 'reconciled' ? T.sage : '#FFB347',
+      detail: `${sym(adv.currency || defaultCurrency || 'NGN')}${fmt(adv.amount || 0)}`,
+    })),
+  ].slice(0, 6);
+
   return(
     <div>
-      <div style={{marginBottom:22}}><NkoLogo height={32}/><div style={{fontSize:14,color:T.dim,marginTop:8,fontFamily:'Manrope,sans-serif'}}>{t('dashHeaderTagline')}</div><div style={{marginTop:16}}><FS/></div></div>
-      {typeof trialCount==='number'&&trialCount<trialLimit&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 14px',marginBottom:16,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{trialLimit-trialCount} of {trialLimit} free productions left</div>}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:24}}>
-        <StatCard label={t('statProductions')} value={projects.length} sub={t('statActive')}/>
-        <StatCard label={t('statTotalSpend')} value={spendDisplayAll} sub={spendSubAll}/>
-        <StatCard label={t('statTotalSaved')} value={savedDisplay} sub={savedSub} accent={savedAccent}/>
-        <StatCard label={t('statUnpaid')} value={unpaid} sub={t('statCastCrew')} accent={unpaid>0?T.coral:T.sage}/>
-      </div>
-      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
-      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.9)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
-      {projects.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:44,textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>🎬</div><div style={{fontFamily:'Fraunces,serif',fontSize:20,color:T.cream,marginBottom:8}}>{t('noProductionsYet')}</div><div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Manrope,sans-serif'}}>{t('createFirstDesc')}</div><Btn onClick={()=>setShowModal(true)}>{t('createFirstBtn')}</Btn></div>:(
-      <>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream}}>{t('productionsHeader')}</div>
-          <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-            {selected.size>0&&<><span style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{selected.size} selected</span><Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set())}>Clear</Btn><Btn size="sm" variant="danger" onClick={()=>setConfirmMulti(true)}>🗑️ Delete</Btn></>}
-            {selected.size===0&&projects.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set(projects.map(p=>p.id)))}>Select all</Btn>}
+      {/* Breadcrumb & Greeting Header */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:16,flexWrap:'wrap',marginBottom:22}}>
+        <div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint,marginBottom:6}}>
+            Workspace <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>{onlyProductions ? 'Productions' : 'Dashboard'}</span>
+          </div>
+          <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>
+            {greetingPrefix}, {displayName}
+          </h2>
+          <div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+            Here&apos;s what&apos;s happening across your productions.
           </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
-          {projects.map(p=>{
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          {typeof trialCount==='number'&&trialCount<trialLimit&&(
+            <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'8px 12px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>
+              {trialLimit-trialCount} of {trialLimit} free productions left
+            </div>
+          )}
+          <Btn onClick={()=>setShowModal(true)} style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',borderRadius:10,padding:'10px 18px',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 6px 24px rgba(255,179,71,0.35), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}>
+            <FilePlus size={15}/>
+            <span>New Production</span>
+          </Btn>
+        </div>
+      </div>
+
+      {/* 4-Column KPI Row */}
+      {!onlyProductions&&(
+      <motion.div
+        variants={staggerContainer(0.05, 0.02)}
+        initial="hidden"
+        animate="visible"
+        style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:28}}
+      >
+        <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{position:'relative',overflow:'hidden',background:'linear-gradient(180deg, #111111 0%, #15120B 100%)',border:'1px solid rgba(255,179,71,0.28)',borderRadius:12,padding:'16px 18px',boxShadow:'inset 0 -1px 0 0 rgba(255,179,71,0.55), 0 12px 28px -12px rgba(255,179,71,0.25)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{t('statProductions')}</span>
+            <Clapperboard size={14} style={{color:T.faint}}/>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:T.cream,fontWeight:600}}>{projects.length}</div>
+          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:4}}>{t('statActive')}</div>
+          <div style={{display:'flex',gap:4,marginTop:10}}>
+            <span style={{height:3,flex:2,borderRadius:2,background:'#4CAF7A'}}/>
+            <span style={{height:3,flex:1,borderRadius:2,background:'#4A90D9'}}/>
+            <span style={{height:3,flex:1,borderRadius:2,background:'#E5C158'}}/>
+          </div>
+          <div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:8}}>{projects.length} active</div>
+        </motion.div>
+
+        <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{background:'#111111',border:'1px solid #222222',borderRadius:12,padding:'16px 18px',boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>Total Budget</span>
+            <Wallet size={14} style={{color:T.faint}}/>
+          </div>
+          <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:'#F5C451',fontWeight:600,wordBreak:'break-word'}}>{budgetDisplayAll}</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{defaultCurrency||'NGN'}</span>
+          </div>
+          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:6}}>Combined across productions</div>
+        </motion.div>
+
+        <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{background:'#111111',border:'1px solid #222222',borderRadius:12,padding:'16px 18px',boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{t('statTotalSpend')}</span>
+            <TrendingUp size={14} style={{color:T.faint}}/>
+          </div>
+          <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:T.cream,fontWeight:600,wordBreak:'break-word'}}>{spendDisplayAll}</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{defaultCurrency||'NGN'}</span>
+          </div>
+          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:6}}>{spendSubAll}</div>
+          <div style={{height:3,background:'#222222',borderRadius:2,overflow:'hidden',marginTop:12}}>
+            <div style={{width:`${overallSpendPct}%`,height:'100%',background:isOverBudget?'#E05252':'#9B978D',transition:'width 0.35s ease'}}/>
+          </div>
+        </motion.div>
+
+        <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{background:'#111111',border:'1px solid #222222',borderRadius:12,padding:'16px 18px',boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{t('statTotalSaved')}</span>
+            <ShieldCheck size={14} style={{color:T.faint}}/>
+          </div>
+          <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:isOverBudget?T.coral:T.cream,fontWeight:600}}>{savedDisplay}</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>USD eq.</span>
+          </div>
+          <div style={{fontSize:11,color:isOverBudget?T.coral:T.dim,fontFamily:'Manrope,sans-serif',marginTop:6}}>
+            {savedSub}{unpaid>0?` · ${unpaid} unpaid`:''}
+          </div>
+        </motion.div>
+      </motion.div>
+      )}
+
+      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
+      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
+
+      {projects.length===0?(
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:48,textAlign:'center'}}>
+          <div style={{width:44,height:44,borderRadius:12,background:T.hi,border:`1px solid ${T.line}`,display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,color:T.gold}}><Clapperboard size={20}/></div>
+          <div style={{fontFamily:'Manrope,sans-serif',fontSize:18,fontWeight:600,color:T.cream,marginBottom:6}}>{t('noProductionsYet')}</div>
+          <div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Manrope,sans-serif'}}>{t('createFirstDesc')}</div>
+          <Btn onClick={()=>setShowModal(true)} style={{background:'#FFB347',color:'#000000',borderRadius:10}}>{t('createFirstBtn')}</Btn>
+        </div>
+      ):(
+      <>
+        <div style={onlyProductions?{background:'#0C0C0E',border:'1px solid #1E1E20',borderRadius:16,padding:'22px 24px'}:undefined}>
+        {/* Productions Section Header */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:12}}>
+          <div>
+            <div style={{fontFamily:'Manrope,sans-serif',fontSize:18,fontWeight:600,color:T.cream}}>{t('productionsHeader')}</div>
+            <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>Manage and monitor all your active productions.</div>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+            {selected.size>0&&(
+              <>
+                <span style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{selected.size} selected</span>
+                <Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set())}>Clear</Btn>
+                <Btn size="sm" variant="danger" onClick={()=>setConfirmMulti(true)}>Delete</Btn>
+              </>
+            )}
+            {selected.size===0&&projects.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set(projects.map(p=>p.id)))}>Select all</Btn>}
+            {uniqueTypes.length>0&&(
+              <Sel aria-label="Filter by status" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{background:T.panel,borderRadius:10,padding:'6px 10px'}}>
+                <option value="all">Filter by status</option>
+                {uniqueTypes.map(tp=><option key={tp} value={tp}>{tp}</option>)}
+              </Sel>
+            )}
+            <div style={{display:'inline-flex',border:'1px solid #222222',borderRadius:10,overflow:'hidden',background:'#111111',padding:2,gap:2}}>
+              <button type="button" aria-label="Grid view" onClick={()=>setLayoutMode('grid')} style={{padding:'5px 8px',border:'none',borderRadius:7,cursor:'pointer',background:layoutMode==='grid'?'rgba(255,179,71,0.16)':'transparent',color:layoutMode==='grid'?'#FFB347':T.dim,display:'flex',alignItems:'center'}}><LayoutGrid size={14}/></button>
+              <button type="button" aria-label="List view" onClick={()=>setLayoutMode('list')} style={{padding:'5px 8px',border:'none',borderRadius:7,cursor:'pointer',background:layoutMode==='list'?'rgba(255,179,71,0.16)':'transparent',color:layoutMode==='list'?'#FFB347':T.dim,display:'flex',alignItems:'center'}}><List size={14}/></button>
+            </div>
+          </div>
+        </div>
+
+        {/* Productions Grid / List */}
+        <div style={{display:'grid',gridTemplateColumns:layoutMode==='list'?'1fr':'repeat(auto-fill,minmax(290px,1fr))',gap:14,marginBottom:onlyProductions?0:28}}>
+          {visibleProjects.map(p=>{
             const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
             const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
             const open=advances.filter(a=>matchesProject(a.project_id, p.id, p.name)&&a.status!=='reconciled').length;
@@ -1961,93 +2701,190 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
             const pSpendDisplay = Object.entries(pSpentTotals).length === 0
               ? `${sym(p.base_currency || 'NGN')}0`
               : Object.entries(pSpentTotals).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
+            const remainingCur = Object.keys(totals)[0] || p.base_currency || 'NGN';
+            const remainingAmt = (totals[remainingCur] || 0) - (pSpentTotals[remainingCur] || 0);
 
-          return<div key={p.id} style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?T.hi:T.panel,border:`1px solid ${isSel?T.coral:p.id===currentId?T.gold:T.line}`,borderRadius:10,padding:18,position:'relative'}}>
-            <button onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:12,right:12,width:18,height:18,borderRadius:4,border:`2px solid ${isSel?T.coral:T.faint}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
-            <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',paddingRight:28}}>
-              <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div>
-              <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginTop:2,marginBottom:8}}>{p.type}</div>
+            const badgeTone = (p.type || '').toLowerCase().includes('feature') || (p.type || '').toLowerCase().includes('music')
+              ? { bg: 'rgba(255,179,71,0.1)', border: 'rgba(255,179,71,0.3)', text: '#F5C451', dot: '#F5C451' }
+              : (p.type || '').toLowerCase().includes('short') || (p.type || '').toLowerCase().includes('commercial')
+              ? { bg: 'rgba(74,144,217,0.12)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' }
+              : (p.type || '').toLowerCase().includes('doc')
+              ? { bg: 'rgba(245,245,240,0.08)', border: 'rgba(245,245,240,0.2)', text: '#E5E5E0', dot: '#E5E5E0' }
+              : { bg: 'rgba(155,151,141,0.1)', border: 'rgba(155,151,141,0.25)', text: '#9B978D', dot: '#9B978D' };
 
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
-                <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:'Manrope,sans-serif'}}>Budget</span>
-                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.cream}}>
-                  {Object.entries(totals).length===0?<span style={{color:T.faint}}>No budget yet</span>:Object.entries(totals).map(([c,a])=><span key={c}>{sym(c)}{fmt(a)}</span>)}
-                </span>
-              </div>
+            return(
+              <motion.div
+                key={p.id}
+                whileHover={{y:-2}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?'#161616':'#111111',border:`1px solid ${isSel?T.coral:p.id===currentId?'rgba(255,179,71,0.45)':'#222222'}`,borderRadius:14,padding:18,position:'relative',display:'flex',flexDirection:'column',justifyContent:'space-between',boxShadow:'0 4px 20px rgba(0,0,0,0.45)',transition:'border-color 0.15s, background 0.15s'}}
+              >
+                <button aria-label={`Select ${p.name}`} onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:16,right:16,width:18,height:18,borderRadius:5,border:`1.5px solid ${isSel?T.coral:'#2E2E2E'}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
 
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
-                <span style={{fontSize:10,color:T.dim,textTransform:'uppercase',letterSpacing:'0.05em',fontFamily:'Manrope,sans-serif'}}>Total Spend</span>
-                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:pSpentUSD>0?T.gold:T.cream,fontWeight:700}}>
-                  {pSpendDisplay}
-                </span>
-              </div>
+                <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',padding:0,paddingRight:26}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap',marginBottom:2}}>
+                    <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>{p.name}</div>
+                    {p.type&&(
+                      <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10,padding:'2px 9px',borderRadius:9999,background:badgeTone.bg,border:`1px solid ${badgeTone.border}`,color:badgeTone.text,fontFamily:'Manrope,sans-serif',fontWeight:600}}>
+                        <span style={{width:5,height:5,borderRadius:'50%',background:badgeTone.dot}}/>
+                        {p.type}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>
+                    <MapPin size={11} style={{color:T.faint,flexShrink:0}}/>
+                    <span>{p.base_currency || 'NGN'} · {pi.length} lines · {open} open advances</span>
+                  </div>
 
-              <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:6,marginTop:2}}>
-                <div style={{width:`${Math.min(100,pct)}%`,height:'100%',background:over?T.coral:T.sage,transition:'width 0.3s ease'}}/>
-              </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:12}}>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:2}}>Budget</div>
+                      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:600,color:T.cream}}>
+                        {Object.entries(totals).length===0?<span style={{color:T.faint}}>—</span>:Object.entries(totals).map(([c,a])=><span key={c}>{sym(c)}{fmt(a)} </span>)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:2}}>Spent</div>
+                      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:600,color:pSpentUSD>0?T.cream:T.dim}}>{pSpendDisplay}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:2}}>Remaining</div>
+                      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:600,color:over?'#E05252':T.cream}}>
+                        {Object.entries(totals).length===0?'—':`${remainingAmt<0?'-':''}${sym(remainingCur)}${fmt(Math.abs(remainingAmt))}`}
+                      </div>
+                    </div>
+                  </div>
 
-              <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
-                <span>{budgetUSD>0?`${Math.round(pct)}% of budget`:(pSpentUSD>0?'Logged spend':'0% pace')}</span>
-                <span style={{color:over?T.coral:T.sage}}>{over?'Over pace':'On pace'}</span>
-              </div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:5}}>
+                    <span>Budget used</span>
+                    <span style={{color:over?'#E05252':T.cream,fontWeight:600}}>{budgetUSD>0?`${Math.round(pct)}%${over?' · over budget':''}`:(pSpentUSD>0?'Logged spend':'0%')}</span>
+                  </div>
+                  <div style={{height:6,background:'#1D1D1F',borderRadius:9999,overflow:'hidden',marginBottom:10}}>
+                    <div style={{width:`${Math.min(100,pct)}%`,height:'100%',borderRadius:9999,background:over?'#E05252':pct>=80?'#E5C158':'#4CAF7A',transition:'width 0.35s ease'}}/>
+                  </div>
 
-              {pSpentUSD > 0 && (
-                <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
-                  {Object.values(pBreakdown.advances).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.cream,border:`1px solid ${T.line}`}}>💵 Cash: {Object.entries(pBreakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
-                  {Object.values(pBreakdown.payees).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sage,border:`1px solid ${T.line}`}}>👥 Crew: {Object.entries(pBreakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
-                  {Object.values(pBreakdown.pos).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sapphire,border:`1px solid ${T.line}`}}>📄 POs: {Object.entries(pBreakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
-                </div>
-              )}
-
-              <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pi.length} lines · {open} open advances</div>
-            </button>
-            {!isOwner ? (
-              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>👥 Shared production (Collaborator)</span>
-                <span style={{fontSize:10,color:T.faint}}>Export & share managed by Admin</span>
-              </div>
-            ) : (
-              <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                  {count === 0 ? (
-                    <span style={{fontSize:10,color:T.faint}}>No collaborators</span>
-                  ) : (
-                    <>
-                      <span style={{fontSize:10,color:T.sage,fontWeight:600}}>👤 {count}/4 collaborator{count > 1 ? 's' : ''}</span>
-                      <button
-                        onClick={e=>{e.stopPropagation();setCollabModalProject(p);}}
-                        style={{background:'none',border:'none',color:T.dim,fontSize:10,cursor:'pointer',textDecoration:'underline'}}
-                      >
-                        Manage
-                      </button>
-                    </>
+                  {pSpentUSD > 0 && (
+                    <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
+                      {Object.values(pBreakdown.advances).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.cream,border:`1px solid ${T.line}`}}>Cash: {Object.entries(pBreakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                      {Object.values(pBreakdown.payees).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sage,border:`1px solid ${T.line}`}}>Crew: {Object.entries(pBreakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                      {Object.values(pBreakdown.pos).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sapphire,border:`1px solid ${T.line}`}}>POs: {Object.entries(pBreakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                    </div>
                   )}
+                </button>
+
+                <div style={{marginTop:8,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                    {!isOwner ? (
+                      <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>Shared production</span>
+                    ) : count === 0 ? (
+                      <button
+                        onClick={e=>{
+                          e.stopPropagation();
+                          const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
+                          if(email)onInviteCollaborator(p.id,email);
+                        }}
+                        style={{background:'none',border:'none',color:T.dim,fontSize:11,cursor:'pointer',padding:0,fontFamily:'Manrope,sans-serif'}}
+                      >
+                        + Invite collaborator
+                      </button>
+                    ) : (
+                      <>
+                        <span style={{fontSize:10,color:T.sage,fontWeight:600}}>{count}/4 collaborator{count > 1 ? 's' : ''}</span>
+                        <button
+                          onClick={e=>{e.stopPropagation();setCollabModalProject(p);}}
+                          style={{background:'none',border:'none',color:T.dim,fontSize:10,cursor:'pointer',textDecoration:'underline',padding:0}}
+                        >
+                          Manage
+                        </button>
+                      </>
+                    )}
+                    {isOwner && count > 0 && count < 4 && (
+                      <button
+                        onClick={e=>{
+                          e.stopPropagation();
+                          const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
+                          if(email)onInviteCollaborator(p.id,email);
+                        }}
+                        style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700,padding:0}}
+                      >
+                        + Invite
+                      </button>
+                    )}
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto'}}>
+                    {isOwner && (
+                      <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,display:'flex',alignItems:'center',padding:2}} title="Delete production"><Trash2 size={13}/></button>
+                    )}
+                    <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',color:T.sapphire,fontSize:11,fontWeight:600,fontFamily:'Manrope,sans-serif',padding:0}}>
+                      Open Production →
+                    </button>
+                  </div>
                 </div>
-                {count < 4 ? (
-                  <button
-                    onClick={e=>{
-                      e.stopPropagation();
-                      const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
-                      if(email)onInviteCollaborator(p.id,email);
-                    }}
-                    style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700,marginLeft:count>0?'auto':0}}
-                  >
-                    + Invite collaborator
-                  </button>
-                ) : (
-                  <span style={{fontSize:10,color:T.faint,marginLeft:'auto'}}>Max 4 reached</span>
-                )}
-              </div>
-            )}
-            {isOwner && (
-              <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{position:'absolute',bottom:12,right:12,background:'none',border:'none',cursor:'pointer',color:T.faint,fontSize:14}} title="Delete production">🗑️</button>
-            )}
-          </div>;})}
+              </motion.div>
+            );
+          })}
+
+          {/* "+ New production" slot card */}
+          <motion.button
+            type="button"
+            whileHover={{y:-2,borderColor:T.goldDim}}
+            whileTap={{scale:0.99}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowModal(true)}
+            style={{background:'transparent',border:`1px dashed ${T.line}`,borderRadius:14,padding:24,minHeight:190,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',cursor:'pointer',color:T.cream}}
+          >
+            <span style={{width:36,height:36,borderRadius:'50%',background:T.panel,border:`1px solid ${T.line}`,display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:10,color:T.dim}}>
+              <Plus size={16}/>
+            </span>
+            <span style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,color:T.cream}}>New production</span>
+            <span style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.dim,marginTop:4,maxWidth:210,lineHeight:1.5}}>
+              Start from scratch or let NKO draft the budget for you.
+            </span>
+          </motion.button>
         </div>
+        </div>
+
+        {/* Recent Activity Table */}
+        {!onlyProductions&&(
+        <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,overflow:'hidden'}}>
+          <div style={{padding:'14px 18px',borderBottom:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>Recent Activity</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.dim}}>{recentRows.length} items</span>
+          </div>
+          {recentRows.length===0?(
+            <div style={{padding:'24px 18px',fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>
+              Activity from purchase orders and cash advances will appear here as your productions move forward.
+            </div>
+          ):(
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,fontFamily:'Manrope,sans-serif'}}>
+                <thead>
+                  <tr style={{borderBottom:`1px solid ${T.line}`,color:T.faint,fontSize:11,textAlign:'left'}}>
+                    <th style={{padding:'10px 18px',fontWeight:500}}>Activity</th>
+                    <th style={{padding:'10px 18px',fontWeight:500}}>Production</th>
+                    <th style={{padding:'10px 18px',fontWeight:500}}>Status</th>
+                    <th style={{padding:'10px 18px',fontWeight:500,textAlign:'right'}}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentRows.map(row=>(
+                    <tr key={row.id} style={{borderBottom:`1px solid ${T.line}`}}>
+                      <td style={{padding:'11px 18px',color:T.cream}}>{row.activity}</td>
+                      <td style={{padding:'11px 18px',color:T.dim}}>{row.production}</td>
+                      <td style={{padding:'11px 18px',color:row.statusColor,fontWeight:600}}>● {row.status}</td>
+                      <td style={{padding:'11px 18px',color:T.dim,textAlign:'right',fontFamily:'IBM Plex Mono,monospace'}}>{row.detail}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        )}
       </>
       )}
       {collabModalProject&&<CollaboratorsModal project={collabModalProject} isOwner={collabModalProject.user_id===currentUserId} collaborators={collaborators.filter(c=>c.project_id===collabModalProject.id)} onInvite={email=>onInviteCollaborator(collabModalProject.id,email)} onRemove={(collabId)=>onRemoveCollaborator(collabId,collabModalProject.id)} onClose={()=>setCollabModalProject(null)}/>}
-      {showModal&&<NewProjectModal onClose={()=>setShowModal(false)} onCreate={async(d)=>{const ok=await onCreate(d);if(ok)setShowModal(false);}} defaultCurrency={defaultCurrency}/>}
+      <NewProjectModal open={showModal} onClose={()=>setShowModal(false)} onCreate={onCreate} onOpenProject={id=>onSelect(id)} defaultCurrency={defaultCurrency}/>
     </div>
   );
 }
@@ -4517,6 +5354,8 @@ function MarketplaceView({onApplyTemplate}){
 /* ── MainApp ── */
 function Workspace(){
   const{user,signOut}=useAuth();
+  const[searchQuery,setSearchQuery]=useState('');
+  const[askOpen,setAskOpen]=useState(false);
   const cacheKey = user ? `nko_cache_ws_${user.id}` : null;
   const initialCache = useRef(null);
   if (!initialCache.current && cacheKey) {
@@ -4869,15 +5708,15 @@ function Workspace(){
       return false;
     }
     const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();
-    if(error){alert(`Could not create production: ${error.message}`);return false;}
+    if(error){alert(`Could not create production: ${error.message}`);return null;}
     if(data){
-      setProjects(p=>[data,...p]);setCurrentId(data.id);setView('budgets');
+      setProjects(p=>[data,...p]);
       const newCount=trialCount+1;
       const{error:tErr}=await sb.from('user_trial_state').upsert({user_id:user.id,productions_created:newCount});
       if(!tErr)setTrialCount(newCount);
-      return true;
+      return data;
     }
-    return false;
+    return null;
   };
   const MAX_COLLABORATORS = 4;
   const inviteCollaborator=async(projectId,email)=>{
@@ -5243,17 +6082,26 @@ function Workspace(){
   </main>;
 
   return(
-    <main aria-label="Production workspace" style={{minHeight:'100vh',background:T.ink,display:'flex',color:T.cream}}>
+    <main aria-label="Production workspace" style={{height:mobile?'auto':'100svh',minHeight:'100svh',overflow:mobile?'visible':'hidden',background:T.ink,display:'flex',color:T.cream}}>
       {!mobile&&<Sidebar view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email}/>}
-      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,minHeight:0,height:mobile?'auto':'100svh'}}>
         {signOutError&&<p role="alert" className="p-4 text-palette-apricot">{signOutError}</p>}
         {mobile&&<div className="flex justify-end border-b border-palette-graphite px-4 py-2"><button type="button" onClick={handleSignOut} className="rounded text-sm text-palette-stone underline">Sign out</button></div>}
-        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
-        <div style={{flex:1,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
-          {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>}
+        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} searchQuery={searchQuery} onSearchChange={setSearchQuery} userEmail={user?.email} onAskNko={()=>setAskOpen(o=>!o)} askOpen={askOpen} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
+        <div style={{flex:1,minHeight:0,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
+          <motion.div
+            key={`${view}-${currentId || 'all'}`}
+            initial={{opacity:0,y:8}}
+            animate={{opacity:1,y:0}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+          >
+          {/* {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>} */}
           {view==='dashboard'&&(project?
             <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onBack={()=>setCurrentId(null)} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
-            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0}/>
+            :<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
+          )}
+          {view==='productions'&&(
+            <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('dashboard');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
@@ -5264,9 +6112,22 @@ function Workspace(){
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={project?.user_id===user.id}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
+          </motion.div>
         </div>
       </div>
       {mobile&&<MobileNav view={view} setView={setView}/>}
+      <AskNkoPanel
+        open={askOpen}
+        onClose={()=>setAskOpen(false)}
+        userEmail={user?.email}
+        projects={projects}
+        budgetItems={budgetItems}
+        advances={advances}
+        reconEntries={reconEntries}
+        payees={payees}
+        purchaseOrders={purchaseOrders}
+        defaultCurrency={defaultCurrency}
+      />
       <FeedbackButton user={user} view={view} mobile={mobile}/>
     </main>
   );
@@ -5275,3 +6136,4 @@ function Workspace(){
 export default function MainApp(){
   return <div className="nko-dashboard"><Workspace/></div>;
 }
+
