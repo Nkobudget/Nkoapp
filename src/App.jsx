@@ -14,6 +14,13 @@ import { Component, useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import SignInPage from "./auth/SignInPage";
 import OnboardingWelcome from "./onboarding/OnboardingWelcome";
+import OnboardingSetupPage from "./onboarding/OnboardingSetupPage";
+import OnboardingProductionChoicePage from "./onboarding/OnboardingProductionChoicePage";
+import OnboardingProductionDetailsPage from "./onboarding/OnboardingProductionDetailsPage";
+import OnboardingScalePage from "./onboarding/OnboardingScalePage";
+import OnboardingGoalsPage from "./onboarding/OnboardingGoalsPage";
+import OnboardingAISetupPage from "./onboarding/OnboardingAISetupPage";
+import OnboardingStartingPointPage from "./onboarding/OnboardingStartingPointPage";
 import { useAuth } from "./auth/AuthContext";
 import AuthGate from "./auth/AuthGate";
 import AuthProvider from "./auth/AuthProvider";
@@ -111,9 +118,125 @@ function OnboardingRoute() {
 
   return (
     <OnboardingWelcome
-      onSetUpProduction={() => navigate("/sign-in")}
+      onSetUpProduction={() => navigate("/onboarding/setup")}
       onSkip={() => navigate("/")}
       onBack={() => navigate("/")}
+    />
+  );
+}
+
+function OnboardingSetupRoute() {
+  const navigate = useNavigate();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  return (
+    <OnboardingSetupPage
+      onBack={() => navigate("/onboarding")}
+      onContinue={(profile) => navigate("/onboarding/production", { state: profile })}
+    />
+  );
+}
+
+function OnboardingProductionRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  return (
+    <OnboardingProductionChoicePage
+      profile={location.state}
+      onBack={() => navigate("/onboarding/setup")}
+      onSelectOption={(choice) =>
+        navigate("/onboarding/production/details", {
+          state: { ...(location.state || {}), choice },
+        })
+      }
+    />
+  );
+}
+
+function OnboardingProductionDetailsRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  return (
+    <OnboardingProductionDetailsPage
+      profile={location.state}
+      onBack={() => navigate("/onboarding/production", { state: location.state })}
+      onContinue={(nextProfile) => navigate("/onboarding/scale", { state: nextProfile })}
+    />
+  );
+}
+
+function OnboardingScaleRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  return (
+    <OnboardingScalePage
+      profile={location.state}
+      onBack={() => navigate("/onboarding/production/details", { state: location.state })}
+      onContinue={(nextProfile) => navigate("/onboarding/goals", { state: nextProfile })}
+    />
+  );
+}
+
+function OnboardingGoalsRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  return (
+    <OnboardingGoalsPage
+      profile={location.state}
+      onBack={() => navigate("/onboarding/scale", { state: location.state })}
+      onContinue={(nextProfile) => navigate("/onboarding/ai-setup", { state: nextProfile })}
+    />
+  );
+}
+
+function OnboardingAISetupRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  return (
+    <OnboardingAISetupPage
+      profile={location.state}
+      onBack={() => navigate("/onboarding/goals", { state: location.state })}
+      onGenerate={(nextProfile) =>
+        navigate("/onboarding/starting-point", { state: nextProfile || location.state })
+      }
+    />
+  );
+}
+
+function OnboardingStartingPointRoute() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { status } = useAuth();
+  if (status === "loading") return <AuthStatus />;
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  return (
+    <OnboardingStartingPointPage
+      profile={location.state}
+      onBack={() => navigate("/onboarding/ai-setup", { state: location.state })}
+      onMakeChanges={() => navigate("/onboarding/setup", { state: location.state })}
     />
   );
 }
@@ -135,6 +258,13 @@ function AppRoutes() {
     <Route path="/" element={<LandingPage />} />
     <Route path="/sign-in" element={<SignInRoute />} />
     <Route path="/onboarding" element={<OnboardingRoute />} />
+    <Route path="/onboarding/setup" element={<OnboardingSetupRoute />} />
+    <Route path="/onboarding/production" element={<OnboardingProductionRoute />} />
+    <Route path="/onboarding/production/details" element={<OnboardingProductionDetailsRoute />} />
+    <Route path="/onboarding/scale" element={<OnboardingScaleRoute />} />
+    <Route path="/onboarding/goals" element={<OnboardingGoalsRoute />} />
+    <Route path="/onboarding/ai-setup" element={<OnboardingAISetupRoute />} />
+    <Route path="/onboarding/starting-point" element={<OnboardingStartingPointRoute />} />
     <Route path="/app/*" element={<DashboardBoundary><AuthGate /></DashboardBoundary>} />
     <Route path="/dashboard" element={<Navigate to="/app" replace />} />
     <Route path="*" element={<Navigate to="/" replace />} />
