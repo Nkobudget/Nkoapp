@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import BrandHomeLink from "../components/BrandHomeLink";
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from "../lib/motion";
@@ -41,9 +40,8 @@ const BREAKDOWN_TAGS = [
   "Sound",
 ];
 
-export default function OnboardingStartingPointPage({ profile, onBack, onMakeChanges }) {
-  const [previewNotice, setPreviewNotice] = useState("");
-
+// CHANGED: added the onOpenProduction prop.
+export default function OnboardingStartingPointPage({ profile, onBack, onMakeChanges, onOpenProduction }) {
   const currency = profile?.currency || "NGN";
   const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
   const budgetTotal = profile?.budgetAmount
@@ -134,9 +132,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
               <button
                 type="button"
-                onClick={() =>
-                  setPreviewNotice("Budget review is a UI preview until workspace integration is connected.")
-                }
+                onClick={onOpenProduction}
                 className="mt-6 flex w-full items-center justify-between border-t border-palette-graphite/70 pt-4 text-xs font-medium text-palette-ivory transition-colors hover:text-palette-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold cursor-pointer"
               >
                 <span>Review Budget</span>
@@ -186,9 +182,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
               <button
                 type="button"
-                onClick={() =>
-                  setPreviewNotice("Breakdown review is a UI preview until workspace integration is connected.")
-                }
+                onClick={onOpenProduction}
                 className="mt-6 flex w-full items-center justify-between border-t border-palette-graphite/70 pt-4 text-xs font-medium text-palette-ivory transition-colors hover:text-palette-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold cursor-pointer"
               >
                 <span>Review Breakdown</span>
@@ -265,9 +259,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
               <button
                 type="button"
-                onClick={() =>
-                  setPreviewNotice("Schedule review is a UI preview until workspace integration is connected.")
-                }
+                onClick={onOpenProduction}
                 className="mt-6 flex w-full items-center justify-between border-t border-palette-graphite/70 pt-4 text-xs font-medium text-palette-ivory transition-colors hover:text-palette-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold cursor-pointer"
               >
                 <span>Review Schedule</span>
@@ -278,16 +270,13 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
           {/* Bottom actions */}
           <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-3.5">
+            {/* CHANGED: the button now calls onOpenProduction (sign in, then save and open the workspace). */}
             <motion.button
               type="button"
               whileHover={{ scale: 1.015 }}
               whileTap={{ scale: 0.985 }}
               transition={{ duration: DURATION.fast, ease: EASE_OUT }}
-              onClick={() =>
-                setPreviewNotice(
-                  "Production starting point UI complete. Entering the live workspace will connect when authentication and backend setup are added."
-                )
-              }
+              onClick={onOpenProduction}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-palette-apricot px-6 py-3 text-sm font-semibold text-palette-black shadow-[0_8px_28px_rgba(255,179,71,0.35)] transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold cursor-pointer"
             >
               <span>Looks Good Open My Production</span>
@@ -306,23 +295,8 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
             </motion.button>
           </motion.div>
 
-          <AnimatePresence initial={false}>
-            {previewNotice && (
-              <motion.p
-                role="status"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: DURATION.fast, ease: EASE_OUT }}
-                className="mt-4 max-w-[38rem] rounded-xl border border-palette-apricot/30 bg-palette-apricot/10 px-4 py-3 text-xs leading-5 text-palette-ivory"
-              >
-                {previewNotice}
-              </motion.p>
-            )}
-          </AnimatePresence>
         </motion.div>
       </div>
     </main>
   );
 }
-

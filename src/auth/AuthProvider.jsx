@@ -113,6 +113,18 @@ export default function AuthProvider({ children }) {
     return { requiresConfirmation: !data.session }
   }
 
+  // NEW: Google sign-in. Redirects to Google, then back to /app, where the
+  // Supabase client (detectSessionInUrl) picks up the session automatically.
+  const signInWithGoogle = async () => {
+    if (!supabase) throw new Error(authConfigurationError)
+    setCallbackError('')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/app` },
+    })
+    if (error) throw error
+  }
+
   const requestPasswordReset = async email => {
     if (!supabase) throw new Error(authConfigurationError)
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/app` })
@@ -136,7 +148,7 @@ export default function AuthProvider({ children }) {
     setState(anonymous)
   }
 
-  return <AuthContext.Provider value={{ ...state, signIn, signUp, signOut, requestPasswordReset, updatePassword, callbackError, retry: restoreSession }}>
+  return <AuthContext.Provider value={{ ...state, signIn, signUp, signInWithGoogle, signOut, requestPasswordReset, updatePassword, callbackError, retry: restoreSession }}>
     {children}
   </AuthContext.Provider>
 }
