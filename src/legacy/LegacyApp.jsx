@@ -7247,6 +7247,181 @@ function ProductionSpendBreakdownPanel({project,items=[],advances=[],reconEntrie
   );
 }
 
+function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
+  const[sceneNum,setSceneNum]=useState(String(defaultSceneNumber));
+  const[location,setLocation]=useState('');
+  const[intExt,setIntExt]=useState('INT');
+  const[dayNight,setDayNight]=useState('DAY');
+  const[charsInput,setCharsInput]=useState('');
+  const[pages8,setPages8]=useState(1);
+  const[sceneInfo,setSceneInfo]=useState('');
+  const[submitting,setSubmitting]=useState(false);
+
+  useEffect(()=>{
+    if(!open)return;
+    setSceneNum(String(defaultSceneNumber));
+    setLocation('');
+    setIntExt('INT');
+    setDayNight('DAY');
+    setCharsInput('');
+    setPages8(1);
+    setSceneInfo('');
+    setSubmitting(false);
+  },[open,defaultSceneNumber]);
+
+  useEffect(()=>{
+    if(!open)return;
+    const onKey=e=>{if(e.key==='Escape'&&!submitting)onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,submitting,onClose]);
+
+  const trimmedLoc=location.trim();
+  const previewHeading=trimmedLoc?`${intExt}. ${trimmedLoc.toUpperCase()} - ${dayNight}`:'';
+  const parsedCast=charsInput.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+
+  const handleSubmit=async e=>{
+    e.preventDefault();
+    if(submitting)return;
+    setSubmitting(true);
+    try{
+      await onAddScene({
+        sceneNumber:sceneNum.trim()||String(defaultSceneNumber),
+        heading:previewHeading||`${intExt}. UNTITLED - ${dayNight}`,
+        intExt,
+        location:trimmedLoc.toUpperCase(),
+        dayNight,
+        pages8:Math.max(1,Number(pages8)||1),
+        cast:parsedCast,
+        synopsis:sceneInfo.trim(),
+        props:[],vehicles:[],wardrobe:[],specialEquip:[],
+      });
+      onClose();
+    }finally{
+      setSubmitting(false);
+    }
+  };
+
+  return(
+    <AnimatePresence>
+      {open&&(
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={()=>{if(!submitting)onClose();}}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
+        >
+          <motion.form
+            onSubmit={handleSubmit}
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:500,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:'20px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Add scene</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4,lineHeight:1.45}}>
+                  Add a scene that isn&apos;t in your uploaded script, or build a breakdown by hand.
+                </div>
+              </div>
+              <button type="button" aria-label="Close" onClick={()=>{if(!submitting)onClose();}} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:'6px 24px 20px',display:'flex',flexDirection:'column',gap:14}}>
+              <div style={{display:'grid',gridTemplateColumns:'88px 1fr',gap:12}}>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Scene</label>
+                  <input type="text" value={sceneNum} onChange={e=>setSceneNum(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none',boxSizing:'border-box'}}/>
+                </div>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location</label>
+                  <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. Club Eclipse" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                </div>
+              </div>
+
+              <div style={{display:'grid',gridTemplateColumns:'1.35fr 1fr',gap:12}}>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>INT/EXT</label>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6}}>
+                    {['INT','EXT','INT/EXT'].map(val=>{
+                      const active=intExt===val;
+                      return(
+                        <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'10px 6px',borderRadius:9,fontSize:11,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
+                          {val}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Day/Night</label>
+                  <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
+                    {['DAY','NIGHT','DAWN','DUSK'].map(t=><option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
+                  <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Characters</label>
+                  <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas.</span>
+                </div>
+                <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+              </div>
+
+              <div>
+                <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Script pages</label>
+                <div style={{display:'flex',alignItems:'center',gap:14}}>
+                  <button type="button" aria-label="Decrease script pages" onClick={()=>setPages8(p=>Math.max(1,p-1))} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>−</button>
+                  <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,fontWeight:600,color:T.cream,minWidth:20,textAlign:'center'}}>{pages8}</span>
+                  <button type="button" aria-label="Increase script pages" onClick={()=>setPages8(p=>p+1)} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+</button>
+                  <span style={{fontSize:11,color:'#71717A'}}>in eighths of a page</span>
+                </div>
+              </div>
+
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
+                  <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene information</label>
+                  <span style={{fontSize:10.5,color:'#71717A'}}>Optional</span>
+                </div>
+                <textarea rows={3} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
+              </div>
+
+              <div style={{background:'#121214',border:'1px solid #1E1E22',borderRadius:10,padding:'10px 14px',fontSize:11.5}}>
+                <span style={{color:'#71717A'}}>Heading preview: </span>
+                <span style={{color:previewHeading?T.cream:'#71717A',fontWeight:previewHeading?600:400,fontFamily:'IBM Plex Mono,monospace'}}>{previewHeading||'—'}</span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10}}>
+              <button type="button" onClick={()=>{if(!submitting)onClose();}} style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>Cancel</button>
+              <motion.button
+                type="submit"
+                disabled={submitting}
+                whileHover={{y:-1}}
+                whileTap={{scale:0.98}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+              >
+                {submitting?'Adding...':'Add Scene'}
+              </motion.button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const mob=useIsMobile();
   const[search,setSearch]=useState('');
@@ -7258,7 +7433,6 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const[showUpload,setShowUpload]=useState(false);
   const[showAddScene,setShowAddScene]=useState(false);
   const[selectedScene,setSelectedScene]=useState(null);
-  const[newScene,setNewScene]=useState({sceneNumber:'',heading:'',intExt:'INT',location:'',dayNight:'DAY',pages8:8});
   if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
 
   const ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
@@ -7292,22 +7466,6 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const getSceneNumsForChar=name=>ps.filter(s=>(s.cast||[]).includes(name)).map(s=>s.sceneNumber);
   const clearFilters=()=>{setSearch('');setLocFilter('all');setIeFilter('all');setTimeFilter('all');setCharFilter('all');};
   const hasActiveFilters=Boolean(search||locFilter!=='all'||ieFilter!=='all'||timeFilter!=='all'||charFilter!=='all');
-
-  const handleCreateScene=async e=>{
-    e.preventDefault();
-    if(!newScene.heading.trim()&&!newScene.location.trim())return;
-    await onAddScene({
-      sceneNumber:newScene.sceneNumber.trim()||String(ps.length+1),
-      heading:newScene.heading.trim()||`${newScene.intExt}. ${newScene.location.trim()} - ${newScene.dayNight}`,
-      intExt:newScene.intExt,
-      location:newScene.location.trim(),
-      dayNight:newScene.dayNight,
-      pages8:Number(newScene.pages8)||8,
-      cast:[],props:[],vehicles:[],wardrobe:[],specialEquip:[],
-    });
-    setNewScene({sceneNumber:'',heading:'',intExt:'INT',location:'',dayNight:'DAY',pages8:8});
-    setShowAddScene(false);
-  };
 
   return(
     <div>
@@ -7370,51 +7528,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
       <BreakdownUploader open={showUpload} onClose={()=>setShowUpload(false)} project={project} onApply={ns=>{onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})));setShowUpload(false);}} onSaveCharacter={onSaveCharacter}/>
 
-      <AnimatePresence>
-        {showAddScene && (
-          <motion.form
-            onSubmit={handleCreateScene}
-            initial={{opacity:0,y:-6}}
-            animate={{opacity:1,y:0}}
-            exit={{opacity:0,y:-6}}
-            transition={{duration:DURATION.fast,ease:EASE_OUT}}
-            style={{background:'#111113',border:'1px solid #242428',borderRadius:14,padding:'16px 18px',marginBottom:18,display:'grid',gridTemplateColumns:mob?'1fr':'80px 1.6fr 95px 1.2fr 100px 90px auto',gap:10,alignItems:'end'}}
-          >
-            <div>
-              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Scene #</div>
-              <Inp placeholder={String(ps.length+1)} value={newScene.sceneNumber} onChange={e=>setNewScene(s=>({...s,sceneNumber:e.target.value}))}/>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Scene heading</div>
-              <Inp placeholder="e.g. INT. ADAOBI'S TAXI - NIGHT" value={newScene.heading} onChange={e=>setNewScene(s=>({...s,heading:e.target.value}))}/>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>INT/EXT</div>
-              <Sel value={newScene.intExt} onChange={e=>setNewScene(s=>({...s,intExt:e.target.value}))} style={{width:'100%'}}>
-                {['INT','EXT','INT/EXT'].map(v=><option key={v} value={v}>{v}</option>)}
-              </Sel>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Location</div>
-              <Inp placeholder="e.g. ADAOBI'S TAXI" value={newScene.location} onChange={e=>setNewScene(s=>({...s,location:e.target.value}))}/>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Day/Night</div>
-              <Sel value={newScene.dayNight} onChange={e=>setNewScene(s=>({...s,dayNight:e.target.value}))} style={{width:'100%'}}>
-                {['DAY','NIGHT','DAWN','DUSK'].map(v=><option key={v} value={v}>{v}</option>)}
-              </Sel>
-            </div>
-            <div>
-              <div style={{fontSize:10,color:T.faint,marginBottom:4}}>Eighths</div>
-              <Inp type="number" min="1" value={newScene.pages8} onChange={e=>setNewScene(s=>({...s,pages8:e.target.value}))}/>
-            </div>
-            <div style={{display:'flex',gap:6}}>
-              <Btn type="submit" size="sm">Add</Btn>
-              <Btn type="button" size="sm" variant="ghost" onClick={()=>setShowAddScene(false)}>Cancel</Btn>
-            </div>
-          </motion.form>
-        )}
-      </AnimatePresence>
+      <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={onAddScene} defaultSceneNumber={ps.length+1}/>
 
       {/* Main 2-Column Breakdown Grid */}
       <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(270px, 1fr)',gap:16,alignItems:'start',marginBottom:20}}>
