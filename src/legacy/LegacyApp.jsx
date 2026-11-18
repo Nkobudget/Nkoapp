@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion';
 import {
   AlertTriangle,
+  ArrowLeftRight,
   ArrowRight,
   ArrowUp,
   Banknote,
@@ -28,6 +29,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   Clapperboard,
+  ClipboardList,
   Coins,
   Compass,
   CreditCard,
@@ -36,11 +38,14 @@ import {
   FilePlus,
   FileText,
   Film,
+  HandCoins,
   Info,
   Layers,
   LayoutDashboard,
   LayoutGrid,
+  Link2,
   List,
+  ListPlus,
   LogOut,
   MapPin,
   Menu,
@@ -2949,7 +2954,18 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const[collabModalProject,setCollabModalProject]=useState(null);
   const[typeFilter,setTypeFilter]=useState('all');
-  const[layoutMode,setLayoutMode]=useState('grid');
+  const layoutStorageKey=`nko_prod_layout_${currentUserId||'default'}`;
+  const[layoutMode,setLayoutMode]=useState(()=>{
+    try{
+      const saved=window.localStorage.getItem(layoutStorageKey);
+      return saved==='list'||saved==='grid'?saved:'grid';
+    }catch{
+      return 'grid';
+    }
+  });
+  useEffect(()=>{
+    try{window.localStorage.setItem(layoutStorageKey,layoutMode);}catch{}
+  },[layoutStorageKey,layoutMode]);
   const toggle=id=>{const n=new Set(selected);n.has(id)?n.delete(id):n.add(id);setSelected(n);};
 
   // Only aggregate spend, budget, and unpaid across active projects in the workspace
@@ -3167,28 +3183,28 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                 {uniqueTypes.map(tp=><option key={tp} value={tp}>{tp}</option>)}
               </Sel>
             )}
-            <div style={{display:'inline-flex',border:'1px solid #222222',borderRadius:10,overflow:'hidden',background:'#111111',padding:2,gap:2}}>
-              <button type="button" aria-label="Grid view" onClick={()=>setLayoutMode('grid')} style={{padding:'5px 8px',border:'none',borderRadius:7,cursor:'pointer',background:layoutMode==='grid'?'rgba(255,179,71,0.16)':'transparent',color:layoutMode==='grid'?'#FFB347':T.dim,display:'flex',alignItems:'center'}}><LayoutGrid size={14}/></button>
-              <button type="button" aria-label="List view" onClick={()=>setLayoutMode('list')} style={{padding:'5px 8px',border:'none',borderRadius:7,cursor:'pointer',background:layoutMode==='list'?'rgba(255,179,71,0.16)':'transparent',color:layoutMode==='list'?'#FFB347':T.dim,display:'flex',alignItems:'center'}}><List size={14}/></button>
+            <div style={{display:'inline-flex',border:'1px solid #26262B',borderRadius:9,overflow:'hidden',background:'#111113',padding:3,gap:2}}>
+              <button type="button" aria-label="Grid view" onClick={()=>setLayoutMode('grid')} style={{padding:'5px 8px',border:layoutMode==='grid'?'1px solid rgba(255,179,71,0.32)':'1px solid transparent',borderRadius:6,cursor:'pointer',background:layoutMode==='grid'?'rgba(255,179,71,0.14)':'transparent',color:layoutMode==='grid'?'#F5C451':T.dim,display:'flex',alignItems:'center',transition:'all 0.15s ease'}}><LayoutGrid size={14}/></button>
+              <button type="button" aria-label="List view" onClick={()=>setLayoutMode('list')} style={{padding:'5px 8px',border:layoutMode==='list'?'1px solid rgba(255,179,71,0.32)':'1px solid transparent',borderRadius:6,cursor:'pointer',background:layoutMode==='list'?'rgba(255,179,71,0.14)':'transparent',color:layoutMode==='list'?'#F5C451':T.dim,display:'flex',alignItems:'center',transition:'all 0.15s ease'}}><List size={14}/></button>
             </div>
           </div>
         </div>
 
         {/* Productions Grid / List */}
         {layoutMode==='list'?(
-          <div style={{background:'#0D0D0F',border:'1px solid #1C1C1F',borderRadius:12,overflow:'hidden',marginBottom:onlyProductions?0:28}}>
+          <div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:12,overflow:'hidden',marginBottom:onlyProductions?0:28}}>
             <div style={{overflowX:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif'}}>
                 <thead>
-                  <tr style={{borderBottom:'1px solid #1B1B1E',color:'#71717A',fontSize:11,textAlign:'left'}}>
-                    <th style={{padding:'12px 16px',fontWeight:500}}>Production</th>
-                    <th style={{padding:'12px 14px',fontWeight:500}}>Status</th>
-                    <th style={{padding:'12px 14px',fontWeight:500,textAlign:'right'}}>Budget</th>
-                    <th style={{padding:'12px 14px',fontWeight:500,textAlign:'right'}}>Spend</th>
-                    <th style={{padding:'12px 14px',fontWeight:500,textAlign:'right'}}>Remaining</th>
-                    <th style={{padding:'12px 16px',fontWeight:500}}>Utilisation</th>
-                    <th style={{padding:'12px 14px',fontWeight:500}}>Last activity</th>
-                    <th style={{padding:'12px 16px',fontWeight:500,textAlign:'right'}}>Open</th>
+                  <tr style={{borderBottom:'1px solid #1E1E22',color:'#71717A',fontSize:11.5,textAlign:'left'}}>
+                    <th style={{padding:'13px 16px 13px 18px',fontWeight:500,whiteSpace:'nowrap'}}>Production</th>
+                    <th style={{padding:'13px 14px',fontWeight:500,whiteSpace:'nowrap'}}>Status</th>
+                    <th style={{padding:'13px 14px',fontWeight:500,textAlign:'right',whiteSpace:'nowrap'}}>Budget</th>
+                    <th style={{padding:'13px 14px',fontWeight:500,textAlign:'right',whiteSpace:'nowrap'}}>Spend</th>
+                    <th style={{padding:'13px 14px',fontWeight:500,textAlign:'right',whiteSpace:'nowrap'}}>Remaining</th>
+                    <th style={{padding:'13px 16px',fontWeight:500,whiteSpace:'nowrap'}}>Utilisation</th>
+                    <th style={{padding:'13px 14px',fontWeight:500,whiteSpace:'nowrap'}}>Last activity</th>
+                    <th style={{padding:'13px 18px 13px 12px',fontWeight:500,textAlign:'center',whiteSpace:'nowrap'}}>Open</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3224,12 +3240,12 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                     const statusLabel = p.status || 'Planning';
                     const sl = statusLabel.toLowerCase();
                     const statusTone = sl === 'production'
-                      ? { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.34)', text: '#F5C451', dot: '#F5C451' }
+                      ? { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.42)', text: '#F5C451', dot: '#F5C451' }
                       : sl.includes('pre')
-                      ? { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' }
+                      ? { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.42)', text: '#6BB0F5', dot: '#6BB0F5' }
                       : sl.includes('post')
-                      ? { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.28)', text: '#E5E5E0', dot: '#E5E5E0' }
-                      : { bg: 'rgba(155,151,141,0.07)', border: 'rgba(155,151,141,0.22)', text: '#9B978D', dot: '#9B978D' };
+                      ? { bg: 'rgba(245,245,240,0.05)', border: 'rgba(245,245,240,0.34)', text: '#F5F4F0', dot: '#F5F4F0' }
+                      : { bg: 'rgba(255,255,255,0.03)', border: '#2A2A2E', text: '#A1A1AA', dot: '#71717A' };
 
                     const ts = p.updated_at || p.created_at;
                     const relTime = (() => {
@@ -3252,49 +3268,49 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                         key={p.id}
                         onClick={()=>onSelect(p.id)}
                         style={{
-                          borderBottom: idx === visibleProjects.length - 1 ? 'none' : '1px solid #18181B',
+                          borderBottom: idx === visibleProjects.length - 1 ? 'none' : '1px solid #1B1B1F',
                           cursor: 'pointer',
                           transition: 'background 0.15s ease',
                         }}
                         onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.025)';}}
                         onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
                       >
-                        <td style={{padding:'15px 16px'}}>
-                          <div style={{fontSize:13,fontWeight:600,color:'#F5F4F0',lineHeight:1.3}}>{p.name}</div>
-                          <div style={{fontSize:11,color:'#71717A',marginTop:3}}>
+                        <td style={{padding:'16px 16px 16px 18px',verticalAlign:'middle'}}>
+                          <div style={{fontSize:13.5,fontWeight:600,color:'#F5F4F0',lineHeight:1.35}}>{p.name}</div>
+                          <div style={{fontSize:11.5,color:'#71717A',marginTop:3,lineHeight:1.35}}>
                             {p.type || 'Type not set'} · {p.location || 'Location not set'}
                           </div>
                         </td>
-                        <td style={{padding:'15px 14px'}}>
-                          <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:500,padding:'4px 10px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,whiteSpace:'nowrap'}}>
-                            <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot}}/>
+                        <td style={{padding:'16px 14px',verticalAlign:'middle'}}>
+                          <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11.5,fontWeight:500,padding:'4px 10px',borderRadius:6,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,whiteSpace:'nowrap'}}>
+                            <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot,flexShrink:0}}/>
                             {statusLabel}
                           </span>
                         </td>
-                        <td style={{padding:'15px 14px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:'#F5F4F0',whiteSpace:'nowrap'}}>
+                        <td style={{padding:'16px 14px',verticalAlign:'middle',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12.5,fontWeight:600,color:'#F5F4F0',whiteSpace:'nowrap'}}>
                           {budgetText}
                         </td>
-                        <td style={{padding:'15px 14px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:500,color:pSpentUSD>0?'#F5F4F0':'#71717A',whiteSpace:'nowrap'}}>
+                        <td style={{padding:'16px 14px',verticalAlign:'middle',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12.5,fontWeight:500,color:pSpentUSD>0?'#E4E4E7':'#D4D4D8',whiteSpace:'nowrap'}}>
                           {spendText}
                         </td>
-                        <td style={{padding:'15px 14px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:500,color:over?'#B46950':'#F5F4F0',whiteSpace:'nowrap'}}>
+                        <td style={{padding:'16px 14px',verticalAlign:'middle',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12.5,fontWeight:500,color:over?'#B46950':'#E4E4E7',whiteSpace:'nowrap'}}>
                           {remainingText}
                         </td>
-                        <td style={{padding:'15px 16px',minWidth:128}}>
+                        <td style={{padding:'16px 16px',verticalAlign:'middle',minWidth:136}}>
                           <div style={{display:'flex',alignItems:'center',gap:10}}>
-                            <div style={{flex:1,height:4,borderRadius:9999,background:'#1D1D1F',overflow:'hidden'}}>
-                              <div style={{width:`${barPct}%`,height:'100%',borderRadius:9999,background:over?'#E05252':rawPct>=80?'#E5C158':'#4CAF7A',transition:'width 0.35s ease'}}/>
+                            <div style={{flex:1,minWidth:64,maxWidth:88,height:4,borderRadius:9999,background:'#222226',overflow:'hidden'}}>
+                              <div style={{width:`${barPct}%`,height:'100%',borderRadius:9999,background:over?'#E06B52':rawPct>=80?'#E5C158':'#4CAF7A',transition:'width 0.35s ease'}}/>
                             </div>
-                            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,fontWeight:600,color:over?'#E05252':rawPct>0?'#D4D4D8':'#71717A',minWidth:32,textAlign:'right'}}>
+                            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11.5,fontWeight:600,color:over?'#E06B52':rawPct>=80?'#E5C158':rawPct>0?'#D4D4D8':'#8E8E93',minWidth:34,textAlign:'right'}}>
                               {rawPct}%
                             </span>
                           </div>
                         </td>
-                        <td style={{padding:'15px 14px',fontSize:11,color:'#71717A',whiteSpace:'nowrap'}}>
+                        <td style={{padding:'16px 14px',verticalAlign:'middle',fontSize:12,color:'#8E8E93',whiteSpace:'nowrap'}}>
                           {relTime}
                         </td>
-                        <td style={{padding:'15px 16px',textAlign:'right'}}>
-                          <ChevronRight size={14} style={{color:'#71717A',display:'inline-block',verticalAlign:'middle'}}/>
+                        <td style={{padding:'16px 18px 16px 12px',verticalAlign:'middle',textAlign:'center'}}>
+                          <ChevronRight size={14} style={{color:'#8E8E93',display:'inline-block',verticalAlign:'middle'}}/>
                         </td>
                       </tr>
                     );
@@ -3518,11 +3534,42 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],revenueItems=[],collaborators=[],onBack,onOpenBudget,onOpenRecon,onNavigate,onInviteCollaborator,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
+function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],revenueItems=[],collaborators=[],onBack,onStudioDashboard,onOpenBudget,onOpenRecon,onNavigate,onInviteCollaborator,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
   const{t}=useLang();
   const mob = useIsMobile();
   const [infoOpen, setInfoOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addMenuRef = useRef(null);
+  const menuRef = useRef(null);
+
+  useEffect(()=>{
+    if(!menuOpen)return;
+    const onDown=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setMenuOpen(false);};
+    const onKey=e=>{if(e.key==='Escape')setMenuOpen(false);};
+    document.addEventListener('mousedown',onDown);
+    window.addEventListener('keydown',onKey);
+    return()=>{document.removeEventListener('mousedown',onDown);window.removeEventListener('keydown',onKey);};
+  },[menuOpen]);
+
+  useEffect(()=>{
+    if(!addMenuOpen)return;
+    const onDown=e=>{if(addMenuRef.current&&!addMenuRef.current.contains(e.target))setAddMenuOpen(false);};
+    const onKey=e=>{if(e.key==='Escape')setAddMenuOpen(false);};
+    document.addEventListener('mousedown',onDown);
+    window.addEventListener('keydown',onKey);
+    return()=>{document.removeEventListener('mousedown',onDown);window.removeEventListener('keydown',onKey);};
+  },[addMenuOpen]);
+
+  const addToItems = [
+    { id: 'po', title: 'Purchase order', subtitle: 'Raise a PO for a vendor', Icon: ClipboardList, action: () => onNavigate?.('po') },
+    { id: 'payments', title: 'Payment', subtitle: 'Record a cast or crew payment', Icon: Banknote, action: () => onNavigate?.('payments') },
+    { id: 'advance', title: 'Cash advance', subtitle: 'Issue petty cash to a department', Icon: HandCoins, action: () => onOpenRecon?.() || onNavigate?.('recon') },
+    { id: 'receipt', title: 'Receipt', subtitle: 'Upload a receipt against an advance', Icon: Receipt, action: () => onOpenRecon?.() || onNavigate?.('recon') },
+    { id: 'budget', title: 'Budget line', subtitle: 'Add a line to a department budget', Icon: ListPlus, action: () => onOpenBudget?.() || onNavigate?.('budgets') },
+    { id: 'revenue', title: 'Revenue record', subtitle: 'Log income for this production', Icon: TrendingUp, action: () => onNavigate?.('revenue') },
+  ];
   const baseCur = project.base_currency || 'NGN';
   const totals={};items.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
   const openAdv=advances.filter(a=>a.status!=='reconciled').length;
@@ -3675,17 +3722,93 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',position:'relative'}}>
-          <motion.button
-            type="button"
-            whileHover={{y:-1}}
-            whileTap={{scale:0.98}}
-            transition={{duration:DURATION.fast,ease:EASE_OUT}}
-            onClick={onOpenBudget}
-            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
-          >
-            <Plus size={14}/>
-            <span>Add New</span>
-          </motion.button>
+          <div ref={addMenuRef} style={{position:'relative'}}>
+            <motion.button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={addMenuOpen}
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{setAddMenuOpen(o=>!o);setMenuOpen(false);}}
+              style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 14px 9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+            >
+              <Plus size={14}/>
+              <span>Add New</span>
+              <ChevronDown size={13} style={{marginLeft:1,transform:addMenuOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.18s ease'}}/>
+            </motion.button>
+
+            <AnimatePresence>
+              {addMenuOpen && (
+                <motion.div
+                  role="menu"
+                  aria-label="Add to production"
+                  initial={{opacity:0,y:-8,scale:0.96,filter:'blur(3px)'}}
+                  animate={{opacity:1,y:0,scale:1,filter:'blur(0px)'}}
+                  exit={{opacity:0,y:-6,scale:0.96,filter:'blur(2px)'}}
+                  transition={{type:'spring',stiffness:460,damping:32,mass:0.8}}
+                  style={{
+                    position:'absolute',
+                    top:'calc(100% + 8px)',
+                    right:mob?'auto':0,
+                    left:mob?0:'auto',
+                    zIndex:60,
+                    width:288,
+                    maxWidth:'calc(100vw - 28px)',
+                    background:'#141416',
+                    border:'1px solid #26262A',
+                    borderRadius:14,
+                    padding:'14px 10px 10px',
+                    boxShadow:'0 24px 60px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',
+                    transformOrigin:mob?'top left':'top right',
+                    fontFamily:'Manrope,sans-serif',
+                  }}
+                >
+                  <div style={{fontSize:12,fontWeight:500,color:'#8E8E93',padding:'2px 10px 10px',letterSpacing:'-0.005em'}}>
+                    Add to
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    {addToItems.map(item=>{
+                      const ItemIcon=item.Icon;
+                      return(
+                        <motion.button
+                          key={item.id}
+                          type="button"
+                          role="menuitem"
+                          whileHover={{backgroundColor:'rgba(255,255,255,0.045)'}}
+                          whileTap={{scale:0.985}}
+                          onClick={()=>{setAddMenuOpen(false);item.action();}}
+                          style={{
+                            width:'100%',
+                            display:'flex',
+                            alignItems:'center',
+                            gap:14,
+                            padding:'10px 10px',
+                            borderRadius:10,
+                            border:'none',
+                            background:'transparent',
+                            textAlign:'left',
+                            cursor:'pointer',
+                            fontFamily:'Manrope,sans-serif',
+                          }}
+                        >
+                          <ItemIcon size={17} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:14,fontWeight:600,color:'#F5F4F0',lineHeight:1.3,letterSpacing:'-0.01em'}}>
+                              {item.title}
+                            </div>
+                            <div style={{fontSize:12,fontWeight:400,color:'#8E8E93',lineHeight:1.35,marginTop:2}}>
+                              {item.subtitle}
+                            </div>
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           {isOwner && typeof onInviteCollaborator === 'function' && (
             <motion.button
               type="button"
@@ -3702,33 +3825,112 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
               <span>Invite Collaborator</span>
             </motion.button>
           )}
-          <button
-            type="button"
-            aria-label="Production actions"
-            onClick={()=>setMenuOpen(o=>!o)}
-            style={{width:36,height:36,background:'#111113',border:'1px solid #242428',color:T.dim,borderRadius:10,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
-          >
-            <MoreHorizontal size={15}/>
-          </button>
-          <AnimatePresence>
-            {menuOpen && (
-              <motion.div
-                initial={{opacity:0,y:-4,scale:0.97}}
-                animate={{opacity:1,y:0,scale:1}}
-                exit={{opacity:0,y:-4,scale:0.97}}
-                transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                style={{position:'absolute',right:0,top:42,zIndex:30,background:'#141416',border:'1px solid #26262A',borderRadius:10,padding:4,minWidth:160,boxShadow:'0 14px 32px rgba(0,0,0,0.65)'}}
-              >
-                <button
-                  type="button"
-                  onClick={()=>{setMenuOpen(false);onBack();}}
-                  style={{width:'100%',textAlign:'left',background:'transparent',border:'none',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'8px 10px',borderRadius:7,cursor:'pointer'}}
+          <div ref={menuRef} style={{position:'relative'}}>
+            <motion.button
+              type="button"
+              aria-label="Production actions"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              whileHover={{y:-1}}
+              whileTap={{scale:0.96}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{setMenuOpen(o=>!o);setAddMenuOpen(false);}}
+              style={{width:36,height:36,background:menuOpen?'#1A1A1E':'#111113',border:menuOpen?'1px solid #34343B':'1px solid #242428',color:menuOpen?T.cream:T.dim,borderRadius:10,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',transition:'background 0.15s ease, border-color 0.15s ease, color 0.15s ease'}}
+            >
+              <MoreHorizontal size={15}/>
+            </motion.button>
+            <AnimatePresence>
+              {menuOpen && (
+                <motion.div
+                  role="menu"
+                  aria-label="More options"
+                  initial={{opacity:0,y:-8,scale:0.96,filter:'blur(3px)'}}
+                  animate={{opacity:1,y:0,scale:1,filter:'blur(0px)'}}
+                  exit={{opacity:0,y:-6,scale:0.96,filter:'blur(2px)'}}
+                  transition={{type:'spring',stiffness:460,damping:32,mass:0.8}}
+                  style={{
+                    position:'absolute',
+                    right:0,
+                    top:'calc(100% + 8px)',
+                    zIndex:60,
+                    width:244,
+                    maxWidth:'calc(100vw - 28px)',
+                    background:'#141416',
+                    border:'1px solid #26262A',
+                    borderRadius:14,
+                    padding:8,
+                    boxShadow:'0 24px 60px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',
+                    transformOrigin:'top right',
+                    fontFamily:'Manrope,sans-serif',
+                  }}
                 >
-                  {t('allProductions')}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {/* Group 1 */}
+                  <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                    <motion.button
+                      type="button"
+                      role="menuitem"
+                      whileHover={{backgroundColor:'rgba(255,255,255,0.05)'}}
+                      whileTap={{scale:0.985}}
+                      onClick={()=>{
+                        setMenuOpen(false);
+                        setInfoOpen(true);
+                      }}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                    >
+                      <Pencil size={16} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
+                      <span>Edit production details</span>
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      role="menuitem"
+                      whileHover={{backgroundColor:'rgba(255,255,255,0.05)'}}
+                      whileTap={{scale:0.985}}
+                      onClick={async()=>{
+                        try{await window.navigator?.clipboard?.writeText(window.location.href);}catch{}
+                        setCopiedLink(true);
+                        window.setTimeout(()=>{setCopiedLink(false);setMenuOpen(false);},900);
+                      }}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:copiedLink?'#F5C451':'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                    >
+                      {copiedLink
+                        ?<Check size={16} strokeWidth={1.8} style={{color:'#F5C451',flexShrink:0}}/>
+                        :<Link2 size={16} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>}
+                      <span>{copiedLink?'Production link copied':'Copy production link'}</span>
+                    </motion.button>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{height:1,background:'#242428',margin:'6px 4px'}}/>
+
+                  {/* Group 2 */}
+                  <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                    <motion.button
+                      type="button"
+                      role="menuitem"
+                      whileHover={{backgroundColor:'rgba(255,255,255,0.05)'}}
+                      whileTap={{scale:0.985}}
+                      onClick={()=>{setMenuOpen(false);onBack();}}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                    >
+                      <ArrowLeftRight size={16} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
+                      <span>Switch production</span>
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      role="menuitem"
+                      whileHover={{backgroundColor:'rgba(255,255,255,0.05)'}}
+                      whileTap={{scale:0.985}}
+                      onClick={()=>{setMenuOpen(false);if(onStudioDashboard)onStudioDashboard();else onBack();}}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                    >
+                      <LayoutGrid size={16} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
+                      <span>Studio dashboard</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -9665,7 +9867,7 @@ function Workspace(){
           {/* {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>} */}
           {(view==='overview'||(view==='dashboard'&&project))?(
             project?(
-              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
+              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
             ):(
               <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:40,textAlign:'center'}}>
                 <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
