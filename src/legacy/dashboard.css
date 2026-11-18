@@ -5,6 +5,13 @@
   line-height: normal;
   min-height: 100svh;
   overflow-wrap: break-word;
+  color-scheme: dark;
+}
+
+.nko-dashboard select,
+.nko-dashboard select option {
+  background-color: #141416;
+  color: #F5F5F0;
 }
 
 .nko-dashboard :is(button, input, select, textarea, a):focus-visible {

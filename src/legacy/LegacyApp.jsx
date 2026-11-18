@@ -1672,13 +1672,152 @@ const SIDEBAR_GROUPS = [
   { label: 'Management', ids: ['overview', 'budgets', 'breakdown', 'schedule', 'market', 'ai'] },
   { label: 'Finance', ids: ['po', 'payments', 'recon', 'revenue'] },
 ];
+function ProductionSwitcher({projects=[],currentId,activeProject,onSelectProject,compact=false}){
+  const[open,setOpen]=useState(false);
+  const wrapRef=useRef(null);
+  const canSwitch=projects.length>1;
+  const getInitials=name=>name?name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join(''):'PR';
+
+  useEffect(()=>{
+    if(!open)return;
+    const onDown=e=>{if(wrapRef.current&&!wrapRef.current.contains(e.target))setOpen(false);};
+    const onKey=e=>{if(e.key==='Escape')setOpen(false);};
+    document.addEventListener('mousedown',onDown);
+    window.addEventListener('keydown',onKey);
+    return()=>{document.removeEventListener('mousedown',onDown);window.removeEventListener('keydown',onKey);};
+  },[open]);
+
+  if(!activeProject)return null;
+
+  return(
+    <div ref={wrapRef} style={{marginTop:compact?0:10,marginBottom:compact?16:0,position:'relative'}}>
+      <motion.button
+        type="button"
+        disabled={!canSwitch}
+        aria-label="Switch production"
+        aria-haspopup={canSwitch?'listbox':undefined}
+        aria-expanded={canSwitch?open:undefined}
+        whileTap={canSwitch?{scale:0.985}:{}}
+        onClick={()=>{if(canSwitch)setOpen(o=>!o);}}
+        style={{
+          width:'100%',
+          display:'flex',
+          alignItems:'center',
+          gap:compact?10:9,
+          padding:compact?'10px 12px':'8px 10px',
+          borderRadius:compact?12:10,
+          background:open?'#161619':'#121214',
+          border:open?'1px solid rgba(255,179,71,0.38)':'1px solid #222226',
+          cursor:canSwitch?'pointer':'default',
+          textAlign:'left',
+          transition:'background 0.15s ease, border-color 0.15s ease',
+          boxShadow:open?'0 0 0 1px rgba(255,179,71,0.08)':'none',
+        }}
+      >
+        <div style={{width:compact?30:26,height:compact?30:26,borderRadius:compact?8:7,background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:compact?11:10,fontWeight:800,fontFamily:'Manrope,sans-serif',flexShrink:0}}>
+          {getInitials(activeProject.name)}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:compact?10:9,color:T.faint,fontFamily:'Manrope,sans-serif',lineHeight:1.1}}>Production</div>
+          <div style={{fontSize:compact?13:12,fontWeight:600,color:T.cream,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:compact?2:1}}>{activeProject.name}</div>
+        </div>
+        {canSwitch&&<ChevronsUpDown size={compact?14:13} style={{color:open?'#FFC45C':T.faint,flexShrink:0,transition:'color 0.15s ease'}}/>}
+      </motion.button>
+
+      <AnimatePresence>
+        {open&&canSwitch&&(
+          <motion.div
+            role="listbox"
+            aria-label="Productions"
+            initial={{opacity:0,y:-8,scale:0.96,filter:'blur(3px)'}}
+            animate={{opacity:1,y:0,scale:1,filter:'blur(0px)'}}
+            exit={{opacity:0,y:-6,scale:0.96,filter:'blur(2px)'}}
+            transition={{type:'spring',stiffness:460,damping:32,mass:0.8}}
+            style={{
+              position:'absolute',
+              top:'calc(100% + 6px)',
+              left:0,
+              right:0,
+              zIndex:80,
+              background:'#0F0F11',
+              border:'1px solid #242428',
+              borderRadius:12,
+              padding:6,
+              boxShadow:'0 20px 48px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',
+              maxHeight:240,
+              overflowY:'auto',
+              transformOrigin:'top center',
+              fontFamily:'Manrope,sans-serif',
+            }}
+          >
+            <div style={{fontSize:9.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'#71717A',padding:'4px 8px 6px'}}>
+              Switch production
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:2}}>
+              {projects.map(pr=>{
+                const isActive=pr.id===currentId;
+                return(
+                  <motion.button
+                    key={pr.id}
+                    type="button"
+                    role="option"
+                    aria-selected={isActive}
+                    whileHover={{backgroundColor:isActive?'rgba(255,179,71,0.14)':'#17171B'}}
+                    whileTap={{scale:0.985}}
+                    onClick={()=>{
+                      setOpen(false);
+                      if(pr.id!==currentId)onSelectProject?.(pr.id);
+                    }}
+                    style={{
+                      width:'100%',
+                      display:'flex',
+                      alignItems:'center',
+                      gap:8,
+                      padding:'7px 8px',
+                      borderRadius:8,
+                      border:isActive?'1px solid rgba(255,179,71,0.22)':'1px solid transparent',
+                      background:isActive?'rgba(255,179,71,0.10)':'transparent',
+                      color:isActive?T.cream:'#D4D4D8',
+                      fontSize:12,
+                      fontWeight:isActive?600:500,
+                      fontFamily:'Manrope,sans-serif',
+                      textAlign:'left',
+                      cursor:'pointer',
+                      transition:'color 0.12s ease',
+                    }}
+                  >
+                    <span style={{
+                      width:20,
+                      height:20,
+                      borderRadius:6,
+                      background:isActive?'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)':'#1A1A1E',
+                      border:isActive?'none':'1px solid #2A2A30',
+                      color:isActive?'#0A0A0A':'#A1A1AA',
+                      display:'inline-flex',
+                      alignItems:'center',
+                      justifyContent:'center',
+                      fontSize:9,
+                      fontWeight:800,
+                      flexShrink:0,
+                    }}>
+                      {getInitials(pr.name)}
+                    </span>
+                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{pr.name}</span>
+                    {isActive&&<Check size={13} style={{color:'#FFC45C',flexShrink:0}}/>}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 function Sidebar({view,setView,onSignOut,userEmail,projects=[],currentId,onSelectProject,onClearProject}){
   const{t}=useLang();
   const byId = Object.fromEntries(NAV.map(n=>[n.id,n]));
   const activeProject = projects.find(p=>p.id===currentId);
-  const projectInitials = activeProject?.name
-    ? activeProject.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')
-    : 'PR';
   return(
     <aside aria-label="Workspace sidebar" style={{width:224,height:'100svh',background:'#0A0A0A',borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden'}}>
       <div style={{padding:'20px 18px 16px',borderBottom:`1px solid ${T.line}`,flexShrink:0}}>
@@ -1714,28 +1853,12 @@ function Sidebar({view,setView,onSignOut,userEmail,projects=[],currentId,onSelec
               );
             })}
             {groupIdx===0 && activeProject && (
-              <div style={{marginTop:10,position:'relative'}}>
-                <div style={{display:'flex',alignItems:'center',gap:9,padding:'8px 10px',borderRadius:10,background:'#121214',border:'1px solid #222226'}}>
-                  <div style={{width:26,height:26,borderRadius:7,background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,fontFamily:'Manrope,sans-serif',flexShrink:0}}>
-                    {projectInitials}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',lineHeight:1.1}}>Production</div>
-                    <div style={{fontSize:12,fontWeight:600,color:T.cream,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:1}}>{activeProject.name}</div>
-                  </div>
-                  <ChevronsUpDown size={13} style={{color:T.faint,flexShrink:0}}/>
-                </div>
-                {projects.length>1&&(
-                  <select
-                    aria-label="Switch production"
-                    value={currentId||''}
-                    onChange={e=>{if(e.target.value)onSelectProject?.(e.target.value);}}
-                    style={{position:'absolute',inset:0,opacity:0,cursor:'pointer',width:'100%',height:'100%'}}
-                  >
-                    {projects.map(pr=><option key={pr.id} value={pr.id}>{pr.name}</option>)}
-                  </select>
-                )}
-              </div>
+              <ProductionSwitcher
+                projects={projects}
+                currentId={currentId}
+                activeProject={activeProject}
+                onSelectProject={onSelectProject}
+              />
             )}
           </div>
         ))}
@@ -2242,7 +2365,7 @@ function MobileNav({view,setView,onSignOut,userEmail,projects=[],currentId,onSel
                         aria-label="Switch production"
                         value={currentId||''}
                         onChange={e=>{if(e.target.value){onSelectProject?.(e.target.value);setSheetOpen(false);}}}
-                        style={{position:'absolute',inset:0,opacity:0,cursor:'pointer',width:'100%',height:'100%',fontSize:16}}
+                        style={{position:'absolute',inset:0,opacity:0,cursor:'pointer',width:'100%',height:'100%',fontSize:16,backgroundColor:'#121214',color:T.cream,colorScheme:'dark'}}
                       >
                         {projects.map(pr=><option key={pr.id} value={pr.id}>{pr.name}</option>)}
                       </select>
