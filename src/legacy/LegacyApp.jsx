@@ -24,6 +24,7 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
   Clapperboard,
@@ -40,7 +41,9 @@ import {
   LayoutDashboard,
   LayoutGrid,
   List,
+  LogOut,
   MapPin,
+  Menu,
   MessageSquare,
   MoreHorizontal,
   Pencil,
@@ -1543,7 +1546,7 @@ const StatCard=({label,value,sub,accent,badge,featured,onClick})=>(
       {badge&&<span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'#6E6D69'}}>{badge}</span>}
     </div>
     <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:accent||T.cream,fontWeight:600,letterSpacing:'-0.02em',wordBreak:'break-word'}}>{value}</div>
-    <div style={{fontSize:11,color:'#6E6D69',fontFamily:'Manrope,sans-serif',marginTop:6}}>{sub}</div>
+    {sub!=null&&sub!==''&&<div style={{fontSize:11,color:'#6E6D69',fontFamily:'Manrope,sans-serif',marginTop:6}}>{sub}</div>}
   </motion.div>
 );
 function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
@@ -1594,7 +1597,7 @@ function FeedbackButton({user,view,mobile}){
       whileTap={{scale:0.97}}
       transition={{duration:DURATION.fast,ease:EASE_OUT}}
       onClick={()=>setOpen(true)}
-      style={{position:'fixed',right:18,bottom:mobile?66:18,zIndex:55,background:'#141416',color:T.cream,border:'1px solid #26262B',borderRadius:9999,padding:'9px 15px',fontSize:12,fontWeight:600,cursor:'pointer',boxShadow:'0 8px 24px rgba(0,0,0,0.55)',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}
+      style={{position:'fixed',right:18,bottom:mobile?'calc(76px + env(safe-area-inset-bottom))':18,zIndex:55,background:'#141416',color:T.cream,border:'1px solid #26262B',borderRadius:9999,padding:'9px 15px',fontSize:12,fontWeight:600,cursor:'pointer',boxShadow:'0 8px 24px rgba(0,0,0,0.55)',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}
     >
       <MessageSquare size={13} style={{color:'#F5C451'}}/>
       <span>Feedback</span>
@@ -1754,7 +1757,119 @@ function Sidebar({view,setView,onSignOut,userEmail,projects=[],currentId,onSelec
 }
 function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,onSearchChange,userEmail,onAskNko,askOpen,isProducerActive,otherActiveCount,isOwner,liveActivityText}){
   const{t}=useLang();
+  const mob=useIsMobile();
+  const[menuOpen,setMenuOpen]=useState(false);
+  const menuRef=useRef(null);
   const initial = userEmail ? userEmail.charAt(0).toUpperCase() : 'N';
+
+  useEffect(()=>{
+    if(!menuOpen)return;
+    const onDown=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setMenuOpen(false);};
+    const onKey=e=>{if(e.key==='Escape')setMenuOpen(false);};
+    document.addEventListener('mousedown',onDown);
+    window.addEventListener('keydown',onKey);
+    return()=>{document.removeEventListener('mousedown',onDown);window.removeEventListener('keydown',onKey);};
+  },[menuOpen]);
+
+  useEffect(()=>{
+    if(!mob)setMenuOpen(false);
+  },[mob]);
+
+  if(mob){
+    const showSearch=(view==='dashboard'||view==='productions'||view==='overview')&&typeof onSearchChange==='function';
+    return(
+      <div style={{background:'#0A0A0A',borderBottom:'1px solid #1E1E1E',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,position:'relative',zIndex:40}}>
+        {/* Left side: Search bar (or Back + Production selector on sub-views) */}
+        <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
+          {showSearch?(
+            <div style={{position:'relative',width:'100%'}}>
+              <Search size={14} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
+              <input
+                type="search"
+                aria-label="Search productions"
+                value={searchQuery||''}
+                onChange={e=>onSearchChange(e.target.value)}
+                placeholder="Search productions"
+                style={{width:'100%',background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'9px 12px 9px 34px',color:T.cream,fontSize:16,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+              />
+            </div>
+          ):(
+            <>
+              <Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')} style={{flexShrink:0}}>{t('back')}</Btn>
+              <Sel aria-label="Select production" value={currentId||''} onChange={e=>onSelect(e.target.value||null)} style={{flex:1,minWidth:0,background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'8px 10px',color:T.dim,fontSize:13}}>
+                <option value="">{t('selectProduction')}</option>
+                {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+              </Sel>
+            </>
+          )}
+        </div>
+
+        {/* Right side: Hamburger menu icon */}
+        <div ref={menuRef} style={{position:'relative',flexShrink:0}}>
+          <motion.button
+            type="button"
+            aria-label="Toggle header actions menu"
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+            whileTap={{scale:0.94}}
+            onClick={()=>setMenuOpen(o=>!o)}
+            style={{width:38,height:38,borderRadius:10,background:menuOpen?'#1A1A1E':'#121214',border:menuOpen?'1px solid #34343B':'1px solid #222226',color:T.cream,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+          >
+            {menuOpen?<X size={17}/>:<Menu size={17}/>}
+          </motion.button>
+
+          <AnimatePresence>
+            {menuOpen&&(
+              <motion.div
+                role="menu"
+                initial={{opacity:0,y:-6,scale:0.96}}
+                animate={{opacity:1,y:0,scale:1}}
+                exit={{opacity:0,y:-6,scale:0.96}}
+                transition={{duration:0.16,ease:EASE_OUT}}
+                style={{position:'absolute',top:'calc(100% + 8px)',right:0,minWidth:236,background:'#0F0F11',border:'1px solid #242428',borderRadius:14,padding:'12px 14px',boxShadow:'0 20px 50px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.04)',zIndex:90,display:'flex',flexDirection:'column',gap:12}}
+              >
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+                  <LangToggle compact/>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <button
+                      type="button"
+                      aria-label="Notifications"
+                      onClick={()=>{setMenuOpen(false);onCreate?.();}}
+                      title={t('newBtn')}
+                      style={{width:34,height:34,borderRadius:'50%',background:'#141416',border:'1px solid #26262B',color:T.dim,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+                    >
+                      <Bell size={15}/>
+                    </button>
+                    <div
+                      title={userEmail||''}
+                      style={{width:34,height:34,borderRadius:'50%',background:'#1C1C1E',border:'1px solid #2C2C2E',color:T.cream,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif'}}
+                    >
+                      {initial}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{height:1,background:'#1E1E22'}}/>
+
+                <motion.button
+                  type="button"
+                  aria-expanded={!!askOpen}
+                  aria-haspopup="dialog"
+                  whileTap={{scale:0.98}}
+                  onClick={()=>{setMenuOpen(false);onAskNko?.();}}
+                  style={{width:'100%',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,background:'linear-gradient(135deg, #FFF8EA 0%, #FFE4B0 100%)',color:'#111111',border:'1px solid rgba(255,224,160,0.65)',borderRadius:9999,padding:'8px 16px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',boxShadow:'0 0 18px rgba(255,179,71,0.28)'}}
+                >
+                  <Sparkles size={13}/>
+                  <span>Ask NKÒ</span>
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  }
+
   return(
     <div style={{background:'#0A0A0A',borderBottom:'1px solid #1E1E1E',padding:'12px 28px',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
       {view!=='dashboard'&&view!=='productions'&&view!=='overview'&&<Btn variant="ghost" size="sm" onClick={()=>setView('dashboard')}>{t('back')}</Btn>}
@@ -2010,12 +2125,183 @@ function AskNkoPanel({open,onClose,userEmail,projects=[],budgetItems=[],advances
     </AnimatePresence>
   );
 }
-function MobileNav({view,setView}){
+const MOBILE_PRIMARY_NAV=['dashboard','productions','budgets','breakdown'];
+function isNavItemActive(id,view,currentId){
+  if(id==='overview')return view==='overview'||(view==='dashboard'&&Boolean(currentId));
+  if(id==='dashboard')return view==='dashboard'&&!currentId;
+  return view===id;
+}
+function MobileNav({view,setView,onSignOut,userEmail,projects=[],currentId,onSelectProject,onClearProject}){
   const{t}=useLang();
+  const[sheetOpen,setSheetOpen]=useState(false);
+  const byId=Object.fromEntries(NAV.map(n=>[n.id,n]));
+  const activeProject=projects.find(p=>p.id===currentId);
+  const projectInitials=activeProject?.name
+    ? activeProject.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')
+    : 'PR';
+  const go=id=>{
+    if(id==='dashboard'||id==='productions')onClearProject?.();
+    setView(id);
+    setSheetOpen(false);
+  };
+  const moreActive=!MOBILE_PRIMARY_NAV.some(id=>isNavItemActive(id,view,currentId));
+
+  useEffect(()=>{
+    if(!sheetOpen)return;
+    const onKey=e=>{if(e.key==='Escape')setSheetOpen(false);};
+    const prevOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    window.addEventListener('keydown',onKey);
+    return()=>{window.removeEventListener('keydown',onKey);document.body.style.overflow=prevOverflow;};
+  },[sheetOpen]);
+
+  const tabStyle=on=>({flex:1,minWidth:0,position:'relative',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,padding:'9px 2px 8px',border:'none',background:'transparent',color:on?T.cream:T.faint,fontFamily:'Manrope,sans-serif',fontSize:10,fontWeight:on?600:500,cursor:'pointer',WebkitTapHighlightColor:'transparent'});
+
   return(
-    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:50,background:T.panel,borderTop:`1px solid ${T.line}`,display:'flex',overflowX:'auto'}}>
-      {NAV.map(n=>{const on=view===n.id;const lbl=t(NAV_KEY[n.id]);return<button key={n.id} onClick={()=>setView(n.id)} style={{flex:'0 0 auto',padding:'8px 12px 6px',border:'none',background:on?T.goldGlow:'transparent',color:on?T.gold:T.dim,display:'flex',flexDirection:'column',alignItems:'center',gap:2,fontSize:9,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',cursor:'pointer'}}><span style={{fontSize:18}}>{n.e}</span>{lbl.split(' ')[0]}</button>;})}
-    </div>
+    <>
+      <nav
+        aria-label="Workspace sections"
+        style={{position:'fixed',bottom:0,left:0,right:0,zIndex:60,background:'rgba(10,10,10,0.94)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',borderTop:'1px solid #1E1E22',paddingBottom:'env(safe-area-inset-bottom)',display:'flex',alignItems:'stretch'}}
+      >
+        {MOBILE_PRIMARY_NAV.map(id=>{
+          const n=byId[id];
+          if(!n)return null;
+          const on=isNavItemActive(id,view,currentId);
+          const Icon=NAV_ICON[id]||LayoutDashboard;
+          return(
+            <motion.button key={id} type="button" whileTap={{scale:0.94}} onClick={()=>go(id)} aria-current={on?'page':undefined} style={tabStyle(on)}>
+              {on&&<motion.span layoutId="nko-mobile-nav-indicator" transition={{type:'spring',stiffness:500,damping:38}} style={{position:'absolute',top:0,left:'28%',right:'28%',height:2,borderRadius:2,background:'linear-gradient(90deg, #FFC45C 0%, #F5A623 100%)'}}/>}
+              <Icon size={18} strokeWidth={on?2:1.75} style={{color:on?'#FFC45C':T.faint}}/>
+              <span style={{maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t(NAV_KEY[id])}</span>
+            </motion.button>
+          );
+        })}
+        <motion.button type="button" whileTap={{scale:0.94}} onClick={()=>setSheetOpen(true)} aria-haspopup="dialog" aria-expanded={sheetOpen} style={tabStyle(moreActive||sheetOpen)}>
+          {moreActive&&<motion.span layoutId="nko-mobile-nav-indicator" transition={{type:'spring',stiffness:500,damping:38}} style={{position:'absolute',top:0,left:'28%',right:'28%',height:2,borderRadius:2,background:'linear-gradient(90deg, #FFC45C 0%, #F5A623 100%)'}}/>}
+          <Menu size={18} strokeWidth={moreActive?2:1.75} style={{color:moreActive?'#FFC45C':T.faint}}/>
+          <span>More</span>
+        </motion.button>
+      </nav>
+
+      <AnimatePresence>
+        {sheetOpen&&(
+          <motion.div
+            key="nko-mobile-nav-sheet"
+            initial={{opacity:0}}
+            animate={{opacity:1}}
+            exit={{opacity:0}}
+            transition={{duration:0.2,ease:'easeOut'}}
+            onClick={()=>setSheetOpen(false)}
+            style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.62)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',alignItems:'flex-end'}}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
+              onClick={e=>e.stopPropagation()}
+              initial={{y:'100%'}}
+              animate={{y:0}}
+              exit={{y:'100%'}}
+              transition={{type:'spring',stiffness:380,damping:38,mass:0.9}}
+              drag="y"
+              dragConstraints={{top:0,bottom:0}}
+              dragElastic={{top:0,bottom:0.4}}
+              onDragEnd={(e,info)=>{if(info.offset.y>90||info.velocity.y>600)setSheetOpen(false);}}
+              style={{width:'100%',maxHeight:'86svh',background:'#0F0F11',borderTop:'1px solid #242428',borderTopLeftRadius:20,borderTopRightRadius:20,boxShadow:'0 -24px 60px rgba(0,0,0,0.7)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif',paddingBottom:'env(safe-area-inset-bottom)'}}
+            >
+              {/* Grab handle + header */}
+              <div style={{flexShrink:0,padding:'10px 18px 12px',borderBottom:'1px solid #1E1E22'}}>
+                <div style={{width:36,height:4,borderRadius:4,background:'#2A2A2F',margin:'0 auto 12px'}}/>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                  <NkoLogo height={20}/>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <LangToggle compact/>
+                    <button type="button" aria-label="Close menu" onClick={()=>setSheetOpen(false)} style={{width:32,height:32,borderRadius:9,background:'#141416',border:'1px solid #26262B',color:'#A1A1AA',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <X size={15}/>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{flex:1,overflowY:'auto',padding:'14px 14px 8px',WebkitOverflowScrolling:'touch'}}>
+                {/* Production switcher */}
+                {activeProject&&(
+                  <div style={{position:'relative',marginBottom:16}}>
+                    <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:12,background:'#121214',border:'1px solid #222226'}}>
+                      <div style={{width:30,height:30,borderRadius:8,background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,flexShrink:0}}>
+                        {projectInitials}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:10,color:T.faint,lineHeight:1.1}}>Production</div>
+                        <div style={{fontSize:13,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:2}}>{activeProject.name}</div>
+                      </div>
+                      {projects.length>1&&<ChevronsUpDown size={14} style={{color:T.faint,flexShrink:0}}/>}
+                    </div>
+                    {projects.length>1&&(
+                      <select
+                        aria-label="Switch production"
+                        value={currentId||''}
+                        onChange={e=>{if(e.target.value){onSelectProject?.(e.target.value);setSheetOpen(false);}}}
+                        style={{position:'absolute',inset:0,opacity:0,cursor:'pointer',width:'100%',height:'100%',fontSize:16}}
+                      >
+                        {projects.map(pr=><option key={pr.id} value={pr.id}>{pr.name}</option>)}
+                      </select>
+                    )}
+                  </div>
+                )}
+
+                {/* Grouped navigation (mirrors desktop sidebar) */}
+                {SIDEBAR_GROUPS.map(group=>(
+                  <div key={group.label} style={{marginBottom:14}}>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color:T.faint,padding:'0 6px 8px'}}>{group.label}</div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:6}}>
+                      {group.ids.map(id=>{
+                        const n=byId[id];
+                        if(!n)return null;
+                        const on=isNavItemActive(id,view,currentId);
+                        const Icon=NAV_ICON[id]||LayoutDashboard;
+                        return(
+                          <motion.button
+                            key={id}
+                            type="button"
+                            whileTap={{scale:0.97}}
+                            onClick={()=>go(id)}
+                            aria-current={on?'page':undefined}
+                            style={{display:'flex',alignItems:'center',gap:9,padding:'11px 12px',borderRadius:11,border:on?'1px solid rgba(255,179,71,0.28)':'1px solid #1E1E22',background:on?'linear-gradient(90deg, rgba(255,179,71,0.12) 0%, rgba(255,255,255,0.03) 100%)':'#121214',color:on?T.cream:T.dim,fontFamily:'Manrope,sans-serif',fontSize:12.5,fontWeight:on?600:500,textAlign:'left',cursor:'pointer',minWidth:0}}
+                          >
+                            <Icon size={15} strokeWidth={1.75} style={{color:on?'#FFC45C':T.faint,flexShrink:0}}/>
+                            <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t(NAV_KEY[id])}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Account footer */}
+              <div style={{flexShrink:0,padding:'12px 14px 14px',borderTop:'1px solid #1E1E22',display:'flex',alignItems:'center',gap:10}}>
+                <div style={{width:34,height:34,borderRadius:'50%',background:T.hi,border:`1px solid ${T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:T.cream,fontWeight:700,flexShrink:0}}>
+                  {userEmail?.charAt(0).toUpperCase()||'?'}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,color:T.cream,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t('studio')}</div>
+                  <div style={{fontSize:10.5,color:T.dim,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={()=>{setSheetOpen(false);onSignOut?.();}}
+                  style={{display:'inline-flex',alignItems:'center',gap:6,background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 12px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',flexShrink:0}}
+                >
+                  <LogOut size={13}/>
+                  <span>{t('signOut')}</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -6627,7 +6913,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
           exit={{opacity:0}}
           transition={{duration:0.18,ease:'easeOut'}}
           onClick={()=>{if(state!=='reading'&&state!=='analyzing')onClose?.();}}
-          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
         >
           <motion.div
             onClick={e=>e.stopPropagation()}
@@ -7247,7 +7533,9 @@ function ProductionSpendBreakdownPanel({project,items=[],advances=[],reconEntrie
   );
 }
 
-function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
+function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,defaultSceneNumber=1}){
+  const mob=useIsMobile();
+  const isEdit=Boolean(initialScene);
   const[sceneNum,setSceneNum]=useState(String(defaultSceneNumber));
   const[location,setLocation]=useState('');
   const[intExt,setIntExt]=useState('INT');
@@ -7259,15 +7547,25 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
 
   useEffect(()=>{
     if(!open)return;
-    setSceneNum(String(defaultSceneNumber));
-    setLocation('');
-    setIntExt('INT');
-    setDayNight('DAY');
-    setCharsInput('');
-    setPages8(1);
-    setSceneInfo('');
+    if(initialScene){
+      setSceneNum(String(initialScene.sceneNumber||defaultSceneNumber));
+      setLocation(sceneLoc(initialScene)||'');
+      setIntExt(String(initialScene.intExt||'INT').toUpperCase());
+      setDayNight(String(initialScene.dayNight||'DAY').toUpperCase());
+      setCharsInput((initialScene.cast||[]).join(', '));
+      setPages8(Math.max(1,Number(initialScene.pages8)||1));
+      setSceneInfo(initialScene.synopsis||'');
+    }else{
+      setSceneNum(String(defaultSceneNumber));
+      setLocation('');
+      setIntExt('INT');
+      setDayNight('DAY');
+      setCharsInput('');
+      setPages8(1);
+      setSceneInfo('');
+    }
     setSubmitting(false);
-  },[open,defaultSceneNumber]);
+  },[open,defaultSceneNumber,initialScene]);
 
   useEffect(()=>{
     if(!open)return;
@@ -7285,7 +7583,7 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
     if(submitting)return;
     setSubmitting(true);
     try{
-      await onAddScene({
+      const payload={
         sceneNumber:sceneNum.trim()||String(defaultSceneNumber),
         heading:previewHeading||`${intExt}. UNTITLED - ${dayNight}`,
         intExt,
@@ -7294,8 +7592,12 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
         pages8:Math.max(1,Number(pages8)||1),
         cast:parsedCast,
         synopsis:sceneInfo.trim(),
-        props:[],vehicles:[],wardrobe:[],specialEquip:[],
-      });
+      };
+      if(isEdit&&onUpdateScene){
+        await onUpdateScene(initialScene.id,payload);
+      }else{
+        await onAddScene({...payload,props:[],vehicles:[],wardrobe:[],specialEquip:[]});
+      }
       onClose();
     }finally{
       setSubmitting(false);
@@ -7311,7 +7613,7 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
           exit={{opacity:0}}
           transition={{duration:0.18,ease:'easeOut'}}
           onClick={()=>{if(!submitting)onClose();}}
-          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:mob?12:20}}
         >
           <motion.form
             onSubmit={handleSubmit}
@@ -7320,14 +7622,14 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:500,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:500,maxHeight:'90vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
           >
             {/* Header */}
-            <div style={{padding:'20px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+            <div style={{padding:mob?'18px 18px 12px':'20px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
               <div>
-                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Add scene</h3>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>{isEdit?'Edit scene':'Add scene'}</h3>
                 <div style={{fontSize:12,color:'#71717A',marginTop:4,lineHeight:1.45}}>
-                  Add a scene that isn&apos;t in your uploaded script, or build a breakdown by hand.
+                  {isEdit?'Update the scene details, characters, or script pages.':'Add a scene that isn\'t in your uploaded script, or build a breakdown by hand.'}
                 </div>
               </div>
               <button type="button" aria-label="Close" onClick={()=>{if(!submitting)onClose();}} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
@@ -7336,7 +7638,7 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
             </div>
 
             {/* Body */}
-            <div style={{padding:'6px 24px 20px',display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{padding:mob?'6px 18px 18px':'6px 24px 20px',display:'flex',flexDirection:'column',gap:14,overflowY:'auto',flex:1}}>
               <div style={{display:'grid',gridTemplateColumns:'88px 1fr',gap:12}}>
                 <div>
                   <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Scene</label>
@@ -7348,7 +7650,7 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
                 </div>
               </div>
 
-              <div style={{display:'grid',gridTemplateColumns:'1.35fr 1fr',gap:12}}>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1.35fr 1fr',gap:12}}>
                 <div>
                   <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>INT/EXT</label>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6}}>
@@ -7403,7 +7705,7 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
             </div>
 
             {/* Footer */}
-            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10}}>
+            <div style={{padding:mob?'12px 18px 16px':'14px 24px 18px',borderTop:'1px solid #1C1C20',display:mob?'grid':'flex',gridTemplateColumns:mob?'1fr 1fr':undefined,justifyContent:'flex-end',gap:10,flexShrink:0}}>
               <button type="button" onClick={()=>{if(!submitting)onClose();}} style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>Cancel</button>
               <motion.button
                 type="submit"
@@ -7413,10 +7715,513 @@ function AddSceneModal({open,onClose,onAddScene,defaultSceneNumber=1}){
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
               >
-                {submitting?'Adding...':'Add Scene'}
+                {submitting?(isEdit?'Saving...':'Adding...'):(isEdit?'Save Changes':'Add Scene')}
               </motion.button>
             </div>
           </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClose,onPrev,onNext,onSaveScene,onConfirmAdd}){
+  const mob=useIsMobile();
+  const[isEditing,setIsEditing]=useState(false);
+  const[saving,setSaving]=useState(false);
+  const[sceneNum,setSceneNum]=useState('');
+  const[location,setLocation]=useState('');
+  const[intExt,setIntExt]=useState('INT');
+  const[dayNight,setDayNight]=useState('DAY');
+  const[charsInput,setCharsInput]=useState('');
+  const[pages8,setPages8]=useState(1);
+  const[sceneInfo,setSceneInfo]=useState('');
+
+  const canPrev=!isNewScene&&!isEditing&&sceneIndex>0;
+  const canNext=!isNewScene&&!isEditing&&sceneIndex>=0&&sceneIndex<totalScenes-1;
+  const sceneKey=scene?(isNewScene?'__new__':(scene.id||scene.sceneNumber)):null;
+
+  useEffect(()=>{
+    setIsEditing(false);
+    setSaving(false);
+    if(!scene)return;
+    setSceneNum(String(scene.sceneNumber||''));
+    setLocation(sceneLoc(scene)||'');
+    setIntExt(String(scene.intExt||'INT').toUpperCase());
+    setDayNight(String(scene.dayNight||'DAY').toUpperCase());
+    setCharsInput((scene.cast||[]).join(', '));
+    setPages8(Math.max(1,Number(scene.pages8)||1));
+    setSceneInfo(scene.synopsis||'');
+  // Only reset edit mode and form inputs when switching to a different scene
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[sceneKey]);
+
+  useEffect(()=>{
+    if(!scene)return;
+    const onKey=e=>{
+      if(e.key==='Escape'){
+        if(isEditing&&!saving)setIsEditing(false);
+        else if(!saving)onClose();
+      }
+      else if(e.key==='ArrowLeft'&&canPrev)onPrev();
+      else if(e.key==='ArrowRight'&&canNext)onNext();
+    };
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[scene,isEditing,saving,canPrev,canNext,onClose,onPrev,onNext]);
+
+  const enterEditMode=()=>{
+    if(!scene)return;
+    setSceneNum(String(scene.sceneNumber||''));
+    setLocation(sceneLoc(scene)||'');
+    setIntExt(String(scene.intExt||'INT').toUpperCase());
+    setDayNight(String(scene.dayNight||'DAY').toUpperCase());
+    setCharsInput((scene.cast||[]).join(', '));
+    setPages8(Math.max(1,Number(scene.pages8)||1));
+    setSceneInfo(scene.synopsis||'');
+    setIsEditing(true);
+  };
+
+  const trimmedLoc=location.trim();
+  const editPreviewHeading=trimmedLoc?`${intExt}. ${trimmedLoc.toUpperCase()} - ${dayNight}`:'';
+
+  const handleSaveEdit=async e=>{
+    if(e)e.preventDefault();
+    if(saving||!scene)return;
+    setSaving(true);
+    try{
+      const payload={
+        sceneNumber:sceneNum.trim()||String(scene.sceneNumber||1),
+        heading:editPreviewHeading||`${intExt}. UNTITLED - ${dayNight}`,
+        intExt,
+        location:trimmedLoc.toUpperCase(),
+        dayNight,
+        pages8:Math.max(1,Number(pages8)||1),
+        cast:charsInput.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean),
+        synopsis:sceneInfo.trim(),
+      };
+      if(onSaveScene)await onSaveScene(payload);
+      setIsEditing(false);
+    }finally{
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmAdd=async()=>{
+    if(saving||!scene||!onConfirmAdd)return;
+    setSaving(true);
+    try{
+      await onConfirmAdd(scene);
+    }finally{
+      setSaving(false);
+    }
+  };
+
+  const formatIntExt=val=>{
+    const u=String(val||'').trim().toUpperCase();
+    if(u==='INT')return'Interior';
+    if(u==='EXT')return'Exterior';
+    if(u==='INT/EXT'||u==='I/E')return'Interior / Exterior';
+    return val||'—';
+  };
+
+  const loc=scene?sceneLoc(scene):'';
+  const tod=scene&&scene.dayNight?String(scene.dayNight).toUpperCase():'';
+  const chars=scene?(scene.cast||[]):[];
+  const pagesText=scene&&Number(scene.pages8)>0
+    ?`${fmtPages8(scene.pages8)} ${Math.round(Number(scene.pages8))===8?'page':'pages'}`
+    :'—';
+  const synopsis=scene&&scene.synopsis?String(scene.synopsis).trim():'';
+  const displayIndex=sceneIndex>=0?sceneIndex+1:totalScenes;
+
+  return(
+    <AnimatePresence>
+      {scene&&(
+        <motion.div
+          key="scene-preview-backdrop"
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.22,ease:'easeOut'}}
+          onClick={onClose}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.58)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',justifyContent:'flex-end'}}
+        >
+          <motion.aside
+            role="dialog"
+            aria-label="Scene Preview"
+            onClick={e=>e.stopPropagation()}
+            initial={{x:'100%',opacity:0.75}}
+            animate={{x:0,opacity:1}}
+            exit={{x:'100%',opacity:0.75}}
+            transition={{type:'spring',stiffness:360,damping:34,mass:0.9}}
+            style={{width:'100%',maxWidth:mob?'100%':430,height:'100%',background:'#0F0F11',borderLeft:mob?'none':'1px solid #222226',boxShadow:'-24px 0 60px rgba(0,0,0,0.78)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1E1E22',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:14}}>
+                <motion.button
+                  type="button"
+                  aria-label="Close scene preview"
+                  whileHover={{scale:1.08,color:'#F5F5F0'}}
+                  whileTap={{scale:0.92}}
+                  onClick={onClose}
+                  style={{background:'none',border:'none',color:'#8E8E93',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+                >
+                  <X size={16}/>
+                </motion.button>
+                <span style={{fontSize:12,fontWeight:500,color:'#8E8E93',letterSpacing:'-0.01em',whiteSpace:'nowrap'}}>
+                  Scene {displayIndex} of {Math.max(totalScenes,1)}
+                </span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <motion.button
+                  type="button"
+                  aria-label="Previous scene"
+                  disabled={!canPrev}
+                  whileHover={canPrev?{scale:1.04,borderColor:'#3F3F46'}:{}}
+                  whileTap={canPrev?{scale:0.94}:{}}
+                  onClick={onPrev}
+                  style={{width:34,height:34,borderRadius:9,background:canPrev?'#18181B':'#131316',border:`1px solid ${canPrev?'#27272A':'#1E1E22'}`,color:canPrev?'#E4E4E7':'#3F3F46',cursor:canPrev?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 0.15s ease, border-color 0.15s ease'}}
+                >
+                  <ChevronLeft size={15}/>
+                </motion.button>
+                <motion.button
+                  type="button"
+                  aria-label="Next scene"
+                  disabled={!canNext}
+                  whileHover={canNext?{scale:1.04,borderColor:'#3F3F46'}:{}}
+                  whileTap={canNext?{scale:0.94}:{}}
+                  onClick={onNext}
+                  style={{width:34,height:34,borderRadius:9,background:canNext?'#18181B':'#131316',border:`1px solid ${canNext?'#27272A':'#1E1E22'}`,color:canNext?'#E4E4E7':'#3F3F46',cursor:canNext?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 0.15s ease, border-color 0.15s ease'}}
+                >
+                  <ChevronRight size={15}/>
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{flex:1,overflowY:'auto',padding:mob?'20px 18px':'24px 22px'}}>
+              <AnimatePresence mode="wait">
+                {isEditing?(
+                  <motion.form
+                    id="scene-preview-edit-form"
+                    key="scene-edit-mode"
+                    onSubmit={handleSaveEdit}
+                    initial={{opacity:0,y:6}}
+                    animate={{opacity:1,y:0}}
+                    exit={{opacity:0,y:-6}}
+                    transition={{duration:0.16,ease:EASE_OUT}}
+                    style={{display:'flex',flexDirection:'column',gap:14}}
+                  >
+                    <div style={{display:'grid',gridTemplateColumns:mob?'72px 1fr':'84px 1fr',gap:mob?10:12}}>
+                      <div>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Scene</label>
+                        <input type="text" value={sceneNum} onChange={e=>setSceneNum(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none',boxSizing:'border-box'}}/>
+                      </div>
+                      <div>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location</label>
+                        <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. Club Eclipse" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                      </div>
+                    </div>
+
+                    <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1.35fr 1fr',gap:12}}>
+                      <div>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>INT/EXT</label>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:6}}>
+                          {['INT','EXT','INT/EXT'].map(val=>{
+                            const active=intExt===val;
+                            return(
+                              <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'10px 4px',borderRadius:9,fontSize:10.5,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
+                                {val}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Day/Night</label>
+                        <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
+                          {['DAY','NIGHT','DAWN','DUSK'].map(t=><option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
+                        <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Characters</label>
+                        <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas.</span>
+                      </div>
+                      <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                    </div>
+
+                    <div>
+                      <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Script pages</label>
+                      <div style={{display:'flex',alignItems:'center',gap:14}}>
+                        <button type="button" aria-label="Decrease script pages" onClick={()=>setPages8(p=>Math.max(1,p-1))} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>−</button>
+                        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,fontWeight:600,color:T.cream,minWidth:20,textAlign:'center'}}>{pages8}</span>
+                        <button type="button" aria-label="Increase script pages" onClick={()=>setPages8(p=>p+1)} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+</button>
+                        <span style={{fontSize:11,color:'#71717A'}}>in eighths of a page</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
+                        <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene information</label>
+                        <span style={{fontSize:10.5,color:'#71717A'}}>Optional</span>
+                      </div>
+                      <textarea rows={4} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
+                    </div>
+
+                    <div style={{background:'#121214',border:'1px solid #1E1E22',borderRadius:10,padding:'10px 14px',fontSize:11.5}}>
+                      <span style={{color:'#71717A'}}>Heading preview: </span>
+                      <span style={{color:editPreviewHeading?T.cream:'#71717A',fontWeight:editPreviewHeading?600:400,fontFamily:'IBM Plex Mono,monospace'}}>{editPreviewHeading||'—'}</span>
+                    </div>
+                  </motion.form>
+                ):(
+                  <motion.div
+                    key={scene.id||scene.sceneNumber}
+                    initial={{opacity:0,y:6}}
+                    animate={{opacity:1,y:0}}
+                    exit={{opacity:0,y:-6}}
+                    transition={{duration:0.16,ease:EASE_OUT}}
+                  >
+                    <div>
+                      <div style={{fontSize:12,color:'#8E8E93',marginBottom:8,fontWeight:500}}>
+                        Scene {scene.sceneNumber||'—'}
+                      </div>
+                      <h3 style={{margin:0,fontSize:19,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.3,textTransform:'uppercase'}}>
+                        {scene.heading||'—'}
+                      </h3>
+                    </div>
+
+                    <div style={{height:1,background:'#1E1E22',margin:'20px 0'}}/>
+
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px 16px'}}>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Interior / exterior</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{formatIntExt(scene.intExt)}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Time of day</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{tod||'—'}</div>
+                      </div>
+                      <div style={{gridColumn:'1 / -1'}}>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Location</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{loc||'—'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Script pages</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{pagesText}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Characters</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{chars.length}</div>
+                      </div>
+                    </div>
+
+                    <div style={{height:1,background:'#1E1E22',margin:'22px 0'}}/>
+
+                    <div>
+                      <div style={{fontSize:12.5,fontWeight:600,color:'#F5F5F0',marginBottom:12}}>
+                        Characters in this scene
+                      </div>
+                      {chars.length>0?(
+                        <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                          {chars.map((name,idx)=>(
+                            <span
+                              key={`${name}-${idx}`}
+                              style={{background:'#161619',border:'1px solid #26262B',borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:500,color:'#E4E4E7',letterSpacing:'0.01em',textTransform:'uppercase'}}
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      ):(
+                        <div style={{fontSize:12.5,color:'#71717A'}}>No speaking characters in this scene.</div>
+                      )}
+                    </div>
+
+                    <div style={{marginTop:24}}>
+                      <div style={{fontSize:12.5,fontWeight:600,color:'#F5F5F0',marginBottom:10}}>
+                        Scene information
+                      </div>
+                      {synopsis?(
+                        <div style={{fontSize:13,lineHeight:1.6,color:'#D4D4D8',whiteSpace:'pre-wrap'}}>
+                          {synopsis}
+                        </div>
+                      ):(
+                        <div style={{fontSize:12.5,color:'#71717A'}}>No scene information added.</div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:mob?'12px 18px 16px':'14px 22px 18px',borderTop:'1px solid #1E1E22',background:'#0F0F11',display:'grid',gridTemplateColumns:isEditing||isNewScene?'1fr 1fr':'1fr',gap:10,flexShrink:0}}>
+              {isEditing?(
+                <>
+                  <motion.button
+                    type="button"
+                    disabled={saving}
+                    whileHover={{y:-1,borderColor:'#3F3F46'}}
+                    whileTap={{scale:0.98}}
+                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                    onClick={()=>setIsEditing(false)}
+                    style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                  >
+                    <span>Cancel</span>
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    disabled={saving}
+                    onClick={handleSaveEdit}
+                    whileHover={{y:-1}}
+                    whileTap={{scale:0.98}}
+                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                    style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+                  >
+                    <Check size={14}/>
+                    <span>{saving?'Saving...':'Save Changes'}</span>
+                  </motion.button>
+                </>
+              ):isNewScene?(
+                <>
+                  <motion.button
+                    type="button"
+                    disabled={saving}
+                    whileHover={{y:-1,borderColor:'#3F3F46'}}
+                    whileTap={{scale:0.98}}
+                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                    onClick={enterEditMode}
+                    style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                  >
+                    <Pencil size={13}/>
+                    <span>Edit</span>
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    disabled={saving}
+                    whileHover={{y:-1}}
+                    whileTap={{scale:0.98}}
+                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                    onClick={handleConfirmAdd}
+                    style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+                  >
+                    <Plus size={14}/>
+                    <span>{saving?'Adding...':'Add'}</span>
+                  </motion.button>
+                </>
+              ):(
+                <motion.button
+                  type="button"
+                  whileHover={{y:-1,borderColor:'#3F3F46'}}
+                  whileTap={{scale:0.98}}
+                  transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                  onClick={enterEditMode}
+                  style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                >
+                  <Pencil size={13}/>
+                  <span>Edit</span>
+                </motion.button>
+              )}
+            </div>
+          </motion.aside>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+function DeleteSceneModal({scene,onClose,onConfirm}){
+  const mob=useIsMobile();
+  const[deleting,setDeleting]=useState(false);
+
+  useEffect(()=>{
+    if(!scene)return;
+    setDeleting(false);
+    const onKey=e=>{if(e.key==='Escape'&&!deleting)onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[scene,deleting,onClose]);
+
+  const handleConfirm=async()=>{
+    if(deleting||!scene)return;
+    setDeleting(true);
+    try{
+      await onConfirm(scene);
+    }finally{
+      setDeleting(false);
+    }
+  };
+
+  const title=scene?.sceneNumber?`Delete scene ${scene.sceneNumber}?`:'Delete scene?';
+  const heading=scene?.heading||'This scene';
+
+  return(
+    <AnimatePresence>
+      {scene&&(
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={()=>{if(!deleting)onClose();}}
+          style={{position:'fixed',inset:0,zIndex:1060,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:mob?14:20}}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.92,y:16,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.94,y:10,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:440,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:mob?'18px 18px 6px':'22px 24px 8px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+              <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>
+                {title}
+              </h3>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={()=>{if(!deleting)onClose();}}
+                style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+              >
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:mob?'6px 18px 18px':'6px 24px 20px',fontSize:13,lineHeight:1.55,color:'#A1A1AA',wordBreak:'break-word'}}>
+              {heading} will be removed from the breakdown. This can&apos;t be undone.
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:mob?'12px 18px 16px':'14px 24px 18px',borderTop:'1px solid #1C1C20',display:mob?'grid':'flex',gridTemplateColumns:mob?'1fr 1fr':undefined,justifyContent:'flex-end',gap:10}}>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={()=>{if(!deleting)onClose();}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:deleting?'default':'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="button"
+                disabled={deleting}
+                whileHover={{y:-1}}
+                whileTap={{scale:0.98}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                onClick={handleConfirm}
+                style={{background:'linear-gradient(180deg, #EE7A5C 0%, #E06649 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:deleting?'wait':'pointer',boxShadow:'0 6px 20px rgba(224,107,82,0.28), inset 0 1px 0 rgba(255,255,255,0.22)'}}
+              >
+                {deleting?'Deleting...':'Delete scene'}
+              </motion.button>
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -7432,7 +8237,9 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const[charSearch,setCharSearch]=useState('');
   const[showUpload,setShowUpload]=useState(false);
   const[showAddScene,setShowAddScene]=useState(false);
+  const[pendingNewScene,setPendingNewScene]=useState(null);
   const[selectedScene,setSelectedScene]=useState(null);
+  const[deleteTargetScene,setDeleteTargetScene]=useState(null);
   if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
 
   const ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
@@ -7466,28 +8273,30 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const getSceneNumsForChar=name=>ps.filter(s=>(s.cast||[]).includes(name)).map(s=>s.sceneNumber);
   const clearFilters=()=>{setSearch('');setLocFilter('all');setIeFilter('all');setTimeFilter('all');setCharFilter('all');};
   const hasActiveFilters=Boolean(search||locFilter!=='all'||ieFilter!=='all'||timeFilter!=='all'||charFilter!=='all');
+  const selectedSceneIndex=selectedScene?ps.findIndex(s=>s.id===selectedScene.id):-1;
+  const activeSelectedScene=selectedSceneIndex>=0?ps[selectedSceneIndex]:selectedScene;
 
   return(
     <div>
       {/* Breadcrumb & Header */}
-      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint,marginBottom:8}}>
+      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?10:11,color:T.faint,marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
         Workspace <span style={{margin:'0 4px'}}>&gt;</span> Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Breakdown</span>
       </div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:22}}>
-        <div>
-          <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Script Breakdown</h2>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:mob?14:16,flexWrap:'wrap',marginBottom:mob?18:22}}>
+        <div style={{minWidth:0}}>
+          <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:mob?22:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Script Breakdown</h2>
           <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
             Review your scenes, characters and script pages.
           </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+        <div style={{display:mob?'grid':'flex',gridTemplateColumns:mob?'1fr 1fr':undefined,alignItems:'center',gap:8,flexWrap:'wrap',width:mob?'100%':'auto'}}>
           <motion.button
             type="button"
             whileHover={{y:-1}}
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>{setShowUpload(o=>!o);setShowAddScene(false);}}
-            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:mob?'11px 12px':'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
           >
             <Upload size={14}/>
             <span>Upload Script</span>
@@ -7498,7 +8307,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>{setShowAddScene(o=>!o);setShowUpload(false);}}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
           >
             <Plus size={14}/>
             <span>Add Scene</span>
@@ -7511,11 +8320,11 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         variants={staggerContainer(0.04, 0.02)}
         initial="hidden"
         animate="visible"
-        style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12,marginBottom:20}}
+        style={{display:'grid',gridTemplateColumns:mob?'repeat(3,minmax(0,1fr))':'repeat(auto-fit,minmax(190px,1fr))',gap:mob?8:12,marginBottom:mob?16:20}}
       >
-        <StatCard label="Total Scenes" value={ps.length} sub={ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`}/>
-        <StatCard label="Total Characters" value={castIdx.list.length} sub={castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`}/>
-        <StatCard label="Script Pages" value={totalPages8>0?fmtPages8(totalPages8):0} sub="Eighths of a page total"/>
+        <StatCard label={mob?'Scenes':'Total Scenes'} value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
+        <StatCard label={mob?'Characters':'Total Characters'} value={castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
+        <StatCard label={mob?'Pages':'Script Pages'} value={totalPages8>0?fmtPages8(totalPages8):0} sub={mob?undefined:'Eighths of a page total'}/>
       </motion.div>
 
       {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
@@ -7528,16 +8337,16 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
       <BreakdownUploader open={showUpload} onClose={()=>setShowUpload(false)} project={project} onApply={ns=>{onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})));setShowUpload(false);}} onSaveCharacter={onSaveCharacter}/>
 
-      <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={onAddScene} defaultSceneNumber={ps.length+1}/>
+      <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={sc=>{setPendingNewScene(sc);setSelectedScene(null);}} defaultSceneNumber={ps.length+1}/>
 
       {/* Main 2-Column Breakdown Grid */}
-      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(270px, 1fr)',gap:16,alignItems:'start',marginBottom:20}}>
+      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(270px, 1fr)',gap:mob?12:16,alignItems:'start',marginBottom:20}}>
         {/* Left Panel: Scenes */}
         <motion.div
           initial={{opacity:0,y:8}}
           animate={{opacity:1,y:0}}
           transition={{duration:DURATION.normal,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
         >
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Scenes</span>
@@ -7552,7 +8361,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               placeholder="Search Scenes, Characters or scene numbers"
               value={search}
               onChange={e=>setSearch(e.target.value)}
-              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:mob?'10px 12px 10px 34px':'8px 12px 8px 34px',color:T.cream,fontSize:mob?16:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
             />
           </div>
 
@@ -7577,12 +8386,67 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               type="button"
               disabled={!hasActiveFilters}
               onClick={clearFilters}
-              style={{background:'none',border:'none',color:hasActiveFilters?T.cream:T.faint,fontSize:11,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:hasActiveFilters?'pointer':'default',padding:'4px 6px'}}
+              style={{background:'none',border:'none',color:hasActiveFilters?T.cream:T.faint,fontSize:11,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:hasActiveFilters?'pointer':'default',padding:'4px 6px',gridColumn:mob?'1 / -1':'auto',justifySelf:mob?'end':'auto'}}
             >
               Clear
             </button>
           </div>
 
+          {mob?(
+            filtered.length===0?(
+              <div style={{padding:'28px 8px',textAlign:'center',color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif',lineHeight:1.5}}>
+                {ps.length===0
+                  ? 'No scenes yet. Tap "Upload Script" or "Add Scene" to build your breakdown.'
+                  : 'No scenes match your current search or filters.'}
+              </div>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {filtered.map(sc=>{
+                  const ie=String(sc.intExt||'').toUpperCase();
+                  const tod=String(sc.dayNight||'').toUpperCase();
+                  const todColor=tod==='NIGHT'?'#6BB0F5':tod==='DAY'?'#F5C451':'#D4D4D8';
+                  const chars=sc.cast||[];
+                  const charSummary=chars.length===0?'No characters':chars.slice(0,3).join(', ')+(chars.length>3?` +${chars.length-3}`:'');
+                  const isSelected=selectedScene?.id===sc.id;
+                  return(
+                    <div
+                      key={sc.id||sc.sceneNumber}
+                      role="button"
+                      tabIndex={0}
+                      onClick={()=>{setPendingNewScene(null);setSelectedScene(sc);}}
+                      onKeyDown={e=>{if(e.key==='Enter'){setPendingNewScene(null);setSelectedScene(sc);}}}
+                      style={{background:isSelected?'rgba(255,179,71,0.05)':'#121215',border:isSelected?'1px solid rgba(255,179,71,0.45)':'1px solid #1E1E22',borderRadius:12,padding:'12px 12px 12px 14px',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                    >
+                      <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+                        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,minWidth:22,paddingTop:1}}>{sc.sceneNumber}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12.5,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading||'—'}</div>
+                          <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 8px',marginTop:5,fontSize:10.5}}>
+                            <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#A1A1AA'}}>{ie||'—'}</span>
+                            <span style={{color:'#3F3F46'}}>·</span>
+                            <span style={{fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:todColor}}>{tod||'—'}</span>
+                            <span style={{color:'#3F3F46'}}>·</span>
+                            <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8'}}>{sc.pages8>0?`${fmtPages8(sc.pages8)} pg`:'—'}</span>
+                          </div>
+                          <div style={{fontSize:11,color:'#A1A1AA',marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                            {sceneLoc(sc)||'—'} <span style={{color:'#52525B'}}>—</span> {charSummary}
+                          </div>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:4,flexShrink:0}}>
+                          <button type="button" aria-label={`Inspect scene ${sc.sceneNumber}`} onClick={e=>{e.stopPropagation();setPendingNewScene(null);setSelectedScene(sc);}} style={{width:32,height:32,borderRadius:8,background:'#17171B',border:'1px solid #26262C',color:isSelected?'#F5C451':'#A1A1AA',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            <Eye size={14}/>
+                          </button>
+                          <button type="button" aria-label={`Delete scene ${sc.sceneNumber}`} onClick={e=>{e.stopPropagation();setDeleteTargetScene(sc);}} style={{width:32,height:32,borderRadius:8,background:'#17171B',border:'1px solid #26262C',color:'#A1A1AA',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            <Trash2 size={14}/>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ):(
           <div style={{overflowX:'auto'}}>
             <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:11.5}}>
               <thead>
@@ -7619,7 +8483,8 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     return (
                       <tr
                         key={sc.id || sc.sceneNumber}
-                        style={{borderBottom:'1px solid #151518',background:isSelected?'rgba(255,179,71,0.04)':'transparent',transition:'background 0.14s ease'}}
+                        onClick={()=>{setPendingNewScene(null);setSelectedScene(sc);}}
+                        style={{borderBottom:'1px solid #151518',background:isSelected?'rgba(255,179,71,0.04)':'transparent',transition:'background 0.14s ease',cursor:'pointer'}}
                         onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
                         onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background='transparent';}}
                       >
@@ -7632,10 +8497,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                         <td style={{padding:'10px 8px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',whiteSpace:'nowrap'}}>{sc.pages8 > 0 ? fmtPages8(sc.pages8) : '—'}</td>
                         <td style={{padding:'10px 0 10px 8px',textAlign:'right',whiteSpace:'nowrap'}}>
                           <span style={{display:'inline-flex',gap:8}}>
-                            <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={()=>setSelectedScene(isSelected?null:sc)} style={{background:'none',border:'none',cursor:'pointer',color:isSelected?'#F5C451':T.faint,padding:2}} title="Inspect scene">
+                            <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setPendingNewScene(null);setSelectedScene(isSelected?null:sc);}} style={{background:'none',border:'none',cursor:'pointer',color:isSelected?'#F5C451':T.faint,padding:2}} title="Inspect scene">
                               <Eye size={13}/>
                             </motion.button>
-                            <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={()=>onDeleteScene(sc.id)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Delete scene">
+                            <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setDeleteTargetScene(sc);}} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Delete scene">
                               <Trash2 size={13}/>
                             </motion.button>
                           </span>
@@ -7647,6 +8512,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               </tbody>
             </table>
           </div>
+          )}
         </motion.div>
 
         {/* Right Panel: Characters */}
@@ -7654,7 +8520,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           initial={{opacity:0,y:8}}
           animate={{opacity:1,y:0}}
           transition={{duration:DURATION.normal,delay:0.04,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
         >
           <div style={{marginBottom:12}}>
             <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Characters</div>
@@ -7671,7 +8537,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               placeholder="Search characters"
               value={charSearch}
               onChange={e=>setCharSearch(e.target.value)}
-              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:mob?'10px 12px 10px 34px':'8px 12px 8px 34px',color:T.cream,fontSize:mob?16:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
             />
           </div>
 
@@ -7680,7 +8546,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               {castIdx.list.length === 0 ? 'No characters in breakdown yet.' : 'No matching characters.'}
             </div>
           ) : (
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{display:'flex',flexDirection:'column',gap:mob?8:10}}>
               {visibleChars.map(c => {
                 const active = charFilter === c.name;
                 const scNums = getSceneNumsForChar(c.name);
@@ -7724,16 +8590,42 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         </motion.div>
       </div>
 
-      {selectedScene && (
-        <div style={{marginBottom:18}}>
-          <SceneCard scene={selectedScene} onDelete={id=>{onDeleteScene(id);setSelectedScene(null);}} onUpdate={onUpdateScene} index={0}/>
-        </div>
-      )}
+      <ScenePreviewDrawer
+        scene={pendingNewScene||activeSelectedScene}
+        sceneIndex={pendingNewScene?ps.length:selectedSceneIndex}
+        totalScenes={pendingNewScene?ps.length+1:ps.length}
+        isNewScene={Boolean(pendingNewScene)}
+        onClose={()=>{setPendingNewScene(null);setSelectedScene(null);}}
+        onPrev={()=>{if(!pendingNewScene&&selectedSceneIndex>0)setSelectedScene(ps[selectedSceneIndex-1]);}}
+        onNext={()=>{if(!pendingNewScene&&selectedSceneIndex>=0&&selectedSceneIndex<ps.length-1)setSelectedScene(ps[selectedSceneIndex+1]);}}
+        onSaveScene={async payload=>{
+          if(pendingNewScene){
+            setPendingNewScene(prev=>({...prev,...payload}));
+          }else if(activeSelectedScene){
+            await onUpdateScene(activeSelectedScene.id,payload);
+            setSelectedScene(prev=>prev?normalizeScene({...prev,...payload}):prev);
+          }
+        }}
+        onConfirmAdd={async sc=>{
+          const saved=await onAddScene(sc);
+          setPendingNewScene(null);
+          if(saved)setSelectedScene(saved);
+        }}
+      />
 
+      <DeleteSceneModal
+        scene={deleteTargetScene}
+        onClose={()=>setDeleteTargetScene(null)}
+        onConfirm={async sc=>{
+          await onDeleteScene(sc.id);
+          if(selectedScene?.id===sc.id)setSelectedScene(null);
+          setDeleteTargetScene(null);
+        }}
+      />
       <div style={{marginTop:8}}>
         <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>
         {ps.length>0&&isOwner&&(
-          <div style={{display:'flex',justifyContent:'flex-end',marginTop:8}}>
+          <div style={{display:'flex',justifyContent:mob?'stretch':'flex-end',marginTop:8}}>
             <ExportMenu onPdf={()=>shareBreakdown(filtered,project,characters)} onExcel={()=>breakdownExcel(filtered,project,characters)} getPreview={()=>breakdownPreview(filtered,project)}/>
           </div>
         )}
@@ -8477,6 +9369,7 @@ function Workspace(){
     const saved=(!error&&data)?normalizeScene({...(data.data||data),id:data.id,project_id:data.project_id}):normalizeScene({...rest,id,project_id:currentId});
     setScenes(p=>[...p,saved]);
     broadcastActivity('added a scene');
+    return saved;
   };
   const addScenesBatch=async scenesArr=>{
     if(!scenesArr?.length)return;
@@ -8638,9 +9531,8 @@ function Workspace(){
       {!mobile&&<Sidebar view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email} projects={projects} currentId={currentId} onSelectProject={id=>{setCurrentId(id);if(view==='dashboard'||view==='productions')setView('overview');}} onClearProject={()=>setCurrentId(null)}/>}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,minHeight:0,height:mobile?'auto':'100svh'}}>
         {signOutError&&<p role="alert" className="p-4 text-palette-apricot">{signOutError}</p>}
-        {mobile&&<div className="flex justify-end border-b border-palette-graphite px-4 py-2"><button type="button" onClick={handleSignOut} className="rounded text-sm text-palette-stone underline">Sign out</button></div>}
         <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} searchQuery={searchQuery} onSearchChange={setSearchQuery} userEmail={user?.email} onAskNko={()=>setAskOpen(o=>!o)} askOpen={askOpen} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
-        <div style={{flex:1,minHeight:0,overflowY:'auto',padding:mobile?'16px 14px 90px':'24px 28px'}}>
+        <div style={{flex:1,minHeight:0,overflowY:'auto',padding:mobile?'16px 14px calc(96px + env(safe-area-inset-bottom))':'24px 28px'}}>
           <motion.div
             key={`${view}-${currentId || 'all'}`}
             initial={{opacity:0,y:8}}
@@ -8676,7 +9568,7 @@ function Workspace(){
           </motion.div>
         </div>
       </div>
-      {mobile&&<MobileNav view={view} setView={setView}/>}
+      {mobile&&<MobileNav view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email} projects={projects} currentId={currentId} onSelectProject={id=>{setCurrentId(id);if(view==='dashboard'||view==='productions')setView('overview');}} onClearProject={()=>setCurrentId(null)}/>}
       <AskNkoPanel
         open={askOpen}
         onClose={()=>setAskOpen(false)}
