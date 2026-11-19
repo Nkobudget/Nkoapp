@@ -58,8 +58,8 @@ export async function saveOnboardingProduction(supabase, user, profile) {
   }
 
   // 1. Insert into projects
-  const generatedId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-    ? crypto.randomUUID()
+  const generatedId = (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.randomUUID)
+    ? globalThis.crypto.randomUUID()
     : Math.random().toString(36).slice(2, 10);
 
   let savedProject = null;

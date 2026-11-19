@@ -204,7 +204,7 @@ export function generateBudgetDocsHtml(items = [], project = {}, phases = DEFAUL
 export function budgetDocs(items = [], project = {}, advances = [], reconEntries = [], phases = DEFAULT_PHASES) {
   const docHtml = generateBudgetDocsHtml(items, project, phases);
   if (typeof window === 'undefined') return docHtml;
-  const blob = new Blob(['\ufeff' + docHtml], { type: 'application/msword;charset=utf-8' });
+  const blob = new window.Blob(['\ufeff' + docHtml], { type: 'application/msword;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

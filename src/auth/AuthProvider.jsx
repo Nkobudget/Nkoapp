@@ -102,6 +102,19 @@ export default function AuthProvider({ children }) {
     await restoreSession()
   }
 
+  const signInWithGoogle = async () => {
+    if (!supabase) throw new Error(authConfigurationError)
+    setCallbackError('')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/app`,
+        queryParams: { prompt: 'select_account' },
+      },
+    })
+    if (error) throw error
+  }
+
   const signUp = async ({ email, password }) => {
     if (!supabase) throw new Error(authConfigurationError)
     setCallbackError('')
@@ -111,18 +124,6 @@ export default function AuthProvider({ children }) {
     if (error) throw error
     if (data.session) await restoreSession()
     return { requiresConfirmation: !data.session }
-  }
-
-  // NEW: Google sign-in. Redirects to Google, then back to /app, where the
-  // Supabase client (detectSessionInUrl) picks up the session automatically.
-  const signInWithGoogle = async () => {
-    if (!supabase) throw new Error(authConfigurationError)
-    setCallbackError('')
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/app` },
-    })
-    if (error) throw error
   }
 
   const requestPasswordReset = async email => {
@@ -148,7 +149,7 @@ export default function AuthProvider({ children }) {
     setState(anonymous)
   }
 
-  return <AuthContext.Provider value={{ ...state, signIn, signUp, signInWithGoogle, signOut, requestPasswordReset, updatePassword, callbackError, retry: restoreSession }}>
+  return <AuthContext.Provider value={{ ...state, signIn, signInWithGoogle, signUp, signOut, requestPasswordReset, updatePassword, callbackError, retry: restoreSession }}>
     {children}
   </AuthContext.Provider>
 }

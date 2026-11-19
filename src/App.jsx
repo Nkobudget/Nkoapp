@@ -12,7 +12,7 @@ import ProductionCTASection from "./components/ProductionCTASection"
 import Footer from "./components/Footer"
 import { Component, useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
-import SignInPage from "./auth/SignInPage";
+import AuthScreen from "./auth/AuthScreen";
 import OnboardingWelcome from "./onboarding/OnboardingWelcome";
 import OnboardingSetupPage from "./onboarding/OnboardingSetupPage";
 import OnboardingProductionChoicePage from "./onboarding/OnboardingProductionChoicePage";
@@ -26,9 +26,8 @@ import AuthGate from "./auth/AuthGate";
 import AuthProvider from "./auth/AuthProvider";
 import PendingProductionSaver, { PENDING_KEY, readPending, clearPending } from "./auth/PendingProductionSaver";
 import { saveOnboardingProduction } from "./onboarding/saveOnboardingProduction";
-import { supabase } from "./lib/supabaseClient";
 import LangProvider from "./i18n/LangProvider";
-import { isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
+import { supabase, isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
 import AuthStatus from "./auth/AuthStatus";
 
 
@@ -94,26 +93,23 @@ const LandingPage = () => {
 };
 
 function SignInRoute() {
-  const navigate = useNavigate();
-  // CHANGED: also pull signInWithGoogle from the auth context.
-  const { status, error, retry, signInWithGoogle } = useAuth();
+  const { status, error, retry } = useAuth();
 
   if (status === "authenticated") return <Navigate to="/app" replace />;
   if (status === "loading") return <AuthStatus />;
   if (status === "error") return <AuthStatus error={error} onRetry={retry} />;
 
-  return (
-    <SignInPage
-      introText="Sign in to your NKŌ workspace and keep your production moving."
-      // CHANGED: Google handler passed in, so the button is enabled.
-      onGoogleContinue={signInWithGoogle}
-      onEmailContinue={() => navigate("/app")}
-      // CHANGED: removed googleUnavailableMessage (Google is now enabled).
-      accountPrompt="New to NKO?"
-      accountLinkLabel="Get started"
-      onAccountClick={() => navigate("/onboarding")}
-    />
-  );
+  return <AuthScreen initialMode="login" />;
+}
+
+function SignUpRoute() {
+  const { status, error, retry } = useAuth();
+
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+  if (status === "loading") return <AuthStatus />;
+  if (status === "error") return <AuthStatus error={error} onRetry={retry} />;
+
+  return <AuthScreen initialMode="signup" />;
 }
 
 function OnboardingRoute() {
@@ -282,12 +278,12 @@ function OnboardingStartingPointRoute() {
               return;
             }
           } catch (err) {
-            console.error("Direct production saving failed, falling back to sign-in saver:", err);
+            console.error("Direct production saving failed, falling back to sign-up saver:", err);
           } finally {
             setSaving(false);
           }
         }
-        navigate("/sign-in");
+        navigate("/sign-up");
       }}
     />
   );
@@ -309,6 +305,7 @@ function AppRoutes() {
   return <Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/sign-in" element={<SignInRoute />} />
+    <Route path="/sign-up" element={<SignUpRoute />} />
     <Route path="/onboarding" element={<OnboardingRoute />} />
     <Route path="/onboarding/setup" element={<OnboardingSetupRoute />} />
     <Route path="/onboarding/production" element={<OnboardingProductionRoute />} />

@@ -1,5 +1,5 @@
-import { useId, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useAuth } from './AuthContext'
@@ -9,12 +9,15 @@ import AuthSplitLayout from './AuthSplitLayout'
 import LanguageSwitcher from '../i18n/LanguageSwitcher'
 import TermsModal from './TermsModal'
 import AuthStatus from './AuthStatus'
+import { GoogleLogo } from './SignInPage'
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion'
 
-export default function AuthScreen() {
-  const { signIn, signUp, requestPasswordReset, callbackError } = useAuth()
+export default function AuthScreen({ initialMode = 'login' } = {}) {
+  const { signIn, signInWithGoogle, signUp, requestPasswordReset, callbackError } = useAuth()
   const { t, lang } = useLang()
-  const [mode, setMode] = useState('login')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [mode, setMode] = useState(initialMode)
   const [showPassword, setShowPassword] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -28,6 +31,13 @@ export default function AuthScreen() {
   const headingId = `${id}-heading`
   const field =
     'min-h-12 w-full rounded-xl border border-palette-graphite bg-palette-near-black px-4 py-3 text-sm text-palette-ivory placeholder:text-palette-gray transition-colors focus:border-palette-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold disabled:opacity-60'
+
+  useEffect(() => {
+    setMode(initialMode)
+    setError('')
+    setNotice(callbackError)
+    setAgreed(false)
+  }, [initialMode, callbackError])
 
   async function run(action, task) {
     if (busy.current) return
@@ -44,12 +54,14 @@ export default function AuthScreen() {
       if (mode === 'login') {
         await signIn(credentials)
         setRedirecting(true)
+        if (location.pathname !== '/app') navigate('/app', { replace: true })
       } else {
         const result = await signUp(credentials)
         if (result.requiresConfirmation) {
           setNotice(lang === 'fr' ? 'Consultez votre messagerie pour confirmer votre compte avant de vous connecter.' : 'Check your email to confirm your account before signing in.')
         } else {
           setRedirecting(true)
+          if (location.pathname !== '/app') navigate('/app', { replace: true })
         }
       }
     })
@@ -85,11 +97,11 @@ export default function AuthScreen() {
       >
         <motion.div variants={fadeUp} className="mb-5">
           <Link
-            to="/sign-in"
+            to="/"
             className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-palette-stone transition-colors hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold"
           >
             <ArrowLeft aria-hidden="true" className="size-3.5" />
-            <span>{lang === 'fr' ? 'Autres options de connexion' : 'All sign-in options'}</span>
+            <span>{lang === 'fr' ? 'Retour à l’accueil' : 'Back to home'}</span>
           </Link>
         </motion.div>
 
@@ -113,7 +125,43 @@ export default function AuthScreen() {
           </AnimatePresence>
         </motion.div>
 
-        <motion.form variants={fadeUp} onSubmit={submit} aria-busy={!!pending} className="mt-7 space-y-4">
+        <motion.div variants={fadeUp} className="mt-7">
+          <motion.button
+            type="button"
+            disabled={!!pending}
+            aria-busy={pending === 'google'}
+            onClick={() => {
+              void run('google', async () => {
+                await signInWithGoogle()
+              })
+            }}
+            whileHover={!pending ? { scale: 1.01 } : undefined}
+            whileTap={!pending ? { scale: 0.985 } : undefined}
+            transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+            className="flex min-h-12 w-full min-w-0 items-center justify-center gap-2.5 rounded-full border border-palette-ivory bg-palette-ivory px-5 py-3 text-sm leading-5 font-medium text-palette-charcoal transition-colors enabled:hover:bg-palette-ivory/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:cursor-not-allowed disabled:opacity-65"
+          >
+            <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
+              {pending === 'google' ? (
+                <LoaderCircle focusable="false" strokeWidth={1.75} className="size-4 motion-safe:animate-spin" />
+              ) : (
+                <GoogleLogo className="size-4" />
+              )}
+            </span>
+            <span className="min-w-0">
+              {pending === 'google'
+                ? (lang === 'fr' ? 'Connexion à Google…' : 'Connecting to Google…')
+                : (lang === 'fr' ? 'Continuer avec Google' : 'Continue with Google')}
+            </span>
+          </motion.button>
+
+          <div className="my-5 flex items-center gap-3 text-xs text-palette-stone">
+            <span className="h-px flex-1 bg-palette-graphite/60" aria-hidden="true" />
+            <span>{lang === 'fr' ? 'ou par e-mail' : 'or continue with email'}</span>
+            <span className="h-px flex-1 bg-palette-graphite/60" aria-hidden="true" />
+          </div>
+        </motion.div>
+
+        <motion.form variants={fadeUp} onSubmit={submit} aria-busy={!!pending} className="space-y-4">
           <div>
             <label htmlFor={`${id}-email`} className="mb-1.5 block text-xs font-medium text-palette-stone">
               {t('emailPlaceholder')}
@@ -262,10 +310,14 @@ export default function AuthScreen() {
             type="button"
             disabled={!!pending}
             onClick={() => {
-              setMode(value => value === 'login' ? 'signup' : 'login')
+              const nextMode = mode === 'login' ? 'signup' : 'login'
+              setMode(nextMode)
               setError('')
               setNotice('')
               setAgreed(false)
+              if (location.pathname === '/sign-in' || location.pathname === '/sign-up') {
+                navigate(nextMode === 'signup' ? '/sign-up' : '/sign-in', { replace: true })
+              }
             }}
             className="rounded-sm text-sm font-medium text-palette-stone transition-colors hover:text-palette-gold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:opacity-60"
           >
