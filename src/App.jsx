@@ -24,6 +24,7 @@ import OnboardingStartingPointPage from "./onboarding/OnboardingStartingPointPag
 import { useAuth } from "./auth/AuthContext";
 import AuthGate from "./auth/AuthGate";
 import AuthProvider from "./auth/AuthProvider";
+import PendingProductionSaver, { PENDING_KEY } from "./auth/PendingProductionSaver";
 import LangProvider from "./i18n/LangProvider";
 import { isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
 import AuthStatus from "./auth/AuthStatus";
@@ -92,6 +93,7 @@ const LandingPage = () => {
 
 function SignInRoute() {
   const navigate = useNavigate();
+  // CHANGED: also pull signInWithGoogle from the auth context.
   const { status, error, retry, signInWithGoogle } = useAuth();
 
   if (status === "authenticated") return <Navigate to="/app" replace />;
@@ -101,8 +103,10 @@ function SignInRoute() {
   return (
     <SignInPage
       introText="Sign in to your NKŌ workspace and keep your production moving."
+      // CHANGED: Google handler passed in, so the button is enabled.
       onGoogleContinue={signInWithGoogle}
       onEmailContinue={() => navigate("/app")}
+      // CHANGED: removed googleUnavailableMessage (Google is now enabled).
       accountPrompt="New to NKO?"
       accountLinkLabel="Get started"
       onAccountClick={() => navigate("/onboarding")}
@@ -237,6 +241,11 @@ function OnboardingStartingPointRoute() {
       profile={location.state}
       onBack={() => navigate("/onboarding/ai-setup", { state: location.state })}
       onMakeChanges={() => navigate("/onboarding/setup", { state: location.state })}
+      // CHANGED: keep the draft across the sign-in redirect, then send the user to sign in.
+      onOpenProduction={() => {
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(location.state || {})); } catch { /* ignore */ }
+        navigate("/sign-in");
+      }}
     />
   );
 }
@@ -272,5 +281,5 @@ function AppRoutes() {
 }
 
 export default function App() {
-  return <LangProvider><AuthProvider><AppRoutes /></AuthProvider></LangProvider>;
+  return <LangProvider><AuthProvider><PendingProductionSaver /><AppRoutes /></AuthProvider></LangProvider>;
 }
