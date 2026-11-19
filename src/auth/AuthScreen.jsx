@@ -9,10 +9,11 @@ import AuthSplitLayout from './AuthSplitLayout'
 import LanguageSwitcher from '../i18n/LanguageSwitcher'
 import TermsModal from './TermsModal'
 import AuthStatus from './AuthStatus'
+import { GoogleLogo } from './SignInPage'
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion'
 
 export default function AuthScreen() {
-  const { signIn, signUp, requestPasswordReset, callbackError } = useAuth()
+  const { signIn, signInWithGoogle, signUp, requestPasswordReset, callbackError } = useAuth()
   const { t, lang } = useLang()
   const [mode, setMode] = useState('login')
   const [showPassword, setShowPassword] = useState(false)
@@ -113,7 +114,43 @@ export default function AuthScreen() {
           </AnimatePresence>
         </motion.div>
 
-        <motion.form variants={fadeUp} onSubmit={submit} aria-busy={!!pending} className="mt-7 space-y-4">
+        <motion.div variants={fadeUp} className="mt-7">
+          <motion.button
+            type="button"
+            disabled={!!pending}
+            aria-busy={pending === 'google'}
+            onClick={() => {
+              void run('google', async () => {
+                await signInWithGoogle()
+              })
+            }}
+            whileHover={!pending ? { scale: 1.01 } : undefined}
+            whileTap={!pending ? { scale: 0.985 } : undefined}
+            transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+            className="flex min-h-12 w-full min-w-0 items-center justify-center gap-2.5 rounded-full border border-palette-ivory bg-palette-ivory px-5 py-3 text-sm leading-5 font-medium text-palette-charcoal transition-colors enabled:hover:bg-palette-ivory/90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:cursor-not-allowed disabled:opacity-65"
+          >
+            <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
+              {pending === 'google' ? (
+                <LoaderCircle focusable="false" strokeWidth={1.75} className="size-4 motion-safe:animate-spin" />
+              ) : (
+                <GoogleLogo className="size-4" />
+              )}
+            </span>
+            <span className="min-w-0">
+              {pending === 'google'
+                ? (lang === 'fr' ? 'Connexion à Google…' : 'Connecting to Google…')
+                : (lang === 'fr' ? 'Continuer avec Google' : 'Continue with Google')}
+            </span>
+          </motion.button>
+
+          <div className="my-5 flex items-center gap-3 text-xs text-palette-stone">
+            <span className="h-px flex-1 bg-palette-graphite/60" aria-hidden="true" />
+            <span>{lang === 'fr' ? 'ou par e-mail' : 'or continue with email'}</span>
+            <span className="h-px flex-1 bg-palette-graphite/60" aria-hidden="true" />
+          </div>
+        </motion.div>
+
+        <motion.form variants={fadeUp} onSubmit={submit} aria-busy={!!pending} className="space-y-4">
           <div>
             <label htmlFor={`${id}-email`} className="mb-1.5 block text-xs font-medium text-palette-stone">
               {t('emailPlaceholder')}

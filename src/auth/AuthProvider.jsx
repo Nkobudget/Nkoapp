@@ -102,6 +102,19 @@ export default function AuthProvider({ children }) {
     await restoreSession()
   }
 
+  const signInWithGoogle = async () => {
+    if (!supabase) throw new Error(authConfigurationError)
+    setCallbackError('')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/app`,
+        queryParams: { prompt: 'select_account' },
+      },
+    })
+    if (error) throw error
+  }
+
   const signUp = async ({ email, password }) => {
     if (!supabase) throw new Error(authConfigurationError)
     setCallbackError('')
@@ -136,7 +149,7 @@ export default function AuthProvider({ children }) {
     setState(anonymous)
   }
 
-  return <AuthContext.Provider value={{ ...state, signIn, signUp, signOut, requestPasswordReset, updatePassword, callbackError, retry: restoreSession }}>
+  return <AuthContext.Provider value={{ ...state, signIn, signInWithGoogle, signUp, signOut, requestPasswordReset, updatePassword, callbackError, retry: restoreSession }}>
     {children}
   </AuthContext.Provider>
 }

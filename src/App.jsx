@@ -92,7 +92,7 @@ const LandingPage = () => {
 
 function SignInRoute() {
   const navigate = useNavigate();
-  const { status, error, retry } = useAuth();
+  const { status, error, retry, signInWithGoogle } = useAuth();
 
   if (status === "authenticated") return <Navigate to="/app" replace />;
   if (status === "loading") return <AuthStatus />;
@@ -101,8 +101,8 @@ function SignInRoute() {
   return (
     <SignInPage
       introText="Sign in to your NKŌ workspace and keep your production moving."
+      onGoogleContinue={signInWithGoogle}
       onEmailContinue={() => navigate("/app")}
-      googleUnavailableMessage="Google sign-in is not enabled yet. Please continue with email."
       accountPrompt="New to NKO?"
       accountLinkLabel="Get started"
       onAccountClick={() => navigate("/onboarding")}
