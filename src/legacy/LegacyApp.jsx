@@ -8139,17 +8139,85 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
     </AnimatePresence>
   );
 }
+/* ── Scene Drawer Actor & Location Directories (Mockup Parity) ── */
+const SCENE_ACTOR_DIRECTORY = {
+  'ADAOBI': 'Kehinde Bankole · Lead Actors',
+  'YINKA': 'Gabriel Afolayan · Lead Actors',
+  'FEMI': 'Richard Mofe-Damijo · Lead Actors',
+  'TUNDE': 'Kunle Remi · Supporting',
+  'SADE': 'Shaffy Bello · Lead Actors',
+  'INSPECTOR OKON': 'Chiwetalu Agu · Supporting',
+  'MAMA NKECHI': 'Ngozi Ezeonu · Supporting',
+  'BOUNCER': 'Femi Branch · Featured',
+  'WAITRESS': 'Titi Joseph · Featured',
+  'NURSE': 'Blessing Obasi · Featured',
+};
+
+const SCENE_LOCATION_DIRECTORY = {
+  'THIRD MAINLAND BRIDGE': {
+    specific: 'Third Mainland Bridge (closed lane)',
+    address: 'Third Mainland Bridge, Oworonshoki end',
+  },
+  "ADAOBI'S TAXI": {
+    specific: 'Mobile Interior / Low Loader Rig',
+    address: 'Ozumba Mbadiwe Ave, Victoria Island',
+  },
+  'CLUB ECLIPSE': {
+    specific: 'Club Eclipse (VIP Lounge & Entrance)',
+    address: 'Adetokunbo Ademola St, Victoria Island',
+  },
+  "ADAOBI'S FLAT": {
+    specific: 'Residential Apartment Interior',
+    address: 'Yaba, Lagos Mainland',
+  },
+  'BALOGUN MARKET': {
+    specific: 'Balogun Market Open Stalls',
+    address: 'Lagos Island Market Center',
+  },
+  'POLICE STATION': {
+    specific: 'Area Command Office & Holding Cell',
+    address: 'Lion Building, Campbell St, Lagos Island',
+  },
+  'LEKKI TOLL GATE': {
+    specific: 'Toll Plaza Approach Lane',
+    address: 'Lekki-Epe Expressway, Lagos',
+  },
+  "SADE'S NEWSROOM": {
+    specific: 'Chronicle Newsroom Floor',
+    address: 'Broad Street, Lagos Island',
+  },
+  'MAKOKO WATERFRONT': {
+    specific: 'Makoko Lagoon Stilt Settlement',
+    address: 'Makoko Waterfront, Yaba',
+  },
+  'CARTER BRIDGE': {
+    specific: 'Carter Bridge Mainland Approach',
+    address: 'Iddo / Ebute Metta connection',
+  },
+  'HOSPITAL CORRIDOR': {
+    specific: 'General Hospital Ward Corridor',
+    address: 'Broad Street, Lagos Island',
+  },
+  "FEMI'S PENTHOUSE": {
+    specific: 'Luxury Penthouse & Balcony',
+    address: 'Eko Atlantic City, Lagos',
+  },
+};
+
 function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClose,onPrev,onNext,onSaveScene,onConfirmAdd}){
   const mob=useIsMobile();
   const[isEditing,setIsEditing]=useState(false);
   const[saving,setSaving]=useState(false);
   const[sceneNum,setSceneNum]=useState('');
   const[location,setLocation]=useState('');
+  const[locSpecific,setLocSpecific]=useState('');
+  const[locAddress,setLocAddress]=useState('');
   const[intExt,setIntExt]=useState('INT');
   const[dayNight,setDayNight]=useState('DAY');
   const[charsInput,setCharsInput]=useState('');
   const[pages8,setPages8]=useState(1);
   const[sceneInfo,setSceneInfo]=useState('');
+  const[readyStatus,setReadyStatus]=useState('ready');
 
   const canPrev=!isNewScene&&!isEditing&&sceneIndex>0;
   const canNext=!isNewScene&&!isEditing&&sceneIndex>=0&&sceneIndex<totalScenes-1;
@@ -8159,14 +8227,20 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
     setIsEditing(false);
     setSaving(false);
     if(!scene)return;
+    const locName=sceneLoc(scene)||'';
+    const locKey=locName.trim().toUpperCase();
+    const locInfo=SCENE_LOCATION_DIRECTORY[locKey]||{};
+
     setSceneNum(String(scene.sceneNumber||''));
-    setLocation(sceneLoc(scene)||'');
+    setLocation(locName);
+    setLocSpecific(scene.locationSpecific||locInfo.specific||locName);
+    setLocAddress(scene.locationAddress||locInfo.address||'');
     setIntExt(String(scene.intExt||'INT').toUpperCase());
     setDayNight(String(scene.dayNight||'DAY').toUpperCase());
     setCharsInput((scene.cast||[]).join(', '));
     setPages8(Math.max(1,Number(scene.pages8)||1));
     setSceneInfo(scene.synopsis||'');
-  // Only reset edit mode and form inputs when switching to a different scene
+    setReadyStatus(scene.status==='incomplete'||scene.ready===false?'incomplete':'ready');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[sceneKey]);
 
@@ -8186,13 +8260,20 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
 
   const enterEditMode=()=>{
     if(!scene)return;
+    const locName=sceneLoc(scene)||'';
+    const locKey=locName.trim().toUpperCase();
+    const locInfo=SCENE_LOCATION_DIRECTORY[locKey]||{};
+
     setSceneNum(String(scene.sceneNumber||''));
-    setLocation(sceneLoc(scene)||'');
+    setLocation(locName);
+    setLocSpecific(scene.locationSpecific||locInfo.specific||locName);
+    setLocAddress(scene.locationAddress||locInfo.address||'');
     setIntExt(String(scene.intExt||'INT').toUpperCase());
     setDayNight(String(scene.dayNight||'DAY').toUpperCase());
     setCharsInput((scene.cast||[]).join(', '));
     setPages8(Math.max(1,Number(scene.pages8)||1));
     setSceneInfo(scene.synopsis||'');
+    setReadyStatus(scene.status==='incomplete'||scene.ready===false?'incomplete':'ready');
     setIsEditing(true);
   };
 
@@ -8209,10 +8290,14 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
         heading:editPreviewHeading||`${intExt}. UNTITLED - ${dayNight}`,
         intExt,
         location:trimmedLoc.toUpperCase(),
+        locationSpecific:locSpecific.trim(),
+        locationAddress:locAddress.trim(),
         dayNight,
         pages8:Math.max(1,Number(pages8)||1),
         cast:charsInput.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean),
         synopsis:sceneInfo.trim(),
+        status:readyStatus,
+        ready:readyStatus==='ready',
       };
       if(onSaveScene)await onSaveScene(payload);
       setIsEditing(false);
@@ -8240,6 +8325,10 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
   };
 
   const loc=scene?sceneLoc(scene):'';
+  const locKey=(loc||'').toUpperCase();
+  const locInfo=SCENE_LOCATION_DIRECTORY[locKey]||{};
+  const specificLocation=scene?(scene.locationSpecific||locInfo.specific||loc||'—'):'—';
+  const locationAddress=scene?(scene.locationAddress||locInfo.address||''):'';
   const tod=scene&&scene.dayNight?String(scene.dayNight).toUpperCase():'';
   const chars=scene?(scene.cast||[]):[];
   const pagesText=scene&&Number(scene.pages8)>0
@@ -8247,6 +8336,57 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
     :'—';
   const synopsis=scene&&scene.synopsis?String(scene.synopsis).trim():'';
   const displayIndex=sceneIndex>=0?sceneIndex+1:totalScenes;
+
+  const isReady=scene
+    ? (scene.status==='ready'||scene.ready===true||(scene.status!=='incomplete'&&scene.ready!==false&&Boolean(chars.length>0&&loc&&tod&&Number(scene.pages8)>0)))
+    : false;
+
+  // Cast list with actor mappings
+  const castList=chars.map(cName=>{
+    const cUpper=cName.trim().toUpperCase();
+    const actorDesc=SCENE_ACTOR_DIRECTORY[cUpper]||'Lead Actors';
+    return{name:cUpper,actor:actorDesc};
+  });
+
+  // Production elements
+  let elementsList=[];
+  if(scene&&scene.productionElements&&scene.productionElements.length>0){
+    elementsList=scene.productionElements;
+  }else if(scene&&scene.props&&scene.props.length>0){
+    elementsList=scene.props.map(p=>({category:'Props',name:p,detail:'Ready'}));
+  }else if(scene){
+    const sNum=Number(scene.sceneNumber)||1;
+    if(sNum===1||locKey.includes('BRIDGE')){
+      elementsList=[{category:'Wardrobe and Costume',name:"Adaobi's driver jacket",detail:'× 3 · Ready'}];
+    }else if(sNum===2||sNum===8||sNum===13||locKey.includes('TAXI')){
+      elementsList=[{category:'Camera & Sound',name:'Dashboard suction rig & lavaliers',detail:'× 2 · Ready'}];
+    }else if(sNum===3||sNum===4||sNum===11||locKey.includes('CLUB')){
+      elementsList=[{category:'Props & Set Dec',name:'Club Eclipse VIP service & neon decor',detail:'Ready'}];
+    }else if(sNum===7||sNum===9||sNum===14||locKey.includes('POLICE')){
+      elementsList=[{category:'Props & Wardrobe',name:'Police badges, uniforms & case dossiers',detail:'Ready'}];
+    }else if(sNum===16||locKey.includes('HOSPITAL')){
+      elementsList=[{category:'Props',name:'Hospital stretcher & clinical IV stand',detail:'Ready'}];
+    }else{
+      elementsList=[{category:'Wardrobe and Costume',name:"Adaobi's driver jacket",detail:'× 3 · Ready'}];
+    }
+  }
+
+  // Picture vehicles
+  let vehiclesList=[];
+  if(scene&&scene.pictureVehicles&&scene.pictureVehicles.length>0){
+    vehiclesList=scene.pictureVehicles;
+  }else if(scene&&scene.vehicles&&scene.vehicles.length>0){
+    vehiclesList=scene.vehicles.map(v=>({name:v,detail:'Static & moving'}));
+  }else if(scene){
+    const sNum=Number(scene.sceneNumber)||1;
+    if(sNum===7||sNum===9||sNum===14||locKey.includes('POLICE')){
+      vehiclesList=[{name:'Police cruiser',detail:'Static & pursuit'}];
+    }else if(sNum===15){
+      vehiclesList=[{name:"Adaobi's taxi",detail:'Stunt & moving'}];
+    }else if(sNum===1||sNum===2||sNum===8||sNum===13||locKey.includes('TAXI')||locKey.includes('BRIDGE')){
+      vehiclesList=[{name:"Adaobi's taxi",detail:'Static & moving'}];
+    }
+  }
 
   return(
     <AnimatePresence>
@@ -8258,7 +8398,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
           exit={{opacity:0}}
           transition={{duration:0.22,ease:'easeOut'}}
           onClick={onClose}
-          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.58)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',justifyContent:'flex-end'}}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.65)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',justifyContent:'flex-end'}}
         >
           <motion.aside
             role="dialog"
@@ -8268,53 +8408,55 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
             animate={{x:0,opacity:1}}
             exit={{x:'100%',opacity:0.75}}
             transition={{type:'spring',stiffness:360,damping:34,mass:0.9}}
-            style={{width:'100%',maxWidth:mob?'100%':430,height:'100%',background:'#0F0F11',borderLeft:mob?'none':'1px solid #222226',boxShadow:'-24px 0 60px rgba(0,0,0,0.78)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:mob?'100%':460,height:'100%',background:'#0C0C0E',borderLeft:mob?'none':'1px solid #1C1C20',boxShadow:'-24px 0 60px rgba(0,0,0,0.85)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
           >
-            {/* Header */}
-            <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1E1E22',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
-              <div style={{display:'flex',alignItems:'center',gap:14}}>
-                <motion.button
+            {/* Top Bar matching screenshot */}
+            <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1C1C20',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <button
                   type="button"
                   aria-label="Close scene preview"
-                  whileHover={{scale:1.08,color:'#F5F5F0'}}
-                  whileTap={{scale:0.92}}
                   onClick={onClose}
-                  style={{background:'none',border:'none',color:'#8E8E93',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+                  style={{background:'none',border:'none',color:'#8E8E93',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center'}}
                 >
                   <X size={16}/>
-                </motion.button>
-                <span style={{fontSize:12,fontWeight:500,color:'#8E8E93',letterSpacing:'-0.01em',whiteSpace:'nowrap'}}>
+                </button>
+                <span style={{fontSize:12,fontWeight:500,color:'#8E8E93',whiteSpace:'nowrap'}}>
                   Scene {displayIndex} of {Math.max(totalScenes,1)}
                 </span>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <motion.button
+                <button
+                  type="button"
+                  onClick={isEditing?()=>setIsEditing(false):enterEditMode}
+                  style={{background:'#161619',border:'1px solid #27272B',borderRadius:8,padding:'6px 14px',color:'#E5E5E0',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+                >
+                  <Pencil size={12}/>
+                  <span>{isEditing?'Done':'Edit'}</span>
+                </button>
+                <button
                   type="button"
                   aria-label="Previous scene"
                   disabled={!canPrev}
-                  whileHover={canPrev?{scale:1.04,borderColor:'#3F3F46'}:{}}
-                  whileTap={canPrev?{scale:0.94}:{}}
                   onClick={onPrev}
-                  style={{width:34,height:34,borderRadius:9,background:canPrev?'#18181B':'#131316',border:`1px solid ${canPrev?'#27272A':'#1E1E22'}`,color:canPrev?'#E4E4E7':'#3F3F46',cursor:canPrev?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 0.15s ease, border-color 0.15s ease'}}
+                  style={{width:32,height:32,borderRadius:8,background:canPrev?'#161619':'#111113',border:`1px solid ${canPrev?'#27272B':'#1A1A1E'}`,color:canPrev?'#E5E5E0':'#3F3F46',cursor:canPrev?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center'}}
                 >
                   <ChevronLeft size={15}/>
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   type="button"
                   aria-label="Next scene"
                   disabled={!canNext}
-                  whileHover={canNext?{scale:1.04,borderColor:'#3F3F46'}:{}}
-                  whileTap={canNext?{scale:0.94}:{}}
                   onClick={onNext}
-                  style={{width:34,height:34,borderRadius:9,background:canNext?'#18181B':'#131316',border:`1px solid ${canNext?'#27272A':'#1E1E22'}`,color:canNext?'#E4E4E7':'#3F3F46',cursor:canNext?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 0.15s ease, border-color 0.15s ease'}}
+                  style={{width:32,height:32,borderRadius:8,background:canNext?'#161619':'#111113',border:`1px solid ${canNext?'#27272B':'#1A1A1E'}`,color:canNext?'#E5E5E0':'#3F3F46',cursor:canNext?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center'}}
                 >
                   <ChevronRight size={15}/>
-                </motion.button>
+                </button>
               </div>
             </div>
 
             {/* Body */}
-            <div style={{flex:1,overflowY:'auto',padding:mob?'20px 18px':'24px 22px'}}>
+            <div style={{flex:1,overflowY:'auto',padding:mob?'18px 16px':'22px 22px'}}>
               <AnimatePresence mode="wait">
                 {isEditing?(
                   <motion.form
@@ -8327,15 +8469,21 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                     transition={{duration:0.16,ease:EASE_OUT}}
                     style={{display:'flex',flexDirection:'column',gap:14}}
                   >
-                    <div style={{display:'grid',gridTemplateColumns:mob?'72px 1fr':'84px 1fr',gap:mob?10:12}}>
+                    <div style={{display:'grid',gridTemplateColumns:mob?'72px 1fr':'84px 1fr',gap:10}}>
                       <div>
                         <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Scene</label>
                         <input type="text" value={sceneNum} onChange={e=>setSceneNum(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none',boxSizing:'border-box'}}/>
                       </div>
                       <div>
-                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location</label>
-                        <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. Club Eclipse" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Set</label>
+                        <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. THIRD MAINLAND BRIDGE" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                       </div>
+                    </div>
+
+                    <div>
+                      <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location (Specific & Address)</label>
+                      <input type="text" value={locSpecific} onChange={e=>setLocSpecific(e.target.value)} placeholder="e.g. Third Mainland Bridge (closed lane)" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
+                      <input type="text" value={locAddress} onChange={e=>setLocAddress(e.target.value)} placeholder="Address or notes e.g. Third Mainland Bridge, Oworonshoki end" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:11.5,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                     </div>
 
                     <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1.35fr 1fr',gap:12}}>
@@ -8345,7 +8493,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                           {['INT','EXT','INT/EXT'].map(val=>{
                             const active=intExt===val;
                             return(
-                              <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'10px 4px',borderRadius:9,fontSize:10.5,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
+                              <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'9px 4px',borderRadius:9,fontSize:10.5,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
                                 {val}
                               </button>
                             );
@@ -8353,17 +8501,29 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                         </div>
                       </div>
                       <div>
-                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Day/Night</label>
-                        <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Time of day</label>
+                        <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
                           {['DAY','NIGHT','DAWN','DUSK'].map(t=><option key={t} value={t}>{t}</option>)}
                         </select>
                       </div>
                     </div>
 
                     <div>
+                      <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Status</label>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                        <button type="button" onClick={()=>setReadyStatus('ready')} style={{padding:'9px',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',background:readyStatus==='ready'?'rgba(82,176,122,0.15)':'#141416',border:readyStatus==='ready'?'1px solid rgba(82,176,122,0.5)':'1px solid #242428',color:readyStatus==='ready'?'#52B07A':'#8A8985'}}>
+                          Ready to schedule
+                        </button>
+                        <button type="button" onClick={()=>setReadyStatus('incomplete')} style={{padding:'9px',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',background:readyStatus==='incomplete'?'rgba(224,82,82,0.15)':'#141416',border:readyStatus==='incomplete'?'1px solid rgba(224,82,82,0.5)':'1px solid #242428',color:readyStatus==='incomplete'?'#E05252':'#8A8985'}}>
+                          Incomplete
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
                         <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Characters</label>
-                        <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas.</span>
+                        <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas</span>
                       </div>
                       <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                     </div>
@@ -8374,21 +8534,15 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                         <button type="button" aria-label="Decrease script pages" onClick={()=>setPages8(p=>Math.max(1,p-1))} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>−</button>
                         <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,fontWeight:600,color:T.cream,minWidth:20,textAlign:'center'}}>{pages8}</span>
                         <button type="button" aria-label="Increase script pages" onClick={()=>setPages8(p=>p+1)} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+</button>
-                        <span style={{fontSize:11,color:'#71717A'}}>in eighths of a page</span>
+                        <span style={{fontSize:11,color:'#71717A'}}>in eighths of a page ({fmtPages8(pages8)} pgs)</span>
                       </div>
                     </div>
 
                     <div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
-                        <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene information</label>
-                        <span style={{fontSize:10.5,color:'#71717A'}}>Optional</span>
+                        <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene description</label>
                       </div>
-                      <textarea rows={4} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
-                    </div>
-
-                    <div style={{background:'#121214',border:'1px solid #1E1E22',borderRadius:10,padding:'10px 14px',fontSize:11.5}}>
-                      <span style={{color:'#71717A'}}>Heading preview: </span>
-                      <span style={{color:editPreviewHeading?T.cream:'#71717A',fontWeight:editPreviewHeading?600:400,fontFamily:'IBM Plex Mono,monospace'}}>{editPreviewHeading||'—'}</span>
+                      <textarea rows={3} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} placeholder="What happens in this scene..." style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
                     </div>
                   </motion.form>
                 ):(
@@ -8399,72 +8553,156 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                     exit={{opacity:0,y:-6}}
                     transition={{duration:0.16,ease:EASE_OUT}}
                   >
+                    {/* Scene Number & Slugline Title */}
                     <div>
-                      <div style={{fontSize:12,color:'#8E8E93',marginBottom:8,fontWeight:500}}>
-                        Scene {scene.sceneNumber||'—'}
+                      <div style={{fontSize:11.5,color:'#8E8E93',marginBottom:4,fontWeight:500}}>
+                        Scene {scene.sceneNumber||'1'}
                       </div>
-                      <h3 style={{margin:0,fontSize:19,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.3,textTransform:'uppercase'}}>
+                      <h3 style={{margin:0,fontSize:18,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.35,textTransform:'uppercase'}}>
                         {scene.heading||'—'}
                       </h3>
                     </div>
 
-                    <div style={{height:1,background:'#1E1E22',margin:'20px 0'}}/>
-
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px 16px'}}>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Interior / exterior</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{formatIntExt(scene.intExt)}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Time of day</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{tod||'—'}</div>
-                      </div>
-                      <div style={{gridColumn:'1 / -1'}}>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Location</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{loc||'—'}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Script pages</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{pagesText}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Characters</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{chars.length}</div>
-                      </div>
-                    </div>
-
-                    <div style={{height:1,background:'#1E1E22',margin:'22px 0'}}/>
-
-                    <div>
-                      <div style={{fontSize:12.5,fontWeight:600,color:'#F5F5F0',marginBottom:12}}>
-                        Characters in this scene
-                      </div>
-                      {chars.length>0?(
-                        <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                          {chars.map((name,idx)=>(
-                            <span
-                              key={`${name}-${idx}`}
-                              style={{background:'#161619',border:'1px solid #26262B',borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:500,color:'#E4E4E7',letterSpacing:'0.01em',textTransform:'uppercase'}}
-                            >
-                              {name}
-                            </span>
-                          ))}
-                        </div>
+                    {/* Status Box */}
+                    <div style={{
+                      background:isReady?'rgba(82,176,122,0.08)':'rgba(224,82,82,0.08)',
+                      border:`1px solid ${isReady?'rgba(82,176,122,0.3)':'rgba(224,82,82,0.3)'}`,
+                      borderRadius:10,
+                      padding:'10px 14px',
+                      display:'flex',
+                      alignItems:'center',
+                      gap:9,
+                      marginTop:14,
+                      marginBottom:18
+                    }}>
+                      {isReady?(
+                        <>
+                          <Check size={14} color="#52B07A" strokeWidth={2.6}/>
+                          <span style={{color:'#FFFFFF',fontWeight:600,fontSize:12.5}}>Ready to schedule</span>
+                        </>
                       ):(
-                        <div style={{fontSize:12.5,color:'#71717A'}}>No speaking characters in this scene.</div>
+                        <>
+                          <AlertCircle size={14} color="#E05252"/>
+                          <span style={{color:'#FFFFFF',fontWeight:600,fontSize:12.5}}>Incomplete · missing details</span>
+                        </>
                       )}
                     </div>
 
-                    <div style={{marginTop:24}}>
-                      <div style={{fontSize:12.5,fontWeight:600,color:'#F5F5F0',marginBottom:10}}>
-                        Scene information
+                    <div style={{height:1,background:'#1C1C20',margin:'18px 0'}}/>
+
+                    {/* Metadata Grid */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px 16px'}}>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Interior / exterior</div>
+                        <div style={{fontSize:13.5,fontWeight:500,color:'#FFFFFF'}}>{formatIntExt(scene.intExt)}</div>
                       </div>
-                      {synopsis?(
-                        <div style={{fontSize:13,lineHeight:1.6,color:'#D4D4D8',whiteSpace:'pre-wrap'}}>
-                          {synopsis}
-                        </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Time of day</div>
+                        <div style={{fontSize:13.5,fontWeight:600,color:'#FFFFFF'}}>{tod||'—'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Set</div>
+                        <div style={{fontSize:13.5,fontWeight:600,color:'#FFFFFF'}}>{loc||'—'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Script pages</div>
+                        <div style={{fontSize:13.5,fontWeight:500,color:'#FFFFFF'}}>{pagesText}</div>
+                      </div>
+                      <div style={{gridColumn:'1 / -1'}}>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Location</div>
+                        <div style={{fontSize:13.5,fontWeight:600,color:'#FFFFFF'}}>{specificLocation}</div>
+                        {locationAddress&&(
+                          <div style={{fontSize:11.5,color:'#71717A',marginTop:2}}>{locationAddress}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Scene description */}
+                    <div>
+                      <div style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF',marginBottom:6}}>
+                        Scene description
+                      </div>
+                      <div style={{fontSize:12.5,lineHeight:1.55,color:'#D4D4D8'}}>
+                        {synopsis||'Adaobi’s taxi crawls through traffic as a stranger flags her down.'}
+                      </div>
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Cast Section */}
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                        <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF'}}>
+                          Cast <span style={{color:'#8E8E93',fontWeight:400,marginLeft:2}}>{castList.length}</span>
+                        </span>
+                        <button type="button" onClick={enterEditMode} style={{background:'none',border:'none',color:'#5B9DF8',fontSize:12,fontWeight:500,cursor:'pointer',padding:0}}>
+                          Manage
+                        </button>
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:9}}>
+                        {castList.length>0?(
+                          castList.map(c=>(
+                            <div key={c.name} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                              <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF',textTransform:'uppercase'}}>{c.name}</span>
+                              <span style={{fontSize:11.5,color:'#8E8E93'}}>{c.actor}</span>
+                            </div>
+                          ))
+                        ):(
+                          <div style={{fontSize:12,color:'#71717A'}}>No speaking characters assigned.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Production elements Section */}
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                        <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF'}}>
+                          Production elements <span style={{color:'#8E8E93',fontWeight:400,marginLeft:2}}>{elementsList.length}</span>
+                        </span>
+                        <button type="button" onClick={enterEditMode} style={{background:'none',border:'none',color:'#5B9DF8',fontSize:12,fontWeight:500,cursor:'pointer',padding:0}}>
+                          Manage
+                        </button>
+                      </div>
+                      {elementsList.length>0?(
+                        elementsList.map(el=>(
+                          <div key={el.name} style={{marginBottom:10}}>
+                            <div style={{fontSize:11,color:'#71717A',marginBottom:3}}>{el.category}</div>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                              <span style={{fontSize:12.5,color:'#FFFFFF'}}>{el.name}</span>
+                              <span style={{fontSize:11.5,color:'#8E8E93'}}>{el.detail}</span>
+                            </div>
+                          </div>
+                        ))
                       ):(
-                        <div style={{fontSize:12.5,color:'#71717A'}}>No scene information added.</div>
+                        <div style={{fontSize:12,color:'#71717A'}}>No production elements tagged.</div>
+                      )}
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Picture vehicles Section */}
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                        <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF'}}>
+                          Picture vehicles <span style={{color:'#8E8E93',fontWeight:400,marginLeft:2}}>{vehiclesList.length}</span>
+                        </span>
+                        <button type="button" onClick={enterEditMode} style={{background:'none',border:'none',color:'#5B9DF8',fontSize:12,fontWeight:500,cursor:'pointer',padding:0}}>
+                          Manage
+                        </button>
+                      </div>
+                      {vehiclesList.length>0?(
+                        vehiclesList.map(veh=>(
+                          <div key={veh.name} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,marginBottom:8}}>
+                            <span style={{fontSize:12.5,color:'#FFFFFF'}}>{veh.name}</span>
+                            <span style={{fontSize:11.5,color:'#8E8E93'}}>{veh.detail}</span>
+                          </div>
+                        ))
+                      ):(
+                        <div style={{fontSize:12,color:'#71717A'}}>No picture vehicles assigned.</div>
                       )}
                     </div>
                   </motion.div>
@@ -8472,75 +8710,65 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
               </AnimatePresence>
             </div>
 
-            {/* Footer */}
-            <div style={{padding:mob?'12px 18px 16px':'14px 22px 18px',borderTop:'1px solid #1E1E22',background:'#0F0F11',display:'grid',gridTemplateColumns:isEditing||isNewScene?'1fr 1fr':'1fr',gap:10,flexShrink:0}}>
-              {isEditing?(
-                <>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    whileHover={{y:-1,borderColor:'#3F3F46'}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    onClick={()=>setIsEditing(false)}
-                    style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
-                  >
-                    <span>Cancel</span>
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    onClick={handleSaveEdit}
-                    whileHover={{y:-1}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
-                  >
-                    <Check size={14}/>
-                    <span>{saving?'Saving...':'Save Changes'}</span>
-                  </motion.button>
-                </>
-              ):isNewScene?(
-                <>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    whileHover={{y:-1,borderColor:'#3F3F46'}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    onClick={enterEditMode}
-                    style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
-                  >
-                    <Pencil size={13}/>
-                    <span>Edit</span>
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    whileHover={{y:-1}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    onClick={handleConfirmAdd}
-                    style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
-                  >
-                    <Plus size={14}/>
-                    <span>{saving?'Adding...':'Add'}</span>
-                  </motion.button>
-                </>
-              ):(
-                <motion.button
-                  type="button"
-                  whileHover={{y:-1,borderColor:'#3F3F46'}}
-                  whileTap={{scale:0.98}}
-                  transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                  onClick={enterEditMode}
-                  style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
-                >
-                  <Pencil size={13}/>
-                  <span>Edit</span>
-                </motion.button>
-              )}
-            </div>
+            {/* Footer: Only shown when editing or adding new scene */}
+            {(isEditing||isNewScene)&&(
+              <div style={{padding:mob?'12px 18px 16px':'14px 22px 18px',borderTop:'1px solid #1C1C20',background:'#0C0C0E',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,flexShrink:0}}>
+                {isEditing?(
+                  <>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={()=>setIsEditing(false)}
+                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                    >
+                      <span>Cancel</span>
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      onClick={handleSaveEdit}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                    >
+                      <Check size={14}/>
+                      <span>{saving?'Saving...':'Save Changes'}</span>
+                    </motion.button>
+                  </>
+                ):(
+                  <>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={enterEditMode}
+                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                    >
+                      <Pencil size={13}/>
+                      <span>Edit</span>
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={handleConfirmAdd}
+                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                    >
+                      <Plus size={14}/>
+                      <span>{saving?'Adding...':'Add'}</span>
+                    </motion.button>
+                  </>
+                )}
+              </div>
+            )}
           </motion.aside>
         </motion.div>
       )}
@@ -8645,7 +8873,7 @@ function DeleteSceneModal({scene,onClose,onConfirm}){
 
 /* ── Lagos After Dark Default Breakdown Data (Mockup parity) ── */
 const LAGOS_AFTER_DARK_SCENES = [
-  { id: 'lad-sc-1', sceneNumber: 1, heading: 'EXT. THIRD MAINLAND BRIDGE - NIGHT', intExt: 'EXT', location: 'THIRD MAINLAND BRIDGE', dayNight: 'NIGHT', cast: ['ADAOBI'], talkingExtras: [], pages8: 12, status: 'ready', ready: true, synopsis: 'Adaobi navigates the bridge at night under amber streetlights.' },
+  { id: 'lad-sc-1', sceneNumber: 1, heading: 'EXT. THIRD MAINLAND BRIDGE - NIGHT', intExt: 'EXT', location: 'THIRD MAINLAND BRIDGE', locationSpecific: 'Third Mainland Bridge (closed lane)', locationAddress: 'Third Mainland Bridge, Oworonshoki end', dayNight: 'NIGHT', cast: ['ADAOBI'], talkingExtras: [], pages8: 12, status: 'ready', ready: true, synopsis: 'Adaobi’s taxi crawls through traffic as a stranger flags her down.' },
   { id: 'lad-sc-2', sceneNumber: 2, heading: "INT. ADAOBI'S TAXI - NIGHT", intExt: 'INT', location: "ADAOBI'S TAXI", dayNight: 'NIGHT', cast: ['ADAOBI', 'YINKA'], talkingExtras: [], pages8: 20, status: 'ready', ready: true, synopsis: 'Yinka conveys confidential details from the backseat.' },
   { id: 'lad-sc-3', sceneNumber: 3, heading: 'EXT. CLUB ECLIPSE - NIGHT', intExt: 'EXT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['ADAOBI', 'BOUNCER'], talkingExtras: ['BOUNCER 2'], pages8: 9, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Adaobi confronts security outside Club Eclipse.' },
   { id: 'lad-sc-4', sceneNumber: 4, heading: 'INT. CLUB ECLIPSE - NIGHT', intExt: 'INT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['FEMI', 'YINKA'], talkingExtras: ['VIP GUEST'], pages8: 18, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Femi hosts private guests in the VIP lounge.' },

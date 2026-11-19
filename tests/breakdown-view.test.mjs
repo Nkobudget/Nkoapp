@@ -36,4 +36,16 @@ test('script breakdown view layout and Lagos After Dark parity', async () => {
   assert.match(fileContent, /EXT\. THIRD MAINLAND BRIDGE - NIGHT/);
   assert.match(fileContent, /EXT\. MAKOKO WATERFRONT - DAWN/);
   assert.match(fileContent, /INT\. FEMI'S PENTHOUSE - NIGHT/);
+
+  // Verify ScenePreviewDrawer (right side popup) structure
+  assert.match(fileContent, /function ScenePreviewDrawer/);
+  assert.match(fileContent, /Ready to schedule<\/span>/);
+  assert.match(fileContent, /Interior \/ exterior/);
+  assert.match(fileContent, /Time of day/);
+  assert.match(fileContent, /Script pages/);
+  assert.match(fileContent, /Scene description/);
+  assert.match(fileContent, /Cast\s+<span/);
+  assert.match(fileContent, /Production elements\s+<span/);
+  assert.match(fileContent, /Picture vehicles\s+<span/);
+  assert.match(fileContent, /Manage\s*<\/button>/);
 });
