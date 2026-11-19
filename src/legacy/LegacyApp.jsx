@@ -10,6 +10,7 @@ import BrandHomeLink from '../components/BrandHomeLink';
 import IrisLoader from '../components/IrisLoader';
 import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
+import { generateBudgetDocsHtml, budgetDocs } from './exportBudgetDocs.js';
 import './dashboard.css';
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -1627,7 +1628,7 @@ function FeedbackButton({user,view,mobile}){
     </div>}
   </>);
 }
-function ExportMenu({onPdf,onExcel,getPreview}){
+function ExportMenu({onPdf,onDocs,onExcel,getPreview}){
   const[open,setOpen]=useState(false);
   const[preview,setPreview]=useState(null);
   const ref=useRef();
@@ -1639,8 +1640,9 @@ function ExportMenu({onPdf,onExcel,getPreview}){
   return(<>
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
       <button type="button" onClick={()=>setOpen(o=>!o)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span><ChevronDown size={13} style={{color:T.faint}}/></button>
-      {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:200,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
+      {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:220,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
         <button type="button" onClick={()=>{onPdf();setOpen(false);}} style={{...item,display:'flex',alignItems:'center',gap:8}}><FileText size={13} style={{color:T.dim}}/><span>PDF Document</span></button>
+        {onDocs&&<button type="button" onClick={()=>{onDocs();setOpen(false);}} style={{...item,display:'flex',alignItems:'center',gap:8,borderTop:`1px solid ${T.line}`}}><FileText size={13} style={{color:'#5B9DF8'}}/><span>Word &amp; Google Docs (.doc)</span></button>}
         <button type="button" onClick={()=>{setOpen(false);getPreview?setPreview(getPreview()):onExcel();}} style={{...item,display:'flex',alignItems:'center',gap:8,borderTop:`1px solid ${T.line}`}}><BarChart3 size={13} style={{color:T.dim}}/><span>Excel Spreadsheet (.xlsx)</span></button>
       </div>}
     </div>
@@ -5203,7 +5205,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
   );
 }
 
-function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudget=0,totalSpend=0,remaining=0,contingency=0,baseCur='NGN',onPdf,onExcel}){
+function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudget=0,totalSpend=0,remaining=0,contingency=0,baseCur='NGN',onPdf,onDocs,onExcel}){
   const mob=useIsMobile();
   const [format, setFormat] = useState('pdf');
   const [theme, setTheme] = useState('charcoal');
@@ -5244,8 +5246,13 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
     if (exporting) return;
     setExporting(true);
     try {
-      if (format === 'pdf') await onPdf();
-      else await onExcel();
+      if (format === 'pdf') {
+        if (typeof onPdf === 'function') await onPdf();
+      } else if (format === 'docs') {
+        if (typeof onDocs === 'function') await onDocs();
+      } else {
+        if (typeof onExcel === 'function') await onExcel();
+      }
       onClose();
     } finally {
       setExporting(false);
@@ -5269,7 +5276,7 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:880,maxHeight:mob?'92vh':'90vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:900,maxHeight:mob?'92vh':'90vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
           >
             {/* Header */}
             <div style={{padding:mob?'18px 18px 14px':'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
@@ -5286,35 +5293,44 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
 
             {/* Body */}
             <div style={{padding:mob?'16px 18px':'20px 24px',overflowY:'auto',flex:1}}>
-              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'240px minmax(0, 1fr)',gap:20,alignItems:'start'}}>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'250px minmax(0, 1fr)',gap:20,alignItems:'start'}}>
                 {/* Left Controls */}
                 <div style={{display:'flex',flexDirection:'column',gap:18}}>
                   {/* Format */}
                   <div>
                     <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Format</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0, 1fr))',gap:8}}>
                       <button
                         type="button"
                         onClick={()=>setFormat('pdf')}
-                        style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:format==='pdf'?'rgba(255,179,71,0.06)':'#131316',border:format==='pdf'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='pdf'?'rgba(255,179,71,0.08)':'#131316',border:format==='pdf'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
                       >
-                        <FileText size={14} style={{color:format==='pdf'?'#F5C451':'#71717A',marginBottom:6}}/>
+                        <FileText size={14} style={{color:format==='pdf'?'#F5C451':'#71717A',marginBottom:4}}/>
                         <div style={{fontSize:12,fontWeight:600,color:T.cream}}>PDF</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Formatted report</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Print / PDF</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={()=>setFormat('docs')}
+                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='docs'?'rgba(91,157,248,0.1)':'#131316',border:format==='docs'?'1px solid rgba(91,157,248,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                      >
+                        <FileText size={14} style={{color:format==='docs'?'#5B9DF8':'#71717A',marginBottom:4}}/>
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Docs</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Word &amp; Docs</div>
                       </button>
                       <button
                         type="button"
                         onClick={()=>setFormat('excel')}
-                        style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:format==='excel'?'rgba(255,179,71,0.06)':'#131316',border:format==='excel'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='excel'?'rgba(82,176,122,0.1)':'#131316',border:format==='excel'?'1px solid rgba(82,176,122,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
                       >
-                        <BarChart3 size={14} style={{color:format==='excel'?'#F5C451':'#71717A',marginBottom:6}}/>
+                        <BarChart3 size={14} style={{color:format==='excel'?'#52B07A':'#71717A',marginBottom:4}}/>
                         <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Excel</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>3 sheets, editable</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>3 sheets, .xlsx</div>
                       </button>
                     </div>
                   </div>
 
-                  {/* Report Theme (PDF) or Excel Styling Note */}
+                  {/* Report Theme (PDF) or Docs / Excel Styling Note */}
                   {format === 'pdf' ? (
                   <div>
                     <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Report theme</div>
@@ -5331,6 +5347,11 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                       </button>
                     </div>
                   </div>
+                  ) : format === 'docs' ? (
+                  <div style={{fontSize:11,color:'#8A8985',lineHeight:1.55,background:'#131316',border:'1px solid #222226',borderRadius:10,padding:'12px 14px'}}>
+                    <div style={{fontWeight:600,color:T.cream,marginBottom:4}}>Word &amp; Google Docs (.doc)</div>
+                    Exports an editable document formatted with production metadata, executive grand total, phase subtotals, and department tables ready to open in Microsoft Word or Google Docs.
+                  </div>
                   ) : (
                   <div style={{fontSize:11,color:'#71717A',lineHeight:1.55}}>
                     Excel files use your spreadsheet app&apos;s own styling. Amounts are exported as numbers so you can keep working with them.
@@ -5344,7 +5365,8 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                       <span>Summary and contingency</span>
                       <span>Department breakdown with actuals</span>
                       <span>Phase totals</span>
-                      <span>Every budget line</span>
+                      <span>Every budget line item</span>
+                      {format === 'docs' && <span style={{color:'#5B9DF8'}}>Editable in Microsoft Word &amp; Google Docs</span>}
                     </div>
                   </div>
                 </div>
@@ -5408,6 +5430,61 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                           </div>
                         )}
                       </motion.div>
+                    ) : format === 'docs' ? (
+                      <motion.div
+                        key="docs-preview"
+                        initial={{opacity:0,y:6}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-6}}
+                        transition={{duration:0.18,ease:EASE_OUT}}
+                        style={{background:'#FFFFFF',color:'#1A1A1A',border:'1px solid #D4D4D8',borderRadius:10,padding:'24px 26px',maxWidth:540,margin:'0 auto',boxShadow:'0 16px 40px rgba(0,0,0,0.4)',fontFamily:'Calibri, Arial, sans-serif'}}
+                      >
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12,borderBottom:'2px solid #E5A823',paddingBottom:10}}>
+                          <div>
+                            <div style={{fontSize:16,fontWeight:700,color:'#111111'}}>{project?.name} — Production Budget</div>
+                            <div style={{fontSize:10,color:'#666666',marginTop:2}}>{project?.type || 'Film Production'} · Word &amp; Google Docs (.doc)</div>
+                          </div>
+                          <span style={{fontSize:9,color:'#888888',fontFamily:'Manrope,sans-serif'}}>Generated {generatedAt}</span>
+                        </div>
+
+                        {/* Top summary card */}
+                        <div style={{background:'#F7F7F8',border:'1px solid #E0E0E0',borderRadius:6,padding:'10px 12px',marginBottom:12}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <span style={{fontSize:10,color:'#666666',textTransform:'uppercase',letterSpacing:'0.05em',fontWeight:600}}>Total Budget ({baseCur})</span>
+                            <span style={{fontSize:15,fontWeight:700,color:'#111111',fontFamily:'Consolas,monospace'}}>{baseCur} {fmt(totalBudget)}</span>
+                          </div>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:8,paddingTop:8,borderTop:'1px solid #E5E5E5',fontSize:9.5}}>
+                            <div><span style={{color:'#777'}}>Spend: </span><strong style={{color:'#111'}}>{baseCur} {fmt(totalSpend)}</strong></div>
+                            <div><span style={{color:'#777'}}>Headroom: </span><strong style={{color:'#111'}}>{baseCur} {fmt(remaining)}</strong></div>
+                            <div><span style={{color:'#777'}}>Contingency: </span><strong style={{color:'#111'}}>{baseCur} {fmt(contingency)}</strong></div>
+                          </div>
+                        </div>
+
+                        {/* Table preview */}
+                        {previewLines.length > 0 ? (
+                          <div>
+                            <div style={{fontSize:10,fontWeight:700,color:'#333333',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.03em'}}>Sample Budget Items</div>
+                            <div style={{border:'1px solid #E0E0E0',borderRadius:4,overflow:'hidden'}}>
+                              <div style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.8fr 1fr',gap:6,padding:'5px 8px',background:'#F2F2F2',fontSize:9,fontWeight:700,color:'#444444'}}>
+                                <span>Description</span><span style={{textAlign:'center'}}>Qty</span><span>Unit</span><span style={{textAlign:'right'}}>Total ({baseCur})</span>
+                              </div>
+                              {previewLines.slice(0, 6).map(item => (
+                                <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.8fr 1fr',gap:6,padding:'4px 8px',borderTop:'1px solid #EEEEEE',fontSize:9,color:'#222222'}}>
+                                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description || 'Untitled line'}</span>
+                                  <span style={{textAlign:'center',color:'#666666'}}>{item.qty}</span>
+                                  <span style={{color:'#666666'}}>{item.unit}</span>
+                                  <span style={{textAlign:'right',fontFamily:'Consolas,monospace',fontWeight:600}}>{fmt(lTot(item))}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {extraCount > 0 && <div style={{fontSize:9,color:'#888888',marginTop:6}}>+ {extraCount} more lines included in the downloaded document</div>}
+                          </div>
+                        ) : (
+                          <div style={{fontSize:10,color:'#888888',padding:'12px 0',textAlign:'center'}}>
+                            Ready to export document with production top sheet summary.
+                          </div>
+                        )}
+                      </motion.div>
                     ) : (
                       <motion.div
                         key="excel-preview"
@@ -5423,7 +5500,7 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                               <tr style={{background:'#F4F4F5',color:'#71717A',borderBottom:'1px solid #E4E4E7'}}>
                                 <th style={{width:24,padding:'4px',borderRight:'1px solid #E4E4E7',fontWeight:500}}/>
                                 {['A','B','C','D','E','F','G'].map(col => (
-                                  <th key={col} style={{padding:'4px 8px',borderRight:'1px solid #E4E4E7',fontWeight:500,textAlign:'center'}}>{col}</th>
+                                   <th key={col} style={{padding:'4px 8px',borderRight:'1px solid #E4E4E7',fontWeight:500,textAlign:'center'}}>{col}</th>
                                 ))}
                               </tr>
                               <tr style={{background:'#FAFAFA',color:'#111111',borderBottom:'1px solid #D4D4D8',fontWeight:700}}>
@@ -5501,7 +5578,7 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                 style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
               >
                 <Download size={14}/>
-                <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : 'Download Excel'}</span>
+                <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : format === 'docs' ? 'Download Docs (.doc)' : 'Download Excel (.xlsx)'}</span>
               </motion.button>
             </div>
           </motion.div>
@@ -5678,18 +5755,17 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             <Layers size={14}/>
             <span>{tr('templates')}</span>
           </motion.button>
-          {pItems.length>0&&isOwner?(
-            <motion.button type="button" whileHover={{y:-1}} whileTap={{scale:0.98}} transition={{duration:DURATION.fast,ease:EASE_OUT}} onClick={()=>setShowExport(true)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span></motion.button>
-          ):(
-            <button
-              type="button"
-              disabled
-              style={{background:'#111113',border:'1px solid #242428',color:T.faint,borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'not-allowed',display:'inline-flex',alignItems:'center',gap:6,opacity:0.55}}
-            >
-              <Download size={13}/>
-              <span>Export</span>
-            </button>
-          )}
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowExport(true)}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <Download size={13}/>
+            <span>Export</span>
+          </motion.button>
           <motion.button
             type="button"
             whileHover={{y:-1}}
@@ -5752,6 +5828,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         contingency={autoContingency}
         baseCur={baseCur}
         onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)}
+        onDocs={()=>budgetDocs(pItems,project,advances,reconEntries)}
         onExcel={()=>budgetExcel(pItems,project)}
       />
 
@@ -9868,7 +9945,7 @@ function Workspace(){
       {!mobile&&<Sidebar view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email} projects={projects} currentId={currentId} onSelectProject={id=>{setCurrentId(id);if(view==='dashboard'||view==='productions')setView('overview');}} onClearProject={()=>setCurrentId(null)}/>}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,minHeight:0,height:mobile?'auto':'100svh'}}>
         {signOutError&&<p role="alert" className="p-4 text-palette-apricot">{signOutError}</p>}
-        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} searchQuery={searchQuery} onSearchChange={setSearchQuery} userEmail={user?.email} onAskNko={()=>setAskOpen(o=>!o)} askOpen={askOpen} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
+        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} searchQuery={searchQuery} onSearchChange={setSearchQuery} userEmail={user?.email} onAskNko={()=>setAskOpen(o=>!o)} askOpen={askOpen} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={!project?.user_id || project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
         <div style={{flex:1,minHeight:0,overflowY:'auto',padding:mobile?'16px 14px calc(96px + env(safe-area-inset-bottom))':'24px 28px'}}>
           <motion.div
             key={`${view}-${currentId || 'all'}`}
@@ -9879,7 +9956,7 @@ function Workspace(){
           {/* {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>} */}
           {(view==='overview'||(view==='dashboard'&&project))?(
             project?(
-              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
+              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
             ):(
               <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:40,textAlign:'center'}}>
                 <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
@@ -9893,13 +9970,13 @@ function Workspace(){
           {view==='productions'&&(
             <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
-          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
-          {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
-          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
-          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={project?.user_id===user.id}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
+          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
           </motion.div>
