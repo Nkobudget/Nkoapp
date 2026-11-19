@@ -19,6 +19,30 @@ test('BUDGET_ALLOCATIONS percentages sum to exactly 100%', () => {
   const sum = BUDGET_ALLOCATIONS.reduce((acc, a) => acc + a.pct, 0)
   assert.equal(Math.round(sum * 100), 100)
   assert.equal(BUDGET_ALLOCATIONS.length, 12)
+
+  // Verify categories and shares match the modal design
+  const expectedCategories = [
+    { name: 'Above the line', share: 12, amount25M: 3000000 },
+    { name: 'Production crew', share: 20, amount25M: 5000000 },
+    { name: 'Talent & cast', share: 8, amount25M: 2000000 },
+    { name: 'Camera', share: 9, amount25M: 2250000 },
+    { name: 'Lighting & grip', share: 7, amount25M: 1750000 },
+    { name: 'Art department', share: 6, amount25M: 1500000 },
+    { name: 'Wardrobe & makeup', share: 4, amount25M: 1000000 },
+    { name: 'Locations & permits', share: 8, amount25M: 2000000 },
+    { name: 'Transport & logistics', share: 5, amount25M: 1250000 },
+    { name: 'Catering', share: 4, amount25M: 1000000 },
+    { name: 'Post-production', share: 12, amount25M: 3000000 },
+    { name: 'Contingency', share: 5, amount25M: 1250000 },
+  ]
+
+  expectedCategories.forEach((exp, idx) => {
+    const item = BUDGET_ALLOCATIONS[idx]
+    assert.equal(item.name, exp.name)
+    assert.equal(item.share, exp.share)
+    const calculatedAmount25M = Math.round(25000000 * item.pct)
+    assert.equal(calculatedAmount25M, exp.amount25M)
+  })
 })
 
 test('saveOnboardingProduction inserts project, budget items, schedule days, scenes and user metadata', async () => {

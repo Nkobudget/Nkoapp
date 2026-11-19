@@ -18,18 +18,18 @@ export function toNumber(value) {
 }
 
 export const BUDGET_ALLOCATIONS = [
-  { dept: "E - Creative Team", description: "Above the Line & Creative Direction", pct: 0.12 },
-  { dept: "D - Production Team", description: "Production Management & Key Crew", pct: 0.15 },
-  { dept: "F - Talents", description: "Principal Cast & Supporting Talents", pct: 0.08 },
-  { dept: "G - Camera & Grip Team", description: "Camera Package & Grip Equipment", pct: 0.10 },
-  { dept: "I - Light & Power Team", description: "Lighting Package, Generator & Power", pct: 0.08 },
-  { dept: "K - Sound Team", description: "Sound Recordist, Boom & Audio Gear", pct: 0.06 },
-  { dept: "M - Art Team", description: "Art Direction, Set Dressing & Props", pct: 0.07 },
-  { dept: "P - Wardrobe", description: "Costumes, Wardrobe & Hair/Makeup", pct: 0.06 },
-  { dept: "O - Location", description: "Location Fees, Permits & Security", pct: 0.07 },
-  { dept: "S - Production Logistics", description: "Catering, Hospitality & Transport", pct: 0.08 },
-  { dept: "W - Post-Production Team", description: "Editorial, Sound Design & Color Grade", pct: 0.08 },
-  { dept: "V - Production Support", description: "Production Contingency & Support", pct: 0.05 },
+  { name: "Above the line", dept: "E - Creative Team", description: "Above the line", pct: 0.12, share: 12 },
+  { name: "Production crew", dept: "D - Production Team", description: "Production crew", pct: 0.20, share: 20 },
+  { name: "Talent & cast", dept: "F - Talents", description: "Talent & cast", pct: 0.08, share: 8 },
+  { name: "Camera", dept: "G - Camera & Grip Team", description: "Camera", pct: 0.09, share: 9 },
+  { name: "Lighting & grip", dept: "I - Light & Power Team", description: "Lighting & grip", pct: 0.07, share: 7 },
+  { name: "Art department", dept: "M - Art Team", description: "Art department", pct: 0.06, share: 6 },
+  { name: "Wardrobe & makeup", dept: "P - Wardrobe", description: "Wardrobe & makeup", pct: 0.04, share: 4 },
+  { name: "Locations & permits", dept: "O - Location", description: "Locations & permits", pct: 0.08, share: 8 },
+  { name: "Transport & logistics", dept: "S - Production Logistics", description: "Transport & logistics", pct: 0.05, share: 5 },
+  { name: "Catering", dept: "T - Hospitality & Welfare", description: "Catering", pct: 0.04, share: 4 },
+  { name: "Post-production", dept: "W - Post-Production Team", description: "Post-production", pct: 0.12, share: 12 },
+  { name: "Contingency", dept: "V - Production Support", description: "Contingency", pct: 0.05, share: 5 },
 ];
 
 /**
