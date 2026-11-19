@@ -12,7 +12,7 @@ import ProductionCTASection from "./components/ProductionCTASection"
 import Footer from "./components/Footer"
 import { Component, useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
-import SignInPage from "./auth/SignInPage";
+import AuthScreen from "./auth/AuthScreen";
 import OnboardingWelcome from "./onboarding/OnboardingWelcome";
 import OnboardingSetupPage from "./onboarding/OnboardingSetupPage";
 import OnboardingProductionChoicePage from "./onboarding/OnboardingProductionChoicePage";
@@ -92,23 +92,23 @@ const LandingPage = () => {
 };
 
 function SignInRoute() {
-  const navigate = useNavigate();
-  const { status, error, retry, signInWithGoogle } = useAuth();
+  const { status, error, retry } = useAuth();
 
   if (status === "authenticated") return <Navigate to="/app" replace />;
   if (status === "loading") return <AuthStatus />;
   if (status === "error") return <AuthStatus error={error} onRetry={retry} />;
 
-  return (
-    <SignInPage
-      introText="Sign in to your NKŌ workspace and keep your production moving."
-      onGoogleContinue={signInWithGoogle}
-      onEmailContinue={() => navigate("/app")}
-      accountPrompt="New to NKO?"
-      accountLinkLabel="Get started"
-      onAccountClick={() => navigate("/onboarding")}
-    />
-  );
+  return <AuthScreen initialMode="login" />;
+}
+
+function SignUpRoute() {
+  const { status, error, retry } = useAuth();
+
+  if (status === "authenticated") return <Navigate to="/app" replace />;
+  if (status === "loading") return <AuthStatus />;
+  if (status === "error") return <AuthStatus error={error} onRetry={retry} />;
+
+  return <AuthScreen initialMode="signup" />;
 }
 
 function OnboardingRoute() {
@@ -241,7 +241,7 @@ function OnboardingStartingPointRoute() {
       // CHANGED: keep the draft across the sign-in redirect, then send the user to sign in.
       onOpenProduction={() => {
         try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(location.state || {})); } catch { /* ignore */ }
-        navigate("/sign-in");
+        navigate("/sign-up");
       }}
     />
   );
@@ -263,6 +263,7 @@ function AppRoutes() {
   return <Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/sign-in" element={<SignInRoute />} />
+    <Route path="/sign-up" element={<SignUpRoute />} />
     <Route path="/onboarding" element={<OnboardingRoute />} />
     <Route path="/onboarding/setup" element={<OnboardingSetupRoute />} />
     <Route path="/onboarding/production" element={<OnboardingProductionRoute />} />

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
+import { saveOnboarding } from '../onboarding/storage'
+import { ROLES, MARKETS } from '../onboarding/options'
 
 // The onboarding draft is parked here while the user signs in. sessionStorage
 // survives the Google redirect (router state does not).
@@ -55,6 +57,12 @@ export default function PendingProductionSaver() {
         return
       }
       clearPending()
+      try {
+        const chosenRole = ROLES.some(r => r.id === profile.role) ? profile.role : ROLES[0].id
+        const chosenMarket = MARKETS.some(m => m.code === profile.currency) ? profile.currency : MARKETS[0].code
+        const saved = saveOnboarding(user.id, { role: chosenRole, market: chosenMarket })
+        await supabase.auth.updateUser({ data: { onboarding: saved, onboarding_completed: true } }).catch(() => {})
+      } catch { /* ignore */ }
       // Reload so the workspace loads with the new project in it.
       window.location.replace('/app')
     })()

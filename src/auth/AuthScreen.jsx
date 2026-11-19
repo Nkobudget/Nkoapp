@@ -1,5 +1,5 @@
-import { useId, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useAuth } from './AuthContext'
@@ -12,10 +12,12 @@ import AuthStatus from './AuthStatus'
 import { GoogleLogo } from './SignInPage'
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion'
 
-export default function AuthScreen() {
+export default function AuthScreen({ initialMode = 'login' } = {}) {
   const { signIn, signInWithGoogle, signUp, requestPasswordReset, callbackError } = useAuth()
   const { t, lang } = useLang()
-  const [mode, setMode] = useState('login')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [mode, setMode] = useState(initialMode)
   const [showPassword, setShowPassword] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -29,6 +31,13 @@ export default function AuthScreen() {
   const headingId = `${id}-heading`
   const field =
     'min-h-12 w-full rounded-xl border border-palette-graphite bg-palette-near-black px-4 py-3 text-sm text-palette-ivory placeholder:text-palette-gray transition-colors focus:border-palette-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold disabled:opacity-60'
+
+  useEffect(() => {
+    setMode(initialMode)
+    setError('')
+    setNotice(callbackError)
+    setAgreed(false)
+  }, [initialMode, callbackError])
 
   async function run(action, task) {
     if (busy.current) return
@@ -45,12 +54,14 @@ export default function AuthScreen() {
       if (mode === 'login') {
         await signIn(credentials)
         setRedirecting(true)
+        if (location.pathname !== '/app') navigate('/app', { replace: true })
       } else {
         const result = await signUp(credentials)
         if (result.requiresConfirmation) {
           setNotice(lang === 'fr' ? 'Consultez votre messagerie pour confirmer votre compte avant de vous connecter.' : 'Check your email to confirm your account before signing in.')
         } else {
           setRedirecting(true)
+          if (location.pathname !== '/app') navigate('/app', { replace: true })
         }
       }
     })
@@ -86,11 +97,11 @@ export default function AuthScreen() {
       >
         <motion.div variants={fadeUp} className="mb-5">
           <Link
-            to="/sign-in"
+            to="/"
             className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-palette-stone transition-colors hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold"
           >
             <ArrowLeft aria-hidden="true" className="size-3.5" />
-            <span>{lang === 'fr' ? 'Autres options de connexion' : 'All sign-in options'}</span>
+            <span>{lang === 'fr' ? 'Retour à l’accueil' : 'Back to home'}</span>
           </Link>
         </motion.div>
 
@@ -299,10 +310,14 @@ export default function AuthScreen() {
             type="button"
             disabled={!!pending}
             onClick={() => {
-              setMode(value => value === 'login' ? 'signup' : 'login')
+              const nextMode = mode === 'login' ? 'signup' : 'login'
+              setMode(nextMode)
               setError('')
               setNotice('')
               setAgreed(false)
+              if (location.pathname === '/sign-in' || location.pathname === '/sign-up') {
+                navigate(nextMode === 'signup' ? '/sign-up' : '/sign-in', { replace: true })
+              }
             }}
             className="rounded-sm text-sm font-medium text-palette-stone transition-colors hover:text-palette-gold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:opacity-60"
           >

@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
-import { ArrowLeft, ArrowRight, Coins, Users } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import BrandHomeLink from '../components/BrandHomeLink'
 import LanguageSwitcher from '../i18n/LanguageSwitcher'
 import { useLang } from '../i18n/LangContext'
 import { useAuth } from '../auth/AuthContext'
-import OnboardingWelcome from './OnboardingWelcome'
 import { ROLES, MARKETS } from './options'
 
 const roleFrench = {
@@ -17,8 +15,8 @@ const roleFrench = {
 const marketFrench = { NGN: 'Nigeria', GHS: 'Ghana', KES: 'Kenya', ZAR: 'Afrique du Sud', UGX: 'Ouganda', TZS: 'Tanzanie' }
 
 export default function OnboardingScreen({ onComplete }) {
-  const { t, lang } = useLang(), { signOut } = useAuth(), navigate = useNavigate()
-  const [step, setStep] = useState(0), [role, setRole] = useState(''), [market, setMarket] = useState('')
+  const { t, lang } = useLang(), { signOut } = useAuth()
+  const [step, setStep] = useState(1), [role, setRole] = useState(''), [market, setMarket] = useState('')
   const [error, setError] = useState(''), [pending, setPending] = useState(false)
   const heading = useRef(null)
   const fr = lang === 'fr'
@@ -33,16 +31,13 @@ export default function OnboardingScreen({ onComplete }) {
     }} className="min-h-9 rounded text-xs text-palette-stone underline focus-visible:outline-2 focus-visible:outline-palette-gold">{t('signOut')}</button>
   </div>
 
-  if (step === 0) return <>
-    {error && <p role="alert" className="bg-palette-near-black p-4 text-center text-palette-apricot">{error}</p>}
-    <OnboardingWelcome onSetUpProduction={() => setStep(1)} onSkip={() => navigate('/')} onBack={() => navigate('/')} headerActions={accountControls}
-      durationText={fr ? 'Deux choix pour commencer' : 'Two choices to get started'}
-      sections={[
-        { title: fr ? 'Rôle' : 'Role', description: fr ? 'Ce que vous gérez au quotidien' : 'What you manage day to day', Icon: Users },
-        { title: fr ? 'Marché et devise' : 'Market & currency', description: fr ? 'La devise de vos productions' : 'The default for your productions', Icon: Coins },
-      ]}
-      copy={{ heading: fr ? 'Bienvenue sur NKO.' : 'Welcome to NKO.', tagline: fr ? 'Préparons votre espace de travail.' : "Let's set up your workspace.", body: t('onboardTagline'), back: t('backBtn'), setup: t('getStarted'), skip: fr ? 'Je le ferai plus tard' : "I'll do this later" }} />
-  </>
+  async function skipOnboarding() {
+    if (pending) return
+    setPending(true); setError('')
+    try { await onComplete({ role: role || ROLES[0].id, market: market || MARKETS[0].code }) }
+    catch { setError(fr ? "Impossible d'enregistrer vos choix. Autorisez le stockage du navigateur puis réessayez." : 'Your preferences could not be saved. Allow browser storage, then try again.') }
+    finally { setPending(false) }
+  }
 
   const options = step === 1
     ? ROLES.map(item => ({ value: item.id, label: roleLabel(item), description: roleDescription(item) }))
@@ -64,7 +59,7 @@ export default function OnboardingScreen({ onComplete }) {
         <header className="flex flex-wrap items-center gap-5 border-b border-palette-graphite/60 pb-5">
           <BrandHomeLink className="h-6 w-auto" />
           <ol aria-label={fr ? "Étapes d'accueil" : 'Onboarding progress'} className="flex flex-1 gap-4 text-[0.6875rem]">
-            {[fr ? 'Bienvenue' : 'Welcome', fr ? 'Rôle' : 'Role', fr ? 'Devise' : 'Currency'].map((label, index) => <li key={label} aria-current={step === index ? 'step' : undefined} className={step === index ? 'text-palette-gold' : 'text-palette-stone'}><span className="mr-1 tabular-nums">0{index + 1}</span>{label}</li>)}
+            {[fr ? 'Rôle' : 'Role', fr ? 'Devise' : 'Currency'].map((label, index) => <li key={label} aria-current={step === index + 1 ? 'step' : undefined} className={step === index + 1 ? 'text-palette-gold' : 'text-palette-stone'}><span className="mr-1 tabular-nums">0{index + 1}</span>{label}</li>)}
           </ol>
           {accountControls}
         </header>
@@ -84,7 +79,13 @@ export default function OnboardingScreen({ onComplete }) {
           </fieldset>
           {error && <p role="alert" className="mt-5 text-sm text-palette-apricot">{error}</p>}
           <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-            <button type="button" disabled={pending} onClick={() => { setStep(value => value - 1); setError('') }} className="flex min-h-11 items-center gap-2 rounded px-2 text-sm text-palette-stone focus-visible:outline-2 focus-visible:outline-palette-gold"><ArrowLeft aria-hidden="true" className="size-4" />{t('backBtn')}</button>
+            {step === 1 ? (
+              <button type="button" disabled={pending} onClick={skipOnboarding} className="flex min-h-11 items-center gap-2 rounded px-2 text-sm text-palette-stone transition-colors hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-palette-gold">
+                {fr ? 'Passer pour le moment' : 'Skip for now'}
+              </button>
+            ) : (
+              <button type="button" disabled={pending} onClick={() => { setStep(1); setError('') }} className="flex min-h-11 items-center gap-2 rounded px-2 text-sm text-palette-stone transition-colors hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-palette-gold"><ArrowLeft aria-hidden="true" className="size-4" />{t('backBtn')}</button>
+            )}
             <button type="submit" disabled={!selected || pending} className="flex min-h-11 items-center gap-3 rounded-md bg-palette-apricot px-5 py-3 text-sm font-medium text-palette-black focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold disabled:cursor-not-allowed disabled:opacity-40">{pending ? (fr ? 'Enregistrement…' : 'Saving…') : t(step === 1 ? 'continueBtn' : 'finishBtn')}<ArrowRight aria-hidden="true" className="size-4" /></button>
           </div>
         </form>
