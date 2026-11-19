@@ -45,6 +45,7 @@ const BREAKDOWN_TAGS = [
 // CHANGED: added the onOpenProduction prop.
 export default function OnboardingStartingPointPage({ profile, onBack, onMakeChanges, onOpenProduction }) {
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
   const currency = profile?.currency || "NGN";
   const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
 
@@ -68,14 +69,52 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
     };
   });
 
+  // Calculate production breakdown: crew allocation, locations, and equipment
+  const totalCrew = Number(crewSize) || 20;
+  const crewBreakdown = [
+    { name: "Camera", count: Math.max(1, Math.round(totalCrew * 0.20)) },
+    { name: "Lighting & grip", count: Math.max(1, Math.round(totalCrew * 0.25)) },
+    { name: "Sound", count: Math.max(1, Math.round(totalCrew * 0.10)) },
+    { name: "Art department", count: Math.max(1, Math.round(totalCrew * 0.15)) },
+    { name: "Wardrobe & makeup", count: Math.max(1, Math.round(totalCrew * 0.15)) },
+    { name: "Locations & transport", count: Math.max(1, Math.round(totalCrew * 0.15)) },
+  ];
+  const allocatedCrewSum = crewBreakdown.slice(0, 5).reduce((s, c) => s + c.count, 0);
+  crewBreakdown[5].count = Math.max(1, totalCrew - allocatedCrewSum);
+
+  const baseLocations = [
+    { name: "Primary set", tone: "#9E8262" },
+    { name: "Exterior", tone: "#6D8176" },
+    { name: "Studio", tone: "#75726B" },
+  ];
+  const locationsCount = Number(locations) || 3;
+  const locationItems = Array.from({ length: locationsCount }, (_, i) => {
+    if (i < baseLocations.length) return baseLocations[i];
+    return { name: `Location ${i + 1}`, tone: i % 2 === 0 ? "#9E8262" : "#6D8176" };
+  });
+
+  const equipmentCategories = [
+    "Camera",
+    "Lenses",
+    "Lighting",
+    "Grip",
+    "Sound",
+    "Power",
+    "Monitoring",
+    "Data & storage",
+  ];
+
   useEffect(() => {
-    if (!budgetModalOpen) return;
+    if (!budgetModalOpen && !breakdownModalOpen) return;
     const onKey = (e) => {
-      if (e.key === "Escape") setBudgetModalOpen(false);
+      if (e.key === "Escape") {
+        setBudgetModalOpen(false);
+        setBreakdownModalOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [budgetModalOpen]);
+  }, [budgetModalOpen, breakdownModalOpen]);
 
   return (
     <main className="min-h-svh bg-palette-black text-palette-ivory wrap-break-word">
@@ -207,7 +246,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
               <button
                 type="button"
-                onClick={onOpenProduction}
+                onClick={() => setBreakdownModalOpen(true)}
                 className="mt-6 flex w-full items-center justify-between border-t border-palette-graphite/70 pt-4 text-xs font-medium text-palette-ivory transition-colors hover:text-palette-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold cursor-pointer"
               >
                 <span>Review Breakdown</span>
@@ -411,6 +450,138 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
                 <button
                   type="button"
                   onClick={() => setBudgetModalOpen(false)}
+                  className="rounded-lg bg-palette-apricot px-5 py-2 text-xs font-semibold text-palette-black shadow-[0_2px_12px_rgba(255,179,71,0.25)] transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Production Breakdown Modal */}
+      <AnimatePresence>
+        {breakdownModalOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="production-breakdown-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => setBreakdownModalOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-xs"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              className="relative z-10 flex max-h-[92vh] w-full max-w-[32rem] flex-col rounded-2xl border border-palette-graphite bg-[#121214] p-5 sm:p-7 shadow-2xl text-palette-ivory"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2
+                    id="production-breakdown-title"
+                    className="text-xl sm:text-2xl font-medium tracking-tight text-palette-ivory"
+                  >
+                    Production breakdown
+                  </h2>
+                  <p className="mt-1 text-xs sm:text-sm text-palette-stone">
+                    Drafted by NKO · Editable in your workspace
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setBreakdownModalOpen(false)}
+                  aria-label="Close"
+                  className="flex size-8 items-center justify-center rounded-lg border border-palette-graphite bg-palette-near-black text-palette-stone transition-colors hover:border-palette-warm-gray hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="mt-6 flex-1 overflow-y-auto pr-1">
+                {/* Crew Breakdown Section */}
+                <div className="divide-y divide-palette-graphite/20 border-b border-palette-graphite/40 pb-5">
+                  {crewBreakdown.map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between py-2.5 text-xs sm:text-sm"
+                    >
+                      <span className="font-medium text-palette-ivory">{item.name}</span>
+                      <span className="font-mono text-xs text-palette-stone tabular-nums">
+                        {item.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Locations Section */}
+                <div className="pt-5 border-b border-palette-graphite/40 pb-5">
+                  <div className="text-xs text-palette-stone font-sans mb-2">
+                    Locations · {locationsCount}
+                  </div>
+                  <div className="divide-y divide-palette-graphite/20">
+                    {locationItems.map((loc) => (
+                      <div
+                        key={loc.name}
+                        className="flex items-center justify-between py-2.5 text-xs sm:text-sm"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            aria-hidden="true"
+                            style={{ backgroundColor: loc.tone }}
+                            className="size-2 rounded-xs inline-block shrink-0"
+                          />
+                          <span className="font-medium text-palette-ivory">{loc.name}</span>
+                        </div>
+                        <span className="font-mono text-xs text-palette-stone/75 tabular-nums">
+                          Address TBC
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Equipment Section */}
+                <div className="pt-5">
+                  <div className="text-xs text-palette-stone font-sans mb-3">
+                    Equipment · {equipmentCategories.length} categories
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {equipmentCategories.map((eq) => (
+                      <span
+                        key={eq}
+                        className="rounded-md border border-palette-graphite bg-palette-near-black px-3 py-1.5 font-mono text-xs text-palette-ivory"
+                      >
+                        {eq}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-5 flex items-center justify-between border-t border-palette-graphite/60 pt-4">
+                <p className="text-xs text-palette-stone">
+                  Nothing is final until you approve it.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setBreakdownModalOpen(false)}
                   className="rounded-lg bg-palette-apricot px-5 py-2 text-xs font-semibold text-palette-black shadow-[0_2px_12px_rgba(255,179,71,0.25)] transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
                 >
                   Done

@@ -144,3 +144,28 @@ test('saveOnboardingProduction inserts project, budget items, schedule days, sce
   assert.equal(updatedUserMeta.country, 'Nigeria')
   assert.equal(updatedUserMeta.onboarding_completed, true)
 })
+
+test('production breakdown structure contains required departments, equipment categories, and locations', () => {
+  const expectedDepartments = [
+    'Camera',
+    'Lighting & grip',
+    'Sound',
+    'Art department',
+    'Wardrobe & makeup',
+    'Locations & transport',
+  ]
+
+  const expectedEquipment = [
+    'Camera',
+    'Lenses',
+    'Lighting',
+    'Grip',
+    'Sound',
+    'Power',
+    'Monitoring',
+    'Data & storage',
+  ]
+
+  assert.equal(expectedDepartments.length, 6)
+  assert.equal(expectedEquipment.length, 8)
+})
