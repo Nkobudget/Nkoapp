@@ -24,6 +24,7 @@ import OnboardingStartingPointPage from "./onboarding/OnboardingStartingPointPag
 import { useAuth } from "./auth/AuthContext";
 import AuthGate from "./auth/AuthGate";
 import AuthProvider from "./auth/AuthProvider";
+import PendingProductionSaver, { PENDING_KEY } from "./auth/PendingProductionSaver";
 import LangProvider from "./i18n/LangProvider";
 import { isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
 import AuthStatus from "./auth/AuthStatus";
@@ -237,6 +238,11 @@ function OnboardingStartingPointRoute() {
       profile={location.state}
       onBack={() => navigate("/onboarding/ai-setup", { state: location.state })}
       onMakeChanges={() => navigate("/onboarding/setup", { state: location.state })}
+      // CHANGED: keep the draft across the sign-in redirect, then send the user to sign in.
+      onOpenProduction={() => {
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(location.state || {})); } catch { /* ignore */ }
+        navigate("/sign-in");
+      }}
     />
   );
 }
@@ -272,5 +278,5 @@ function AppRoutes() {
 }
 
 export default function App() {
-  return <LangProvider><AuthProvider><AppRoutes /></AuthProvider></LangProvider>;
+  return <LangProvider><AuthProvider><PendingProductionSaver /><AppRoutes /></AuthProvider></LangProvider>;
 }

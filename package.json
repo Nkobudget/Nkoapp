@@ -12,7 +12,7 @@
     "test:production": "node --test tests/production.test.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.0.0",
+    "@supabase/supabase-js": "^2.119.0",
     "@tailwindcss/vite": "^4.3.3",
     "framer-motion": "^14.1.0",
     "lucide-react": "^1.55.0",
