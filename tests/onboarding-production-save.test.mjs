@@ -169,3 +169,35 @@ test('production breakdown structure contains required departments, equipment ca
   assert.equal(expectedDepartments.length, 6)
   assert.equal(expectedEquipment.length, 8)
 })
+
+test('schedule framework distributes days into primary set, exterior, and studio with Date TBC', () => {
+  const shootDaysCount = 10
+  const allDays = Array.from({ length: shootDaysCount }, (_, i) => {
+    const dayNum = i + 1
+    const pEnd = Math.max(1, Math.round(shootDaysCount * 0.4))
+    const eEnd = Math.max(pEnd + 1, Math.round(shootDaysCount * 0.7))
+    const locationName = dayNum <= pEnd
+      ? 'Primary set'
+      : dayNum <= eEnd
+      ? 'Exterior'
+      : 'Studio'
+    const tone = dayNum <= pEnd
+      ? '#9E8262'
+      : dayNum <= eEnd
+      ? '#6D8176'
+      : '#75726B'
+    return { dayNum, locationName, tone, dateStatus: 'Date TBC' }
+  })
+
+  assert.equal(allDays.length, 10)
+  assert.equal(allDays[0].locationName, 'Primary set')
+  assert.equal(allDays[0].tone, '#9E8262')
+  assert.equal(allDays[3].locationName, 'Primary set')
+  assert.equal(allDays[4].locationName, 'Exterior')
+  assert.equal(allDays[4].tone, '#6D8176')
+  assert.equal(allDays[6].locationName, 'Exterior')
+  assert.equal(allDays[7].locationName, 'Studio')
+  assert.equal(allDays[7].tone, '#75726B')
+  assert.equal(allDays[9].locationName, 'Studio')
+  allDays.forEach(d => assert.equal(d.dateStatus, 'Date TBC'))
+})
