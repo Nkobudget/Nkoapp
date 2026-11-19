@@ -1,7 +1,9 @@
-import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import BrandHomeLink from "../components/BrandHomeLink";
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from "../lib/motion";
+import { BUDGET_ALLOCATIONS, toNumber } from "./saveOnboardingProduction.js";
 
 const CURRENCY_SYMBOLS = {
   NGN: "₦",
@@ -42,15 +44,98 @@ const BREAKDOWN_TAGS = [
 
 // CHANGED: added the onOpenProduction prop.
 export default function OnboardingStartingPointPage({ profile, onBack, onMakeChanges, onOpenProduction }) {
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const currency = profile?.currency || "NGN";
   const symbol = CURRENCY_SYMBOLS[currency] || `${currency} `;
-  const budgetTotal = profile?.budgetAmount
-    ? `${symbol}${profile.budgetAmount}`
-    : `${symbol}25,000,000`;
+
+  const parsedBudgetAmount = toNumber(profile?.budgetAmount) || (currency === 'NGN' ? 25000000 : 25000);
+  const budgetTotal = `${symbol}${parsedBudgetAmount.toLocaleString()}`;
   const crewSize = profile?.crewSize || 24;
   const locations = profile?.locations || 3;
   const shootingDays = profile?.shootingDays || 10;
   const visibleDays = Array.from({ length: Math.min(Number(shootingDays) || 10, 10) }, (_, i) => i + 1);
+
+  // Calculate preliminary budget breakdown according to the 12 core allocations
+  let runningTotal = 0;
+  const budgetBreakdownItems = BUDGET_ALLOCATIONS.map((alloc, idx) => {
+    const isLast = idx === BUDGET_ALLOCATIONS.length - 1;
+    const amount = isLast ? Math.max(0, parsedBudgetAmount - runningTotal) : Math.round(parsedBudgetAmount * alloc.pct);
+    runningTotal += amount;
+    return {
+      ...alloc,
+      amount,
+      formattedAmount: `${symbol}${amount.toLocaleString()}`,
+    };
+  });
+
+  // Calculate production breakdown: crew allocation, locations, and equipment
+  const totalCrew = Number(crewSize) || 20;
+  const crewBreakdown = [
+    { name: "Camera", count: Math.max(1, Math.round(totalCrew * 0.20)) },
+    { name: "Lighting & grip", count: Math.max(1, Math.round(totalCrew * 0.25)) },
+    { name: "Sound", count: Math.max(1, Math.round(totalCrew * 0.10)) },
+    { name: "Art department", count: Math.max(1, Math.round(totalCrew * 0.15)) },
+    { name: "Wardrobe & makeup", count: Math.max(1, Math.round(totalCrew * 0.15)) },
+    { name: "Locations & transport", count: Math.max(1, Math.round(totalCrew * 0.15)) },
+  ];
+  const allocatedCrewSum = crewBreakdown.slice(0, 5).reduce((s, c) => s + c.count, 0);
+  crewBreakdown[5].count = Math.max(1, totalCrew - allocatedCrewSum);
+
+  const baseLocations = [
+    { name: "Primary set", tone: "#9E8262" },
+    { name: "Exterior", tone: "#6D8176" },
+    { name: "Studio", tone: "#75726B" },
+  ];
+  const locationsCount = Number(locations) || 3;
+  const locationItems = Array.from({ length: locationsCount }, (_, i) => {
+    if (i < baseLocations.length) return baseLocations[i];
+    return { name: `Location ${i + 1}`, tone: i % 2 === 0 ? "#9E8262" : "#6D8176" };
+  });
+
+  const equipmentCategories = [
+    "Camera",
+    "Lenses",
+    "Lighting",
+    "Grip",
+    "Sound",
+    "Power",
+    "Monitoring",
+    "Data & storage",
+  ];
+
+  // Calculate schedule framework days
+  const shootDaysCount = Math.max(1, Number(shootingDays) || 10);
+  const allDays = Array.from({ length: shootDaysCount }, (_, i) => {
+    const dayNum = i + 1;
+    const pEnd = Math.max(1, Math.round(shootDaysCount * 0.4));
+    const eEnd = Math.max(pEnd + 1, Math.round(shootDaysCount * 0.7));
+    const locationName = dayNum <= pEnd
+      ? "Primary set"
+      : dayNum <= eEnd
+      ? "Exterior"
+      : "Studio";
+    const tone = dayNum <= pEnd
+      ? "#9E8262"
+      : dayNum <= eEnd
+      ? "#6D8176"
+      : "#75726B";
+    return { dayNum, locationName, tone };
+  });
+
+  useEffect(() => {
+    if (!budgetModalOpen && !breakdownModalOpen && !scheduleModalOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setBudgetModalOpen(false);
+        setBreakdownModalOpen(false);
+        setScheduleModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [budgetModalOpen, breakdownModalOpen, scheduleModalOpen]);
 
   return (
     <main className="min-h-svh bg-palette-black text-palette-ivory wrap-break-word">
@@ -132,7 +217,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
               <button
                 type="button"
-                onClick={onOpenProduction}
+                onClick={() => setBudgetModalOpen(true)}
                 className="mt-6 flex w-full items-center justify-between border-t border-palette-graphite/70 pt-4 text-xs font-medium text-palette-ivory transition-colors hover:text-palette-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold cursor-pointer"
               >
                 <span>Review Budget</span>
@@ -182,7 +267,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
               <button
                 type="button"
-                onClick={onOpenProduction}
+                onClick={() => setBreakdownModalOpen(true)}
                 className="mt-6 flex w-full items-center justify-between border-t border-palette-graphite/70 pt-4 text-xs font-medium text-palette-ivory transition-colors hover:text-palette-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold cursor-pointer"
               >
                 <span>Review Breakdown</span>
@@ -259,7 +344,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
               <button
                 type="button"
-                onClick={onOpenProduction}
+                onClick={() => setScheduleModalOpen(true)}
                 className="mt-6 flex w-full items-center justify-between border-t border-palette-graphite/70 pt-4 text-xs font-medium text-palette-ivory transition-colors hover:text-palette-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-palette-gold cursor-pointer"
               >
                 <span>Review Schedule</span>
@@ -297,6 +382,336 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
 
         </motion.div>
       </div>
+
+      {/* Preliminary Budget Breakdown Modal */}
+      <AnimatePresence>
+        {budgetModalOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="preliminary-budget-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => setBudgetModalOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-xs"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              className="relative z-10 flex max-h-[92vh] w-full max-w-[32rem] flex-col rounded-2xl border border-palette-graphite bg-[#121214] p-5 sm:p-7 shadow-2xl text-palette-ivory"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2
+                    id="preliminary-budget-title"
+                    className="text-xl sm:text-2xl font-medium tracking-tight text-palette-ivory"
+                  >
+                    Preliminary budget
+                  </h2>
+                  <p className="mt-1 text-xs sm:text-sm text-palette-stone">
+                    Drafted by NKO · Editable in your workspace
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setBudgetModalOpen(false)}
+                  aria-label="Close"
+                  className="flex size-8 items-center justify-center rounded-lg border border-palette-graphite bg-palette-near-black text-palette-stone transition-colors hover:border-palette-warm-gray hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+
+              {/* Table / Breakdown list */}
+              <div className="mt-6 flex-1 overflow-y-auto pr-1">
+                <div className="grid grid-cols-12 border-b border-palette-graphite/60 pb-2.5 text-xs text-palette-stone/75 font-sans">
+                  <div className="col-span-6 text-left">Category</div>
+                  <div className="col-span-2 text-center">Share</div>
+                  <div className="col-span-4 text-right">Amount</div>
+                </div>
+
+                <div className="divide-y divide-palette-graphite/20">
+                  {budgetBreakdownItems.map((item) => (
+                    <div
+                      key={item.name}
+                      className="grid grid-cols-12 items-center py-2.5 sm:py-3 text-xs sm:text-sm"
+                    >
+                      <div className="col-span-6 font-medium text-palette-ivory">
+                        {item.name}
+                      </div>
+                      <div className="col-span-2 text-center font-mono text-xs text-palette-stone tabular-nums">
+                        {item.share}
+                      </div>
+                      <div className="col-span-4 text-right font-mono font-medium text-palette-ivory tabular-nums">
+                        {item.formattedAmount}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-5 flex items-center justify-between border-t border-palette-graphite/60 pt-4">
+                <p className="text-xs text-palette-stone">
+                  Nothing is final until you approve it.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setBudgetModalOpen(false)}
+                  className="rounded-lg bg-palette-apricot px-5 py-2 text-xs font-semibold text-palette-black shadow-[0_2px_12px_rgba(255,179,71,0.25)] transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Production Breakdown Modal */}
+      <AnimatePresence>
+        {breakdownModalOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="production-breakdown-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => setBreakdownModalOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-xs"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              className="relative z-10 flex max-h-[92vh] w-full max-w-[32rem] flex-col rounded-2xl border border-palette-graphite bg-[#121214] p-5 sm:p-7 shadow-2xl text-palette-ivory"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2
+                    id="production-breakdown-title"
+                    className="text-xl sm:text-2xl font-medium tracking-tight text-palette-ivory"
+                  >
+                    Production breakdown
+                  </h2>
+                  <p className="mt-1 text-xs sm:text-sm text-palette-stone">
+                    Drafted by NKO · Editable in your workspace
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setBreakdownModalOpen(false)}
+                  aria-label="Close"
+                  className="flex size-8 items-center justify-center rounded-lg border border-palette-graphite bg-palette-near-black text-palette-stone transition-colors hover:border-palette-warm-gray hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="mt-6 flex-1 overflow-y-auto pr-1">
+                {/* Crew Breakdown Section */}
+                <div className="divide-y divide-palette-graphite/20 border-b border-palette-graphite/40 pb-5">
+                  {crewBreakdown.map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between py-2.5 text-xs sm:text-sm"
+                    >
+                      <span className="font-medium text-palette-ivory">{item.name}</span>
+                      <span className="font-mono text-xs text-palette-stone tabular-nums">
+                        {item.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Locations Section */}
+                <div className="pt-5 border-b border-palette-graphite/40 pb-5">
+                  <div className="text-xs text-palette-stone font-sans mb-2">
+                    Locations · {locationsCount}
+                  </div>
+                  <div className="divide-y divide-palette-graphite/20">
+                    {locationItems.map((loc) => (
+                      <div
+                        key={loc.name}
+                        className="flex items-center justify-between py-2.5 text-xs sm:text-sm"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            aria-hidden="true"
+                            style={{ backgroundColor: loc.tone }}
+                            className="size-2 rounded-xs inline-block shrink-0"
+                          />
+                          <span className="font-medium text-palette-ivory">{loc.name}</span>
+                        </div>
+                        <span className="font-mono text-xs text-palette-stone/75 tabular-nums">
+                          Address TBC
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Equipment Section */}
+                <div className="pt-5">
+                  <div className="text-xs text-palette-stone font-sans mb-3">
+                    Equipment · {equipmentCategories.length} categories
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {equipmentCategories.map((eq) => (
+                      <span
+                        key={eq}
+                        className="rounded-md border border-palette-graphite bg-palette-near-black px-3 py-1.5 font-mono text-xs text-palette-ivory"
+                      >
+                        {eq}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-5 flex items-center justify-between border-t border-palette-graphite/60 pt-4">
+                <p className="text-xs text-palette-stone">
+                  Nothing is final until you approve it.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setBreakdownModalOpen(false)}
+                  className="rounded-lg bg-palette-apricot px-5 py-2 text-xs font-semibold text-palette-black shadow-[0_2px_12px_rgba(255,179,71,0.25)] transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Schedule Framework Modal */}
+      <AnimatePresence>
+        {scheduleModalOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="schedule-framework-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          >
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => setScheduleModalOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-xs"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              className="relative z-10 flex max-h-[92vh] w-full max-w-[32rem] flex-col rounded-2xl border border-palette-graphite bg-[#121214] p-5 sm:p-7 shadow-2xl text-palette-ivory"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2
+                    id="schedule-framework-title"
+                    className="text-xl sm:text-2xl font-medium tracking-tight text-palette-ivory"
+                  >
+                    Schedule framework
+                  </h2>
+                  <p className="mt-1 text-xs sm:text-sm text-palette-stone">
+                    Drafted by NKO · Editable in your workspace
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setScheduleModalOpen(false)}
+                  aria-label="Close"
+                  className="flex size-8 items-center justify-center rounded-lg border border-palette-graphite bg-palette-near-black text-palette-stone transition-colors hover:border-palette-warm-gray hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+
+              {/* Scrollable Days List */}
+              <div className="mt-6 flex-1 overflow-y-auto pr-1 divide-y divide-palette-graphite/20 border-t border-palette-graphite/40">
+                {allDays.map((day) => (
+                  <div
+                    key={day.dayNum}
+                    className="flex items-center justify-between py-2.5 sm:py-3 text-xs sm:text-sm"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="font-mono text-xs text-palette-stone tabular-nums w-14">
+                        Day {day.dayNum}
+                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          style={{ backgroundColor: day.tone }}
+                          className="size-2 rounded-xs inline-block shrink-0"
+                        />
+                        <span className="font-medium text-palette-ivory">
+                          {day.locationName}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="font-mono text-xs text-palette-stone/75 tabular-nums">
+                      Date TBC
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-5 flex items-center justify-between border-t border-palette-graphite/60 pt-4">
+                <p className="text-xs text-palette-stone">
+                  Nothing is final until you approve it.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setScheduleModalOpen(false)}
+                  className="rounded-lg bg-palette-apricot px-5 py-2 text-xs font-semibold text-palette-black shadow-[0_2px_12px_rgba(255,179,71,0.25)] transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-palette-gold cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

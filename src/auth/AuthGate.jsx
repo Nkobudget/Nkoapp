@@ -50,7 +50,7 @@ function UserWorkspace({ user }) {
       try {
         const [{ data: owned }, { data: shared }] = await Promise.all([
           supabase.from('projects').select('id').eq('user_id', user.id).limit(1),
-          supabase.from('collaborators').select('id').eq('user_id', user.id).limit(1),
+          supabase.from('project_collaborators').select('id').eq('user_id', user.id).limit(1),
         ])
         if (!active) return
         if ((owned && owned.length > 0) || (shared && shared.length > 0)) {

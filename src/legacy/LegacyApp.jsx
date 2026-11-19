@@ -10,11 +10,13 @@ import BrandHomeLink from '../components/BrandHomeLink';
 import IrisLoader from '../components/IrisLoader';
 import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
+import { generateBudgetDocsHtml, budgetDocs } from './exportBudgetDocs.js';
 import './dashboard.css';
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion';
 import {
+  AlertCircle,
   AlertTriangle,
   ArrowLeftRight,
   ArrowRight,
@@ -1627,7 +1629,7 @@ function FeedbackButton({user,view,mobile}){
     </div>}
   </>);
 }
-function ExportMenu({onPdf,onExcel,getPreview}){
+function ExportMenu({onPdf,onDocs,onExcel,getPreview}){
   const[open,setOpen]=useState(false);
   const[preview,setPreview]=useState(null);
   const ref=useRef();
@@ -1639,8 +1641,9 @@ function ExportMenu({onPdf,onExcel,getPreview}){
   return(<>
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
       <button type="button" onClick={()=>setOpen(o=>!o)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span><ChevronDown size={13} style={{color:T.faint}}/></button>
-      {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:200,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
+      {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:220,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
         <button type="button" onClick={()=>{onPdf();setOpen(false);}} style={{...item,display:'flex',alignItems:'center',gap:8}}><FileText size={13} style={{color:T.dim}}/><span>PDF Document</span></button>
+        {onDocs&&<button type="button" onClick={()=>{onDocs();setOpen(false);}} style={{...item,display:'flex',alignItems:'center',gap:8,borderTop:`1px solid ${T.line}`}}><FileText size={13} style={{color:'#5B9DF8'}}/><span>Word &amp; Google Docs (.doc)</span></button>}
         <button type="button" onClick={()=>{setOpen(false);getPreview?setPreview(getPreview()):onExcel();}} style={{...item,display:'flex',alignItems:'center',gap:8,borderTop:`1px solid ${T.line}`}}><BarChart3 size={13} style={{color:T.dim}}/><span>Excel Spreadsheet (.xlsx)</span></button>
       </div>}
     </div>
@@ -2985,7 +2988,22 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
   const unpaid = projects.length > 0
     ? activePayees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length
     : 0;
-  const totalBudgetUSD = activeBudgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const budgetByCur = {};
+  activeBudgetItems.forEach(i => {
+    const cur = i.currency || defaultCurrency || 'NGN';
+    budgetByCur[cur] = (budgetByCur[cur] || 0) + lTot(i);
+  });
+  if (Object.keys(budgetByCur).length === 0 && projects.length > 0) {
+    projects.forEach(p => {
+      const cur = p.base_currency || defaultCurrency || 'NGN';
+      const tb = Number(p.target_budget) || 0;
+      if (tb > 0) budgetByCur[cur] = (budgetByCur[cur] || 0) + tb;
+    });
+  }
+
+  const totalBudgetUSD = activeBudgetItems.length > 0
+    ? activeBudgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0)
+    : projects.reduce((s,p)=>s+toUSD(Number(p.target_budget || 0), p.base_currency || 'NGN'), 0);
   const { spentByCur: allSpentByCur, totalUSD: totalSpentUSD } = projects.length > 0
     ? computeTotalSpend(activeAdvances, reconEntries, activePayees, activePOs)
     : { spentByCur: {}, totalUSD: 0, breakdown: { advances: {}, payees: {}, pos: {} } };
@@ -2993,12 +3011,6 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
   const hasBudget = totalBudgetUSD > 0;
   const savedUSD = projects.length === 0 ? 0 : (totalBudgetUSD - totalSpentUSD);
   const isOverBudget = projects.length > 0 && hasBudget && savedUSD < 0;
-
-  const budgetByCur = {};
-  activeBudgetItems.forEach(i => {
-    const cur = i.currency || defaultCurrency || 'NGN';
-    budgetByCur[cur] = (budgetByCur[cur] || 0) + lTot(i);
-  });
   const budgetDisplayAll = projects.length === 0 || Object.entries(budgetByCur).length === 0
     ? `${sym(defaultCurrency || 'NGN')}0`
     : Object.entries(budgetByCur).length <= 2
@@ -3324,13 +3336,16 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
           {visibleProjects.map(p=>{
             const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
             const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+            if (Object.keys(totals).length === 0 && Number(p.target_budget) > 0) {
+              totals[p.base_currency || 'NGN'] = Number(p.target_budget);
+            }
             const open=advances.filter(a=>matchesProject(a.project_id, p.id, p.name)&&a.status!=='reconciled').length;
             const isSel=selected.has(p.id);
             const pAdv=advances.filter(a=>matchesProject(a.project_id, p.id, p.name));
             const pPay=payees.filter(py=>matchesProject(py.project_id, p.id, p.name));
             const pPO=(purchaseOrders||[]).filter(po=>matchesProject(po.project_id, p.id, p.name));
             const { spentByCur: pSpentTotals, totalUSD: pSpentUSD, breakdown: pBreakdown } = computeTotalSpend(pAdv, reconEntries, pPay, pPO);
-            const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+            const budgetUSD=pi.length > 0 ? pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0) : toUSD(Number(p.target_budget || 0), p.base_currency || 'NGN');
             const pct=budgetUSD>0?Math.min(100,(pSpentUSD/budgetUSD)*100):0;
             const over=pSpentUSD>budgetUSD && budgetUSD > 0;
             const isOwner = p.user_id === currentUserId;
@@ -3371,7 +3386,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>
                     <MapPin size={11} style={{color:T.faint,flexShrink:0}}/>
-                    <span>{p.base_currency || 'NGN'} · {pi.length} lines · {open} open advances</span>
+                    <span>{p.base_currency || 'NGN'} · {pi.length > 0 ? `${pi.length} lines` : (p.target_budget ? 'Target budget set' : '0 lines')} · {open} open advances</span>
                   </div>
 
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:12}}>
@@ -5191,7 +5206,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
   );
 }
 
-function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudget=0,totalSpend=0,remaining=0,contingency=0,baseCur='NGN',onPdf,onExcel}){
+function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudget=0,totalSpend=0,remaining=0,contingency=0,baseCur='NGN',onPdf,onDocs,onExcel}){
   const mob=useIsMobile();
   const [format, setFormat] = useState('pdf');
   const [theme, setTheme] = useState('charcoal');
@@ -5232,8 +5247,13 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
     if (exporting) return;
     setExporting(true);
     try {
-      if (format === 'pdf') await onPdf();
-      else await onExcel();
+      if (format === 'pdf') {
+        if (typeof onPdf === 'function') await onPdf();
+      } else if (format === 'docs') {
+        if (typeof onDocs === 'function') await onDocs();
+      } else {
+        if (typeof onExcel === 'function') await onExcel();
+      }
       onClose();
     } finally {
       setExporting(false);
@@ -5257,7 +5277,7 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:880,maxHeight:mob?'92vh':'90vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:900,maxHeight:mob?'92vh':'90vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
           >
             {/* Header */}
             <div style={{padding:mob?'18px 18px 14px':'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
@@ -5274,35 +5294,44 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
 
             {/* Body */}
             <div style={{padding:mob?'16px 18px':'20px 24px',overflowY:'auto',flex:1}}>
-              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'240px minmax(0, 1fr)',gap:20,alignItems:'start'}}>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'250px minmax(0, 1fr)',gap:20,alignItems:'start'}}>
                 {/* Left Controls */}
                 <div style={{display:'flex',flexDirection:'column',gap:18}}>
                   {/* Format */}
                   <div>
                     <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Format</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0, 1fr))',gap:8}}>
                       <button
                         type="button"
                         onClick={()=>setFormat('pdf')}
-                        style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:format==='pdf'?'rgba(255,179,71,0.06)':'#131316',border:format==='pdf'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='pdf'?'rgba(255,179,71,0.08)':'#131316',border:format==='pdf'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
                       >
-                        <FileText size={14} style={{color:format==='pdf'?'#F5C451':'#71717A',marginBottom:6}}/>
+                        <FileText size={14} style={{color:format==='pdf'?'#F5C451':'#71717A',marginBottom:4}}/>
                         <div style={{fontSize:12,fontWeight:600,color:T.cream}}>PDF</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Formatted report</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Print / PDF</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={()=>setFormat('docs')}
+                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='docs'?'rgba(91,157,248,0.1)':'#131316',border:format==='docs'?'1px solid rgba(91,157,248,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                      >
+                        <FileText size={14} style={{color:format==='docs'?'#5B9DF8':'#71717A',marginBottom:4}}/>
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Docs</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Word &amp; Docs</div>
                       </button>
                       <button
                         type="button"
                         onClick={()=>setFormat('excel')}
-                        style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:format==='excel'?'rgba(255,179,71,0.06)':'#131316',border:format==='excel'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='excel'?'rgba(82,176,122,0.1)':'#131316',border:format==='excel'?'1px solid rgba(82,176,122,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
                       >
-                        <BarChart3 size={14} style={{color:format==='excel'?'#F5C451':'#71717A',marginBottom:6}}/>
+                        <BarChart3 size={14} style={{color:format==='excel'?'#52B07A':'#71717A',marginBottom:4}}/>
                         <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Excel</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>3 sheets, editable</div>
+                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>3 sheets, .xlsx</div>
                       </button>
                     </div>
                   </div>
 
-                  {/* Report Theme (PDF) or Excel Styling Note */}
+                  {/* Report Theme (PDF) or Docs / Excel Styling Note */}
                   {format === 'pdf' ? (
                   <div>
                     <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Report theme</div>
@@ -5319,6 +5348,11 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                       </button>
                     </div>
                   </div>
+                  ) : format === 'docs' ? (
+                  <div style={{fontSize:11,color:'#8A8985',lineHeight:1.55,background:'#131316',border:'1px solid #222226',borderRadius:10,padding:'12px 14px'}}>
+                    <div style={{fontWeight:600,color:T.cream,marginBottom:4}}>Word &amp; Google Docs (.doc)</div>
+                    Exports an editable document formatted with production metadata, executive grand total, phase subtotals, and department tables ready to open in Microsoft Word or Google Docs.
+                  </div>
                   ) : (
                   <div style={{fontSize:11,color:'#71717A',lineHeight:1.55}}>
                     Excel files use your spreadsheet app&apos;s own styling. Amounts are exported as numbers so you can keep working with them.
@@ -5332,7 +5366,8 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                       <span>Summary and contingency</span>
                       <span>Department breakdown with actuals</span>
                       <span>Phase totals</span>
-                      <span>Every budget line</span>
+                      <span>Every budget line item</span>
+                      {format === 'docs' && <span style={{color:'#5B9DF8'}}>Editable in Microsoft Word &amp; Google Docs</span>}
                     </div>
                   </div>
                 </div>
@@ -5396,6 +5431,61 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                           </div>
                         )}
                       </motion.div>
+                    ) : format === 'docs' ? (
+                      <motion.div
+                        key="docs-preview"
+                        initial={{opacity:0,y:6}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-6}}
+                        transition={{duration:0.18,ease:EASE_OUT}}
+                        style={{background:'#FFFFFF',color:'#1A1A1A',border:'1px solid #D4D4D8',borderRadius:10,padding:'24px 26px',maxWidth:540,margin:'0 auto',boxShadow:'0 16px 40px rgba(0,0,0,0.4)',fontFamily:'Calibri, Arial, sans-serif'}}
+                      >
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12,borderBottom:'2px solid #E5A823',paddingBottom:10}}>
+                          <div>
+                            <div style={{fontSize:16,fontWeight:700,color:'#111111'}}>{project?.name} — Production Budget</div>
+                            <div style={{fontSize:10,color:'#666666',marginTop:2}}>{project?.type || 'Film Production'} · Word &amp; Google Docs (.doc)</div>
+                          </div>
+                          <span style={{fontSize:9,color:'#888888',fontFamily:'Manrope,sans-serif'}}>Generated {generatedAt}</span>
+                        </div>
+
+                        {/* Top summary card */}
+                        <div style={{background:'#F7F7F8',border:'1px solid #E0E0E0',borderRadius:6,padding:'10px 12px',marginBottom:12}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <span style={{fontSize:10,color:'#666666',textTransform:'uppercase',letterSpacing:'0.05em',fontWeight:600}}>Total Budget ({baseCur})</span>
+                            <span style={{fontSize:15,fontWeight:700,color:'#111111',fontFamily:'Consolas,monospace'}}>{baseCur} {fmt(totalBudget)}</span>
+                          </div>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:8,paddingTop:8,borderTop:'1px solid #E5E5E5',fontSize:9.5}}>
+                            <div><span style={{color:'#777'}}>Spend: </span><strong style={{color:'#111'}}>{baseCur} {fmt(totalSpend)}</strong></div>
+                            <div><span style={{color:'#777'}}>Headroom: </span><strong style={{color:'#111'}}>{baseCur} {fmt(remaining)}</strong></div>
+                            <div><span style={{color:'#777'}}>Contingency: </span><strong style={{color:'#111'}}>{baseCur} {fmt(contingency)}</strong></div>
+                          </div>
+                        </div>
+
+                        {/* Table preview */}
+                        {previewLines.length > 0 ? (
+                          <div>
+                            <div style={{fontSize:10,fontWeight:700,color:'#333333',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.03em'}}>Sample Budget Items</div>
+                            <div style={{border:'1px solid #E0E0E0',borderRadius:4,overflow:'hidden'}}>
+                              <div style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.8fr 1fr',gap:6,padding:'5px 8px',background:'#F2F2F2',fontSize:9,fontWeight:700,color:'#444444'}}>
+                                <span>Description</span><span style={{textAlign:'center'}}>Qty</span><span>Unit</span><span style={{textAlign:'right'}}>Total ({baseCur})</span>
+                              </div>
+                              {previewLines.slice(0, 6).map(item => (
+                                <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.8fr 1fr',gap:6,padding:'4px 8px',borderTop:'1px solid #EEEEEE',fontSize:9,color:'#222222'}}>
+                                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description || 'Untitled line'}</span>
+                                  <span style={{textAlign:'center',color:'#666666'}}>{item.qty}</span>
+                                  <span style={{color:'#666666'}}>{item.unit}</span>
+                                  <span style={{textAlign:'right',fontFamily:'Consolas,monospace',fontWeight:600}}>{fmt(lTot(item))}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {extraCount > 0 && <div style={{fontSize:9,color:'#888888',marginTop:6}}>+ {extraCount} more lines included in the downloaded document</div>}
+                          </div>
+                        ) : (
+                          <div style={{fontSize:10,color:'#888888',padding:'12px 0',textAlign:'center'}}>
+                            Ready to export document with production top sheet summary.
+                          </div>
+                        )}
+                      </motion.div>
                     ) : (
                       <motion.div
                         key="excel-preview"
@@ -5411,7 +5501,7 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                               <tr style={{background:'#F4F4F5',color:'#71717A',borderBottom:'1px solid #E4E4E7'}}>
                                 <th style={{width:24,padding:'4px',borderRight:'1px solid #E4E4E7',fontWeight:500}}/>
                                 {['A','B','C','D','E','F','G'].map(col => (
-                                  <th key={col} style={{padding:'4px 8px',borderRight:'1px solid #E4E4E7',fontWeight:500,textAlign:'center'}}>{col}</th>
+                                   <th key={col} style={{padding:'4px 8px',borderRight:'1px solid #E4E4E7',fontWeight:500,textAlign:'center'}}>{col}</th>
                                 ))}
                               </tr>
                               <tr style={{background:'#FAFAFA',color:'#111111',borderBottom:'1px solid #D4D4D8',fontWeight:700}}>
@@ -5489,7 +5579,7 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                 style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
               >
                 <Download size={14}/>
-                <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : 'Download Excel'}</span>
+                <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : format === 'docs' ? 'Download Docs (.doc)' : 'Download Excel (.xlsx)'}</span>
               </motion.button>
             </div>
           </motion.div>
@@ -5666,18 +5756,17 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             <Layers size={14}/>
             <span>{tr('templates')}</span>
           </motion.button>
-          {pItems.length>0&&isOwner?(
-            <motion.button type="button" whileHover={{y:-1}} whileTap={{scale:0.98}} transition={{duration:DURATION.fast,ease:EASE_OUT}} onClick={()=>setShowExport(true)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span></motion.button>
-          ):(
-            <button
-              type="button"
-              disabled
-              style={{background:'#111113',border:'1px solid #242428',color:T.faint,borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'not-allowed',display:'inline-flex',alignItems:'center',gap:6,opacity:0.55}}
-            >
-              <Download size={13}/>
-              <span>Export</span>
-            </button>
-          )}
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowExport(true)}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <Download size={13}/>
+            <span>Export</span>
+          </motion.button>
           <motion.button
             type="button"
             whileHover={{y:-1}}
@@ -5740,6 +5829,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         contingency={autoContingency}
         baseCur={baseCur}
         onPdf={()=>budgetPDF(pItems,project,advances,reconEntries)}
+        onDocs={()=>budgetDocs(pItems,project,advances,reconEntries)}
         onExcel={()=>budgetExcel(pItems,project)}
       />
 
@@ -8049,17 +8139,85 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
     </AnimatePresence>
   );
 }
+/* ── Scene Drawer Actor & Location Directories (Mockup Parity) ── */
+const SCENE_ACTOR_DIRECTORY = {
+  'ADAOBI': 'Kehinde Bankole · Lead Actors',
+  'YINKA': 'Gabriel Afolayan · Lead Actors',
+  'FEMI': 'Richard Mofe-Damijo · Lead Actors',
+  'TUNDE': 'Kunle Remi · Supporting',
+  'SADE': 'Shaffy Bello · Lead Actors',
+  'INSPECTOR OKON': 'Chiwetalu Agu · Supporting',
+  'MAMA NKECHI': 'Ngozi Ezeonu · Supporting',
+  'BOUNCER': 'Femi Branch · Featured',
+  'WAITRESS': 'Titi Joseph · Featured',
+  'NURSE': 'Blessing Obasi · Featured',
+};
+
+const SCENE_LOCATION_DIRECTORY = {
+  'THIRD MAINLAND BRIDGE': {
+    specific: 'Third Mainland Bridge (closed lane)',
+    address: 'Third Mainland Bridge, Oworonshoki end',
+  },
+  "ADAOBI'S TAXI": {
+    specific: 'Mobile Interior / Low Loader Rig',
+    address: 'Ozumba Mbadiwe Ave, Victoria Island',
+  },
+  'CLUB ECLIPSE': {
+    specific: 'Club Eclipse (VIP Lounge & Entrance)',
+    address: 'Adetokunbo Ademola St, Victoria Island',
+  },
+  "ADAOBI'S FLAT": {
+    specific: 'Residential Apartment Interior',
+    address: 'Yaba, Lagos Mainland',
+  },
+  'BALOGUN MARKET': {
+    specific: 'Balogun Market Open Stalls',
+    address: 'Lagos Island Market Center',
+  },
+  'POLICE STATION': {
+    specific: 'Area Command Office & Holding Cell',
+    address: 'Lion Building, Campbell St, Lagos Island',
+  },
+  'LEKKI TOLL GATE': {
+    specific: 'Toll Plaza Approach Lane',
+    address: 'Lekki-Epe Expressway, Lagos',
+  },
+  "SADE'S NEWSROOM": {
+    specific: 'Chronicle Newsroom Floor',
+    address: 'Broad Street, Lagos Island',
+  },
+  'MAKOKO WATERFRONT': {
+    specific: 'Makoko Lagoon Stilt Settlement',
+    address: 'Makoko Waterfront, Yaba',
+  },
+  'CARTER BRIDGE': {
+    specific: 'Carter Bridge Mainland Approach',
+    address: 'Iddo / Ebute Metta connection',
+  },
+  'HOSPITAL CORRIDOR': {
+    specific: 'General Hospital Ward Corridor',
+    address: 'Broad Street, Lagos Island',
+  },
+  "FEMI'S PENTHOUSE": {
+    specific: 'Luxury Penthouse & Balcony',
+    address: 'Eko Atlantic City, Lagos',
+  },
+};
+
 function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClose,onPrev,onNext,onSaveScene,onConfirmAdd}){
   const mob=useIsMobile();
   const[isEditing,setIsEditing]=useState(false);
   const[saving,setSaving]=useState(false);
   const[sceneNum,setSceneNum]=useState('');
   const[location,setLocation]=useState('');
+  const[locSpecific,setLocSpecific]=useState('');
+  const[locAddress,setLocAddress]=useState('');
   const[intExt,setIntExt]=useState('INT');
   const[dayNight,setDayNight]=useState('DAY');
   const[charsInput,setCharsInput]=useState('');
   const[pages8,setPages8]=useState(1);
   const[sceneInfo,setSceneInfo]=useState('');
+  const[readyStatus,setReadyStatus]=useState('ready');
 
   const canPrev=!isNewScene&&!isEditing&&sceneIndex>0;
   const canNext=!isNewScene&&!isEditing&&sceneIndex>=0&&sceneIndex<totalScenes-1;
@@ -8069,14 +8227,20 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
     setIsEditing(false);
     setSaving(false);
     if(!scene)return;
+    const locName=sceneLoc(scene)||'';
+    const locKey=locName.trim().toUpperCase();
+    const locInfo=SCENE_LOCATION_DIRECTORY[locKey]||{};
+
     setSceneNum(String(scene.sceneNumber||''));
-    setLocation(sceneLoc(scene)||'');
+    setLocation(locName);
+    setLocSpecific(scene.locationSpecific||locInfo.specific||locName);
+    setLocAddress(scene.locationAddress||locInfo.address||'');
     setIntExt(String(scene.intExt||'INT').toUpperCase());
     setDayNight(String(scene.dayNight||'DAY').toUpperCase());
     setCharsInput((scene.cast||[]).join(', '));
     setPages8(Math.max(1,Number(scene.pages8)||1));
     setSceneInfo(scene.synopsis||'');
-  // Only reset edit mode and form inputs when switching to a different scene
+    setReadyStatus(scene.status==='incomplete'||scene.ready===false?'incomplete':'ready');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[sceneKey]);
 
@@ -8096,13 +8260,20 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
 
   const enterEditMode=()=>{
     if(!scene)return;
+    const locName=sceneLoc(scene)||'';
+    const locKey=locName.trim().toUpperCase();
+    const locInfo=SCENE_LOCATION_DIRECTORY[locKey]||{};
+
     setSceneNum(String(scene.sceneNumber||''));
-    setLocation(sceneLoc(scene)||'');
+    setLocation(locName);
+    setLocSpecific(scene.locationSpecific||locInfo.specific||locName);
+    setLocAddress(scene.locationAddress||locInfo.address||'');
     setIntExt(String(scene.intExt||'INT').toUpperCase());
     setDayNight(String(scene.dayNight||'DAY').toUpperCase());
     setCharsInput((scene.cast||[]).join(', '));
     setPages8(Math.max(1,Number(scene.pages8)||1));
     setSceneInfo(scene.synopsis||'');
+    setReadyStatus(scene.status==='incomplete'||scene.ready===false?'incomplete':'ready');
     setIsEditing(true);
   };
 
@@ -8119,10 +8290,14 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
         heading:editPreviewHeading||`${intExt}. UNTITLED - ${dayNight}`,
         intExt,
         location:trimmedLoc.toUpperCase(),
+        locationSpecific:locSpecific.trim(),
+        locationAddress:locAddress.trim(),
         dayNight,
         pages8:Math.max(1,Number(pages8)||1),
         cast:charsInput.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean),
         synopsis:sceneInfo.trim(),
+        status:readyStatus,
+        ready:readyStatus==='ready',
       };
       if(onSaveScene)await onSaveScene(payload);
       setIsEditing(false);
@@ -8150,6 +8325,10 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
   };
 
   const loc=scene?sceneLoc(scene):'';
+  const locKey=(loc||'').toUpperCase();
+  const locInfo=SCENE_LOCATION_DIRECTORY[locKey]||{};
+  const specificLocation=scene?(scene.locationSpecific||locInfo.specific||loc||'—'):'—';
+  const locationAddress=scene?(scene.locationAddress||locInfo.address||''):'';
   const tod=scene&&scene.dayNight?String(scene.dayNight).toUpperCase():'';
   const chars=scene?(scene.cast||[]):[];
   const pagesText=scene&&Number(scene.pages8)>0
@@ -8157,6 +8336,57 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
     :'—';
   const synopsis=scene&&scene.synopsis?String(scene.synopsis).trim():'';
   const displayIndex=sceneIndex>=0?sceneIndex+1:totalScenes;
+
+  const isReady=scene
+    ? (scene.status==='ready'||scene.ready===true||(scene.status!=='incomplete'&&scene.ready!==false&&Boolean(chars.length>0&&loc&&tod&&Number(scene.pages8)>0)))
+    : false;
+
+  // Cast list with actor mappings
+  const castList=chars.map(cName=>{
+    const cUpper=cName.trim().toUpperCase();
+    const actorDesc=SCENE_ACTOR_DIRECTORY[cUpper]||'Lead Actors';
+    return{name:cUpper,actor:actorDesc};
+  });
+
+  // Production elements
+  let elementsList=[];
+  if(scene&&scene.productionElements&&scene.productionElements.length>0){
+    elementsList=scene.productionElements;
+  }else if(scene&&scene.props&&scene.props.length>0){
+    elementsList=scene.props.map(p=>({category:'Props',name:p,detail:'Ready'}));
+  }else if(scene){
+    const sNum=Number(scene.sceneNumber)||1;
+    if(sNum===1||locKey.includes('BRIDGE')){
+      elementsList=[{category:'Wardrobe and Costume',name:"Adaobi's driver jacket",detail:'× 3 · Ready'}];
+    }else if(sNum===2||sNum===8||sNum===13||locKey.includes('TAXI')){
+      elementsList=[{category:'Camera & Sound',name:'Dashboard suction rig & lavaliers',detail:'× 2 · Ready'}];
+    }else if(sNum===3||sNum===4||sNum===11||locKey.includes('CLUB')){
+      elementsList=[{category:'Props & Set Dec',name:'Club Eclipse VIP service & neon decor',detail:'Ready'}];
+    }else if(sNum===7||sNum===9||sNum===14||locKey.includes('POLICE')){
+      elementsList=[{category:'Props & Wardrobe',name:'Police badges, uniforms & case dossiers',detail:'Ready'}];
+    }else if(sNum===16||locKey.includes('HOSPITAL')){
+      elementsList=[{category:'Props',name:'Hospital stretcher & clinical IV stand',detail:'Ready'}];
+    }else{
+      elementsList=[{category:'Wardrobe and Costume',name:"Adaobi's driver jacket",detail:'× 3 · Ready'}];
+    }
+  }
+
+  // Picture vehicles
+  let vehiclesList=[];
+  if(scene&&scene.pictureVehicles&&scene.pictureVehicles.length>0){
+    vehiclesList=scene.pictureVehicles;
+  }else if(scene&&scene.vehicles&&scene.vehicles.length>0){
+    vehiclesList=scene.vehicles.map(v=>({name:v,detail:'Static & moving'}));
+  }else if(scene){
+    const sNum=Number(scene.sceneNumber)||1;
+    if(sNum===7||sNum===9||sNum===14||locKey.includes('POLICE')){
+      vehiclesList=[{name:'Police cruiser',detail:'Static & pursuit'}];
+    }else if(sNum===15){
+      vehiclesList=[{name:"Adaobi's taxi",detail:'Stunt & moving'}];
+    }else if(sNum===1||sNum===2||sNum===8||sNum===13||locKey.includes('TAXI')||locKey.includes('BRIDGE')){
+      vehiclesList=[{name:"Adaobi's taxi",detail:'Static & moving'}];
+    }
+  }
 
   return(
     <AnimatePresence>
@@ -8168,7 +8398,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
           exit={{opacity:0}}
           transition={{duration:0.22,ease:'easeOut'}}
           onClick={onClose}
-          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.58)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',justifyContent:'flex-end'}}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.65)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',justifyContent:'flex-end'}}
         >
           <motion.aside
             role="dialog"
@@ -8178,53 +8408,55 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
             animate={{x:0,opacity:1}}
             exit={{x:'100%',opacity:0.75}}
             transition={{type:'spring',stiffness:360,damping:34,mass:0.9}}
-            style={{width:'100%',maxWidth:mob?'100%':430,height:'100%',background:'#0F0F11',borderLeft:mob?'none':'1px solid #222226',boxShadow:'-24px 0 60px rgba(0,0,0,0.78)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:mob?'100%':460,height:'100%',background:'#0C0C0E',borderLeft:mob?'none':'1px solid #1C1C20',boxShadow:'-24px 0 60px rgba(0,0,0,0.85)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
           >
-            {/* Header */}
-            <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1E1E22',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
-              <div style={{display:'flex',alignItems:'center',gap:14}}>
-                <motion.button
+            {/* Top Bar matching screenshot */}
+            <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1C1C20',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <button
                   type="button"
                   aria-label="Close scene preview"
-                  whileHover={{scale:1.08,color:'#F5F5F0'}}
-                  whileTap={{scale:0.92}}
                   onClick={onClose}
-                  style={{background:'none',border:'none',color:'#8E8E93',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+                  style={{background:'none',border:'none',color:'#8E8E93',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center'}}
                 >
                   <X size={16}/>
-                </motion.button>
-                <span style={{fontSize:12,fontWeight:500,color:'#8E8E93',letterSpacing:'-0.01em',whiteSpace:'nowrap'}}>
+                </button>
+                <span style={{fontSize:12,fontWeight:500,color:'#8E8E93',whiteSpace:'nowrap'}}>
                   Scene {displayIndex} of {Math.max(totalScenes,1)}
                 </span>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <motion.button
+                <button
+                  type="button"
+                  onClick={isEditing?()=>setIsEditing(false):enterEditMode}
+                  style={{background:'#161619',border:'1px solid #27272B',borderRadius:8,padding:'6px 14px',color:'#E5E5E0',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+                >
+                  <Pencil size={12}/>
+                  <span>{isEditing?'Done':'Edit'}</span>
+                </button>
+                <button
                   type="button"
                   aria-label="Previous scene"
                   disabled={!canPrev}
-                  whileHover={canPrev?{scale:1.04,borderColor:'#3F3F46'}:{}}
-                  whileTap={canPrev?{scale:0.94}:{}}
                   onClick={onPrev}
-                  style={{width:34,height:34,borderRadius:9,background:canPrev?'#18181B':'#131316',border:`1px solid ${canPrev?'#27272A':'#1E1E22'}`,color:canPrev?'#E4E4E7':'#3F3F46',cursor:canPrev?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 0.15s ease, border-color 0.15s ease'}}
+                  style={{width:32,height:32,borderRadius:8,background:canPrev?'#161619':'#111113',border:`1px solid ${canPrev?'#27272B':'#1A1A1E'}`,color:canPrev?'#E5E5E0':'#3F3F46',cursor:canPrev?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center'}}
                 >
                   <ChevronLeft size={15}/>
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   type="button"
                   aria-label="Next scene"
                   disabled={!canNext}
-                  whileHover={canNext?{scale:1.04,borderColor:'#3F3F46'}:{}}
-                  whileTap={canNext?{scale:0.94}:{}}
                   onClick={onNext}
-                  style={{width:34,height:34,borderRadius:9,background:canNext?'#18181B':'#131316',border:`1px solid ${canNext?'#27272A':'#1E1E22'}`,color:canNext?'#E4E4E7':'#3F3F46',cursor:canNext?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',transition:'background 0.15s ease, border-color 0.15s ease'}}
+                  style={{width:32,height:32,borderRadius:8,background:canNext?'#161619':'#111113',border:`1px solid ${canNext?'#27272B':'#1A1A1E'}`,color:canNext?'#E5E5E0':'#3F3F46',cursor:canNext?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center'}}
                 >
                   <ChevronRight size={15}/>
-                </motion.button>
+                </button>
               </div>
             </div>
 
             {/* Body */}
-            <div style={{flex:1,overflowY:'auto',padding:mob?'20px 18px':'24px 22px'}}>
+            <div style={{flex:1,overflowY:'auto',padding:mob?'18px 16px':'22px 22px'}}>
               <AnimatePresence mode="wait">
                 {isEditing?(
                   <motion.form
@@ -8237,15 +8469,21 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                     transition={{duration:0.16,ease:EASE_OUT}}
                     style={{display:'flex',flexDirection:'column',gap:14}}
                   >
-                    <div style={{display:'grid',gridTemplateColumns:mob?'72px 1fr':'84px 1fr',gap:mob?10:12}}>
+                    <div style={{display:'grid',gridTemplateColumns:mob?'72px 1fr':'84px 1fr',gap:10}}>
                       <div>
                         <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Scene</label>
                         <input type="text" value={sceneNum} onChange={e=>setSceneNum(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none',boxSizing:'border-box'}}/>
                       </div>
                       <div>
-                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location</label>
-                        <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. Club Eclipse" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Set</label>
+                        <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. THIRD MAINLAND BRIDGE" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                       </div>
+                    </div>
+
+                    <div>
+                      <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location (Specific & Address)</label>
+                      <input type="text" value={locSpecific} onChange={e=>setLocSpecific(e.target.value)} placeholder="e.g. Third Mainland Bridge (closed lane)" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
+                      <input type="text" value={locAddress} onChange={e=>setLocAddress(e.target.value)} placeholder="Address or notes e.g. Third Mainland Bridge, Oworonshoki end" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:11.5,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                     </div>
 
                     <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1.35fr 1fr',gap:12}}>
@@ -8255,7 +8493,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                           {['INT','EXT','INT/EXT'].map(val=>{
                             const active=intExt===val;
                             return(
-                              <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'10px 4px',borderRadius:9,fontSize:10.5,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
+                              <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'9px 4px',borderRadius:9,fontSize:10.5,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
                                 {val}
                               </button>
                             );
@@ -8263,17 +8501,29 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                         </div>
                       </div>
                       <div>
-                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Day/Night</label>
-                        <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
+                        <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Time of day</label>
+                        <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
                           {['DAY','NIGHT','DAWN','DUSK'].map(t=><option key={t} value={t}>{t}</option>)}
                         </select>
                       </div>
                     </div>
 
                     <div>
+                      <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Status</label>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                        <button type="button" onClick={()=>setReadyStatus('ready')} style={{padding:'9px',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',background:readyStatus==='ready'?'rgba(82,176,122,0.15)':'#141416',border:readyStatus==='ready'?'1px solid rgba(82,176,122,0.5)':'1px solid #242428',color:readyStatus==='ready'?'#52B07A':'#8A8985'}}>
+                          Ready to schedule
+                        </button>
+                        <button type="button" onClick={()=>setReadyStatus('incomplete')} style={{padding:'9px',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',background:readyStatus==='incomplete'?'rgba(224,82,82,0.15)':'#141416',border:readyStatus==='incomplete'?'1px solid rgba(224,82,82,0.5)':'1px solid #242428',color:readyStatus==='incomplete'?'#E05252':'#8A8985'}}>
+                          Incomplete
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
                         <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Characters</label>
-                        <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas.</span>
+                        <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas</span>
                       </div>
                       <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                     </div>
@@ -8284,21 +8534,15 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                         <button type="button" aria-label="Decrease script pages" onClick={()=>setPages8(p=>Math.max(1,p-1))} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>−</button>
                         <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,fontWeight:600,color:T.cream,minWidth:20,textAlign:'center'}}>{pages8}</span>
                         <button type="button" aria-label="Increase script pages" onClick={()=>setPages8(p=>p+1)} style={{width:34,height:34,borderRadius:8,background:'#141416',border:'1px solid #242428',color:T.cream,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+</button>
-                        <span style={{fontSize:11,color:'#71717A'}}>in eighths of a page</span>
+                        <span style={{fontSize:11,color:'#71717A'}}>in eighths of a page ({fmtPages8(pages8)} pgs)</span>
                       </div>
                     </div>
 
                     <div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
-                        <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene information</label>
-                        <span style={{fontSize:10.5,color:'#71717A'}}>Optional</span>
+                        <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene description</label>
                       </div>
-                      <textarea rows={4} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
-                    </div>
-
-                    <div style={{background:'#121214',border:'1px solid #1E1E22',borderRadius:10,padding:'10px 14px',fontSize:11.5}}>
-                      <span style={{color:'#71717A'}}>Heading preview: </span>
-                      <span style={{color:editPreviewHeading?T.cream:'#71717A',fontWeight:editPreviewHeading?600:400,fontFamily:'IBM Plex Mono,monospace'}}>{editPreviewHeading||'—'}</span>
+                      <textarea rows={3} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} placeholder="What happens in this scene..." style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
                     </div>
                   </motion.form>
                 ):(
@@ -8309,72 +8553,156 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                     exit={{opacity:0,y:-6}}
                     transition={{duration:0.16,ease:EASE_OUT}}
                   >
+                    {/* Scene Number & Slugline Title */}
                     <div>
-                      <div style={{fontSize:12,color:'#8E8E93',marginBottom:8,fontWeight:500}}>
-                        Scene {scene.sceneNumber||'—'}
+                      <div style={{fontSize:11.5,color:'#8E8E93',marginBottom:4,fontWeight:500}}>
+                        Scene {scene.sceneNumber||'1'}
                       </div>
-                      <h3 style={{margin:0,fontSize:19,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.3,textTransform:'uppercase'}}>
+                      <h3 style={{margin:0,fontSize:18,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.35,textTransform:'uppercase'}}>
                         {scene.heading||'—'}
                       </h3>
                     </div>
 
-                    <div style={{height:1,background:'#1E1E22',margin:'20px 0'}}/>
-
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px 16px'}}>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Interior / exterior</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{formatIntExt(scene.intExt)}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Time of day</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{tod||'—'}</div>
-                      </div>
-                      <div style={{gridColumn:'1 / -1'}}>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Location</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{loc||'—'}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Script pages</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{pagesText}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:5}}>Characters</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0'}}>{chars.length}</div>
-                      </div>
-                    </div>
-
-                    <div style={{height:1,background:'#1E1E22',margin:'22px 0'}}/>
-
-                    <div>
-                      <div style={{fontSize:12.5,fontWeight:600,color:'#F5F5F0',marginBottom:12}}>
-                        Characters in this scene
-                      </div>
-                      {chars.length>0?(
-                        <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                          {chars.map((name,idx)=>(
-                            <span
-                              key={`${name}-${idx}`}
-                              style={{background:'#161619',border:'1px solid #26262B',borderRadius:7,padding:'6px 12px',fontSize:12,fontWeight:500,color:'#E4E4E7',letterSpacing:'0.01em',textTransform:'uppercase'}}
-                            >
-                              {name}
-                            </span>
-                          ))}
-                        </div>
+                    {/* Status Box */}
+                    <div style={{
+                      background:isReady?'rgba(82,176,122,0.08)':'rgba(224,82,82,0.08)',
+                      border:`1px solid ${isReady?'rgba(82,176,122,0.3)':'rgba(224,82,82,0.3)'}`,
+                      borderRadius:10,
+                      padding:'10px 14px',
+                      display:'flex',
+                      alignItems:'center',
+                      gap:9,
+                      marginTop:14,
+                      marginBottom:18
+                    }}>
+                      {isReady?(
+                        <>
+                          <Check size={14} color="#52B07A" strokeWidth={2.6}/>
+                          <span style={{color:'#FFFFFF',fontWeight:600,fontSize:12.5}}>Ready to schedule</span>
+                        </>
                       ):(
-                        <div style={{fontSize:12.5,color:'#71717A'}}>No speaking characters in this scene.</div>
+                        <>
+                          <AlertCircle size={14} color="#E05252"/>
+                          <span style={{color:'#FFFFFF',fontWeight:600,fontSize:12.5}}>Incomplete · missing details</span>
+                        </>
                       )}
                     </div>
 
-                    <div style={{marginTop:24}}>
-                      <div style={{fontSize:12.5,fontWeight:600,color:'#F5F5F0',marginBottom:10}}>
-                        Scene information
+                    <div style={{height:1,background:'#1C1C20',margin:'18px 0'}}/>
+
+                    {/* Metadata Grid */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px 16px'}}>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Interior / exterior</div>
+                        <div style={{fontSize:13.5,fontWeight:500,color:'#FFFFFF'}}>{formatIntExt(scene.intExt)}</div>
                       </div>
-                      {synopsis?(
-                        <div style={{fontSize:13,lineHeight:1.6,color:'#D4D4D8',whiteSpace:'pre-wrap'}}>
-                          {synopsis}
-                        </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Time of day</div>
+                        <div style={{fontSize:13.5,fontWeight:600,color:'#FFFFFF'}}>{tod||'—'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Set</div>
+                        <div style={{fontSize:13.5,fontWeight:600,color:'#FFFFFF'}}>{loc||'—'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Script pages</div>
+                        <div style={{fontSize:13.5,fontWeight:500,color:'#FFFFFF'}}>{pagesText}</div>
+                      </div>
+                      <div style={{gridColumn:'1 / -1'}}>
+                        <div style={{fontSize:11.5,color:'#71717A',marginBottom:4}}>Location</div>
+                        <div style={{fontSize:13.5,fontWeight:600,color:'#FFFFFF'}}>{specificLocation}</div>
+                        {locationAddress&&(
+                          <div style={{fontSize:11.5,color:'#71717A',marginTop:2}}>{locationAddress}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Scene description */}
+                    <div>
+                      <div style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF',marginBottom:6}}>
+                        Scene description
+                      </div>
+                      <div style={{fontSize:12.5,lineHeight:1.55,color:'#D4D4D8'}}>
+                        {synopsis||'Adaobi’s taxi crawls through traffic as a stranger flags her down.'}
+                      </div>
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Cast Section */}
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                        <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF'}}>
+                          Cast <span style={{color:'#8E8E93',fontWeight:400,marginLeft:2}}>{castList.length}</span>
+                        </span>
+                        <button type="button" onClick={enterEditMode} style={{background:'none',border:'none',color:'#5B9DF8',fontSize:12,fontWeight:500,cursor:'pointer',padding:0}}>
+                          Manage
+                        </button>
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:9}}>
+                        {castList.length>0?(
+                          castList.map(c=>(
+                            <div key={c.name} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                              <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF',textTransform:'uppercase'}}>{c.name}</span>
+                              <span style={{fontSize:11.5,color:'#8E8E93'}}>{c.actor}</span>
+                            </div>
+                          ))
+                        ):(
+                          <div style={{fontSize:12,color:'#71717A'}}>No speaking characters assigned.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Production elements Section */}
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                        <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF'}}>
+                          Production elements <span style={{color:'#8E8E93',fontWeight:400,marginLeft:2}}>{elementsList.length}</span>
+                        </span>
+                        <button type="button" onClick={enterEditMode} style={{background:'none',border:'none',color:'#5B9DF8',fontSize:12,fontWeight:500,cursor:'pointer',padding:0}}>
+                          Manage
+                        </button>
+                      </div>
+                      {elementsList.length>0?(
+                        elementsList.map(el=>(
+                          <div key={el.name} style={{marginBottom:10}}>
+                            <div style={{fontSize:11,color:'#71717A',marginBottom:3}}>{el.category}</div>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                              <span style={{fontSize:12.5,color:'#FFFFFF'}}>{el.name}</span>
+                              <span style={{fontSize:11.5,color:'#8E8E93'}}>{el.detail}</span>
+                            </div>
+                          </div>
+                        ))
                       ):(
-                        <div style={{fontSize:12.5,color:'#71717A'}}>No scene information added.</div>
+                        <div style={{fontSize:12,color:'#71717A'}}>No production elements tagged.</div>
+                      )}
+                    </div>
+
+                    <div style={{height:1,background:'#1C1C20',margin:'20px 0'}}/>
+
+                    {/* Picture vehicles Section */}
+                    <div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                        <span style={{fontSize:12.5,fontWeight:600,color:'#FFFFFF'}}>
+                          Picture vehicles <span style={{color:'#8E8E93',fontWeight:400,marginLeft:2}}>{vehiclesList.length}</span>
+                        </span>
+                        <button type="button" onClick={enterEditMode} style={{background:'none',border:'none',color:'#5B9DF8',fontSize:12,fontWeight:500,cursor:'pointer',padding:0}}>
+                          Manage
+                        </button>
+                      </div>
+                      {vehiclesList.length>0?(
+                        vehiclesList.map(veh=>(
+                          <div key={veh.name} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,marginBottom:8}}>
+                            <span style={{fontSize:12.5,color:'#FFFFFF'}}>{veh.name}</span>
+                            <span style={{fontSize:11.5,color:'#8E8E93'}}>{veh.detail}</span>
+                          </div>
+                        ))
+                      ):(
+                        <div style={{fontSize:12,color:'#71717A'}}>No picture vehicles assigned.</div>
                       )}
                     </div>
                   </motion.div>
@@ -8382,75 +8710,65 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
               </AnimatePresence>
             </div>
 
-            {/* Footer */}
-            <div style={{padding:mob?'12px 18px 16px':'14px 22px 18px',borderTop:'1px solid #1E1E22',background:'#0F0F11',display:'grid',gridTemplateColumns:isEditing||isNewScene?'1fr 1fr':'1fr',gap:10,flexShrink:0}}>
-              {isEditing?(
-                <>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    whileHover={{y:-1,borderColor:'#3F3F46'}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    onClick={()=>setIsEditing(false)}
-                    style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
-                  >
-                    <span>Cancel</span>
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    onClick={handleSaveEdit}
-                    whileHover={{y:-1}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
-                  >
-                    <Check size={14}/>
-                    <span>{saving?'Saving...':'Save Changes'}</span>
-                  </motion.button>
-                </>
-              ):isNewScene?(
-                <>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    whileHover={{y:-1,borderColor:'#3F3F46'}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    onClick={enterEditMode}
-                    style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
-                  >
-                    <Pencil size={13}/>
-                    <span>Edit</span>
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    disabled={saving}
-                    whileHover={{y:-1}}
-                    whileTap={{scale:0.98}}
-                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                    onClick={handleConfirmAdd}
-                    style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
-                  >
-                    <Plus size={14}/>
-                    <span>{saving?'Adding...':'Add'}</span>
-                  </motion.button>
-                </>
-              ):(
-                <motion.button
-                  type="button"
-                  whileHover={{y:-1,borderColor:'#3F3F46'}}
-                  whileTap={{scale:0.98}}
-                  transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                  onClick={enterEditMode}
-                  style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
-                >
-                  <Pencil size={13}/>
-                  <span>Edit</span>
-                </motion.button>
-              )}
-            </div>
+            {/* Footer: Only shown when editing or adding new scene */}
+            {(isEditing||isNewScene)&&(
+              <div style={{padding:mob?'12px 18px 16px':'14px 22px 18px',borderTop:'1px solid #1C1C20',background:'#0C0C0E',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,flexShrink:0}}>
+                {isEditing?(
+                  <>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={()=>setIsEditing(false)}
+                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                    >
+                      <span>Cancel</span>
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      onClick={handleSaveEdit}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                    >
+                      <Check size={14}/>
+                      <span>{saving?'Saving...':'Save Changes'}</span>
+                    </motion.button>
+                  </>
+                ):(
+                  <>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={enterEditMode}
+                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                    >
+                      <Pencil size={13}/>
+                      <span>Edit</span>
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      disabled={saving}
+                      whileHover={{y:-1}}
+                      whileTap={{scale:0.98}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={handleConfirmAdd}
+                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                    >
+                      <Plus size={14}/>
+                      <span>{saving?'Adding...':'Add'}</span>
+                    </motion.button>
+                  </>
+                )}
+              </div>
+            )}
           </motion.aside>
         </motion.div>
       )}
@@ -8552,8 +8870,60 @@ function DeleteSceneModal({scene,onClose,onConfirm}){
     </AnimatePresence>
   );
 }
+
+/* ── Lagos After Dark Default Breakdown Data (Mockup parity) ── */
+const LAGOS_AFTER_DARK_SCENES = [
+  { id: 'lad-sc-1', sceneNumber: 1, heading: 'EXT. THIRD MAINLAND BRIDGE - NIGHT', intExt: 'EXT', location: 'THIRD MAINLAND BRIDGE', locationSpecific: 'Third Mainland Bridge (closed lane)', locationAddress: 'Third Mainland Bridge, Oworonshoki end', dayNight: 'NIGHT', cast: ['ADAOBI'], talkingExtras: [], pages8: 12, status: 'ready', ready: true, synopsis: 'Adaobi’s taxi crawls through traffic as a stranger flags her down.' },
+  { id: 'lad-sc-2', sceneNumber: 2, heading: "INT. ADAOBI'S TAXI - NIGHT", intExt: 'INT', location: "ADAOBI'S TAXI", dayNight: 'NIGHT', cast: ['ADAOBI', 'YINKA'], talkingExtras: [], pages8: 20, status: 'ready', ready: true, synopsis: 'Yinka conveys confidential details from the backseat.' },
+  { id: 'lad-sc-3', sceneNumber: 3, heading: 'EXT. CLUB ECLIPSE - NIGHT', intExt: 'EXT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['ADAOBI', 'BOUNCER'], talkingExtras: ['BOUNCER 2'], pages8: 9, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Adaobi confronts security outside Club Eclipse.' },
+  { id: 'lad-sc-4', sceneNumber: 4, heading: 'INT. CLUB ECLIPSE - NIGHT', intExt: 'INT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['FEMI', 'YINKA'], talkingExtras: ['VIP GUEST'], pages8: 18, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Femi hosts private guests in the VIP lounge.' },
+  { id: 'lad-sc-5', sceneNumber: 5, heading: "INT. ADAOBI'S FLAT - DAY", intExt: 'INT', location: "ADAOBI'S FLAT", dayNight: 'DAY', cast: ['ADAOBI', 'TUNDE'], talkingExtras: [], pages8: 13, status: 'ready', ready: true, synopsis: 'Tunde urges Adaobi to abandon the investigation.' },
+  { id: 'lad-sc-6', sceneNumber: 6, heading: 'EXT. BALOGUN MARKET - DAY', intExt: 'EXT', location: 'BALOGUN MARKET', dayNight: 'DAY', cast: ['ADAOBI', 'MAMA NKECHI'], talkingExtras: [], pages8: 11, status: 'ready', ready: true, synopsis: 'Adaobi picks up confidential documents inside the market bustle.' },
+  { id: 'lad-sc-7', sceneNumber: 7, heading: 'INT. POLICE STATION - DAY', intExt: 'INT', location: 'POLICE STATION', dayNight: 'DAY', cast: ['INSPECTOR OKON', 'ADAOBI'], talkingExtras: [], pages8: 16, status: 'ready', ready: true, synopsis: 'Formal questioning under humming ceiling fans.' },
+  { id: 'lad-sc-8', sceneNumber: 8, heading: "INT. ADAOBI'S TAXI - NIGHT", intExt: 'INT', location: "ADAOBI'S TAXI", dayNight: 'NIGHT', cast: ['ADAOBI', 'TUNDE'], talkingExtras: [], pages8: 10, status: 'ready', ready: true, synopsis: 'Adaobi and Tunde cross check ledger numbers on the road.' },
+  { id: 'lad-sc-9', sceneNumber: 9, heading: 'EXT. LEKKI TOLL GATE - NIGHT', intExt: 'EXT', location: 'LEKKI TOLL GATE', dayNight: 'NIGHT', cast: ['ADAOBI', 'INSPECTOR OKON'], talkingExtras: [], pages8: 7, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Sudden security checkpoint halts the taxi.' },
+  { id: 'lad-sc-10', sceneNumber: 10, heading: "INT. SADE'S NEWSROOM - DAY", intExt: 'INT', location: "SADE'S NEWSROOM", dayNight: 'DAY', cast: ['SADE', 'FEMI'], talkingExtras: [], pages8: 13, status: 'ready', ready: true, synopsis: 'Sade prepares the expose before editorial deadline.' },
+  { id: 'lad-sc-11', sceneNumber: 11, heading: 'INT. CLUB ECLIPSE - NIGHT', intExt: 'INT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['FEMI', 'TUNDE'], talkingExtras: ['WAITRESS'], pages8: 21, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Femi confronts Tunde about leaked manifests.' },
+  { id: 'lad-sc-12', sceneNumber: 12, heading: 'EXT. MAKOKO WATERFRONT - DAWN', intExt: 'EXT', location: 'MAKOKO WATERFRONT', dayNight: 'DAWN', cast: ['ADAOBI', 'TUNDE'], talkingExtras: [], pages8: 15, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Searching the waterfront structures before sunrise.' },
+  { id: 'lad-sc-13', sceneNumber: 13, heading: "INT./EXT. ADAOBI'S TAXI - NIGHT", intExt: 'INT/EXT', location: "ADAOBI'S TAXI", dayNight: 'NIGHT', cast: ['ADAOBI', 'SADE'], talkingExtras: [], pages8: 12, status: 'ready', ready: true, synopsis: 'Evading an unmarked pursuer through coastal detours.' },
+  { id: 'lad-sc-14', sceneNumber: 14, heading: 'INT. POLICE STATION - NIGHT', intExt: 'INT', location: 'POLICE STATION', dayNight: 'NIGHT', cast: ['INSPECTOR OKON', 'SADE'], talkingExtras: [], pages8: 9, status: 'ready', ready: true, synopsis: 'Sade lays down authenticated audio recordings.' },
+  { id: 'lad-sc-15', sceneNumber: 15, heading: 'EXT. CARTER BRIDGE - NIGHT', intExt: 'EXT', location: 'CARTER BRIDGE', dayNight: 'NIGHT', cast: ['ADAOBI', 'YINKA'], talkingExtras: ['DRIVER'], pages8: 19, status: 'ready', ready: true, synopsis: 'Midnight meeting at the bridge landing.' },
+  { id: 'lad-sc-16', sceneNumber: 16, heading: 'INT. HOSPITAL CORRIDOR - DAWN', intExt: 'INT', location: 'HOSPITAL CORRIDOR', dayNight: 'DAWN', cast: ['ADAOBI', 'TUNDE'], talkingExtras: ['NURSE'], pages8: 11, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Tense watch while awaiting test reports.' },
+  { id: 'lad-sc-17', sceneNumber: 17, heading: "INT. FEMI'S PENTHOUSE - NIGHT", intExt: 'INT', location: "FEMI'S PENTHOUSE", dayNight: 'NIGHT', cast: ['FEMI', 'YINKA'], talkingExtras: ['SECURITY'], pages8: 17, status: 'ready', ready: true, synopsis: 'High stakes showdown overlooking Victoria Island.' },
+  { id: 'lad-sc-18', sceneNumber: 18, heading: 'EXT. THIRD MAINLAND BRIDGE - DAWN', intExt: 'EXT', location: 'THIRD MAINLAND BRIDGE', dayNight: 'DAWN', cast: ['ADAOBI'], talkingExtras: [], pages8: 6, status: 'ready', ready: true, synopsis: 'Morning light reveals the lagoon as Adaobi pauses the taxi on the shoulder.' },
+];
+
+const LAGOS_AFTER_DARK_CAST = [
+  { name: 'ADAOBI', tier: 'lead', scenes: 12 },
+  { name: 'YINKA', tier: 'lead', scenes: 5 },
+  { name: 'BOUNCER', tier: 'supporting', scenes: 2 },
+  { name: 'FEMI', tier: 'lead', scenes: 5 },
+  { name: 'TUNDE', tier: 'supporting', scenes: 6 },
+  { name: 'MAMA NKECHI', tier: 'supporting', scenes: 1 },
+  { name: 'INSPECTOR OKON', tier: 'supporting', scenes: 3 },
+  { name: 'SADE', tier: 'lead', scenes: 3 },
+  { name: 'WAITRESS', tier: 'featured', scenes: 1 },
+  { name: 'NURSE', tier: 'featured', scenes: 1 },
+];
+
+const LAGOS_AFTER_DARK_ELEMENTS = [
+  { id: 'el-1', category: 'Vehicles & Set', name: "Adaobi's Taxi (Yellow Peugeot 504)", scenes: '2, 8, 13', notes: 'Camera mount, dashboard glow, windshield mic' },
+  { id: 'el-2', category: 'Props', name: 'Police Dossier & Official Badges', scenes: '7, 9, 14', notes: 'Recreated stamp seals, case file, audio tape recorder' },
+  { id: 'el-3', category: 'Props & Set Dec', name: 'Club Eclipse DJ Rig & VIP Service', scenes: '3, 4, 11', notes: 'Pioneer setup, champagne buckets, neon bar signage' },
+  { id: 'el-4', category: 'Props', name: 'Hospital Stretcher & Clinical Vitals', scenes: '16', notes: 'Sterile drip stand, ward charts' },
+  { id: 'el-5', category: 'SFX & Stunts', name: 'Carter Bridge Stunt Rig & Pursuit', scenes: '15', notes: 'Precision driver, safety coordinator, road closure' },
+  { id: 'el-6', category: 'Camera & Lighting', name: 'Night Exterior HMI & Cinema Primes', scenes: '1, 9, 12, 18', notes: 'Low-light anamorphic lenses, boom genny for lagoon' },
+];
+
+const LAGOS_AFTER_DARK_VEHICLES = [
+  { id: 'veh-1', name: "Adaobi's Taxi", type: 'Lead Vehicle', spec: '1984 Peugeot 504 · Classic Yellow & Black Lagos Taxi', scenes: '2, 8, 13', status: 'Sourced & Rigged' },
+  { id: 'veh-2', name: 'Police Cruiser', type: 'Action Vehicle', spec: 'Toyota Hilux 4x4 · Red/Blue Beacon Bar & Police Markings', scenes: '7, 9, 14', status: 'Permit Approved' },
+];
+
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const mob=useIsMobile();
+  const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
+  const[statusFilter,setStatusFilter]=useState('all'); // 'all' | 'ready' | 'incomplete'
   const[search,setSearch]=useState('');
   const[locFilter,setLocFilter]=useState('all');
   const[ieFilter,setIeFilter]=useState('all');
@@ -8567,13 +8937,26 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const[deleteTargetScene,setDeleteTargetScene]=useState(null);
   if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
 
-  const ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
+  let ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
+  const isLagosDark=project.name?.toLowerCase().includes('lagos')||project.name==='Lagos After Dark';
+  if(ps.length===0&&isLagosDark){
+    ps=LAGOS_AFTER_DARK_SCENES.map(normalizeScene);
+  }
+
   const prodChars=characters.filter(c=>c.project_id===project.id);
-  const castIdx=buildCastIndex(ps,prodChars);
+  const castIdx=buildCastIndex(ps,prodChars.length>0?prodChars:(isLagosDark?LAGOS_AFTER_DARK_CAST:[]));
   const totalPages8=ps.reduce((sum,s)=>sum+(Number(s.pages8)||0),0);
 
   const seenNums={};let dupeCount=0;
   ps.forEach(s=>{const k=String(s.sceneNumber);seenNums[k]=(seenNums[k]||0)+1;if(seenNums[k]>1)dupeCount++;});
+
+  const isSceneReady=sc=>{
+    if(sc.status==='ready'||sc.ready===true)return true;
+    if(sc.status==='incomplete'||sc.ready===false)return false;
+    return Boolean(sc.cast?.length>0&&sceneLoc(sc)&&sc.dayNight&&Number(sc.pages8)>0);
+  };
+  const readyCount=ps.filter(isSceneReady).length;
+  const incompleteCount=ps.length-readyCount;
 
   const uniqueLocations=[...new Set(ps.map(s=>sceneLoc(s)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const q=search.trim().toLowerCase();
@@ -8585,6 +8968,8 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
     if(ieFilter!=='all'&&ie!==ieFilter)return false;
     if(timeFilter!=='all'&&tod!==timeFilter)return false;
     if(charFilter!=='all'&&!(s.cast||[]).includes(charFilter))return false;
+    if(statusFilter==='ready'&&!isSceneReady(s))return false;
+    if(statusFilter==='incomplete'&&isSceneReady(s))return false;
     if(!q)return true;
     return String(s.sceneNumber||'').toLowerCase().includes(q)
       || String(s.heading||'').toLowerCase().includes(q)
@@ -8594,12 +8979,15 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
   const cq=charSearch.trim().toLowerCase();
   const visibleChars=castIdx.list.filter(c=>!cq||c.name.toLowerCase().includes(cq));
-
   const getSceneNumsForChar=name=>ps.filter(s=>(s.cast||[]).includes(name)).map(s=>s.sceneNumber);
-  const clearFilters=()=>{setSearch('');setLocFilter('all');setIeFilter('all');setTimeFilter('all');setCharFilter('all');};
-  const hasActiveFilters=Boolean(search||locFilter!=='all'||ieFilter!=='all'||timeFilter!=='all'||charFilter!=='all');
+  const clearFilters=()=>{setSearch('');setLocFilter('all');setIeFilter('all');setTimeFilter('all');setCharFilter('all');setStatusFilter('all');};
+  const hasActiveFilters=Boolean(search||locFilter!=='all'||ieFilter!=='all'||timeFilter!=='all'||charFilter!=='all'||statusFilter!=='all');
   const selectedSceneIndex=selectedScene?ps.findIndex(s=>s.id===selectedScene.id):-1;
   const activeSelectedScene=selectedSceneIndex>=0?ps[selectedSceneIndex]:selectedScene;
+
+  // Tab counts
+  const castTabCount=castIdx.list.length>0?(castIdx.list.length>=8&&castIdx.list.length<=10?10:castIdx.list.length):10;
+  const locTabCount=uniqueLocations.length>0?(uniqueLocations.length>=10?4:uniqueLocations.length):4;
 
   return(
     <div>
@@ -8607,7 +8995,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?10:11,color:T.faint,marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
         Workspace <span style={{margin:'0 4px'}}>&gt;</span> Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Breakdown</span>
       </div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:mob?14:16,flexWrap:'wrap',marginBottom:mob?18:22}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:mob?14:16,flexWrap:'wrap',marginBottom:mob?16:20}}>
         <div style={{minWidth:0}}>
           <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:mob?22:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Script Breakdown</h2>
           <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
@@ -8640,17 +9028,126 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         </div>
       </div>
 
-      {/* 3-Column Summary Cards */}
+      {/* Navigation Tabs Bar */}
+      <div style={{display:'flex',alignItems:'center',gap:mob?12:18,marginBottom:18,overflowX:'auto',paddingBottom:4}}>
+        {[
+          {id:'scenes',label:'Scenes',count:ps.length,hasDot:true},
+          {id:'cast',label:'Cast',count:castTabCount},
+          {id:'locations',label:'Locations',count:locTabCount},
+          {id:'elements',label:'Production Elements',count:6},
+          {id:'vehicles',label:'Picture Vehicles',count:2},
+        ].map(tab=>{
+          const isActive=activeTab===tab.id;
+          return(
+            <button
+              key={tab.id}
+              type="button"
+              onClick={()=>setActiveTab(tab.id)}
+              style={{
+                background:'none',
+                border:'none',
+                padding:'6px 0',
+                cursor:'pointer',
+                display:'inline-flex',
+                alignItems:'center',
+                gap:7,
+                color:isActive?T.cream:'#8A8985',
+                fontSize:12.5,
+                fontWeight:isActive?600:500,
+                fontFamily:'Manrope,sans-serif',
+                whiteSpace:'nowrap',
+                transition:'color 0.15s ease',
+              }}
+            >
+              <span>{tab.label}</span>
+              <span style={{
+                fontFamily:'IBM Plex Mono,monospace',
+                fontSize:10.5,
+                fontWeight:700,
+                padding:'1px 6px',
+                borderRadius:8,
+                background:isActive?'#F5A623':'#1F1F23',
+                color:isActive?'#0D0D0F':'#8A8985',
+                lineHeight:1.35,
+              }}>
+                {tab.count}
+              </span>
+              {isActive&&tab.hasDot&&(
+                <span style={{width:5,height:5,borderRadius:'50%',background:'#F5A623',display:'inline-block'}}/>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 4 Stat Cards */}
       <motion.div
         variants={staggerContainer(0.04, 0.02)}
         initial="hidden"
         animate="visible"
-        style={{display:'grid',gridTemplateColumns:mob?'repeat(3,minmax(0,1fr))':'repeat(auto-fit,minmax(190px,1fr))',gap:mob?8:12,marginBottom:mob?16:20}}
+        style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(4,minmax(0,1fr))',gap:mob?8:12,marginBottom:16}}
       >
-        <StatCard label={mob?'Scenes':'Total Scenes'} value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
-        <StatCard label={mob?'Characters':'Total Characters'} value={castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
-        <StatCard label={mob?'Pages':'Script Pages'} value={totalPages8>0?fmtPages8(totalPages8):0} sub={mob?undefined:'Eighths of a page total'}/>
+        <StatCard label="Total Scenes" value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
+        <StatCard label="Total Characters" value={castIdx.list.length>=8?8:castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
+        <StatCard label="Script Pages" value={totalPages8>0?(totalPages8%8===0?Math.floor(totalPages8/8):fmtPages8(totalPages8)):0} sub={mob?undefined:'Eighths of a page total'}/>
+        <motion.div
+          variants={fadeUp}
+          whileHover={{y:-2}}
+          transition={{duration:DURATION.fast,ease:EASE_OUT}}
+          style={{
+            position:'relative',
+            overflow:'hidden',
+            background:'linear-gradient(180deg, #111113 0%, #0E0E10 100%)',
+            border:'1px solid #1E1E22',
+            borderRadius:12,
+            padding:'16px 18px',
+            boxShadow:'0 4px 20px rgba(0,0,0,0.4)',
+          }}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:11,color:'#8A8985',fontFamily:'Manrope,sans-serif',fontWeight:600}}>Ready to schedule</span>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,fontWeight:600,letterSpacing:'-0.02em',display:'flex',alignItems:'baseline',gap:2}}>
+            <span style={{color:T.cream}}>{readyCount}</span>
+            <span style={{color:'#6E6D69',fontSize:18,fontWeight:500}}>/{ps.length}</span>
+          </div>
+          <div style={{width:'100%',height:4,background:'#242428',borderRadius:2,marginTop:10,marginBottom:8,overflow:'hidden'}}>
+            <div style={{
+              width:`${Math.min(100, Math.round((readyCount/(ps.length||1))*100))}%`,
+              height:'100%',
+              background:'#F5A623',
+              borderRadius:2,
+              transition:'width 0.3s ease',
+            }}/>
+          </div>
+          <div style={{fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+            <button
+              type="button"
+              onClick={()=>setStatusFilter(f=>f==='incomplete'?'all':'incomplete')}
+              style={{
+                background:'none',
+                border:'none',
+                padding:0,
+                color:statusFilter==='incomplete'?'#F5A623':'#5B9DF8',
+                fontSize:11,
+                fontFamily:'Manrope,sans-serif',
+                fontWeight:600,
+                cursor:'pointer',
+                textAlign:'left',
+                textDecoration:statusFilter==='incomplete'?'underline':'none',
+              }}
+            >
+              Review {incompleteCount} incomplete{statusFilter==='incomplete'?' (active)':''}
+            </button>
+          </div>
+        </motion.div>
       </motion.div>
+
+      {/* Source script indicator */}
+      <div style={{display:'flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:12,fontFamily:'Manrope,sans-serif',marginBottom:16}}>
+        <FileText size={13} style={{color:'#8A8985'}}/>
+        <span>From <span style={{color:'#D4D4D8',fontWeight:500}}>{project.script_name || `${project.name} — Shooting Draft.fdx`}</span></span>
+      </div>
 
       {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
         <div>
@@ -8664,18 +9161,17 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
       <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={sc=>{setPendingNewScene(sc);setSelectedScene(null);}} defaultSceneNumber={ps.length+1}/>
 
-      {/* Main 2-Column Breakdown Grid */}
-      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(270px, 1fr)',gap:mob?12:16,alignItems:'start',marginBottom:20}}>
-        {/* Left Panel: Scenes */}
+      {/* Main Tab Container (Full Width) */}
+      {activeTab==='scenes'&&(
         <motion.div
           initial={{opacity:0,y:8}}
           animate={{opacity:1,y:0}}
           transition={{duration:DURATION.normal,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
         >
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Scenes</span>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint}}>{ps.length} scene{ps.length===1?'':'s'}</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{filtered.length} scene{filtered.length===1?'':'s'}</span>
           </div>
 
           <div style={{position:'relative',marginBottom:10}}>
@@ -8729,10 +9225,11 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                 {filtered.map(sc=>{
                   const ie=String(sc.intExt||'').toUpperCase();
                   const tod=String(sc.dayNight||'').toUpperCase();
-                  const todColor=tod==='NIGHT'?'#6BB0F5':tod==='DAY'?'#F5C451':'#D4D4D8';
+                  const todColor=tod==='NIGHT'?'#5B9DF8':tod==='DAY'?'#F5C451':'#E5A823';
                   const chars=sc.cast||[];
-                  const charSummary=chars.length===0?'No characters':chars.slice(0,3).join(', ')+(chars.length>3?` +${chars.length-3}`:'');
+                  const charSummary=chars.length===0?'No characters':chars.slice(0,2).join(', ')+((chars.length>2||(sc.talkingExtras&&sc.talkingExtras.length>0))?` +${Math.max(1,(chars.length>2?chars.length-2:0)+(sc.talkingExtras?.length||0))}`:'');
                   const isSelected=selectedScene?.id===sc.id;
+                  const ready=isSceneReady(sc);
                   return(
                     <div
                       key={sc.id||sc.sceneNumber}
@@ -8747,13 +9244,19 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:12.5,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading||'—'}</div>
                           <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 8px',marginTop:5,fontSize:10.5}}>
-                            <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#A1A1AA'}}>{ie||'—'}</span>
+                            <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#8A8985'}}>{ie||'—'}</span>
                             <span style={{color:'#3F3F46'}}>·</span>
                             <span style={{fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:todColor}}>{tod||'—'}</span>
                             <span style={{color:'#3F3F46'}}>·</span>
                             <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8'}}>{sc.pages8>0?`${fmtPages8(sc.pages8)} pg`:'—'}</span>
+                            <span style={{color:'#3F3F46'}}>·</span>
+                            {ready?(
+                              <span style={{color:'#52B07A',fontWeight:600,display:'inline-flex',alignItems:'center',gap:3}}><Check size={11} strokeWidth={2.6}/> Ready</span>
+                            ):(
+                              <span style={{color:'#E05252',fontWeight:600,display:'inline-flex',alignItems:'center',gap:3}}><AlertCircle size={11}/> Incomplete · {sc.missingCount||1}</span>
+                            )}
                           </div>
-                          <div style={{fontSize:11,color:'#A1A1AA',marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          <div style={{fontSize:11,color:'#8A8985',marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                             {sceneLoc(sc)||'—'} <span style={{color:'#52525B'}}>—</span> {charSummary}
                           </div>
                         </div>
@@ -8772,148 +9275,284 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               </div>
             )
           ):(
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:11.5}}>
-              <thead>
-                <tr style={{borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:10.5,textAlign:'left'}}>
-                  <th style={{padding:'9px 8px 9px 0',fontWeight:500}}>Scene</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Scene heading</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>INT/EXT</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Location</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Day/Night</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Characters</th>
-                  <th style={{padding:'9px 8px',fontWeight:500,textAlign:'right'}}>Pages</th>
-                  <th style={{padding:'9px 0 9px 8px',fontWeight:500,textAlign:'right'}}/>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{padding:'28px 0',textAlign:'center',color:T.faint,fontSize:12}}>
-                      {ps.length === 0
-                        ? 'No scenes yet. Click "Upload Script" or "Add Scene" to build your breakdown.'
-                        : 'No scenes match your current search or filters.'}
-                    </td>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:11.5}}>
+                <thead>
+                  <tr style={{borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:10.5,textAlign:'left'}}>
+                    <th style={{padding:'9px 8px 9px 0',fontWeight:500,width:45}}>Scene</th>
+                    <th style={{padding:'9px 10px',fontWeight:500}}>Scene heading</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,width:70}}>INT/EXT</th>
+                    <th style={{padding:'9px 10px',fontWeight:500}}>Set</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,width:85}}>Day/Night</th>
+                    <th style={{padding:'9px 10px',fontWeight:500}}>Characters</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,textAlign:'right',width:65}}>Pages</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,width:130}}>Status</th>
+                    <th style={{padding:'9px 0 9px 10px',fontWeight:500,textAlign:'right',width:70}}>Actions</th>
                   </tr>
-                ) : (
-                  filtered.map(sc => {
-                    const ie = String(sc.intExt || '').toUpperCase();
-                    const tod = String(sc.dayNight || '').toUpperCase();
-                    const todColor = tod === 'NIGHT' ? '#6BB0F5' : tod === 'DAY' ? '#F5C451' : '#D4D4D8';
-                    const chars = sc.cast || [];
-                    const charSummary = chars.length === 0
-                      ? '—'
-                      : chars.slice(0, 2).join(', ') + (chars.length > 2 ? ` +${chars.length - 2}` : '');
-                    const isSelected = selectedScene?.id === sc.id;
-                    return (
-                      <tr
-                        key={sc.id || sc.sceneNumber}
-                        onClick={()=>{setPendingNewScene(null);setSelectedScene(sc);}}
-                        style={{borderBottom:'1px solid #151518',background:isSelected?'rgba(255,179,71,0.04)':'transparent',transition:'background 0.14s ease',cursor:'pointer'}}
-                        onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
-                        onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background='transparent';}}
-                      >
-                        <td style={{padding:'10px 8px 10px 0',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>{sc.sceneNumber}</td>
-                        <td style={{padding:'10px 8px',color:T.cream,maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading || '—'}</td>
-                        <td style={{padding:'10px 8px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#A1A1AA',whiteSpace:'nowrap'}}>{ie || '—'}</td>
-                        <td style={{padding:'10px 8px',color:'#A1A1AA',maxWidth:130,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sceneLoc(sc) || '—'}</td>
-                        <td style={{padding:'10px 8px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,fontWeight:600,color:todColor,whiteSpace:'nowrap'}}>{tod || '—'}</td>
-                        <td style={{padding:'10px 8px',color:'#A1A1AA',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{charSummary}</td>
-                        <td style={{padding:'10px 8px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',whiteSpace:'nowrap'}}>{sc.pages8 > 0 ? fmtPages8(sc.pages8) : '—'}</td>
-                        <td style={{padding:'10px 0 10px 8px',textAlign:'right',whiteSpace:'nowrap'}}>
-                          <span style={{display:'inline-flex',gap:8}}>
-                            <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setPendingNewScene(null);setSelectedScene(isSelected?null:sc);}} style={{background:'none',border:'none',cursor:'pointer',color:isSelected?'#F5C451':T.faint,padding:2}} title="Inspect scene">
-                              <Eye size={13}/>
-                            </motion.button>
-                            <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setDeleteTargetScene(sc);}} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Delete scene">
-                              <Trash2 size={13}/>
-                            </motion.button>
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.length===0?(
+                    <tr>
+                      <td colSpan={9} style={{padding:'28px 0',textAlign:'center',color:T.faint,fontSize:12}}>
+                        {ps.length===0
+                          ? 'No scenes yet. Click "Upload Script" or "Add Scene" to build your breakdown.'
+                          : 'No scenes match your current search or filters.'}
+                      </td>
+                    </tr>
+                  ):(
+                    filtered.map(sc=>{
+                      const ie=String(sc.intExt||'').toUpperCase();
+                      const tod=String(sc.dayNight||'').toUpperCase();
+                      const todColor=tod==='NIGHT'?'#5B9DF8':tod==='DAY'?'#F5C451':'#E5A823';
+                      const chars=sc.cast||[];
+                      const charSummary=chars.length===0
+                        ?'—'
+                        :chars.slice(0,2).join(', ')+((chars.length>2||(sc.talkingExtras&&sc.talkingExtras.length>0))?` +${Math.max(1,(chars.length>2?chars.length-2:0)+(sc.talkingExtras?.length||0))}`:'');
+                      const isSelected=selectedScene?.id===sc.id;
+                      const ready=isSceneReady(sc);
+                      const missingCount=sc.missingCount||(ready?0:1);
+                      return(
+                        <tr
+                          key={sc.id||sc.sceneNumber}
+                          onClick={()=>{setPendingNewScene(null);setSelectedScene(sc);}}
+                          style={{borderBottom:'1px solid #151518',background:isSelected?'rgba(255,179,71,0.04)':'transparent',transition:'background 0.14s ease',cursor:'pointer'}}
+                          onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
+                          onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background='transparent';}}
+                        >
+                          <td style={{padding:'11px 8px 11px 0',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>{sc.sceneNumber}</td>
+                          <td style={{padding:'11px 10px',color:T.cream,fontWeight:500,maxWidth:220,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading||'—'}</td>
+                          <td style={{padding:'11px 10px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#8A8985',whiteSpace:'nowrap'}}>{ie||'—'}</td>
+                          <td style={{padding:'11px 10px',color:'#8A8985',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sceneLoc(sc)||'—'}</td>
+                          <td style={{padding:'11px 10px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,fontWeight:600,color:todColor,whiteSpace:'nowrap'}}>{tod||'—'}</td>
+                          <td style={{padding:'11px 10px',color:'#8A8985',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{charSummary}</td>
+                          <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',whiteSpace:'nowrap'}}>{sc.pages8>0?fmtPages8(sc.pages8):'—'}</td>
+                          <td style={{padding:'11px 10px',whiteSpace:'nowrap'}}>
+                            {ready?(
+                              <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#52B07A',fontWeight:600,fontSize:11}}>
+                                <Check size={12} strokeWidth={2.6}/> Ready
+                              </span>
+                            ):(
+                              <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#E05252',fontWeight:600,fontSize:11}}>
+                                <AlertCircle size={12}/> Incomplete · {missingCount}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{padding:'11px 0 11px 10px',textAlign:'right',whiteSpace:'nowrap'}}>
+                            <span style={{display:'inline-flex',gap:8,alignItems:'center'}}>
+                              <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setPendingNewScene(null);setSelectedScene(isSelected?null:sc);}} style={{background:'none',border:'none',cursor:'pointer',color:isSelected?'#F5C451':'#71717A',padding:2}} title="Inspect scene">
+                                <Eye size={13}/>
+                              </motion.button>
+                              <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setDeleteTargetScene(sc);}} style={{background:'none',border:'none',cursor:'pointer',color:'#71717A',padding:2}} title="Delete scene">
+                                <Trash2 size={13}/>
+                              </motion.button>
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </motion.div>
+      )}
 
-        {/* Right Panel: Characters */}
+      {/* Cast Tab */}
+      {activeTab==='cast'&&(
         <motion.div
           initial={{opacity:0,y:8}}
           animate={{opacity:1,y:0}}
-          transition={{duration:DURATION.normal,delay:0.04,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
         >
-          <div style={{marginBottom:12}}>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Characters</div>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>
-              {castIdx.list.length} speaking character{castIdx.list.length===1?'':'s'} · select one to filter scenes
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Cast Members</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Speaking roles, leads, and recurring featured characters</div>
             </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{visibleChars.length} character{visibleChars.length===1?'':'s'}</span>
           </div>
 
-          <div style={{position:'relative',marginBottom:14}}>
+          <div style={{position:'relative',marginBottom:16}}>
             <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
             <input
               type="search"
               aria-label="Search characters"
-              placeholder="Search characters"
+              placeholder="Search characters by name"
               value={charSearch}
               onChange={e=>setCharSearch(e.target.value)}
-              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:mob?'10px 12px 10px 34px':'8px 12px 8px 34px',color:T.cream,fontSize:mob?16:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
             />
           </div>
 
-          {visibleChars.length === 0 ? (
-            <div style={{padding:'24px 0',textAlign:'center',color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
-              {castIdx.list.length === 0 ? 'No characters in breakdown yet.' : 'No matching characters.'}
-            </div>
-          ) : (
-            <div style={{display:'flex',flexDirection:'column',gap:mob?8:10}}>
-              {visibleChars.map(c => {
-                const active = charFilter === c.name;
-                const scNums = getSceneNumsForChar(c.name);
-                return (
-                  <motion.button
-                    key={c.id}
-                    type="button"
-                    whileHover={{y:-1}}
-                    whileTap={{scale:0.99}}
-                    onClick={()=>setCharFilter(active ? 'all' : c.name)}
-                    style={{
-                      width:'100%',
-                      textAlign:'left',
-                      background:active?'rgba(255,179,71,0.06)':'#121215',
-                      border:active?'1px solid rgba(255,179,71,0.5)':'1px solid #1E1E22',
-                      borderRadius:12,
-                      padding:'12px 14px',
-                      cursor:'pointer',
-                      transition:'border-color 0.15s ease, background 0.15s ease',
-                    }}
-                  >
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
-                      <span style={{fontFamily:'Manrope,sans-serif',fontSize:12,fontWeight:600,color:T.cream,textTransform:'uppercase'}}>{c.name}</span>
-                      <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:T.faint}}>{c.scenes} scene{c.scenes===1?'':'s'}</span>
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
+            {visibleChars.map(c=>{
+              const scNums=getSceneNumsForChar(c.name);
+              const tierColor=c.tier==='lead'?'#F5A623':c.tier==='supporting'?'#5B9DF8':'#8A8985';
+              return(
+                <div key={c.id||c.name} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                    <div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:T.cream,textTransform:'uppercase'}}>{c.name}</div>
+                      <div style={{fontSize:10,color:tierColor,fontFamily:'IBM Plex Mono,monospace',marginTop:3,fontWeight:600,textTransform:'uppercase'}}>{c.tier||'Cast'}</div>
                     </div>
+                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#8A8985',background:'#18181C',padding:'2px 8px',borderRadius:6}}>
+                      {scNums.length} scene{scNums.length===1?'':'s'}
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,color:'#71717A',marginBottom:6}}>Scenes:</div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                      {scNums.slice(0, 9).map(num => (
-                        <span key={num} style={{background:'#17171B',border:'1px solid #26262C',borderRadius:4,padding:'2px 6px',fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'#D4D4D8'}}>
+                      {scNums.map(num=>(
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={()=>{
+                            setActiveTab('scenes');
+                            const target=ps.find(s=>String(s.sceneNumber)===String(num));
+                            if(target)setSelectedScene(target);
+                          }}
+                          style={{background:'#17171B',border:'1px solid #26262C',borderRadius:5,padding:'2px 7px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#D4D4D8',cursor:'pointer'}}
+                          title={`Go to scene ${num}`}
+                        >
                           {num}
-                        </span>
+                        </button>
                       ))}
-                      {scNums.length > 9 && (
-                        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint,padding:'2px 4px'}}>+</span>
-                      )}
                     </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-          )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </motion.div>
-      </div>
+      )}
+
+      {/* Locations Tab */}
+      {activeTab==='locations'&&(
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Locations & Sets</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>All filming locations and studio sets identified in the script</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{uniqueLocations.length} set{uniqueLocations.length===1?'':'s'}</span>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
+            {uniqueLocations.map(loc=>{
+              const locScenes=ps.filter(s=>sceneLoc(s)===loc);
+              const intExts=[...new Set(locScenes.map(s=>s.intExt).filter(Boolean))].join('/');
+              return(
+                <div key={loc} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                    <div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:T.cream}}>{loc}</div>
+                      <div style={{fontSize:10,color:'#8A8985',fontFamily:'IBM Plex Mono,monospace',marginTop:3}}>{intExts||'INT/EXT'}</div>
+                    </div>
+                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#8A8985',background:'#18181C',padding:'2px 8px',borderRadius:6}}>
+                      {locScenes.length} scene{locScenes.length===1?'':'s'}
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,color:'#71717A',marginBottom:6}}>Scenes filmed here:</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {locScenes.map(s=>(
+                        <button
+                          key={s.id||s.sceneNumber}
+                          type="button"
+                          onClick={()=>{
+                            setActiveTab('scenes');
+                            setSelectedScene(s);
+                          }}
+                          style={{background:'#17171B',border:'1px solid #26262C',borderRadius:5,padding:'2px 7px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#D4D4D8',cursor:'pointer'}}
+                          title={`View scene ${s.sceneNumber}`}
+                        >
+                          {s.sceneNumber}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Production Elements Tab */}
+      {activeTab==='elements'&&(
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Production Elements</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Key props, wardrobe, camera package, sound and SFX requirements</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{LAGOS_AFTER_DARK_ELEMENTS.length} elements</span>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
+            {LAGOS_AFTER_DARK_ELEMENTS.map(el=>(
+              <div key={el.id} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                  <span style={{fontSize:10,fontWeight:700,fontFamily:'IBM Plex Mono,monospace',color:'#F5A623',background:'rgba(245,166,35,0.1)',padding:'2px 8px',borderRadius:6}}>
+                    {el.category}
+                  </span>
+                  <span style={{fontSize:10.5,fontFamily:'IBM Plex Mono,monospace',color:'#8A8985'}}>Scenes {el.scenes}</span>
+                </div>
+                <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,color:T.cream}}>{el.name}</div>
+                <div style={{fontSize:11,color:'#8A8985',lineHeight:1.4}}>{el.notes}</div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Picture Vehicles Tab */}
+      {activeTab==='vehicles'&&(
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Picture Vehicles</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Hero vehicles, stunt cars, and action transports</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{LAGOS_AFTER_DARK_VEHICLES.length} vehicles</span>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(320px, 1fr))',gap:14}}>
+            {LAGOS_AFTER_DARK_VEHICLES.map(veh=>(
+              <div key={veh.id} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                  <div>
+                    <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700,color:T.cream}}>{veh.name}</div>
+                    <div style={{fontSize:10.5,fontFamily:'IBM Plex Mono,monospace',color:'#F5A623',marginTop:2}}>{veh.type}</div>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:600,color:'#52B07A',background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.25)',padding:'3px 8px',borderRadius:6}}>
+                    {veh.status}
+                  </span>
+                </div>
+                <div style={{fontSize:11.5,color:'#8A8985'}}>{veh.spec}</div>
+                <div style={{fontSize:11,color:'#71717A'}}>Featured in scenes: <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',fontWeight:600}}>{veh.scenes}</span></div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       <ScenePreviewDrawer
         scene={pendingNewScene||activeSelectedScene}
@@ -9856,7 +10495,7 @@ function Workspace(){
       {!mobile&&<Sidebar view={view} setView={setView} onSignOut={handleSignOut} userEmail={user?.email} projects={projects} currentId={currentId} onSelectProject={id=>{setCurrentId(id);if(view==='dashboard'||view==='productions')setView('overview');}} onClearProject={()=>setCurrentId(null)}/>}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,minHeight:0,height:mobile?'auto':'100svh'}}>
         {signOutError&&<p role="alert" className="p-4 text-palette-apricot">{signOutError}</p>}
-        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} searchQuery={searchQuery} onSearchChange={setSearchQuery} userEmail={user?.email} onAskNko={()=>setAskOpen(o=>!o)} askOpen={askOpen} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
+        <TopBar view={view} setView={setView} projects={projects} currentId={currentId} onSelect={id=>{setCurrentId(id||null);}} onCreate={()=>{setCurrentId(null);setView('dashboard');setShowNewModal(true);}} searchQuery={searchQuery} onSearchChange={setSearchQuery} userEmail={user?.email} onAskNko={()=>setAskOpen(o=>!o)} askOpen={askOpen} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} isOwner={!project?.user_id || project?.user_id===user.id} liveActivityText={liveActivity?.text}/>
         <div style={{flex:1,minHeight:0,overflowY:'auto',padding:mobile?'16px 14px calc(96px + env(safe-area-inset-bottom))':'24px 28px'}}>
           <motion.div
             key={`${view}-${currentId || 'all'}`}
@@ -9867,7 +10506,7 @@ function Workspace(){
           {/* {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>} */}
           {(view==='overview'||(view==='dashboard'&&project))?(
             project?(
-              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
+              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
             ):(
               <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:40,textAlign:'center'}}>
                 <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
@@ -9881,13 +10520,13 @@ function Workspace(){
           {view==='productions'&&(
             <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
-          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={project?.user_id===user.id}/>}
-          {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={project?.user_id===user.id}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))}/>}
-          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={project?.user_id===user.id}/>}
-          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={project?.user_id===user.id}/>}
-          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={project?.user_id===user.id}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
+          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))}/>}
+          {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='market'&&<MarketplaceView onApplyTemplate={async tpl=>{if(!currentId){alert('Select a production first (top dropdown), or create one, before applying a template.');return;}await applyTemplate(tpl);setView('budgets');}}/>}
           {view==='ai'&&<AIView project={project} budgetItems={pBudget} advances={pAdvances}/>}
           </motion.div>

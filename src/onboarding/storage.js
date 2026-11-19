@@ -12,14 +12,16 @@ export function isCompleteOnboarding(record) {
 export function readOnboarding(userId, storage) {
   if (!userId) return null
   try {
-    const value = JSON.parse((storage ?? window.localStorage).getItem(onboardingKey(userId)) || 'null')
+    const store = storage ?? (typeof window !== 'undefined' ? window.localStorage : globalThis.localStorage)
+    const value = JSON.parse(store?.getItem(onboardingKey(userId)) || 'null')
     return isCompleteOnboarding(value) ? value : null
   } catch { return null }
 }
 
-export function saveOnboarding(userId, choices, storage = window.localStorage) {
+export function saveOnboarding(userId, choices, storage) {
+  const store = storage ?? (typeof window !== 'undefined' ? window.localStorage : globalThis.localStorage)
   const record = { role: choices.role, market: choices.market, completedAt: Date.now() }
   if (!userId || !isCompleteOnboarding(record)) throw new Error('Choose a valid role and currency before continuing.')
-  storage.setItem(onboardingKey(userId), JSON.stringify(record))
+  store?.setItem(onboardingKey(userId), JSON.stringify(record))
   return record
 }
