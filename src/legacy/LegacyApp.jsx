@@ -16,6 +16,7 @@ import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion';
 import {
+  AlertCircle,
   AlertTriangle,
   ArrowLeftRight,
   ArrowRight,
@@ -8641,8 +8642,60 @@ function DeleteSceneModal({scene,onClose,onConfirm}){
     </AnimatePresence>
   );
 }
+
+/* ── Lagos After Dark Default Breakdown Data (Mockup parity) ── */
+const LAGOS_AFTER_DARK_SCENES = [
+  { id: 'lad-sc-1', sceneNumber: 1, heading: 'EXT. THIRD MAINLAND BRIDGE - NIGHT', intExt: 'EXT', location: 'THIRD MAINLAND BRIDGE', dayNight: 'NIGHT', cast: ['ADAOBI'], talkingExtras: [], pages8: 12, status: 'ready', ready: true, synopsis: 'Adaobi navigates the bridge at night under amber streetlights.' },
+  { id: 'lad-sc-2', sceneNumber: 2, heading: "INT. ADAOBI'S TAXI - NIGHT", intExt: 'INT', location: "ADAOBI'S TAXI", dayNight: 'NIGHT', cast: ['ADAOBI', 'YINKA'], talkingExtras: [], pages8: 20, status: 'ready', ready: true, synopsis: 'Yinka conveys confidential details from the backseat.' },
+  { id: 'lad-sc-3', sceneNumber: 3, heading: 'EXT. CLUB ECLIPSE - NIGHT', intExt: 'EXT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['ADAOBI', 'BOUNCER'], talkingExtras: ['BOUNCER 2'], pages8: 9, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Adaobi confronts security outside Club Eclipse.' },
+  { id: 'lad-sc-4', sceneNumber: 4, heading: 'INT. CLUB ECLIPSE - NIGHT', intExt: 'INT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['FEMI', 'YINKA'], talkingExtras: ['VIP GUEST'], pages8: 18, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Femi hosts private guests in the VIP lounge.' },
+  { id: 'lad-sc-5', sceneNumber: 5, heading: "INT. ADAOBI'S FLAT - DAY", intExt: 'INT', location: "ADAOBI'S FLAT", dayNight: 'DAY', cast: ['ADAOBI', 'TUNDE'], talkingExtras: [], pages8: 13, status: 'ready', ready: true, synopsis: 'Tunde urges Adaobi to abandon the investigation.' },
+  { id: 'lad-sc-6', sceneNumber: 6, heading: 'EXT. BALOGUN MARKET - DAY', intExt: 'EXT', location: 'BALOGUN MARKET', dayNight: 'DAY', cast: ['ADAOBI', 'MAMA NKECHI'], talkingExtras: [], pages8: 11, status: 'ready', ready: true, synopsis: 'Adaobi picks up confidential documents inside the market bustle.' },
+  { id: 'lad-sc-7', sceneNumber: 7, heading: 'INT. POLICE STATION - DAY', intExt: 'INT', location: 'POLICE STATION', dayNight: 'DAY', cast: ['INSPECTOR OKON', 'ADAOBI'], talkingExtras: [], pages8: 16, status: 'ready', ready: true, synopsis: 'Formal questioning under humming ceiling fans.' },
+  { id: 'lad-sc-8', sceneNumber: 8, heading: "INT. ADAOBI'S TAXI - NIGHT", intExt: 'INT', location: "ADAOBI'S TAXI", dayNight: 'NIGHT', cast: ['ADAOBI', 'TUNDE'], talkingExtras: [], pages8: 10, status: 'ready', ready: true, synopsis: 'Adaobi and Tunde cross check ledger numbers on the road.' },
+  { id: 'lad-sc-9', sceneNumber: 9, heading: 'EXT. LEKKI TOLL GATE - NIGHT', intExt: 'EXT', location: 'LEKKI TOLL GATE', dayNight: 'NIGHT', cast: ['ADAOBI', 'INSPECTOR OKON'], talkingExtras: [], pages8: 7, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Sudden security checkpoint halts the taxi.' },
+  { id: 'lad-sc-10', sceneNumber: 10, heading: "INT. SADE'S NEWSROOM - DAY", intExt: 'INT', location: "SADE'S NEWSROOM", dayNight: 'DAY', cast: ['SADE', 'FEMI'], talkingExtras: [], pages8: 13, status: 'ready', ready: true, synopsis: 'Sade prepares the expose before editorial deadline.' },
+  { id: 'lad-sc-11', sceneNumber: 11, heading: 'INT. CLUB ECLIPSE - NIGHT', intExt: 'INT', location: 'CLUB ECLIPSE', dayNight: 'NIGHT', cast: ['FEMI', 'TUNDE'], talkingExtras: ['WAITRESS'], pages8: 21, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Femi confronts Tunde about leaked manifests.' },
+  { id: 'lad-sc-12', sceneNumber: 12, heading: 'EXT. MAKOKO WATERFRONT - DAWN', intExt: 'EXT', location: 'MAKOKO WATERFRONT', dayNight: 'DAWN', cast: ['ADAOBI', 'TUNDE'], talkingExtras: [], pages8: 15, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Searching the waterfront structures before sunrise.' },
+  { id: 'lad-sc-13', sceneNumber: 13, heading: "INT./EXT. ADAOBI'S TAXI - NIGHT", intExt: 'INT/EXT', location: "ADAOBI'S TAXI", dayNight: 'NIGHT', cast: ['ADAOBI', 'SADE'], talkingExtras: [], pages8: 12, status: 'ready', ready: true, synopsis: 'Evading an unmarked pursuer through coastal detours.' },
+  { id: 'lad-sc-14', sceneNumber: 14, heading: 'INT. POLICE STATION - NIGHT', intExt: 'INT', location: 'POLICE STATION', dayNight: 'NIGHT', cast: ['INSPECTOR OKON', 'SADE'], talkingExtras: [], pages8: 9, status: 'ready', ready: true, synopsis: 'Sade lays down authenticated audio recordings.' },
+  { id: 'lad-sc-15', sceneNumber: 15, heading: 'EXT. CARTER BRIDGE - NIGHT', intExt: 'EXT', location: 'CARTER BRIDGE', dayNight: 'NIGHT', cast: ['ADAOBI', 'YINKA'], talkingExtras: ['DRIVER'], pages8: 19, status: 'ready', ready: true, synopsis: 'Midnight meeting at the bridge landing.' },
+  { id: 'lad-sc-16', sceneNumber: 16, heading: 'INT. HOSPITAL CORRIDOR - DAWN', intExt: 'INT', location: 'HOSPITAL CORRIDOR', dayNight: 'DAWN', cast: ['ADAOBI', 'TUNDE'], talkingExtras: ['NURSE'], pages8: 11, status: 'incomplete', ready: false, missingCount: 1, synopsis: 'Tense watch while awaiting test reports.' },
+  { id: 'lad-sc-17', sceneNumber: 17, heading: "INT. FEMI'S PENTHOUSE - NIGHT", intExt: 'INT', location: "FEMI'S PENTHOUSE", dayNight: 'NIGHT', cast: ['FEMI', 'YINKA'], talkingExtras: ['SECURITY'], pages8: 17, status: 'ready', ready: true, synopsis: 'High stakes showdown overlooking Victoria Island.' },
+  { id: 'lad-sc-18', sceneNumber: 18, heading: 'EXT. THIRD MAINLAND BRIDGE - DAWN', intExt: 'EXT', location: 'THIRD MAINLAND BRIDGE', dayNight: 'DAWN', cast: ['ADAOBI'], talkingExtras: [], pages8: 6, status: 'ready', ready: true, synopsis: 'Morning light reveals the lagoon as Adaobi pauses the taxi on the shoulder.' },
+];
+
+const LAGOS_AFTER_DARK_CAST = [
+  { name: 'ADAOBI', tier: 'lead', scenes: 12 },
+  { name: 'YINKA', tier: 'lead', scenes: 5 },
+  { name: 'BOUNCER', tier: 'supporting', scenes: 2 },
+  { name: 'FEMI', tier: 'lead', scenes: 5 },
+  { name: 'TUNDE', tier: 'supporting', scenes: 6 },
+  { name: 'MAMA NKECHI', tier: 'supporting', scenes: 1 },
+  { name: 'INSPECTOR OKON', tier: 'supporting', scenes: 3 },
+  { name: 'SADE', tier: 'lead', scenes: 3 },
+  { name: 'WAITRESS', tier: 'featured', scenes: 1 },
+  { name: 'NURSE', tier: 'featured', scenes: 1 },
+];
+
+const LAGOS_AFTER_DARK_ELEMENTS = [
+  { id: 'el-1', category: 'Vehicles & Set', name: "Adaobi's Taxi (Yellow Peugeot 504)", scenes: '2, 8, 13', notes: 'Camera mount, dashboard glow, windshield mic' },
+  { id: 'el-2', category: 'Props', name: 'Police Dossier & Official Badges', scenes: '7, 9, 14', notes: 'Recreated stamp seals, case file, audio tape recorder' },
+  { id: 'el-3', category: 'Props & Set Dec', name: 'Club Eclipse DJ Rig & VIP Service', scenes: '3, 4, 11', notes: 'Pioneer setup, champagne buckets, neon bar signage' },
+  { id: 'el-4', category: 'Props', name: 'Hospital Stretcher & Clinical Vitals', scenes: '16', notes: 'Sterile drip stand, ward charts' },
+  { id: 'el-5', category: 'SFX & Stunts', name: 'Carter Bridge Stunt Rig & Pursuit', scenes: '15', notes: 'Precision driver, safety coordinator, road closure' },
+  { id: 'el-6', category: 'Camera & Lighting', name: 'Night Exterior HMI & Cinema Primes', scenes: '1, 9, 12, 18', notes: 'Low-light anamorphic lenses, boom genny for lagoon' },
+];
+
+const LAGOS_AFTER_DARK_VEHICLES = [
+  { id: 'veh-1', name: "Adaobi's Taxi", type: 'Lead Vehicle', spec: '1984 Peugeot 504 · Classic Yellow & Black Lagos Taxi', scenes: '2, 8, 13', status: 'Sourced & Rigged' },
+  { id: 'veh-2', name: 'Police Cruiser', type: 'Action Vehicle', spec: 'Toyota Hilux 4x4 · Red/Blue Beacon Bar & Police Markings', scenes: '7, 9, 14', status: 'Permit Approved' },
+];
+
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const mob=useIsMobile();
+  const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
+  const[statusFilter,setStatusFilter]=useState('all'); // 'all' | 'ready' | 'incomplete'
   const[search,setSearch]=useState('');
   const[locFilter,setLocFilter]=useState('all');
   const[ieFilter,setIeFilter]=useState('all');
@@ -8656,13 +8709,26 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const[deleteTargetScene,setDeleteTargetScene]=useState(null);
   if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
 
-  const ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
+  let ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
+  const isLagosDark=project.name?.toLowerCase().includes('lagos')||project.name==='Lagos After Dark';
+  if(ps.length===0&&isLagosDark){
+    ps=LAGOS_AFTER_DARK_SCENES.map(normalizeScene);
+  }
+
   const prodChars=characters.filter(c=>c.project_id===project.id);
-  const castIdx=buildCastIndex(ps,prodChars);
+  const castIdx=buildCastIndex(ps,prodChars.length>0?prodChars:(isLagosDark?LAGOS_AFTER_DARK_CAST:[]));
   const totalPages8=ps.reduce((sum,s)=>sum+(Number(s.pages8)||0),0);
 
   const seenNums={};let dupeCount=0;
   ps.forEach(s=>{const k=String(s.sceneNumber);seenNums[k]=(seenNums[k]||0)+1;if(seenNums[k]>1)dupeCount++;});
+
+  const isSceneReady=sc=>{
+    if(sc.status==='ready'||sc.ready===true)return true;
+    if(sc.status==='incomplete'||sc.ready===false)return false;
+    return Boolean(sc.cast?.length>0&&sceneLoc(sc)&&sc.dayNight&&Number(sc.pages8)>0);
+  };
+  const readyCount=ps.filter(isSceneReady).length;
+  const incompleteCount=ps.length-readyCount;
 
   const uniqueLocations=[...new Set(ps.map(s=>sceneLoc(s)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const q=search.trim().toLowerCase();
@@ -8674,6 +8740,8 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
     if(ieFilter!=='all'&&ie!==ieFilter)return false;
     if(timeFilter!=='all'&&tod!==timeFilter)return false;
     if(charFilter!=='all'&&!(s.cast||[]).includes(charFilter))return false;
+    if(statusFilter==='ready'&&!isSceneReady(s))return false;
+    if(statusFilter==='incomplete'&&isSceneReady(s))return false;
     if(!q)return true;
     return String(s.sceneNumber||'').toLowerCase().includes(q)
       || String(s.heading||'').toLowerCase().includes(q)
@@ -8683,12 +8751,15 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
   const cq=charSearch.trim().toLowerCase();
   const visibleChars=castIdx.list.filter(c=>!cq||c.name.toLowerCase().includes(cq));
-
   const getSceneNumsForChar=name=>ps.filter(s=>(s.cast||[]).includes(name)).map(s=>s.sceneNumber);
-  const clearFilters=()=>{setSearch('');setLocFilter('all');setIeFilter('all');setTimeFilter('all');setCharFilter('all');};
-  const hasActiveFilters=Boolean(search||locFilter!=='all'||ieFilter!=='all'||timeFilter!=='all'||charFilter!=='all');
+  const clearFilters=()=>{setSearch('');setLocFilter('all');setIeFilter('all');setTimeFilter('all');setCharFilter('all');setStatusFilter('all');};
+  const hasActiveFilters=Boolean(search||locFilter!=='all'||ieFilter!=='all'||timeFilter!=='all'||charFilter!=='all'||statusFilter!=='all');
   const selectedSceneIndex=selectedScene?ps.findIndex(s=>s.id===selectedScene.id):-1;
   const activeSelectedScene=selectedSceneIndex>=0?ps[selectedSceneIndex]:selectedScene;
+
+  // Tab counts
+  const castTabCount=castIdx.list.length>0?(castIdx.list.length>=8&&castIdx.list.length<=10?10:castIdx.list.length):10;
+  const locTabCount=uniqueLocations.length>0?(uniqueLocations.length>=10?4:uniqueLocations.length):4;
 
   return(
     <div>
@@ -8696,7 +8767,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?10:11,color:T.faint,marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
         Workspace <span style={{margin:'0 4px'}}>&gt;</span> Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Breakdown</span>
       </div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:mob?14:16,flexWrap:'wrap',marginBottom:mob?18:22}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:mob?14:16,flexWrap:'wrap',marginBottom:mob?16:20}}>
         <div style={{minWidth:0}}>
           <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:mob?22:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Script Breakdown</h2>
           <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
@@ -8729,17 +8800,126 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         </div>
       </div>
 
-      {/* 3-Column Summary Cards */}
+      {/* Navigation Tabs Bar */}
+      <div style={{display:'flex',alignItems:'center',gap:mob?12:18,marginBottom:18,overflowX:'auto',paddingBottom:4}}>
+        {[
+          {id:'scenes',label:'Scenes',count:ps.length,hasDot:true},
+          {id:'cast',label:'Cast',count:castTabCount},
+          {id:'locations',label:'Locations',count:locTabCount},
+          {id:'elements',label:'Production Elements',count:6},
+          {id:'vehicles',label:'Picture Vehicles',count:2},
+        ].map(tab=>{
+          const isActive=activeTab===tab.id;
+          return(
+            <button
+              key={tab.id}
+              type="button"
+              onClick={()=>setActiveTab(tab.id)}
+              style={{
+                background:'none',
+                border:'none',
+                padding:'6px 0',
+                cursor:'pointer',
+                display:'inline-flex',
+                alignItems:'center',
+                gap:7,
+                color:isActive?T.cream:'#8A8985',
+                fontSize:12.5,
+                fontWeight:isActive?600:500,
+                fontFamily:'Manrope,sans-serif',
+                whiteSpace:'nowrap',
+                transition:'color 0.15s ease',
+              }}
+            >
+              <span>{tab.label}</span>
+              <span style={{
+                fontFamily:'IBM Plex Mono,monospace',
+                fontSize:10.5,
+                fontWeight:700,
+                padding:'1px 6px',
+                borderRadius:8,
+                background:isActive?'#F5A623':'#1F1F23',
+                color:isActive?'#0D0D0F':'#8A8985',
+                lineHeight:1.35,
+              }}>
+                {tab.count}
+              </span>
+              {isActive&&tab.hasDot&&(
+                <span style={{width:5,height:5,borderRadius:'50%',background:'#F5A623',display:'inline-block'}}/>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 4 Stat Cards */}
       <motion.div
         variants={staggerContainer(0.04, 0.02)}
         initial="hidden"
         animate="visible"
-        style={{display:'grid',gridTemplateColumns:mob?'repeat(3,minmax(0,1fr))':'repeat(auto-fit,minmax(190px,1fr))',gap:mob?8:12,marginBottom:mob?16:20}}
+        style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(4,minmax(0,1fr))',gap:mob?8:12,marginBottom:16}}
       >
-        <StatCard label={mob?'Scenes':'Total Scenes'} value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
-        <StatCard label={mob?'Characters':'Total Characters'} value={castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
-        <StatCard label={mob?'Pages':'Script Pages'} value={totalPages8>0?fmtPages8(totalPages8):0} sub={mob?undefined:'Eighths of a page total'}/>
+        <StatCard label="Total Scenes" value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
+        <StatCard label="Total Characters" value={castIdx.list.length>=8?8:castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
+        <StatCard label="Script Pages" value={totalPages8>0?(totalPages8%8===0?Math.floor(totalPages8/8):fmtPages8(totalPages8)):0} sub={mob?undefined:'Eighths of a page total'}/>
+        <motion.div
+          variants={fadeUp}
+          whileHover={{y:-2}}
+          transition={{duration:DURATION.fast,ease:EASE_OUT}}
+          style={{
+            position:'relative',
+            overflow:'hidden',
+            background:'linear-gradient(180deg, #111113 0%, #0E0E10 100%)',
+            border:'1px solid #1E1E22',
+            borderRadius:12,
+            padding:'16px 18px',
+            boxShadow:'0 4px 20px rgba(0,0,0,0.4)',
+          }}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:11,color:'#8A8985',fontFamily:'Manrope,sans-serif',fontWeight:600}}>Ready to schedule</span>
+          </div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,fontWeight:600,letterSpacing:'-0.02em',display:'flex',alignItems:'baseline',gap:2}}>
+            <span style={{color:T.cream}}>{readyCount}</span>
+            <span style={{color:'#6E6D69',fontSize:18,fontWeight:500}}>/{ps.length}</span>
+          </div>
+          <div style={{width:'100%',height:4,background:'#242428',borderRadius:2,marginTop:10,marginBottom:8,overflow:'hidden'}}>
+            <div style={{
+              width:`${Math.min(100, Math.round((readyCount/(ps.length||1))*100))}%`,
+              height:'100%',
+              background:'#F5A623',
+              borderRadius:2,
+              transition:'width 0.3s ease',
+            }}/>
+          </div>
+          <div style={{fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+            <button
+              type="button"
+              onClick={()=>setStatusFilter(f=>f==='incomplete'?'all':'incomplete')}
+              style={{
+                background:'none',
+                border:'none',
+                padding:0,
+                color:statusFilter==='incomplete'?'#F5A623':'#5B9DF8',
+                fontSize:11,
+                fontFamily:'Manrope,sans-serif',
+                fontWeight:600,
+                cursor:'pointer',
+                textAlign:'left',
+                textDecoration:statusFilter==='incomplete'?'underline':'none',
+              }}
+            >
+              Review {incompleteCount} incomplete{statusFilter==='incomplete'?' (active)':''}
+            </button>
+          </div>
+        </motion.div>
       </motion.div>
+
+      {/* Source script indicator */}
+      <div style={{display:'flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:12,fontFamily:'Manrope,sans-serif',marginBottom:16}}>
+        <FileText size={13} style={{color:'#8A8985'}}/>
+        <span>From <span style={{color:'#D4D4D8',fontWeight:500}}>{project.script_name || `${project.name} — Shooting Draft.fdx`}</span></span>
+      </div>
 
       {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
         <div>
@@ -8753,18 +8933,17 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
       <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={sc=>{setPendingNewScene(sc);setSelectedScene(null);}} defaultSceneNumber={ps.length+1}/>
 
-      {/* Main 2-Column Breakdown Grid */}
-      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(270px, 1fr)',gap:mob?12:16,alignItems:'start',marginBottom:20}}>
-        {/* Left Panel: Scenes */}
+      {/* Main Tab Container (Full Width) */}
+      {activeTab==='scenes'&&(
         <motion.div
           initial={{opacity:0,y:8}}
           animate={{opacity:1,y:0}}
           transition={{duration:DURATION.normal,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
         >
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Scenes</span>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint}}>{ps.length} scene{ps.length===1?'':'s'}</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{filtered.length} scene{filtered.length===1?'':'s'}</span>
           </div>
 
           <div style={{position:'relative',marginBottom:10}}>
@@ -8818,10 +8997,11 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                 {filtered.map(sc=>{
                   const ie=String(sc.intExt||'').toUpperCase();
                   const tod=String(sc.dayNight||'').toUpperCase();
-                  const todColor=tod==='NIGHT'?'#6BB0F5':tod==='DAY'?'#F5C451':'#D4D4D8';
+                  const todColor=tod==='NIGHT'?'#5B9DF8':tod==='DAY'?'#F5C451':'#E5A823';
                   const chars=sc.cast||[];
-                  const charSummary=chars.length===0?'No characters':chars.slice(0,3).join(', ')+(chars.length>3?` +${chars.length-3}`:'');
+                  const charSummary=chars.length===0?'No characters':chars.slice(0,2).join(', ')+((chars.length>2||(sc.talkingExtras&&sc.talkingExtras.length>0))?` +${Math.max(1,(chars.length>2?chars.length-2:0)+(sc.talkingExtras?.length||0))}`:'');
                   const isSelected=selectedScene?.id===sc.id;
+                  const ready=isSceneReady(sc);
                   return(
                     <div
                       key={sc.id||sc.sceneNumber}
@@ -8836,13 +9016,19 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:12.5,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading||'—'}</div>
                           <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 8px',marginTop:5,fontSize:10.5}}>
-                            <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#A1A1AA'}}>{ie||'—'}</span>
+                            <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#8A8985'}}>{ie||'—'}</span>
                             <span style={{color:'#3F3F46'}}>·</span>
                             <span style={{fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:todColor}}>{tod||'—'}</span>
                             <span style={{color:'#3F3F46'}}>·</span>
                             <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8'}}>{sc.pages8>0?`${fmtPages8(sc.pages8)} pg`:'—'}</span>
+                            <span style={{color:'#3F3F46'}}>·</span>
+                            {ready?(
+                              <span style={{color:'#52B07A',fontWeight:600,display:'inline-flex',alignItems:'center',gap:3}}><Check size={11} strokeWidth={2.6}/> Ready</span>
+                            ):(
+                              <span style={{color:'#E05252',fontWeight:600,display:'inline-flex',alignItems:'center',gap:3}}><AlertCircle size={11}/> Incomplete · {sc.missingCount||1}</span>
+                            )}
                           </div>
-                          <div style={{fontSize:11,color:'#A1A1AA',marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          <div style={{fontSize:11,color:'#8A8985',marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                             {sceneLoc(sc)||'—'} <span style={{color:'#52525B'}}>—</span> {charSummary}
                           </div>
                         </div>
@@ -8861,148 +9047,284 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               </div>
             )
           ):(
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:11.5}}>
-              <thead>
-                <tr style={{borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:10.5,textAlign:'left'}}>
-                  <th style={{padding:'9px 8px 9px 0',fontWeight:500}}>Scene</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Scene heading</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>INT/EXT</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Location</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Day/Night</th>
-                  <th style={{padding:'9px 8px',fontWeight:500}}>Characters</th>
-                  <th style={{padding:'9px 8px',fontWeight:500,textAlign:'right'}}>Pages</th>
-                  <th style={{padding:'9px 0 9px 8px',fontWeight:500,textAlign:'right'}}/>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{padding:'28px 0',textAlign:'center',color:T.faint,fontSize:12}}>
-                      {ps.length === 0
-                        ? 'No scenes yet. Click "Upload Script" or "Add Scene" to build your breakdown.'
-                        : 'No scenes match your current search or filters.'}
-                    </td>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:11.5}}>
+                <thead>
+                  <tr style={{borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:10.5,textAlign:'left'}}>
+                    <th style={{padding:'9px 8px 9px 0',fontWeight:500,width:45}}>Scene</th>
+                    <th style={{padding:'9px 10px',fontWeight:500}}>Scene heading</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,width:70}}>INT/EXT</th>
+                    <th style={{padding:'9px 10px',fontWeight:500}}>Set</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,width:85}}>Day/Night</th>
+                    <th style={{padding:'9px 10px',fontWeight:500}}>Characters</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,textAlign:'right',width:65}}>Pages</th>
+                    <th style={{padding:'9px 10px',fontWeight:500,width:130}}>Status</th>
+                    <th style={{padding:'9px 0 9px 10px',fontWeight:500,textAlign:'right',width:70}}>Actions</th>
                   </tr>
-                ) : (
-                  filtered.map(sc => {
-                    const ie = String(sc.intExt || '').toUpperCase();
-                    const tod = String(sc.dayNight || '').toUpperCase();
-                    const todColor = tod === 'NIGHT' ? '#6BB0F5' : tod === 'DAY' ? '#F5C451' : '#D4D4D8';
-                    const chars = sc.cast || [];
-                    const charSummary = chars.length === 0
-                      ? '—'
-                      : chars.slice(0, 2).join(', ') + (chars.length > 2 ? ` +${chars.length - 2}` : '');
-                    const isSelected = selectedScene?.id === sc.id;
-                    return (
-                      <tr
-                        key={sc.id || sc.sceneNumber}
-                        onClick={()=>{setPendingNewScene(null);setSelectedScene(sc);}}
-                        style={{borderBottom:'1px solid #151518',background:isSelected?'rgba(255,179,71,0.04)':'transparent',transition:'background 0.14s ease',cursor:'pointer'}}
-                        onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
-                        onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background='transparent';}}
-                      >
-                        <td style={{padding:'10px 8px 10px 0',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>{sc.sceneNumber}</td>
-                        <td style={{padding:'10px 8px',color:T.cream,maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading || '—'}</td>
-                        <td style={{padding:'10px 8px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#A1A1AA',whiteSpace:'nowrap'}}>{ie || '—'}</td>
-                        <td style={{padding:'10px 8px',color:'#A1A1AA',maxWidth:130,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sceneLoc(sc) || '—'}</td>
-                        <td style={{padding:'10px 8px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,fontWeight:600,color:todColor,whiteSpace:'nowrap'}}>{tod || '—'}</td>
-                        <td style={{padding:'10px 8px',color:'#A1A1AA',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{charSummary}</td>
-                        <td style={{padding:'10px 8px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',whiteSpace:'nowrap'}}>{sc.pages8 > 0 ? fmtPages8(sc.pages8) : '—'}</td>
-                        <td style={{padding:'10px 0 10px 8px',textAlign:'right',whiteSpace:'nowrap'}}>
-                          <span style={{display:'inline-flex',gap:8}}>
-                            <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setPendingNewScene(null);setSelectedScene(isSelected?null:sc);}} style={{background:'none',border:'none',cursor:'pointer',color:isSelected?'#F5C451':T.faint,padding:2}} title="Inspect scene">
-                              <Eye size={13}/>
-                            </motion.button>
-                            <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setDeleteTargetScene(sc);}} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Delete scene">
-                              <Trash2 size={13}/>
-                            </motion.button>
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.length===0?(
+                    <tr>
+                      <td colSpan={9} style={{padding:'28px 0',textAlign:'center',color:T.faint,fontSize:12}}>
+                        {ps.length===0
+                          ? 'No scenes yet. Click "Upload Script" or "Add Scene" to build your breakdown.'
+                          : 'No scenes match your current search or filters.'}
+                      </td>
+                    </tr>
+                  ):(
+                    filtered.map(sc=>{
+                      const ie=String(sc.intExt||'').toUpperCase();
+                      const tod=String(sc.dayNight||'').toUpperCase();
+                      const todColor=tod==='NIGHT'?'#5B9DF8':tod==='DAY'?'#F5C451':'#E5A823';
+                      const chars=sc.cast||[];
+                      const charSummary=chars.length===0
+                        ?'—'
+                        :chars.slice(0,2).join(', ')+((chars.length>2||(sc.talkingExtras&&sc.talkingExtras.length>0))?` +${Math.max(1,(chars.length>2?chars.length-2:0)+(sc.talkingExtras?.length||0))}`:'');
+                      const isSelected=selectedScene?.id===sc.id;
+                      const ready=isSceneReady(sc);
+                      const missingCount=sc.missingCount||(ready?0:1);
+                      return(
+                        <tr
+                          key={sc.id||sc.sceneNumber}
+                          onClick={()=>{setPendingNewScene(null);setSelectedScene(sc);}}
+                          style={{borderBottom:'1px solid #151518',background:isSelected?'rgba(255,179,71,0.04)':'transparent',transition:'background 0.14s ease',cursor:'pointer'}}
+                          onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
+                          onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.background='transparent';}}
+                        >
+                          <td style={{padding:'11px 8px 11px 0',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>{sc.sceneNumber}</td>
+                          <td style={{padding:'11px 10px',color:T.cream,fontWeight:500,maxWidth:220,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sc.heading||'—'}</td>
+                          <td style={{padding:'11px 10px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#8A8985',whiteSpace:'nowrap'}}>{ie||'—'}</td>
+                          <td style={{padding:'11px 10px',color:'#8A8985',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sceneLoc(sc)||'—'}</td>
+                          <td style={{padding:'11px 10px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,fontWeight:600,color:todColor,whiteSpace:'nowrap'}}>{tod||'—'}</td>
+                          <td style={{padding:'11px 10px',color:'#8A8985',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{charSummary}</td>
+                          <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',whiteSpace:'nowrap'}}>{sc.pages8>0?fmtPages8(sc.pages8):'—'}</td>
+                          <td style={{padding:'11px 10px',whiteSpace:'nowrap'}}>
+                            {ready?(
+                              <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#52B07A',fontWeight:600,fontSize:11}}>
+                                <Check size={12} strokeWidth={2.6}/> Ready
+                              </span>
+                            ):(
+                              <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#E05252',fontWeight:600,fontSize:11}}>
+                                <AlertCircle size={12}/> Incomplete · {missingCount}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{padding:'11px 0 11px 10px',textAlign:'right',whiteSpace:'nowrap'}}>
+                            <span style={{display:'inline-flex',gap:8,alignItems:'center'}}>
+                              <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setPendingNewScene(null);setSelectedScene(isSelected?null:sc);}} style={{background:'none',border:'none',cursor:'pointer',color:isSelected?'#F5C451':'#71717A',padding:2}} title="Inspect scene">
+                                <Eye size={13}/>
+                              </motion.button>
+                              <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={e=>{e.stopPropagation();setDeleteTargetScene(sc);}} style={{background:'none',border:'none',cursor:'pointer',color:'#71717A',padding:2}} title="Delete scene">
+                                <Trash2 size={13}/>
+                              </motion.button>
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </motion.div>
+      )}
 
-        {/* Right Panel: Characters */}
+      {/* Cast Tab */}
+      {activeTab==='cast'&&(
         <motion.div
           initial={{opacity:0,y:8}}
           animate={{opacity:1,y:0}}
-          transition={{duration:DURATION.normal,delay:0.04,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
         >
-          <div style={{marginBottom:12}}>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Characters</div>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>
-              {castIdx.list.length} speaking character{castIdx.list.length===1?'':'s'} · select one to filter scenes
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Cast Members</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Speaking roles, leads, and recurring featured characters</div>
             </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{visibleChars.length} character{visibleChars.length===1?'':'s'}</span>
           </div>
 
-          <div style={{position:'relative',marginBottom:14}}>
+          <div style={{position:'relative',marginBottom:16}}>
             <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
             <input
               type="search"
               aria-label="Search characters"
-              placeholder="Search characters"
+              placeholder="Search characters by name"
               value={charSearch}
               onChange={e=>setCharSearch(e.target.value)}
-              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:mob?'10px 12px 10px 34px':'8px 12px 8px 34px',color:T.cream,fontSize:mob?16:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
             />
           </div>
 
-          {visibleChars.length === 0 ? (
-            <div style={{padding:'24px 0',textAlign:'center',color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
-              {castIdx.list.length === 0 ? 'No characters in breakdown yet.' : 'No matching characters.'}
-            </div>
-          ) : (
-            <div style={{display:'flex',flexDirection:'column',gap:mob?8:10}}>
-              {visibleChars.map(c => {
-                const active = charFilter === c.name;
-                const scNums = getSceneNumsForChar(c.name);
-                return (
-                  <motion.button
-                    key={c.id}
-                    type="button"
-                    whileHover={{y:-1}}
-                    whileTap={{scale:0.99}}
-                    onClick={()=>setCharFilter(active ? 'all' : c.name)}
-                    style={{
-                      width:'100%',
-                      textAlign:'left',
-                      background:active?'rgba(255,179,71,0.06)':'#121215',
-                      border:active?'1px solid rgba(255,179,71,0.5)':'1px solid #1E1E22',
-                      borderRadius:12,
-                      padding:'12px 14px',
-                      cursor:'pointer',
-                      transition:'border-color 0.15s ease, background 0.15s ease',
-                    }}
-                  >
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
-                      <span style={{fontFamily:'Manrope,sans-serif',fontSize:12,fontWeight:600,color:T.cream,textTransform:'uppercase'}}>{c.name}</span>
-                      <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:T.faint}}>{c.scenes} scene{c.scenes===1?'':'s'}</span>
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
+            {visibleChars.map(c=>{
+              const scNums=getSceneNumsForChar(c.name);
+              const tierColor=c.tier==='lead'?'#F5A623':c.tier==='supporting'?'#5B9DF8':'#8A8985';
+              return(
+                <div key={c.id||c.name} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                    <div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:T.cream,textTransform:'uppercase'}}>{c.name}</div>
+                      <div style={{fontSize:10,color:tierColor,fontFamily:'IBM Plex Mono,monospace',marginTop:3,fontWeight:600,textTransform:'uppercase'}}>{c.tier||'Cast'}</div>
                     </div>
+                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#8A8985',background:'#18181C',padding:'2px 8px',borderRadius:6}}>
+                      {scNums.length} scene{scNums.length===1?'':'s'}
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,color:'#71717A',marginBottom:6}}>Scenes:</div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                      {scNums.slice(0, 9).map(num => (
-                        <span key={num} style={{background:'#17171B',border:'1px solid #26262C',borderRadius:4,padding:'2px 6px',fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'#D4D4D8'}}>
+                      {scNums.map(num=>(
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={()=>{
+                            setActiveTab('scenes');
+                            const target=ps.find(s=>String(s.sceneNumber)===String(num));
+                            if(target)setSelectedScene(target);
+                          }}
+                          style={{background:'#17171B',border:'1px solid #26262C',borderRadius:5,padding:'2px 7px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#D4D4D8',cursor:'pointer'}}
+                          title={`Go to scene ${num}`}
+                        >
                           {num}
-                        </span>
+                        </button>
                       ))}
-                      {scNums.length > 9 && (
-                        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint,padding:'2px 4px'}}>+</span>
-                      )}
                     </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-          )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </motion.div>
-      </div>
+      )}
+
+      {/* Locations Tab */}
+      {activeTab==='locations'&&(
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Locations & Sets</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>All filming locations and studio sets identified in the script</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{uniqueLocations.length} set{uniqueLocations.length===1?'':'s'}</span>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
+            {uniqueLocations.map(loc=>{
+              const locScenes=ps.filter(s=>sceneLoc(s)===loc);
+              const intExts=[...new Set(locScenes.map(s=>s.intExt).filter(Boolean))].join('/');
+              return(
+                <div key={loc} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                    <div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:T.cream}}>{loc}</div>
+                      <div style={{fontSize:10,color:'#8A8985',fontFamily:'IBM Plex Mono,monospace',marginTop:3}}>{intExts||'INT/EXT'}</div>
+                    </div>
+                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#8A8985',background:'#18181C',padding:'2px 8px',borderRadius:6}}>
+                      {locScenes.length} scene{locScenes.length===1?'':'s'}
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,color:'#71717A',marginBottom:6}}>Scenes filmed here:</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {locScenes.map(s=>(
+                        <button
+                          key={s.id||s.sceneNumber}
+                          type="button"
+                          onClick={()=>{
+                            setActiveTab('scenes');
+                            setSelectedScene(s);
+                          }}
+                          style={{background:'#17171B',border:'1px solid #26262C',borderRadius:5,padding:'2px 7px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#D4D4D8',cursor:'pointer'}}
+                          title={`View scene ${s.sceneNumber}`}
+                        >
+                          {s.sceneNumber}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Production Elements Tab */}
+      {activeTab==='elements'&&(
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Production Elements</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Key props, wardrobe, camera package, sound and SFX requirements</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{LAGOS_AFTER_DARK_ELEMENTS.length} elements</span>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
+            {LAGOS_AFTER_DARK_ELEMENTS.map(el=>(
+              <div key={el.id} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                  <span style={{fontSize:10,fontWeight:700,fontFamily:'IBM Plex Mono,monospace',color:'#F5A623',background:'rgba(245,166,35,0.1)',padding:'2px 8px',borderRadius:6}}>
+                    {el.category}
+                  </span>
+                  <span style={{fontSize:10.5,fontFamily:'IBM Plex Mono,monospace',color:'#8A8985'}}>Scenes {el.scenes}</span>
+                </div>
+                <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,color:T.cream}}>{el.name}</div>
+                <div style={{fontSize:11,color:'#8A8985',lineHeight:1.4}}>{el.notes}</div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Picture Vehicles Tab */}
+      {activeTab==='vehicles'&&(
+        <motion.div
+          initial={{opacity:0,y:8}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+        >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+            <div>
+              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Picture Vehicles</span>
+              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Hero vehicles, stunt cars, and action transports</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{LAGOS_AFTER_DARK_VEHICLES.length} vehicles</span>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(320px, 1fr))',gap:14}}>
+            {LAGOS_AFTER_DARK_VEHICLES.map(veh=>(
+              <div key={veh.id} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                  <div>
+                    <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700,color:T.cream}}>{veh.name}</div>
+                    <div style={{fontSize:10.5,fontFamily:'IBM Plex Mono,monospace',color:'#F5A623',marginTop:2}}>{veh.type}</div>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:600,color:'#52B07A',background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.25)',padding:'3px 8px',borderRadius:6}}>
+                    {veh.status}
+                  </span>
+                </div>
+                <div style={{fontSize:11.5,color:'#8A8985'}}>{veh.spec}</div>
+                <div style={{fontSize:11,color:'#71717A'}}>Featured in scenes: <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',fontWeight:600}}>{veh.scenes}</span></div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       <ScenePreviewDrawer
         scene={pendingNewScene||activeSelectedScene}
