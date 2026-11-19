@@ -2985,7 +2985,22 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
   const unpaid = projects.length > 0
     ? activePayees.filter(p=>{const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);return paid<p.agreed_fee;}).length
     : 0;
-  const totalBudgetUSD = activeBudgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+  const budgetByCur = {};
+  activeBudgetItems.forEach(i => {
+    const cur = i.currency || defaultCurrency || 'NGN';
+    budgetByCur[cur] = (budgetByCur[cur] || 0) + lTot(i);
+  });
+  if (Object.keys(budgetByCur).length === 0 && projects.length > 0) {
+    projects.forEach(p => {
+      const cur = p.base_currency || defaultCurrency || 'NGN';
+      const tb = Number(p.target_budget) || 0;
+      if (tb > 0) budgetByCur[cur] = (budgetByCur[cur] || 0) + tb;
+    });
+  }
+
+  const totalBudgetUSD = activeBudgetItems.length > 0
+    ? activeBudgetItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0)
+    : projects.reduce((s,p)=>s+toUSD(Number(p.target_budget || 0), p.base_currency || 'NGN'), 0);
   const { spentByCur: allSpentByCur, totalUSD: totalSpentUSD } = projects.length > 0
     ? computeTotalSpend(activeAdvances, reconEntries, activePayees, activePOs)
     : { spentByCur: {}, totalUSD: 0, breakdown: { advances: {}, payees: {}, pos: {} } };
@@ -2993,12 +3008,6 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
   const hasBudget = totalBudgetUSD > 0;
   const savedUSD = projects.length === 0 ? 0 : (totalBudgetUSD - totalSpentUSD);
   const isOverBudget = projects.length > 0 && hasBudget && savedUSD < 0;
-
-  const budgetByCur = {};
-  activeBudgetItems.forEach(i => {
-    const cur = i.currency || defaultCurrency || 'NGN';
-    budgetByCur[cur] = (budgetByCur[cur] || 0) + lTot(i);
-  });
   const budgetDisplayAll = projects.length === 0 || Object.entries(budgetByCur).length === 0
     ? `${sym(defaultCurrency || 'NGN')}0`
     : Object.entries(budgetByCur).length <= 2
@@ -3324,13 +3333,16 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
           {visibleProjects.map(p=>{
             const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
             const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
+            if (Object.keys(totals).length === 0 && Number(p.target_budget) > 0) {
+              totals[p.base_currency || 'NGN'] = Number(p.target_budget);
+            }
             const open=advances.filter(a=>matchesProject(a.project_id, p.id, p.name)&&a.status!=='reconciled').length;
             const isSel=selected.has(p.id);
             const pAdv=advances.filter(a=>matchesProject(a.project_id, p.id, p.name));
             const pPay=payees.filter(py=>matchesProject(py.project_id, p.id, p.name));
             const pPO=(purchaseOrders||[]).filter(po=>matchesProject(po.project_id, p.id, p.name));
             const { spentByCur: pSpentTotals, totalUSD: pSpentUSD, breakdown: pBreakdown } = computeTotalSpend(pAdv, reconEntries, pPay, pPO);
-            const budgetUSD=pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
+            const budgetUSD=pi.length > 0 ? pi.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0) : toUSD(Number(p.target_budget || 0), p.base_currency || 'NGN');
             const pct=budgetUSD>0?Math.min(100,(pSpentUSD/budgetUSD)*100):0;
             const over=pSpentUSD>budgetUSD && budgetUSD > 0;
             const isOwner = p.user_id === currentUserId;
@@ -3371,7 +3383,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>
                     <MapPin size={11} style={{color:T.faint,flexShrink:0}}/>
-                    <span>{p.base_currency || 'NGN'} · {pi.length} lines · {open} open advances</span>
+                    <span>{p.base_currency || 'NGN'} · {pi.length > 0 ? `${pi.length} lines` : (p.target_budget ? 'Target budget set' : '0 lines')} · {open} open advances</span>
                   </div>
 
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:12}}>

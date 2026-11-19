@@ -24,7 +24,9 @@ import OnboardingStartingPointPage from "./onboarding/OnboardingStartingPointPag
 import { useAuth } from "./auth/AuthContext";
 import AuthGate from "./auth/AuthGate";
 import AuthProvider from "./auth/AuthProvider";
-import PendingProductionSaver, { PENDING_KEY } from "./auth/PendingProductionSaver";
+import PendingProductionSaver, { PENDING_KEY, readPending, clearPending } from "./auth/PendingProductionSaver";
+import { saveOnboardingProduction } from "./onboarding/saveOnboardingProduction";
+import { supabase } from "./lib/supabaseClient";
 import LangProvider from "./i18n/LangProvider";
 import { isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
 import AuthStatus from "./auth/AuthStatus";
@@ -131,14 +133,20 @@ function OnboardingRoute() {
 
 function OnboardingSetupRoute() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { status } = useAuth();
   if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  const profile = location.state || readPending();
 
   return (
     <OnboardingSetupPage
+      profile={profile}
       onBack={() => navigate("/onboarding")}
-      onContinue={(profile) => navigate("/onboarding/production", { state: profile })}
+      onContinue={(nextProfile) => {
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        navigate("/onboarding/production", { state: nextProfile });
+      }}
     />
   );
 }
@@ -148,17 +156,18 @@ function OnboardingProductionRoute() {
   const location = useLocation();
   const { status } = useAuth();
   if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  const profile = location.state || readPending();
 
   return (
     <OnboardingProductionChoicePage
-      profile={location.state}
-      onBack={() => navigate("/onboarding/setup")}
-      onSelectOption={(choice) =>
-        navigate("/onboarding/production/details", {
-          state: { ...(location.state || {}), choice },
-        })
-      }
+      profile={profile}
+      onBack={() => navigate("/onboarding/setup", { state: profile })}
+      onSelectOption={(choice) => {
+        const nextProfile = { ...(profile || {}), choice };
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        navigate("/onboarding/production/details", { state: nextProfile });
+      }}
     />
   );
 }
@@ -168,13 +177,17 @@ function OnboardingProductionDetailsRoute() {
   const location = useLocation();
   const { status } = useAuth();
   if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  const profile = location.state || readPending();
 
   return (
     <OnboardingProductionDetailsPage
-      profile={location.state}
-      onBack={() => navigate("/onboarding/production", { state: location.state })}
-      onContinue={(nextProfile) => navigate("/onboarding/scale", { state: nextProfile })}
+      profile={profile}
+      onBack={() => navigate("/onboarding/production", { state: profile })}
+      onContinue={(nextProfile) => {
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        navigate("/onboarding/scale", { state: nextProfile });
+      }}
     />
   );
 }
@@ -184,13 +197,17 @@ function OnboardingScaleRoute() {
   const location = useLocation();
   const { status } = useAuth();
   if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  const profile = location.state || readPending();
 
   return (
     <OnboardingScalePage
-      profile={location.state}
-      onBack={() => navigate("/onboarding/production/details", { state: location.state })}
-      onContinue={(nextProfile) => navigate("/onboarding/goals", { state: nextProfile })}
+      profile={profile}
+      onBack={() => navigate("/onboarding/production/details", { state: profile })}
+      onContinue={(nextProfile) => {
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        navigate("/onboarding/goals", { state: nextProfile });
+      }}
     />
   );
 }
@@ -200,13 +217,17 @@ function OnboardingGoalsRoute() {
   const location = useLocation();
   const { status } = useAuth();
   if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  const profile = location.state || readPending();
 
   return (
     <OnboardingGoalsPage
-      profile={location.state}
-      onBack={() => navigate("/onboarding/scale", { state: location.state })}
-      onContinue={(nextProfile) => navigate("/onboarding/ai-setup", { state: nextProfile })}
+      profile={profile}
+      onBack={() => navigate("/onboarding/scale", { state: profile })}
+      onContinue={(nextProfile) => {
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        navigate("/onboarding/ai-setup", { state: nextProfile });
+      }}
     />
   );
 }
@@ -216,15 +237,18 @@ function OnboardingAISetupRoute() {
   const location = useLocation();
   const { status } = useAuth();
   if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
+
+  const profile = location.state || readPending();
 
   return (
     <OnboardingAISetupPage
-      profile={location.state}
-      onBack={() => navigate("/onboarding/goals", { state: location.state })}
-      onGenerate={(nextProfile) =>
-        navigate("/onboarding/starting-point", { state: nextProfile || location.state })
-      }
+      profile={profile}
+      onBack={() => navigate("/onboarding/goals", { state: profile })}
+      onGenerate={(nextProfile) => {
+        const merged = nextProfile || profile;
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(merged)); } catch {}
+        navigate("/onboarding/starting-point", { state: merged });
+      }}
     />
   );
 }
@@ -232,18 +256,37 @@ function OnboardingAISetupRoute() {
 function OnboardingStartingPointRoute() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { status } = useAuth();
-  if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
+  const { status, user } = useAuth();
+  const [saving, setSaving] = useState(false);
+
+  if (status === "loading" || saving) return <AuthStatus />;
+
+  const profile = location.state || readPending();
 
   return (
     <OnboardingStartingPointPage
-      profile={location.state}
-      onBack={() => navigate("/onboarding/ai-setup", { state: location.state })}
-      onMakeChanges={() => navigate("/onboarding/setup", { state: location.state })}
-      // CHANGED: keep the draft across the sign-in redirect, then send the user to sign in.
-      onOpenProduction={() => {
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(location.state || {})); } catch { /* ignore */ }
+      profile={profile}
+      onBack={() => navigate("/onboarding/ai-setup", { state: profile })}
+      onMakeChanges={() => navigate("/onboarding/setup", { state: profile })}
+      onOpenProduction={async () => {
+        const draft = profile || {};
+        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(draft)); } catch {}
+
+        if (status === "authenticated" && user && supabase) {
+          setSaving(true);
+          try {
+            const saved = await saveOnboardingProduction(supabase, user, draft);
+            if (saved) {
+              clearPending();
+              window.location.replace("/app");
+              return;
+            }
+          } catch (err) {
+            console.error("Direct production saving failed, falling back to sign-in saver:", err);
+          } finally {
+            setSaving(false);
+          }
+        }
         navigate("/sign-in");
       }}
     />
