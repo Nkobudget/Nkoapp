@@ -214,3 +214,49 @@ test('script breakdown production elements tab layout and modals parity', async 
   assert.match(fileContent, /function DeleteProductionElementModal/);
   assert.match(fileContent, /Remove production element\?/);
 });
+
+test('script breakdown picture vehicles tab layout and modals parity', async () => {
+  const fileContent = fs.readFileSync(path.resolve('src/legacy/LegacyApp.jsx'), 'utf8');
+
+  // Verify Default Picture Vehicles
+  assert.match(fileContent, /const DEFAULT_PICTURE_VEHICLES\s*=/);
+  assert.match(fileContent, /Adaobi's taxi/);
+  assert.match(fileContent, /Taxi · Toyota Corolla 2008 · Yellow with black stripe/);
+  assert.match(fileContent, /LSR 412 KJ/);
+  assert.match(fileContent, /Okon's patrol car/);
+  assert.match(fileContent, /Police vehicle · Toyota Hilux · Black and white livery/);
+  assert.match(fileContent, /Prop plates/);
+  assert.match(fileContent, /Lekki Picture Cars/);
+
+  // Verify Top Action Button switches to Picture Vehicles on vehicles tab
+  assert.match(fileContent, /activeTab === 'vehicles'\s*\?\s*\(\s*<motion\.button[^>]*>[\s\S]*?Picture Vehicles/);
+
+  // Verify Picture Vehicles Header & Subtitle
+  assert.match(fileContent, /Vehicles that appear on camera, and the scenes they['&apos;]+re in\./);
+
+  // Verify Filters
+  assert.match(fileContent, /aria-label="Search picture vehicles"/);
+  assert.match(fileContent, /placeholder="Search name, model, colour, registration or supplier"/);
+  assert.match(fileContent, /aria-label="Usage filter"/);
+  assert.match(fileContent, /aria-label="Status filter"/);
+
+  // Verify Table Headers
+  assert.match(fileContent, />\s*Vehicle ↑\s*<\/th>/);
+  assert.match(fileContent, />\s*Registration\s*<\/th>/);
+  assert.match(fileContent, />\s*Scenes\s*<\/th>/);
+  assert.match(fileContent, />\s*Usage\s*<\/th>/);
+  assert.match(fileContent, />\s*Supplier\s*<\/th>/);
+  assert.match(fileContent, />\s*Status\s*<\/th>/);
+  assert.match(fileContent, />\s*Actions\s*<\/th>/);
+
+  // Verify Modals
+  assert.match(fileContent, /function PictureVehicleModal/);
+  assert.match(fileContent, /Edit picture vehicle/);
+  assert.match(fileContent, /Vehicle name/);
+  assert.match(fileContent, /Model &amp; description/);
+  assert.match(fileContent, /Registration \/ Plate/);
+  assert.match(fileContent, /Every scene that needs this vehicle\./);
+  assert.match(fileContent, /Notes &amp; special instructions/);
+  assert.match(fileContent, /function DeletePictureVehicleModal/);
+  assert.match(fileContent, /Remove picture vehicle\?/);
+});

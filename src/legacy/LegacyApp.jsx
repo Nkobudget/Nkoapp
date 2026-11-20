@@ -9196,9 +9196,35 @@ const LAGOS_AFTER_DARK_ELEMENTS = [
 const DEFAULT_PRODUCTION_ELEMENTS = LAGOS_AFTER_DARK_ELEMENTS;
 
 const LAGOS_AFTER_DARK_VEHICLES = [
-  { id: 'veh-1', name: "Adaobi's Taxi", type: 'Lead Vehicle', spec: '1984 Peugeot 504 · Classic Yellow & Black Lagos Taxi', scenes: '2, 8, 13', status: 'Sourced & Rigged' },
-  { id: 'veh-2', name: 'Police Cruiser', type: 'Action Vehicle', spec: 'Toyota Hilux 4x4 · Red/Blue Beacon Bar & Police Markings', scenes: '7, 9, 14', status: 'Permit Approved' },
+  {
+    id: 'veh-1',
+    name: "Adaobi's taxi",
+    spec: 'Taxi · Toyota Corolla 2008 · Yellow with black stripe',
+    description: 'Taxi · Toyota Corolla 2008 · Yellow with black stripe',
+    type: 'Lead Vehicle',
+    registration: 'LSR 412 KJ',
+    scenes: [1, 2, 3, 8, 9, 13],
+    usage: 'Static & moving',
+    supplier: 'Lekki Picture Cars',
+    status: 'Confirmed',
+    notes: 'Hero taxi with yellow and black Lagos stripe. Practical meter on dashboard.',
+  },
+  {
+    id: 'veh-2',
+    name: "Okon's patrol car",
+    spec: 'Police vehicle · Toyota Hilux · Black and white livery',
+    description: 'Police vehicle · Toyota Hilux · Black and white livery',
+    type: 'Action Vehicle',
+    registration: 'Prop plates',
+    scenes: [9, 15],
+    usage: 'Moving',
+    supplier: '—',
+    status: 'Sourcing',
+    notes: 'Police cruiser for chase and bridge confrontation.',
+  },
 ];
+
+const DEFAULT_PICTURE_VEHICLES = LAGOS_AFTER_DARK_VEHICLES;
 
 const DEFAULT_LOCATIONS = [
   {
@@ -12061,6 +12087,823 @@ function DeleteProductionElementModal({ element, onClose, onConfirm }) {
   );
 }
 
+function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScenes = [] }) {
+  const mob = useIsMobile();
+  const isEdit = Boolean(vehicle && !vehicle.isNew);
+
+  const [name, setName] = useState('');
+  const [spec, setSpec] = useState('');
+  const [registration, setRegistration] = useState('');
+  const [usage, setUsage] = useState('Static & moving');
+  const [supplier, setSupplier] = useState('');
+  const [status, setStatus] = useState('Confirmed');
+  const [selectedScenes, setSelectedScenes] = useState([]);
+  const [sceneFilter, setSceneFilter] = useState('');
+  const [notesExpanded, setNotesExpanded] = useState(true);
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (vehicle) {
+      setName(vehicle.name || '');
+      setSpec(vehicle.spec || vehicle.description || '');
+      setRegistration(vehicle.registration && vehicle.registration !== '—' ? vehicle.registration : '');
+      setUsage(vehicle.usage || 'Static & moving');
+      setSupplier(vehicle.supplier && vehicle.supplier !== '—' ? vehicle.supplier : '');
+      setStatus(vehicle.status || 'Confirmed');
+      setNotes(vehicle.notes || '');
+      const scs = Array.isArray(vehicle.scenes)
+        ? vehicle.scenes
+        : (vehicle.scenes ? String(vehicle.scenes).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)) : []);
+      setSelectedScenes(scs);
+      setSceneFilter('');
+    }
+  }, [vehicle]);
+
+  const effectiveScenes = allScenes.length > 0
+    ? allScenes
+    : Array.from({ length: 18 }, (_, i) => ({ sceneNumber: i + 1 }));
+
+  const filteredScenes = effectiveScenes.filter(sc => {
+    if (!sceneFilter.trim()) return true;
+    const q = sceneFilter.trim().toLowerCase();
+    const numMatch = String(sc.sceneNumber).includes(q);
+    const setMatch = (sceneLoc(sc) || '').toLowerCase().includes(q);
+    const charMatch = (sc.cast || []).some(c => c.toLowerCase().includes(q));
+    return numMatch || setMatch || charMatch;
+  });
+
+  const toggleScene = (scNum) => {
+    setSelectedScenes(prev =>
+      prev.includes(scNum) ? prev.filter(n => n !== scNum) : [...prev, scNum].sort((a,b)=>a-b)
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const toAdd = filteredScenes.map(s => s.sceneNumber);
+    setSelectedScenes(prev => Array.from(new Set([...prev, ...toAdd])).sort((a,b)=>a-b));
+  };
+
+  const handleClearFiltered = () => {
+    if (!sceneFilter.trim()) {
+      setSelectedScenes([]);
+    } else {
+      const filteredNums = new Set(filteredScenes.map(s => s.sceneNumber));
+      setSelectedScenes(prev => prev.filter(num => !filteredNums.has(num)));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    onSave({
+      id: vehicle?.id || `veh-${Date.now()}`,
+      name: name.trim(),
+      spec: spec.trim(),
+      description: spec.trim(),
+      registration: registration.trim() || '—',
+      usage,
+      supplier: supplier.trim() || '—',
+      status,
+      scenes: selectedScenes,
+      notes: notes.trim(),
+    });
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={onClose}
+        >
+          <motion.form
+            initial={{ scale: 0.94, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.94, opacity: 0, y: 10 }}
+            transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleSubmit}
+            style={{
+              background: '#101012',
+              border: '1px solid #1E1E22',
+              borderRadius: 16,
+              width: '100%',
+              maxWidth: 520,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '92vh',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: mob ? '16px 18px 12px' : '20px 24px 14px',
+                borderBottom: '1px solid #1C1C20',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: T.cream,
+                    letterSpacing: '-0.02em',
+                    fontFamily: 'Manrope,sans-serif',
+                  }}
+                >
+                  {isEdit ? 'Edit picture vehicle' : 'Add picture vehicle'}
+                </h3>
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: '#8A8985',
+                    marginTop: 4,
+                    fontFamily: 'Manrope,sans-serif',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Vehicles that appear on camera, and the scenes they&apos;re in.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#71717A',
+                  cursor: 'pointer',
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 6,
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div
+              style={{
+                padding: mob ? '14px 18px' : '18px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                overflowY: 'auto',
+              }}
+            >
+              {/* Vehicle Section */}
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#71717A',
+                    fontFamily: 'Manrope,sans-serif',
+                    marginBottom: 8,
+                  }}
+                >
+                  Vehicle
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Vehicle name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Adaobi's taxi"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Model &amp; description
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Taxi · Toyota Corolla 2008 · Yellow with black stripe"
+                      value={spec}
+                      onChange={e => setSpec(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Registration & Supplier */}
+              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Registration / Plate
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. LSR 412 KJ or Prop plates"
+                    value={registration}
+                    onChange={e => setRegistration(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #222226',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      color: T.cream,
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Supplier
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Lekki Picture Cars"
+                    value={supplier}
+                    onChange={e => setSupplier(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #222226',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      color: T.cream,
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Usage & Status */}
+              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Usage
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={usage}
+                      onChange={e => setUsage(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 30px 9px 12px',
+                        color: '#D4D4D8',
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                      }}
+                    >
+                      <option value="Static & moving">Static & moving</option>
+                      <option value="Moving">Moving</option>
+                      <option value="Static">Static</option>
+                      <option value="Stunt / Pursuit">Stunt / Pursuit</option>
+                    </select>
+                    <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Status
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={status}
+                      onChange={e => setStatus(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 30px 9px 12px',
+                        color: '#D4D4D8',
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                      }}
+                    >
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Sourcing">Sourcing</option>
+                      <option value="Permit Approved">Permit Approved</option>
+                      <option value="Needed">Needed</option>
+                      <option value="Ready">Ready</option>
+                    </select>
+                    <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Scenes Section */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: '#D4D4D8',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Scenes
+                  </span>
+                  <span style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif' }}>
+                    {selectedScenes.length} selected
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 10, fontFamily: 'Manrope,sans-serif' }}>
+                  Every scene that needs this vehicle.
+                </div>
+
+                {/* Filter bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: '#141416',
+                    border: '1px solid #222226',
+                    borderRadius: 8,
+                    padding: '6px 12px',
+                    marginBottom: 10,
+                  }}
+                >
+                  <Search size={13} style={{ color: '#71717A', flexShrink: 0 }} />
+                  <input
+                    type="search"
+                    placeholder="Filter by number, set or character"
+                    value={sceneFilter}
+                    onChange={e => setSceneFilter(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: 'none',
+                      border: 'none',
+                      color: T.cream,
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSelectAllFiltered}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#4A90D9',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      fontFamily: 'Manrope,sans-serif',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    Select
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearFiltered}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#71717A',
+                      fontSize: 11,
+                      fontFamily: 'Manrope,sans-serif',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                {/* 8-column Scene Number Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(8, 1fr)',
+                    gap: 6,
+                  }}
+                >
+                  {effectiveScenes.map(sc => {
+                    const isSelected = selectedScenes.includes(sc.sceneNumber);
+                    const isFiltered = filteredScenes.some(f => f.sceneNumber === sc.sceneNumber);
+
+                    return (
+                      <button
+                        key={sc.sceneNumber}
+                        type="button"
+                        onClick={() => toggleScene(sc.sceneNumber)}
+                        style={{
+                          background: isSelected ? '#161619' : '#121215',
+                          border: isSelected ? '1px solid #F5A623' : '1px solid #222226',
+                          color: isSelected ? '#F5A623' : (isFiltered ? '#D4D4D8' : '#52525B'),
+                          borderRadius: 6,
+                          padding: '7px 0',
+                          fontSize: 10.5,
+                          fontFamily: 'IBM Plex Mono, monospace',
+                          fontWeight: isSelected ? 700 : 500,
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          opacity: isFiltered ? 1 : 0.45,
+                        }}
+                      >
+                        {sc.sceneNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Accordion: Notes & special instructions */}
+              <div
+                style={{
+                  background: '#121215',
+                  border: '1px solid #1E1E22',
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setNotesExpanded(prev => !prev)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: 'none',
+                    border: 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#D4D4D8',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Notes &amp; special instructions
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      color: '#71717A',
+                      transform: notesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  />
+                </button>
+
+                {notesExpanded && (
+                  <div
+                    style={{
+                      padding: '0 14px 14px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Special handling, stunt doubles, rigging
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="e.g. Hero taxi with yellow and black Lagos stripe. Practical meter on dashboard."
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: mob ? '12px 18px 16px' : '14px 24px 18px',
+                borderTop: '1px solid #1C1C20',
+                display: 'flex',
+                justifyContent: isEdit ? 'space-between' : 'flex-end',
+                alignItems: 'center',
+                gap: 10,
+                background: '#101012',
+              }}
+            >
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDelete) onDelete(vehicle);
+                    onClose();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#E05252',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    padding: '6px 0',
+                  }}
+                >
+                  <Trash2 size={13} />
+                  <span>Delete</span>
+                </button>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    background: '#141416',
+                    border: '1px solid #26262B',
+                    color: '#E5E5E0',
+                    borderRadius: 10,
+                    padding: '9px 18px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  type="submit"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+                  style={{
+                    background: 'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',
+                    color: '#0A0A0A',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '9px 20px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
+                  }}
+                >
+                  Save changes
+                </motion.button>
+              </div>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function DeletePictureVehicleModal({ vehicle, onClose, onConfirm }) {
+  if (!vehicle) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.72)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+        }}
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.94, opacity: 0, y: 10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.94, opacity: 0, y: 10 }}
+          transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: '#101012',
+            border: '1px solid #1E1E22',
+            borderRadius: 16,
+            width: '100%',
+            maxWidth: 420,
+            padding: '24px 24px 20px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+            Remove picture vehicle?
+          </h3>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+            Are you sure you want to remove <strong style={{ color: T.cream }}>{vehicle.name}</strong> from this production?
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#141416',
+                border: '1px solid #26262B',
+                color: '#E5E5E0',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <motion.button
+              type="button"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => {
+                onConfirm(vehicle);
+                onClose();
+              }}
+              style={{
+                background: '#E05252',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Remove
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const mob=useIsMobile();
   const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
@@ -12373,6 +13216,71 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
   const elementsTabCount = elements.length > 0 ? elements.length : 6;
 
+  const vehiclesStorageKey = project?.id ? `nko_breakdown_vehicles_${project.id}` : null;
+  const [vehicles, setVehicles] = useState(() => {
+    if (vehiclesStorageKey) {
+      try {
+        const stored = localStorage.getItem(vehiclesStorageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return LAGOS_AFTER_DARK_VEHICLES;
+  });
+
+  const saveVehiclesList = (updated) => {
+    setVehicles(updated);
+    if (vehiclesStorageKey) {
+      try {
+        localStorage.setItem(vehiclesStorageKey, JSON.stringify(updated));
+      } catch {}
+    }
+  };
+
+  const [vehSearch, setVehSearch] = useState('');
+  const [vehUsageFilter, setVehUsageFilter] = useState('all');
+  const [vehStatusFilter, setVehStatusFilter] = useState('all');
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [deleteTargetVehicle, setDeleteTargetVehicle] = useState(null);
+
+  const handleSaveVehicle = (vehData) => {
+    let updated;
+    const existingIndex = vehicles.findIndex(v => v.id === vehData.id);
+    if (existingIndex >= 0) {
+      updated = [...vehicles];
+      updated[existingIndex] = { ...updated[existingIndex], ...vehData };
+    } else {
+      updated = [...vehicles, vehData];
+    }
+    saveVehiclesList(updated);
+  };
+
+  const handleDeleteVehicle = (vehData) => {
+    const updated = vehicles.filter(v => v.id !== vehData.id);
+    saveVehiclesList(updated);
+  };
+
+  const filteredVehicles = vehicles.filter(veh => {
+    if (vehUsageFilter !== 'all' && veh.usage !== vehUsageFilter) return false;
+    if (vehStatusFilter !== 'all' && veh.status !== vehStatusFilter) return false;
+    if (vehSearch.trim()) {
+      const q = vehSearch.trim().toLowerCase();
+      const matchName = (veh.name || '').toLowerCase().includes(q);
+      const matchSpec = (veh.spec || veh.description || '').toLowerCase().includes(q);
+      const matchReg = (veh.registration || '').toLowerCase().includes(q);
+      const matchSupp = (veh.supplier || '').toLowerCase().includes(q);
+      const matchUsage = (veh.usage || '').toLowerCase().includes(q);
+      const matchScenes = (veh.scenes || []).some(sc => String(sc).toLowerCase().includes(q));
+      if (!matchName && !matchSpec && !matchReg && !matchSupp && !matchUsage && !matchScenes) return false;
+    }
+    return true;
+  });
+
+  const sortedVehicles = [...filteredVehicles].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const vehiclesTabCount = vehicles.length > 0 ? vehicles.length : 2;
+
   return(
     <div>
       {/* Breadcrumb & Header */}
@@ -12434,6 +13342,18 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               <Plus size={14}/>
               <span>Production Elements</span>
             </motion.button>
+          ) : activeTab === 'vehicles' ? (
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{setEditingVehicle({ isNew: true, status: 'Sourcing', usage: 'Moving' }); setShowUpload(false);}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+            >
+              <Plus size={14}/>
+              <span>Picture Vehicles</span>
+            </motion.button>
           ) : (
             <motion.button
               type="button"
@@ -12457,7 +13377,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           {id:'cast',label:'Cast',count:castTabCount},
           {id:'locations',label:'Locations',count:locTabCount},
           {id:'elements',label:'Production Elements',count:elementsTabCount},
-          {id:'vehicles',label:'Picture Vehicles',count:2},
+          {id:'vehicles',label:'Picture Vehicles',count:vehiclesTabCount},
         ].map(tab=>{
           const isActive=activeTab===tab.id;
           return(
@@ -12466,9 +13386,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               type="button"
               onClick={()=>setActiveTab(tab.id)}
               style={{
+                position:'relative',
                 background:'none',
                 border:'none',
-                padding:'6px 0',
+                padding:'6px 0 10px',
                 cursor:'pointer',
                 display:'inline-flex',
                 alignItems:'center',
@@ -12495,7 +13416,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                 {tab.count}
               </span>
               {isActive&&tab.hasDot&&(
-                <span style={{width:5,height:5,borderRadius:'50%',background:'#F5A623',display:'inline-block'}}/>
+                <span style={{width:5,height:5,borderRadius:'50%',background:'#E05252',display:'inline-block'}}/>
+              )}
+              {isActive&&(
+                <div style={{position:'absolute',bottom:0,left:0,right:0,height:2,background:'#F5A623',borderRadius:2}}/>
               )}
             </button>
           );
@@ -13970,37 +14894,312 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       )}
 
       {/* Picture Vehicles Tab */}
-      {activeTab==='vehicles'&&(
+      {activeTab === 'vehicles' && (
         <motion.div
-          initial={{opacity:0,y:8}}
-          animate={{opacity:1,y:0}}
-          transition={{duration:DURATION.normal,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DURATION.normal, ease: EASE_OUT }}
+          style={{
+            background: 'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',
+            border: '1px solid #1E1E22',
+            borderRadius: 16,
+            padding: mob ? '16px' : '20px 22px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.45)',
+            marginBottom: 20,
+          }}
         >
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
-            <div>
-              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Picture Vehicles</span>
-              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Hero vehicles, stunt cars, and action transports</div>
+          {/* Header */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
+              Picture Vehicles
             </div>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{LAGOS_AFTER_DARK_VEHICLES.length} vehicles</span>
+            <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+              Vehicles that appear on camera, and the scenes they&apos;re in.
+            </div>
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(320px, 1fr))',gap:14}}>
-            {LAGOS_AFTER_DARK_VEHICLES.map(veh=>(
-              <div key={veh.id} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-                  <div>
-                    <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700,color:T.cream}}>{veh.name}</div>
-                    <div style={{fontSize:10.5,fontFamily:'IBM Plex Mono,monospace',color:'#F5A623',marginTop:2}}>{veh.type}</div>
-                  </div>
-                  <span style={{fontSize:10,fontWeight:600,color:'#52B07A',background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.25)',padding:'3px 8px',borderRadius:6}}>
-                    {veh.status}
-                  </span>
-                </div>
-                <div style={{fontSize:11.5,color:'#8A8985'}}>{veh.spec}</div>
-                <div style={{fontSize:11,color:'#71717A'}}>Featured in scenes: <span style={{fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8',fontWeight:600}}>{veh.scenes}</span></div>
+          {/* Filters Row */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', flex: 1, minWidth: mob ? '100%' : 260 }}>
+              <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+              <input
+                type="search"
+                aria-label="Search picture vehicles"
+                placeholder="Search name, model, colour, registration or supplier"
+                value={vehSearch}
+                onChange={e => setVehSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: '#141416',
+                  border: '1px solid #222226',
+                  borderRadius: 8,
+                  padding: '7px 12px 7px 32px',
+                  color: T.cream,
+                  fontSize: 12,
+                  fontFamily: 'Manrope,sans-serif',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Usage Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <select
+                aria-label="Usage filter"
+                value={vehUsageFilter}
+                onChange={e => setVehUsageFilter(e.target.value)}
+                style={{
+                  background: '#141416',
+                  border: '1px solid #222226',
+                  borderRadius: 8,
+                  padding: '7px 28px 7px 12px',
+                  color: '#D4D4D8',
+                  fontSize: 12,
+                  fontFamily: 'Manrope,sans-serif',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  appearance: 'none',
+                }}
+              >
+                <option value="all">Usage</option>
+                <option value="Static & moving">Static & moving</option>
+                <option value="Moving">Moving</option>
+                <option value="Static">Static</option>
+                <option value="Stunt / Pursuit">Stunt / Pursuit</option>
+              </select>
+              <ChevronDown size={12} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+            </div>
+
+            {/* Status Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <select
+                aria-label="Status filter"
+                value={vehStatusFilter}
+                onChange={e => setVehStatusFilter(e.target.value)}
+                style={{
+                  background: '#141416',
+                  border: '1px solid #222226',
+                  borderRadius: 8,
+                  padding: '7px 28px 7px 12px',
+                  color: '#D4D4D8',
+                  fontSize: 12,
+                  fontFamily: 'Manrope,sans-serif',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  appearance: 'none',
+                }}
+              >
+                <option value="all">Status</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Sourcing">Sourcing</option>
+                <option value="Permit Approved">Permit Approved</option>
+                <option value="Needed">Needed</option>
+                <option value="Ready">Ready</option>
+              </select>
+              <ChevronDown size={12} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          {/* Records count */}
+          <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Manrope,sans-serif', marginBottom: 10 }}>
+            {sortedVehicles.length} record{sortedVehicles.length === 1 ? '' : 's'}
+          </div>
+
+          {/* Table */}
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 680 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+                  <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Vehicle ↑
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Registration
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Scenes
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Usage
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Supplier
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Status
+                  </th>
+                  <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif', textAlign: 'right' }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedVehicles.map(veh => {
+                  const scenesList = Array.isArray(veh.scenes)
+                    ? veh.scenes
+                    : (veh.scenes ? String(veh.scenes).split(',').map(s => s.trim()).filter(Boolean) : []);
+
+                  // Status style mapping
+                  let statusBg = 'rgba(82, 176, 122, 0.12)';
+                  let statusBorder = 'rgba(82, 176, 122, 0.35)';
+                  let statusColor = '#52B07A';
+                  if (veh.status === 'Sourcing') {
+                    statusBg = 'rgba(245, 166, 35, 0.12)';
+                    statusBorder = 'rgba(245, 166, 35, 0.35)';
+                    statusColor = '#F5A623';
+                  } else if (veh.status === 'Needed') {
+                    statusBg = 'rgba(239, 68, 68, 0.12)';
+                    statusBorder = 'rgba(239, 68, 68, 0.35)';
+                    statusColor = '#EF4444';
+                  } else if (veh.status === 'Permit Approved' || veh.status === 'Sourced & Rigged') {
+                    statusBg = 'rgba(59, 130, 246, 0.12)';
+                    statusBorder = 'rgba(59, 130, 246, 0.35)';
+                    statusColor = '#3B82F6';
+                  }
+
+                  return (
+                    <tr key={veh.id} style={{ borderBottom: '1px solid #161619' }}>
+                      {/* Vehicle Name & Spec */}
+                      <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', maxWidth: 240 }}>
+                        <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
+                          {veh.name}
+                        </div>
+                        {(veh.spec || veh.description) && (
+                          <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif', marginTop: 2, lineHeight: 1.35 }}>
+                            {veh.spec || veh.description}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Registration */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                          {veh.registration || '—'}
+                        </span>
+                      </td>
+
+                      {/* Scenes */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                          {scenesList.map(num => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => {
+                                setActiveTab('scenes');
+                                const target = ps.find(s => String(s.sceneNumber) === String(num));
+                                if (target) setSelectedScene(target);
+                              }}
+                              style={{
+                                background: '#17171B',
+                                border: '1px solid #26262C',
+                                borderRadius: 3,
+                                padding: '2px 5px',
+                                fontFamily: 'IBM Plex Mono,monospace',
+                                fontSize: 10,
+                                color: '#D4D4D8',
+                                cursor: 'pointer',
+                              }}
+                              title={`Go to scene ${num}`}
+                            >
+                              {num}
+                            </button>
+                          ))}
+                          {scenesList.length >= 6 && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingVehicle(veh)}
+                              style={{
+                                background: '#17171B',
+                                border: '1px solid #26262C',
+                                borderRadius: 3,
+                                padding: '2px 5px',
+                                fontFamily: 'IBM Plex Mono,monospace',
+                                fontSize: 10,
+                                color: '#71717A',
+                                cursor: 'pointer',
+                              }}
+                              title="More scenes"
+                            >
+                              +
+                            </button>
+                          )}
+                          {scenesList.length === 0 && (
+                            <span style={{ color: '#71717A', fontSize: 11 }}>—</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Usage */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                          {veh.usage || '—'}
+                        </span>
+                      </td>
+
+                      {/* Supplier */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, color: veh.supplier && veh.supplier !== '—' ? '#D4D4D8' : '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                          {veh.supplier || '—'}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            background: statusBg,
+                            border: `1px solid ${statusBorder}`,
+                            borderRadius: 20,
+                            padding: '2px 9px',
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            color: statusColor,
+                            fontFamily: 'Manrope,sans-serif',
+                          }}
+                        >
+                          {veh.status || 'Confirmed'}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ padding: '12px 0 12px 8px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                          <motion.button
+                            whileHover={{ scale: 1.15, color: '#F5C451' }}
+                            whileTap={{ scale: 0.92 }}
+                            type="button"
+                            onClick={() => setEditingVehicle(veh)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A', padding: 2 }}
+                            title="Edit picture vehicle"
+                          >
+                            <Pencil size={12.5} />
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.15, color: '#E05252' }}
+                            whileTap={{ scale: 0.92 }}
+                            type="button"
+                            onClick={() => setDeleteTargetVehicle(veh)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A', padding: 2 }}
+                            title="Delete picture vehicle"
+                          >
+                            <Trash2 size={12.5} />
+                          </motion.button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {sortedVehicles.length === 0 && (
+              <div style={{ padding: '36px 0', textAlign: 'center', color: '#71717A', fontSize: 12 }}>
+                No picture vehicles match your filters.
               </div>
-            ))}
+            )}
           </div>
         </motion.div>
       )}
@@ -14083,6 +15282,21 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         element={deleteTargetElement}
         onClose={() => setDeleteTargetElement(null)}
         onConfirm={handleDeleteElement}
+      />
+
+      <PictureVehicleModal
+        open={Boolean(editingVehicle)}
+        vehicle={editingVehicle}
+        onClose={() => setEditingVehicle(null)}
+        onSave={handleSaveVehicle}
+        onDelete={handleDeleteVehicle}
+        allScenes={ps}
+      />
+
+      <DeletePictureVehicleModal
+        vehicle={deleteTargetVehicle}
+        onClose={() => setDeleteTargetVehicle(null)}
+        onConfirm={handleDeleteVehicle}
       />
       <div style={{marginTop:8}}>
         <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>
