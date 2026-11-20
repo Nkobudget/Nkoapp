@@ -49,3 +49,50 @@ test('script breakdown view layout and Lagos After Dark parity', async () => {
   assert.match(fileContent, /Picture vehicles\s+<span/);
   assert.match(fileContent, /Manage\s*<\/button>/);
 });
+
+test('script breakdown cast tab layout and script characters parity', async () => {
+  const fileContent = fs.readFileSync(path.resolve('src/legacy/LegacyApp.jsx'), 'utf8');
+
+  // Verify Default Cast Members
+  assert.match(fileContent, /const DEFAULT_CAST_MEMBERS\s*=/);
+  assert.match(fileContent, /Kehinde Bankole/);
+  assert.match(fileContent, /Timini Egbuson/);
+  assert.match(fileContent, /Ireti Doyle/);
+  assert.match(fileContent, /Femi Jacobs/);
+  assert.match(fileContent, /Gabriel Afolayan/);
+  assert.match(fileContent, /Bimbo Akintola/);
+  assert.match(fileContent, /Ngozi Nwosu/);
+  assert.match(fileContent, /Police officers/);
+  assert.match(fileContent, /Club patrons/);
+  assert.match(fileContent, /Market traders and shoppers/);
+
+  // Verify Cast Categories
+  assert.match(fileContent, /const CAST_CATEGORIES\s*=/);
+  assert.match(fileContent, /Lead Actors/);
+  assert.match(fileContent, /Sub-lead/);
+  assert.match(fileContent, /Supporting Cast/);
+  assert.match(fileContent, /Day Players/);
+  assert.match(fileContent, /Extras/);
+  assert.match(fileContent, /Background Extras/);
+  assert.match(fileContent, /Crowd/);
+
+  // Verify Cast Tab Header & Button
+  assert.match(fileContent, /activeTab === 'cast'\s*\?\s*\(\s*<motion\.button[^>]*>[\s\S]*?Add Cast/);
+  assert.match(fileContent, />\s*Leads through to crowd, linked to every scene they appear in\.\s*<\/div>/);
+
+  // Verify Table Columns
+  assert.match(fileContent, />Cast<\/th>/);
+  assert.match(fileContent, />Scenes<\/th>/);
+  assert.match(fileContent, />Availability<\/th>/);
+  assert.match(fileContent, />Call \/ On set<\/th>/);
+  assert.match(fileContent, />Contact<\/th>/);
+
+  // Verify Script Characters Panel
+  assert.match(fileContent, /Script characters/);
+  assert.match(fileContent, /not cast yet/);
+  assert.match(fileContent, /\+\s*Cast/);
+
+  // Verify Modals
+  assert.match(fileContent, /function CastMemberModal/);
+  assert.match(fileContent, /function DeleteCastModal/);
+});

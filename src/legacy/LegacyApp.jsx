@@ -9132,6 +9132,620 @@ const LAGOS_AFTER_DARK_VEHICLES = [
   { id: 'veh-2', name: 'Police Cruiser', type: 'Action Vehicle', spec: 'Toyota Hilux 4x4 · Red/Blue Beacon Bar & Police Markings', scenes: '7, 9, 14', status: 'Permit Approved' },
 ];
 
+const CAST_CATEGORIES = [
+  'Lead Actors',
+  'Sub-lead',
+  'Supporting Cast',
+  'Day Players',
+  'Extras',
+  'Background Extras',
+  'Crowd',
+];
+
+const DEFAULT_CAST_MEMBERS = [
+  {
+    id: 'cast-1',
+    actorName: 'Kehinde Bankole',
+    character: 'ADAOBI',
+    category: 'Lead Actors',
+    scenes: [1, 2, 3, 5, 6, 7, 8, 9, 13, 15, 17, 18],
+    availability: 'Confirmed',
+    callTime: '05:30',
+    onSetTime: '07:00',
+    contact: '+234 803 412 7781',
+  },
+  {
+    id: 'cast-2',
+    actorName: 'Timini Egbuson',
+    character: 'TUNDE',
+    category: 'Lead Actors',
+    scenes: [5, 8, 11, 12, 15],
+    availability: 'Confirmed',
+    callTime: '06:00',
+    onSetTime: '07:30',
+    contact: '+234 809 551 2034',
+  },
+  {
+    id: 'cast-3',
+    actorName: 'Ireti Doyle',
+    character: 'SADE',
+    category: 'Sub-lead',
+    scenes: [10, 13, 14, 17],
+    availability: 'Limited',
+    callTime: '',
+    onSetTime: '',
+    contact: 'bookings@iretidoyle.com',
+  },
+  {
+    id: 'cast-4',
+    actorName: 'Femi Jacobs',
+    character: 'FEMI',
+    category: 'Supporting Cast',
+    scenes: [4, 10, 11, 17],
+    availability: 'Confirmed',
+    callTime: '',
+    onSetTime: '',
+    contact: '—',
+  },
+  {
+    id: 'cast-5',
+    actorName: 'Gabriel Afolayan',
+    character: 'YINKA',
+    category: 'Supporting Cast',
+    scenes: [2, 3, 4, 15, 17],
+    availability: 'Pending',
+    callTime: '',
+    onSetTime: '',
+    contact: '—',
+  },
+  {
+    id: 'cast-6',
+    actorName: 'Bimbo Akintola',
+    character: 'INSPECTOR OKON',
+    category: 'Supporting Cast',
+    scenes: [7, 9, 14, 15],
+    availability: 'Confirmed',
+    callTime: '',
+    onSetTime: '',
+    contact: '—',
+  },
+  {
+    id: 'cast-7',
+    actorName: 'Ngozi Nwosu',
+    character: 'MAMA NKECHI',
+    category: 'Day Players',
+    scenes: [6, 16],
+    availability: 'Confirmed',
+    callTime: '08:00',
+    onSetTime: '09:30',
+    contact: '—',
+  },
+  {
+    id: 'cast-8',
+    actorName: 'Police officers',
+    character: 'Police officers',
+    peopleCount: '6 people',
+    isExtra: true,
+    category: 'Extras',
+    scenes: [7, 14],
+    availability: 'Confirmed',
+    callTime: '',
+    onSetTime: '',
+    contact: '—',
+  },
+  {
+    id: 'cast-9',
+    actorName: 'Club patrons',
+    character: 'Club patrons',
+    peopleCount: '40 people',
+    isExtra: true,
+    category: 'Background Extras',
+    scenes: [4, 11],
+    availability: 'Pending',
+    callTime: '',
+    onSetTime: '',
+    contact: '—',
+  },
+  {
+    id: 'cast-10',
+    actorName: 'Market traders and shoppers',
+    character: 'Market traders and shoppers',
+    peopleCount: '60 people',
+    isExtra: true,
+    category: 'Crowd',
+    scenes: [],
+    availability: 'Confirmed',
+    callTime: '',
+    onSetTime: '',
+    contact: '—',
+  },
+];
+
+function CastMemberModal({ open, onClose, member, onSave, scriptCharacters = [] }) {
+  const mob = useIsMobile();
+  const isEdit = Boolean(member && !member.isNew);
+
+  const [character, setCharacter] = useState('');
+  const [actorName, setActorName] = useState('');
+  const [category, setCategory] = useState('Supporting Cast');
+  const [availability, setAvailability] = useState('Confirmed');
+  const [callTime, setCallTime] = useState('');
+  const [onSetTime, setOnSetTime] = useState('');
+  const [contact, setContact] = useState('');
+  const [peopleCount, setPeopleCount] = useState('');
+  const [isExtra, setIsExtra] = useState(false);
+
+  useEffect(() => {
+    if (member) {
+      setCharacter(member.character || '');
+      setActorName(member.actorName || '');
+      setCategory(member.category || 'Supporting Cast');
+      setAvailability(member.availability || 'Confirmed');
+      setCallTime(member.callTime || '');
+      setOnSetTime(member.onSetTime || '');
+      setContact(member.contact && member.contact !== '—' ? member.contact : '');
+      setPeopleCount(member.peopleCount || '');
+      setIsExtra(Boolean(member.isExtra || ['Extras', 'Background Extras', 'Crowd'].includes(member.category)));
+    }
+  }, [member]);
+
+  const handleCategoryChange = (val) => {
+    setCategory(val);
+    if (['Extras', 'Background Extras', 'Crowd'].includes(val)) {
+      setIsExtra(true);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!actorName.trim()) return;
+    onSave({
+      id: member?.id || `cast-${Date.now()}`,
+      actorName: actorName.trim(),
+      character: character.trim() || actorName.trim(),
+      category,
+      availability,
+      callTime: callTime.trim(),
+      onSetTime: onSetTime.trim(),
+      contact: contact.trim() || '—',
+      peopleCount: peopleCount.trim(),
+      isExtra: isExtra || ['Extras', 'Background Extras', 'Crowd'].includes(category),
+      scenes: member?.scenes || [],
+    });
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={onClose}
+        >
+          <motion.form
+            initial={{ scale: 0.94, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.94, opacity: 0, y: 10 }}
+            transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleSubmit}
+            style={{
+              background: '#101012',
+              border: '1px solid #1E1E22',
+              borderRadius: 16,
+              width: '100%',
+              maxWidth: 480,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: mob ? '16px 18px 12px' : '20px 24px 14px',
+              borderBottom: '1px solid #1C1C20',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em' }}>
+                  {isEdit ? 'Edit cast member' : 'Add cast member'}
+                </h3>
+                <div style={{ fontSize: 12, color: '#71717A', marginTop: 4 }}>
+                  Link actors to script characters, set availability, call times and contacts.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#71717A',
+                  cursor: 'pointer',
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 6,
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: mob ? '14px 18px 18px' : '18px 24px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                  {isExtra ? 'Group / Role Name' : 'Actor / Performer Name'} *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={isExtra ? 'e.g. Police officers or Club patrons' : 'e.g. Kehinde Bankole'}
+                  value={actorName}
+                  onChange={e => setActorName(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #242428',
+                    borderRadius: 10,
+                    padding: '10px 12px',
+                    color: T.cream,
+                    fontSize: 12,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {!isExtra ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                    Script Character
+                  </label>
+                  <input
+                    type="text"
+                    list="cast-characters-datalist"
+                    placeholder="e.g. ADAOBI"
+                    value={character}
+                    onChange={e => setCharacter(e.target.value.toUpperCase())}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <datalist id="cast-characters-datalist">
+                    {scriptCharacters.map(sc => (
+                      <option key={sc.name} value={sc.name} />
+                    ))}
+                  </datalist>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                    Number of People
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 6 people, 40 people"
+                    value={peopleCount}
+                    onChange={e => setPeopleCount(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                    Category
+                  </label>
+                  <select
+                    value={category}
+                    onChange={e => handleCategoryChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {CAST_CATEGORIES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                    Availability
+                  </label>
+                  <select
+                    value={availability}
+                    onChange={e => setAvailability(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Limited">Limited</option>
+                    <option value="Pending">Pending</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                    Call Time (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 05:30"
+                    value={callTime}
+                    onChange={e => setCallTime(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'IBM Plex Mono,monospace',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                    On Set Time (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 07:00"
+                    value={onSetTime}
+                    onChange={e => setOnSetTime(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'IBM Plex Mono,monospace',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
+                  Contact (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. +234 803 412 7781 or email"
+                  value={contact}
+                  onChange={e => setContact(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #242428',
+                    borderRadius: 10,
+                    padding: '10px 12px',
+                    color: T.cream,
+                    fontSize: 12,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: mob ? '12px 18px 16px' : '14px 24px 18px',
+              borderTop: '1px solid #1C1C20',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 10,
+            }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: '#141416',
+                  border: '1px solid #26262B',
+                  color: '#E5E5E0',
+                  borderRadius: 10,
+                  padding: '9px 18px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'Manrope,sans-serif',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="submit"
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+                style={{
+                  background: 'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',
+                  color: '#0A0A0A',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '9px 18px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: 'Manrope,sans-serif',
+                  cursor: 'pointer',
+                  boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
+                }}
+              >
+                {isEdit ? 'Save Changes' : 'Add Cast'}
+              </motion.button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function DeleteCastModal({ member, onClose, onConfirm }) {
+  if (!member) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.72)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+        }}
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.94, opacity: 0, y: 10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.94, opacity: 0, y: 10 }}
+          transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: '#101012',
+            border: '1px solid #1E1E22',
+            borderRadius: 16,
+            width: '100%',
+            maxWidth: 420,
+            padding: '24px 24px 20px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em' }}>
+            Remove from cast?
+          </h3>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+            Are you sure you want to remove <strong style={{ color: T.cream }}>{member.actorName}</strong>{member.character ? ` (${member.character})` : ''} from the production cast?
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#141416',
+                border: '1px solid #26262B',
+                color: '#E5E5E0',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <motion.button
+              type="button"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => {
+                onConfirm(member);
+                onClose();
+              }}
+              style={{
+                background: '#E05252',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Remove
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const mob=useIsMobile();
   const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
@@ -9199,8 +9813,109 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const activeSelectedScene=selectedSceneIndex>=0?ps[selectedSceneIndex]:selectedScene;
 
   // Tab counts
-  const castTabCount=castIdx.list.length>0?(castIdx.list.length>=8&&castIdx.list.length<=10?10:castIdx.list.length):10;
-  const locTabCount=uniqueLocations.length>0?(uniqueLocations.length>=10?4:uniqueLocations.length):4;
+  const castStorageKey = project?.id ? `nko_cast_members_${project.id}` : null;
+  const [castMembers, setCastMembers] = useState(() => {
+    if (castStorageKey) {
+      try {
+        const stored = localStorage.getItem(castStorageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return DEFAULT_CAST_MEMBERS;
+  });
+
+  const saveCastMembersList = (updated) => {
+    setCastMembers(updated);
+    if (castStorageKey) {
+      try {
+        localStorage.setItem(castStorageKey, JSON.stringify(updated));
+      } catch {}
+    }
+  };
+
+  const [castSearch, setCastSearch] = useState('');
+  const [castCategoryFilter, setCastCategoryFilter] = useState('all');
+  const [castAvailabilityFilter, setCastAvailabilityFilter] = useState('all');
+  const [scriptCharSearch, setScriptCharSearch] = useState('');
+  const [editingCastMember, setEditingCastMember] = useState(null);
+  const [deleteTargetCast, setDeleteTargetCast] = useState(null);
+
+  // Derive unique script characters from ps
+  const scriptCharacterNames = Array.from(new Set(ps.flatMap(s => s.cast || []))).filter(Boolean);
+  const effectiveCharNames = scriptCharacterNames.length > 0
+    ? scriptCharacterNames
+    : ['ADAOBI', 'TUNDE', 'YINKA', 'FEMI', 'INSPECTOR OKON', 'SADE', 'BOUNCER', 'MAMA NKECHI'];
+
+  const scriptCharactersData = effectiveCharNames.map(name => {
+    const scNums = ps.filter(s => (s.cast || []).includes(name)).map(s => s.sceneNumber);
+    const match = castMembers.find(m => !m.isExtra && m.character && m.character.trim().toUpperCase() === name.trim().toUpperCase());
+    return {
+      name,
+      actorName: match?.actorName || null,
+      isCast: Boolean(match?.actorName),
+      scenes: scNums.length > 0 ? scNums : (match?.scenes || []),
+    };
+  });
+
+  const uncastCount = scriptCharactersData.filter(c => !c.isCast).length;
+  const totalScriptChars = scriptCharactersData.length;
+
+  const filteredCast = castMembers.filter(m => {
+    if (castCategoryFilter !== 'all' && m.category !== castCategoryFilter) return false;
+    if (castAvailabilityFilter !== 'all' && m.availability !== castAvailabilityFilter) return false;
+    if (castSearch.trim()) {
+      const q = castSearch.trim().toLowerCase();
+      const matchActor = (m.actorName || '').toLowerCase().includes(q);
+      const matchChar = (m.character || '').toLowerCase().includes(q);
+      const matchContact = (m.contact || '').toLowerCase().includes(q);
+      if (!matchActor && !matchChar && !matchContact) return false;
+    }
+    return true;
+  });
+
+  const filteredScriptChars = scriptCharactersData.filter(c => {
+    if (!scriptCharSearch.trim()) return true;
+    const q = scriptCharSearch.trim().toLowerCase();
+    return c.name.toLowerCase().includes(q) || (c.actorName || '').toLowerCase().includes(q);
+  });
+
+  const handleSaveCastMember = async (memberData) => {
+    let updated;
+    const existingIndex = castMembers.findIndex(m => m.id === memberData.id);
+    if (existingIndex >= 0) {
+      updated = [...castMembers];
+      updated[existingIndex] = { ...updated[existingIndex], ...memberData };
+    } else {
+      updated = [...castMembers, memberData];
+    }
+    saveCastMembersList(updated);
+    if (onSaveCharacter && memberData.character && !memberData.isExtra) {
+      try {
+        await onSaveCharacter(memberData.character, {
+          role_notes: JSON.stringify({
+            actorName: memberData.actorName,
+            availability: memberData.availability,
+            category: memberData.category,
+            callTime: memberData.callTime,
+            onSetTime: memberData.onSetTime,
+            contact: memberData.contact,
+          }),
+          tier: memberData.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting',
+        });
+      } catch {}
+    }
+  };
+
+  const handleDeleteCastMember = (memberData) => {
+    const updated = castMembers.filter(m => m.id !== memberData.id);
+    saveCastMembersList(updated);
+  };
+
+  const castTabCount = castMembers.length > 0 ? castMembers.length : 10;
+  const locTabCount = uniqueLocations.length > 0 ? (uniqueLocations.length >= 10 ? 4 : uniqueLocations.length) : 4;
 
   return(
     <div>
@@ -9227,17 +9942,31 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             <Upload size={14}/>
             <span>Upload Script</span>
           </motion.button>
-          <motion.button
-            type="button"
-            whileHover={{y:-1}}
-            whileTap={{scale:0.98}}
-            transition={{duration:DURATION.fast,ease:EASE_OUT}}
-            onClick={()=>{setShowAddScene(o=>!o);setShowUpload(false);}}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
-          >
-            <Plus size={14}/>
-            <span>Add Scene</span>
-          </motion.button>
+          {activeTab === 'cast' ? (
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{setEditingCastMember({ isNew: true, category: 'Lead Actors', availability: 'Confirmed' }); setShowUpload(false);}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+            >
+              <Plus size={14}/>
+              <span>Add Cast</span>
+            </motion.button>
+          ) : (
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{setShowAddScene(o=>!o);setShowUpload(false);}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+            >
+              <Plus size={14}/>
+              <span>Add Scene</span>
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -9336,67 +10065,69 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       )}
 
       {/* 4 Stat Cards */}
-      <motion.div
-        variants={staggerContainer(0.04, 0.02)}
-        initial="hidden"
-        animate="visible"
-        style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(4,minmax(0,1fr))',gap:mob?8:12,marginBottom:16}}
-      >
-        <StatCard label="Total Scenes" value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
-        <StatCard label="Total Characters" value={castIdx.list.length>=8?8:castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
-        <StatCard label="Script Pages" value={totalPages8>0?(totalPages8%8===0?Math.floor(totalPages8/8):fmtPages8(totalPages8)):0} sub={mob?undefined:'Eighths of a page total'}/>
+      {activeTab === 'scenes' && (
         <motion.div
-          variants={fadeUp}
-          whileHover={{y:-2}}
-          transition={{duration:DURATION.fast,ease:EASE_OUT}}
-          style={{
-            position:'relative',
-            overflow:'hidden',
-            background:'linear-gradient(180deg, #111113 0%, #0E0E10 100%)',
-            border:'1px solid #1E1E22',
-            borderRadius:12,
-            padding:'16px 18px',
-            boxShadow:'0 4px 20px rgba(0,0,0,0.4)',
-          }}
+          variants={staggerContainer(0.04, 0.02)}
+          initial="hidden"
+          animate="visible"
+          style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(4,minmax(0,1fr))',gap:mob?8:12,marginBottom:16}}
         >
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <span style={{fontSize:11,color:'#8A8985',fontFamily:'Manrope,sans-serif',fontWeight:600}}>Ready to schedule</span>
-          </div>
-          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,fontWeight:600,letterSpacing:'-0.02em',display:'flex',alignItems:'baseline',gap:2}}>
-            <span style={{color:T.cream}}>{readyCount}</span>
-            <span style={{color:'#6E6D69',fontSize:18,fontWeight:500}}>/{ps.length}</span>
-          </div>
-          <div style={{width:'100%',height:4,background:'#242428',borderRadius:2,marginTop:10,marginBottom:8,overflow:'hidden'}}>
-            <div style={{
-              width:`${Math.min(100, Math.round((readyCount/(ps.length||1))*100))}%`,
-              height:'100%',
-              background:'#F5A623',
-              borderRadius:2,
-              transition:'width 0.3s ease',
-            }}/>
-          </div>
-          <div style={{fontSize:11,fontFamily:'Manrope,sans-serif'}}>
-            <button
-              type="button"
-              onClick={()=>setStatusFilter(f=>f==='incomplete'?'all':'incomplete')}
-              style={{
-                background:'none',
-                border:'none',
-                padding:0,
-                color:statusFilter==='incomplete'?'#F5A623':'#5B9DF8',
-                fontSize:11,
-                fontFamily:'Manrope,sans-serif',
-                fontWeight:600,
-                cursor:'pointer',
-                textAlign:'left',
-                textDecoration:statusFilter==='incomplete'?'underline':'none',
-              }}
-            >
-              Review {incompleteCount} incomplete{statusFilter==='incomplete'?' (active)':''}
-            </button>
-          </div>
+          <StatCard label="Total Scenes" value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
+          <StatCard label="Total Characters" value={castIdx.list.length>=8?8:castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
+          <StatCard label="Script Pages" value={totalPages8>0?(totalPages8%8===0?Math.floor(totalPages8/8):fmtPages8(totalPages8)):0} sub={mob?undefined:'Eighths of a page total'}/>
+          <motion.div
+            variants={fadeUp}
+            whileHover={{y:-2}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            style={{
+              position:'relative',
+              overflow:'hidden',
+              background:'linear-gradient(180deg, #111113 0%, #0E0E10 100%)',
+              border:'1px solid #1E1E22',
+              borderRadius:12,
+              padding:'16px 18px',
+              boxShadow:'0 4px 20px rgba(0,0,0,0.4)',
+            }}
+          >
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <span style={{fontSize:11,color:'#8A8985',fontFamily:'Manrope,sans-serif',fontWeight:600}}>Ready to schedule</span>
+            </div>
+            <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,fontWeight:600,letterSpacing:'-0.02em',display:'flex',alignItems:'baseline',gap:2}}>
+              <span style={{color:T.cream}}>{readyCount}</span>
+              <span style={{color:'#6E6D69',fontSize:18,fontWeight:500}}>/{ps.length}</span>
+            </div>
+            <div style={{width:'100%',height:4,background:'#242428',borderRadius:2,marginTop:10,marginBottom:8,overflow:'hidden'}}>
+              <div style={{
+                width:`${Math.min(100, Math.round((readyCount/(ps.length||1))*100))}%`,
+                height:'100%',
+                background:'#F5A623',
+                borderRadius:2,
+                transition:'width 0.3s ease',
+              }}/>
+            </div>
+            <div style={{fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+              <button
+                type="button"
+                onClick={()=>setStatusFilter(f=>f==='incomplete'?'all':'incomplete')}
+                style={{
+                  background:'none',
+                  border:'none',
+                  padding:0,
+                  color:statusFilter==='incomplete'?'#F5A623':'#5B9DF8',
+                  fontSize:11,
+                  fontFamily:'Manrope,sans-serif',
+                  fontWeight:600,
+                  cursor:'pointer',
+                  textAlign:'left',
+                  textDecoration:statusFilter==='incomplete'?'underline':'none',
+                }}
+              >
+                Review {incompleteCount} incomplete{statusFilter==='incomplete'?' (active)':''}
+              </button>
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
 
       {/* Source script indicator */}
       <div style={{display:'flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:12,fontFamily:'Manrope,sans-serif',marginBottom:16}}>
@@ -9629,66 +10360,483 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           initial={{opacity:0,y:8}}
           animate={{opacity:1,y:0}}
           transition={{duration:DURATION.normal,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+          style={{
+            display:'grid',
+            gridTemplateColumns: mob ? '1fr' : 'minmax(0, 1fr) 300px',
+            gap: 20,
+            alignItems: 'start',
+            marginBottom: 20
+          }}
         >
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
-            <div>
-              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Cast Members</span>
-              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Speaking roles, leads, and recurring featured characters</div>
+          {/* Left Column: Grouped Tables & Filters */}
+          <div style={{minWidth:0}}>
+            {/* Header: Title & Subtitle */}
+            <div style={{marginBottom:16}}>
+              <h3 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:18,fontWeight:700,letterSpacing:'-0.02em',color:T.cream}}>
+                Cast
+              </h3>
+              <div style={{fontSize:12,color:'#8A8985',marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+                Leads through to crowd, linked to every scene they appear in.
+              </div>
             </div>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{visibleChars.length} character{visibleChars.length===1?'':'s'}</span>
-          </div>
 
-          <div style={{position:'relative',marginBottom:16}}>
-            <Search size={13} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
-            <input
-              type="search"
-              aria-label="Search characters"
-              placeholder="Search characters by name"
-              value={charSearch}
-              onChange={e=>setCharSearch(e.target.value)}
-              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
-            />
-          </div>
+            {/* Filter Bar */}
+            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:14}}>
+              <div style={{position:'relative',flex:1,minWidth:220}}>
+                <Search size={14} style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'#71717A',pointerEvents:'none'}}/>
+                <input
+                  type="search"
+                  aria-label="Search actor, character or contact"
+                  placeholder="Search actor, character or contact"
+                  value={castSearch}
+                  onChange={e=>setCastSearch(e.target.value)}
+                  style={{
+                    width:'100%',
+                    background:'#111113',
+                    border:'1px solid #222226',
+                    borderRadius:8,
+                    padding:'8px 12px 8px 34px',
+                    color:T.cream,
+                    fontSize:12,
+                    fontFamily:'Manrope,sans-serif',
+                    outline:'none',
+                    boxSizing:'border-box'
+                  }}
+                />
+              </div>
 
-          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
-            {visibleChars.map(c=>{
-              const scNums=getSceneNumsForChar(c.name);
-              const tierColor=c.tier==='lead'?'#F5A623':c.tier==='supporting'?'#5B9DF8':'#8A8985';
-              return(
-                <div key={c.id||c.name} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-                    <div>
-                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:T.cream,textTransform:'uppercase'}}>{c.name}</div>
-                      <div style={{fontSize:10,color:tierColor,fontFamily:'IBM Plex Mono,monospace',marginTop:3,fontWeight:600,textTransform:'uppercase'}}>{c.tier||'Cast'}</div>
-                    </div>
-                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#8A8985',background:'#18181C',padding:'2px 8px',borderRadius:6}}>
-                      {scNums.length} scene{scNums.length===1?'':'s'}
+              {/* Category Filter */}
+              <div style={{position:'relative'}}>
+                <select
+                  aria-label="Filter by category"
+                  value={castCategoryFilter}
+                  onChange={e=>setCastCategoryFilter(e.target.value)}
+                  style={{
+                    background:'#111113',
+                    border:'1px solid #222226',
+                    borderRadius:8,
+                    padding:'8px 28px 8px 12px',
+                    color:castCategoryFilter==='all'?'#8A8985':T.cream,
+                    fontSize:12,
+                    fontFamily:'Manrope,sans-serif',
+                    outline:'none',
+                    cursor:'pointer',
+                    appearance:'none',
+                    WebkitAppearance:'none'
+                  }}
+                >
+                  <option value="all">Category</option>
+                  {CAST_CATEGORIES.map(cat=>(
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                <ChevronDown size={13} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',color:'#71717A',pointerEvents:'none'}}/>
+              </div>
+
+              {/* Availability Filter */}
+              <div style={{position:'relative'}}>
+                <select
+                  aria-label="Filter by availability"
+                  value={castAvailabilityFilter}
+                  onChange={e=>setCastAvailabilityFilter(e.target.value)}
+                  style={{
+                    background:'#111113',
+                    border:'1px solid #222226',
+                    borderRadius:8,
+                    padding:'8px 28px 8px 12px',
+                    color:castAvailabilityFilter==='all'?'#8A8985':T.cream,
+                    fontSize:12,
+                    fontFamily:'Manrope,sans-serif',
+                    outline:'none',
+                    cursor:'pointer',
+                    appearance:'none',
+                    WebkitAppearance:'none'
+                  }}
+                >
+                  <option value="all">Any Availability</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Limited">Limited</option>
+                  <option value="Pending">Pending</option>
+                </select>
+                <ChevronDown size={13} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',color:'#71717A',pointerEvents:'none'}}/>
+              </div>
+            </div>
+
+            {/* Records count */}
+            <div style={{fontSize:11,color:'#8A8985',fontFamily:'IBM Plex Mono,monospace',marginBottom:16}}>
+              {filteredCast.length} record{filteredCast.length===1?'':'s'}
+            </div>
+
+            {/* Category Groups */}
+            {CAST_CATEGORIES.map(cat => {
+              const membersInCat = filteredCast.filter(m => m.category === cat);
+              if (membersInCat.length === 0) return null;
+              return (
+                <div key={cat} style={{marginBottom:24}}>
+                  {/* Category Section Header */}
+                  <div style={{
+                    display:'flex',
+                    justifyContent:'space-between',
+                    alignItems:'center',
+                    padding:'8px 0',
+                    borderBottom:'1px solid #1C1C20',
+                    marginBottom:4
+                  }}>
+                    <span style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:'#E5E5E0'}}>
+                      {cat}
+                    </span>
+                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>
+                      {membersInCat.length} record{membersInCat.length===1?'':'s'}
                     </span>
                   </div>
-                  <div>
-                    <div style={{fontSize:10,color:'#71717A',marginBottom:6}}>Scenes:</div>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                      {scNums.map(num=>(
+
+                  {/* Category Table */}
+                  <div style={{overflowX:'auto'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,fontFamily:'Manrope,sans-serif',textAlign:'left'}}>
+                      <thead>
+                        <tr style={{borderBottom:'1px solid #18181C',color:'#71717A',fontSize:11}}>
+                          <th style={{padding:'8px 8px 8px 0',fontWeight:500,width:'26%'}}>Cast</th>
+                          <th style={{padding:'8px 8px',fontWeight:500,width:'22%'}}>Scenes</th>
+                          <th style={{padding:'8px 8px',fontWeight:500,width:'15%'}}>Availability</th>
+                          <th style={{padding:'8px 8px',fontWeight:500,width:'15%'}}>Call / On set</th>
+                          <th style={{padding:'8px 8px',fontWeight:500,width:'15%'}}>Contact</th>
+                          <th style={{padding:'8px 0 8px 8px',fontWeight:500,textAlign:'right',width:'7%'}}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {membersInCat.map(m => {
+                          const scenesList = m.scenes || [];
+                          const displayedScenes = scenesList.slice(0, 6);
+                          const hasMore = scenesList.length > 6;
+
+                          let availBg = 'rgba(76, 175, 122, 0.08)';
+                          let availBorder = 'rgba(76, 175, 122, 0.4)';
+                          let availColor = '#4CAF7A';
+                          if (m.availability === 'Limited') {
+                            availBg = 'rgba(91, 157, 248, 0.08)';
+                            availBorder = 'rgba(91, 157, 248, 0.4)';
+                            availColor = '#5B9DF8';
+                          } else if (m.availability === 'Pending') {
+                            availBg = 'rgba(245, 166, 35, 0.08)';
+                            availBorder = 'rgba(245, 166, 35, 0.4)';
+                            availColor = '#F5A623';
+                          }
+
+                          const callOnSet = (m.callTime && m.onSetTime)
+                            ? `${m.callTime} / ${m.onSetTime}`
+                            : (m.callTime || m.onSetTime || 'Not set');
+
+                          return (
+                            <tr
+                              key={m.id || m.actorName}
+                              style={{borderBottom:'1px solid #141417',transition:'background 0.12s ease'}}
+                              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.015)'}
+                              onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                            >
+                              {/* Cast column */}
+                              <td style={{padding:'10px 8px 10px 0',verticalAlign:'middle'}}>
+                                <div style={{fontWeight:600,color:T.cream,fontSize:12.5,lineHeight:1.3}}>
+                                  {m.actorName}
+                                </div>
+                                <div style={{fontSize:10.5,color:'#8A8985',marginTop:2,lineHeight:1.3}}>
+                                  {m.isExtra ? (m.peopleCount || m.character) : `as ${m.character}`}
+                                </div>
+                              </td>
+
+                              {/* Scenes column */}
+                              <td style={{padding:'10px 8px',verticalAlign:'middle'}}>
+                                <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>
+                                  {displayedScenes.map(num => (
+                                    <button
+                                      key={num}
+                                      type="button"
+                                      onClick={()=>{
+                                        setActiveTab('scenes');
+                                        const target = ps.find(s=>String(s.sceneNumber)===String(num));
+                                        if(target)setSelectedScene(target);
+                                      }}
+                                      style={{
+                                        background:'#17171B',
+                                        border:'1px solid #26262C',
+                                        borderRadius:4,
+                                        padding:'1px 5px',
+                                        fontFamily:'IBM Plex Mono,monospace',
+                                        fontSize:10.5,
+                                        color:'#D4D4D8',
+                                        cursor:'pointer'
+                                      }}
+                                      title={`View scene ${num}`}
+                                    >
+                                      {num}
+                                    </button>
+                                  ))}
+                                  {hasMore && (
+                                    <span style={{
+                                      background:'#17171B',
+                                      border:'1px solid #26262C',
+                                      borderRadius:4,
+                                      padding:'1px 5px',
+                                      fontFamily:'IBM Plex Mono,monospace',
+                                      fontSize:10.5,
+                                      color:'#8A8985'
+                                    }}>
+                                      +
+                                    </span>
+                                  )}
+                                  {scenesList.length === 0 && (
+                                    <span style={{color:'#71717A',fontSize:11}}>—</span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Availability column */}
+                              <td style={{padding:'10px 8px',verticalAlign:'middle'}}>
+                                <span style={{
+                                  display:'inline-block',
+                                  background:availBg,
+                                  border:`1px solid ${availBorder}`,
+                                  borderRadius:20,
+                                  padding:'2px 8px',
+                                  fontSize:10.5,
+                                  fontWeight:600,
+                                  color:availColor,
+                                  whiteSpace:'nowrap'
+                                }}>
+                                  {m.availability || 'Confirmed'}
+                                </span>
+                              </td>
+
+                              {/* Call / On set column */}
+                              <td style={{padding:'10px 8px',verticalAlign:'middle',whiteSpace:'nowrap'}}>
+                                <span style={{
+                                  fontFamily: callOnSet==='Not set' ? 'Manrope,sans-serif' : 'IBM Plex Mono,monospace',
+                                  fontSize:11,
+                                  color: callOnSet==='Not set' ? '#71717A' : '#D4D4D8'
+                                }}>
+                                  {callOnSet}
+                                </span>
+                              </td>
+
+                              {/* Contact column */}
+                              <td style={{padding:'10px 8px',verticalAlign:'middle',color:'#A0A0A5',fontSize:11,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:160}}>
+                                {m.contact || '—'}
+                              </td>
+
+                              {/* Actions column */}
+                              <td style={{padding:'10px 0 10px 8px',verticalAlign:'middle',textAlign:'right'}}>
+                                <div style={{display:'inline-flex',gap:6,alignItems:'center'}}>
+                                  <motion.button
+                                    whileHover={{scale:1.15,color:'#F5C451'}}
+                                    whileTap={{scale:0.92}}
+                                    type="button"
+                                    onClick={()=>setEditingCastMember(m)}
+                                    style={{background:'none',border:'none',cursor:'pointer',color:'#71717A',padding:2}}
+                                    title="Edit cast member"
+                                  >
+                                    <Pencil size={12.5}/>
+                                  </motion.button>
+                                  <motion.button
+                                    whileHover={{scale:1.15,color:'#E05252'}}
+                                    whileTap={{scale:0.92}}
+                                    type="button"
+                                    onClick={()=>setDeleteTargetCast(m)}
+                                    style={{background:'none',border:'none',cursor:'pointer',color:'#71717A',padding:2}}
+                                    title="Delete cast member"
+                                  >
+                                    <Trash2 size={12.5}/>
+                                  </motion.button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredCast.length === 0 && (
+              <div style={{padding:'40px 0',textAlign:'center',color:'#71717A',fontSize:12}}>
+                No cast members match your filters.
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Script Characters Panel */}
+          <div style={{
+            background:'#101012',
+            border:'1px solid #1E1E22',
+            borderRadius:14,
+            padding:'16px 16px',
+            position: mob ? 'static' : 'sticky',
+            top: 20
+          }}>
+            {/* Header */}
+            <div style={{marginBottom:10}}>
+              <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700,color:T.cream}}>
+                Script characters
+              </div>
+              <div style={{fontSize:11,color:'#71717A',marginTop:2,fontFamily:'Manrope,sans-serif'}}>
+                {uncastCount} of {totalScriptChars} not cast yet
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div style={{position:'relative',marginBottom:12}}>
+              <Search size={12} style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'#71717A',pointerEvents:'none'}}/>
+              <input
+                type="search"
+                aria-label="Search characters"
+                placeholder="Search characters"
+                value={scriptCharSearch}
+                onChange={e=>setScriptCharSearch(e.target.value)}
+                style={{
+                  width:'100%',
+                  background:'#141417',
+                  border:'1px solid #222226',
+                  borderRadius:8,
+                  padding:'6px 10px 6px 28px',
+                  color:T.cream,
+                  fontSize:11.5,
+                  fontFamily:'Manrope,sans-serif',
+                  outline:'none',
+                  boxSizing:'border-box'
+                }}
+              />
+            </div>
+
+            {/* Character Items List */}
+            <div style={{display:'flex',flexDirection:'column'}}>
+              {filteredScriptChars.map(c => {
+                const isCast = Boolean(c.actorName);
+                const scenesList = c.scenes || [];
+                const displayedPills = scenesList.slice(0, 9);
+                const hasMorePills = scenesList.length > 9;
+
+                return (
+                  <div
+                    key={c.name}
+                    style={{
+                      padding:'10px 0',
+                      borderBottom:'1px solid #161619',
+                      display:'flex',
+                      flexDirection:'column',
+                      gap:6
+                    }}
+                  >
+                    {/* Top line: Name and Cast Status */}
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+                      <span style={{
+                        fontFamily:'Manrope,sans-serif',
+                        fontSize:12,
+                        fontWeight:700,
+                        color:T.cream,
+                        textTransform:'uppercase'
+                      }}>
+                        {c.name}
+                      </span>
+
+                      {isCast ? (
+                        <span style={{
+                          fontSize:11,
+                          fontWeight:500,
+                          color:'#4CAF7A',
+                          whiteSpace:'nowrap'
+                        }}>
+                          {c.actorName}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCastMember({
+                              isNew: true,
+                              character: c.name,
+                              actorName: '',
+                              category: 'Supporting Cast',
+                              availability: 'Confirmed',
+                              scenes: c.scenes
+                            });
+                          }}
+                          style={{
+                            background:'none',
+                            border:'none',
+                            color:'#F5A623',
+                            fontSize:11,
+                            fontWeight:700,
+                            cursor:'pointer',
+                            display:'inline-flex',
+                            alignItems:'center',
+                            gap:2,
+                            padding:0
+                          }}
+                        >
+                          + Cast
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Bottom line: Scene count and pills */}
+                    <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>
+                      <span style={{
+                        fontSize:10.5,
+                        color:'#71717A',
+                        fontFamily:'IBM Plex Mono,monospace',
+                        marginRight:3,
+                        whiteSpace:'nowrap'
+                      }}>
+                        {scenesList.length} scene{scenesList.length===1?'':'s'}
+                      </span>
+                      {displayedPills.map(num => (
                         <button
                           key={num}
                           type="button"
                           onClick={()=>{
                             setActiveTab('scenes');
-                            const target=ps.find(s=>String(s.sceneNumber)===String(num));
+                            const target = ps.find(s=>String(s.sceneNumber)===String(num));
                             if(target)setSelectedScene(target);
                           }}
-                          style={{background:'#17171B',border:'1px solid #26262C',borderRadius:5,padding:'2px 7px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#D4D4D8',cursor:'pointer'}}
+                          style={{
+                            background:'#17171B',
+                            border:'1px solid #26262C',
+                            borderRadius:3,
+                            padding:'1px 4px',
+                            fontFamily:'IBM Plex Mono,monospace',
+                            fontSize:9.5,
+                            color:'#D4D4D8',
+                            cursor:'pointer'
+                          }}
                           title={`Go to scene ${num}`}
                         >
                           {num}
                         </button>
                       ))}
+                      {hasMorePills && (
+                        <span style={{
+                          background:'#17171B',
+                          border:'1px solid #26262C',
+                          borderRadius:3,
+                          padding:'1px 4px',
+                          fontFamily:'IBM Plex Mono,monospace',
+                          fontSize:9.5,
+                          color:'#71717A'
+                        }}>
+                          +
+                        </span>
+                      )}
                     </div>
                   </div>
+                );
+              })}
+
+              {filteredScriptChars.length === 0 && (
+                <div style={{padding:'20px 0',textAlign:'center',color:'#71717A',fontSize:11}}>
+                  No characters match your search.
                 </div>
-              );
-            })}
+              )}
+            </div>
           </div>
         </motion.div>
       )}
@@ -9850,6 +10998,20 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           if(selectedScene?.id===sc.id)setSelectedScene(null);
           setDeleteTargetScene(null);
         }}
+      />
+
+      <CastMemberModal
+        open={Boolean(editingCastMember)}
+        member={editingCastMember}
+        onClose={()=>setEditingCastMember(null)}
+        onSave={handleSaveCastMember}
+        scriptCharacters={scriptCharactersData}
+      />
+
+      <DeleteCastModal
+        member={deleteTargetCast}
+        onClose={()=>setDeleteTargetCast(null)}
+        onConfirm={handleDeleteCastMember}
       />
       <div style={{marginTop:8}}>
         <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>
