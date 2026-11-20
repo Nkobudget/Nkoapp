@@ -7868,27 +7868,1535 @@ function GettingStarted({projects,budgetItems,scenes,scheduleDays,advances,purch
     <div style={{marginTop:8}}><button onClick={hide} style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'Manrope,sans-serif'}}>Hide this</button></div>
   </div>;
 }
+function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,characters,ppd,setPpd,start,setStart,skipSun,setSkipSun,onGenerate}){
+  const mob=useIsMobile();
+  const[availDays,setAvailDays]=useState('8');
+  const[grouping,setGrouping]=useState('location');
+  const[dailyStart,setDailyStart]=useState('06:00');
+  const[workHours,setWorkHours]=useState('12');
+  const[maxShootHours,setMaxShootHours]=useState('10');
+  const[restDays,setRestDays]=useState(()=>new Set(skipSun?[0]:[]));
+  const[excludedInput,setExcludedInput]=useState('');
+  const[excludedDates,setExcludedDates]=useState([]);
+  const[castOpen,setCastOpen]=useState(true);
+  const[castUnavail,setCastUnavail]=useState({});
+  const[selectedLocs,setSelectedLocs]=useState({});
+  const[submitting,setSubmitting]=useState(false);
+
+  const locGroups=[];
+  const locCounts={};
+  unscheduled.forEach(sc=>{
+    const l=sceneLoc(sc);
+    if(l)locCounts[l]=(locCounts[l]||0)+1;
+  });
+  Object.entries(locCounts).forEach(([name,count])=>locGroups.push({name,count}));
+
+  const readyScenes=unscheduled.filter(sc=>Boolean(sceneLoc(sc)));
+  const incompleteCount=unscheduled.length-readyScenes.length;
+
+  useEffect(()=>{
+    if(!open)return;
+    const initLocs={};
+    Object.keys(locCounts).forEach(k=>{initLocs[k]=true;});
+    setSelectedLocs(initLocs);
+    setRestDays(new Set(skipSun?[0]:[]));
+    const estPg=unscheduled.reduce((s,x)=>s+(Number(x.pages8)||8),0);
+    const estDays=Math.max(1,Math.ceil(estPg/((parseFloat(ppd)||5)*8)));
+    setAvailDays(String(estDays));
+    setSubmitting(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[open]);
+
+  useEffect(()=>{
+    if(!open)return;
+    const onKey=e=>{if(e.key==='Escape'&&!submitting)onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,submitting,onClose]);
+
+  const toggleRestDay=dayIdx=>{
+    setRestDays(prev=>{
+      const next=new Set(prev);
+      if(next.has(dayIdx))next.delete(dayIdx);else next.add(dayIdx);
+      if(dayIdx===0)setSkipSun(next.has(0));
+      return next;
+    });
+  };
+
+  const addExcludedDate=()=>{
+    if(!excludedInput)return;
+    if(!excludedDates.includes(excludedInput))setExcludedDates(p=>[...p,excludedInput].sort());
+    setExcludedInput('');
+  };
+
+  const removeExcludedDate=dt=>setExcludedDates(p=>p.filter(x=>x!==dt));
+
+  const addCastRange=name=>{
+    setCastUnavail(prev=>({...prev,[name]:[...(prev[name]||[]),{from:'',to:''}]}));
+  };
+  const updateCastRange=(name,idx,field,val)=>{
+    setCastUnavail(prev=>({
+      ...prev,
+      [name]:(prev[name]||[]).map((r,i)=>i===idx?{...r,[field]:val}:r),
+    }));
+  };
+  const removeCastRange=(name,idx)=>{
+    setCastUnavail(prev=>({
+      ...prev,
+      [name]:(prev[name]||[]).filter((_,i)=>i!==idx),
+    }));
+  };
+
+  const computeEndDate=()=>{
+    if(!start)return'';
+    const targetDays=Math.max(1,Number(availDays)||1);
+    let cur=start,placedCount=0,guard=0;
+    const exSet=new Set(excludedDates);
+    while(placedCount<targetDays&&guard<400){
+      const dObj=new Date(`${cur}T00:00:00`);
+      const dow=dObj.getDay();
+      if(!restDays.has(dow)&&!exSet.has(cur)){
+        placedCount++;
+        if(placedCount===targetDays)return cur;
+      }
+      cur=addIsoDays(cur,1);
+      guard++;
+    }
+    return cur;
+  };
+  const endDate=computeEndDate();
+
+  const handleSubmit=async e=>{
+    e.preventDefault();
+    if(submitting)return;
+    const chosenScenes=unscheduled.filter(sc=>{
+      const l=sceneLoc(sc);
+      if(!l)return false;
+      return selectedLocs[l]!==false;
+    });
+    if(!chosenScenes.length){
+      alert('No ready scenes selected to schedule.');
+      return;
+    }
+    setSubmitting(true);
+    try{
+      await onGenerate({
+        scenes:chosenScenes,
+        pagesPerDay:parseFloat(ppd)||5,
+        startDate:start,
+        skipSundays:restDays.has(0),
+        restDays:[...restDays],
+        excludedDates,
+        grouping,
+        dailyStart,
+      });
+    }finally{
+      setSubmitting(false);
+    }
+  };
+
+  const DAY_BUTTONS=[
+    {label:'Mon',idx:1},{label:'Tue',idx:2},{label:'Wed',idx:3},
+    {label:'Thu',idx:4},{label:'Fri',idx:5},{label:'Sat',idx:6},{label:'Sun',idx:0},
+  ];
+  const GROUP_OPTIONS=[
+    {id:'location',title:'By location',desc:'Fewest company moves. Shoots each location in one block.'},
+    {id:'location_tod',title:'By location, then day/night',desc:'Keeps day and night work on separate days at each location.'},
+    {id:'script',title:'Script order',desc:'Follows scene order, only grouping consecutive scenes at one location.'},
+  ];
+
+  const inputStyle={width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:9,padding:'9px 11px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',colorScheme:'dark'};
+
+  return(
+    <AnimatePresence>
+      {open&&(
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={()=>{if(!submitting)onClose();}}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:mob?10:20}}
+        >
+          <motion.form
+            onSubmit={handleSubmit}
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.94,y:18,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.95,y:12,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:400,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:640,maxHeight:'90vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* 1. Header */}
+            <div style={{padding:mob?'18px 18px 12px':'20px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Generate your shooting schedule</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4,lineHeight:1.45}}>
+                  NKÒ will use your script breakdown to organise scenes into a practical shooting plan.
+                </div>
+              </div>
+              <button type="button" aria-label="Close" onClick={()=>{if(!submitting)onClose();}} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div style={{flex:1,overflowY:'auto',padding:mob?'4px 18px 20px':'4px 24px 22px',display:'flex',flexDirection:'column',gap:18}}>
+              {/* 2. Info Banner */}
+              <div style={{background:'rgba(245,196,81,0.045)',border:'1px solid rgba(245,196,81,0.28)',borderRadius:10,padding:'12px 14px'}}>
+                <div style={{fontSize:12,fontWeight:600,color:T.cream}}>
+                  {readyScenes.length} of {sorted.length} scenes ready to schedule
+                </div>
+                <div style={{fontSize:11.5,color:'#8E8E93',marginTop:4,lineHeight:1.5}}>
+                  {sorted.length===0
+                    ?'No scenes in your breakdown yet. Add scenes in the Breakdown tab first.'
+                    :incompleteCount>0
+                    ?<>
+                      {incompleteCount} incomplete scene{incompleteCount===1?'':'s'} won&apos;t be placed automatically. They stay in Unscheduled with the reason, so nothing is dropped.{' '}
+                      <button type="button" onClick={onClose} style={{background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11.5,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+                        Complete the breakdown
+                      </button>
+                    </>
+                    :'All unscheduled scenes have locations and are ready to be placed.'}
+                </div>
+              </div>
+
+              {/* 3. Dates and Pace */}
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:'#8E8E93',marginBottom:10}}>Dates and pace</div>
+                <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(3,minmax(0,1fr))',gap:10}}>
+                  <div>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:5}}>
+                      Production start date<span style={{color:'#F5C451'}}>*</span>
+                    </label>
+                    <input type="date" value={start} onChange={e=>setStart(e.target.value)} required style={inputStyle}/>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:5}}>
+                      Available shooting days<span style={{color:'#F5C451'}}>*</span>
+                    </label>
+                    <input type="number" min="1" max="365" value={availDays} onChange={e=>setAvailDays(e.target.value)} required style={inputStyle}/>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:5}}>
+                      Pages per day<span style={{color:'#F5C451'}}>*</span>
+                    </label>
+                    <input type="number" min="0.5" step="0.5" value={ppd} onChange={e=>setPpd(e.target.value)} required style={inputStyle}/>
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:'#71717A',marginTop:8,lineHeight:1.45}}>
+                  NKÒ estimates each shoot day from this pace. Drama typically runs 3–5 pages a day; action and crowd work less.
+                </div>
+                {start&&endDate&&(
+                  <div style={{fontSize:11.5,color:'#D4D4D8',marginTop:8,fontWeight:500}}>
+                    Shooting from {shortDate(start)} to {shortDate(endDate)}
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Locations */}
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:'#8E8E93',marginBottom:8}}>Locations</div>
+                {locGroups.length===0?(
+                  <div style={{background:'#131316',border:'1px solid #222226',borderRadius:10,padding:'14px 16px',fontSize:12,color:'#71717A',textAlign:'center'}}>
+                    No locations found in unscheduled scenes.
+                  </div>
+                ):(
+                  <div style={{display:'flex',flexDirection:'column',gap:7}}>
+                    {locGroups.map(loc=>{
+                      const checked=selectedLocs[loc.name]!==false;
+                      return(
+                        <label
+                          key={loc.name}
+                          style={{
+                            display:'flex',
+                            alignItems:'center',
+                            justifyContent:'space-between',
+                            gap:10,
+                            background:'#131316',
+                            border:checked?'1px solid rgba(245,196,81,0.34)':'1px solid #222226',
+                            borderRadius:10,
+                            padding:'10px 14px',
+                            cursor:'pointer',
+                            transition:'border-color 0.15s ease',
+                          }}
+                        >
+                          <span style={{display:'inline-flex',alignItems:'center',gap:10,minWidth:0}}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={e=>setSelectedLocs(p=>({...p,[loc.name]:e.target.checked}))}
+                              style={{accentColor:'#F5C451',width:14,height:14,cursor:'pointer',flexShrink:0}}
+                            />
+                            <span style={{fontSize:12.5,fontWeight:500,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{loc.name}</span>
+                          </span>
+                          <span style={{fontSize:11,color:'#71717A',fontFamily:'IBM Plex Mono,monospace',whiteSpace:'nowrap'}}>
+                            {loc.count} scene{loc.count===1?'':'s'}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Grouping Preference */}
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Grouping preference</div>
+                <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(3,minmax(0,1fr))',gap:10}}>
+                  {GROUP_OPTIONS.map(opt=>{
+                    const active=grouping===opt.id;
+                    return(
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={()=>setGrouping(opt.id)}
+                        style={{
+                          textAlign:'left',
+                          background:active?'rgba(245,196,81,0.06)':'#131316',
+                          border:active?'1px solid rgba(245,196,81,0.55)':'1px solid #222226',
+                          borderRadius:10,
+                          padding:'11px 12px',
+                          cursor:'pointer',
+                          fontFamily:'Manrope,sans-serif',
+                          transition:'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream,marginBottom:4}}>{opt.title}</div>
+                        <div style={{fontSize:11,color:'#71717A',lineHeight:1.45}}>{opt.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 6. Working Day */}
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:'#8E8E93',marginBottom:8}}>Working day</div>
+                <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(3,minmax(0,1fr))',gap:10}}>
+                  <div>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:5}}>Daily start</label>
+                    <input type="time" value={dailyStart} onChange={e=>setDailyStart(e.target.value)} style={inputStyle}/>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:5}}>Working hours</label>
+                    <input type="number" min="4" max="24" value={workHours} onChange={e=>setWorkHours(e.target.value)} style={inputStyle}/>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:5}}>Max shooting hours</label>
+                    <input type="number" min="2" max="24" value={maxShootHours} onChange={e=>setMaxShootHours(e.target.value)} style={inputStyle}/>
+                  </div>
+                </div>
+              </div>
+
+              {/* 7. Breaks and Excluded Dates */}
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:'#8E8E93',marginBottom:8}}>Breaks and excluded dates</div>
+                <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Rest days</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:6,marginBottom:12}}>
+                  {DAY_BUTTONS.map(d=>{
+                    const active=restDays.has(d.idx);
+                    return(
+                      <button
+                        key={d.label}
+                        type="button"
+                        onClick={()=>toggleRestDay(d.idx)}
+                        style={{
+                          padding:'8px 4px',
+                          borderRadius:8,
+                          fontSize:11,
+                          fontWeight:active?600:500,
+                          fontFamily:'Manrope,sans-serif',
+                          cursor:'pointer',
+                          background:active?'rgba(245,196,81,0.08)':'#131316',
+                          border:active?'1px solid rgba(245,196,81,0.55)':'1px solid #222226',
+                          color:active?T.cream:'#8E8E93',
+                          transition:'all 0.14s ease',
+                        }}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:3}}>Excluded dates</div>
+                <div style={{fontSize:11,color:'#71717A',marginBottom:7}}>Public holidays, travel days or location blackouts.</div>
+                <div style={{display:'flex',gap:8}}>
+                  <input
+                    type="date"
+                    aria-label="Add excluded date"
+                    value={excludedInput}
+                    onChange={e=>setExcludedInput(e.target.value)}
+                    style={{...inputStyle,flex:1}}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Add excluded date"
+                    onClick={addExcludedDate}
+                    style={{width:38,height:38,borderRadius:9,background:'#141416',border:'1px solid #26262B',color:T.cream,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
+                  >
+                    <Plus size={15}/>
+                  </button>
+                </div>
+                {excludedDates.length>0&&(
+                  <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
+                    {excludedDates.map(dt=>(
+                      <span key={dt} style={{display:'inline-flex',alignItems:'center',gap:6,background:'#16161A',border:'1px solid #26262C',borderRadius:7,padding:'4px 9px',fontSize:11,color:'#D4D4D8'}}>
+                        <span>{shortDate(dt)}</span>
+                        <button type="button" aria-label={`Remove ${dt}`} onClick={()=>removeExcludedDate(dt)} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:0,display:'inline-flex'}}>
+                          <X size={11}/>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 8. Cast Availability Accordion */}
+              <div style={{background:'#121215',border:'1px solid #222226',borderRadius:12,overflow:'hidden'}}>
+                <button
+                  type="button"
+                  onClick={()=>setCastOpen(o=>!o)}
+                  style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'transparent',border:'none',color:T.cream,fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+                >
+                  <span>Cast availability</span>
+                  <ChevronDown size={15} style={{color:'#8E8E93',transform:castOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.16s ease'}}/>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {castOpen&&(
+                    <motion.div
+                      initial={{height:0,opacity:0}}
+                      animate={{height:'auto',opacity:1}}
+                      exit={{height:0,opacity:0}}
+                      transition={{duration:0.18,ease:EASE_OUT}}
+                      style={{overflow:'hidden'}}
+                    >
+                      <div style={{padding:'0 14px 14px',display:'flex',flexDirection:'column',gap:10}}>
+                        {castList.length===0?(
+                          <div style={{fontSize:12,color:'#71717A',padding:'10px 0',textAlign:'center'}}>
+                            No cast members found in your breakdown yet.
+                          </div>
+                        ):(
+                          castList.map(c=>{
+                            const meta=(characters||[]).find(ch=>String(ch.name||'').toLowerCase()===String(c.name||'').toLowerCase())||{};
+                            const ranges=castUnavail[c.name]||[];
+                            const hasRanges=ranges.some(r=>r.from||r.to);
+                            const statusLabel=hasRanges?'Limited':meta.actor?'Available':'Pending';
+                            const statusColor=hasRanges?'#F5C451':meta.actor?'#52B07A':'#F5C451';
+                            return(
+                              <div key={c.id||c.name} style={{background:'#0F0F12',border:'1px solid #222227',borderRadius:10,padding:'11px 12px'}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:6}}>
+                                  <div style={{fontSize:12,fontWeight:600,color:T.cream,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                    {meta.actor?<><span>{meta.actor}</span><span style={{color:'#71717A',fontWeight:500}}> · {c.name}</span></>:c.name}
+                                  </div>
+                                  <span style={{fontSize:10.5,fontWeight:600,color:statusColor,whiteSpace:'nowrap'}}>{statusLabel}</span>
+                                </div>
+
+                                {ranges.map((r,idx)=>(
+                                  <div key={idx} style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr auto':'1fr 1fr auto',gap:8,alignItems:'center',marginBottom:7}}>
+                                    <input type="date" aria-label="Unavailable from" value={r.from} onChange={e=>updateCastRange(c.name,idx,'from',e.target.value)} style={inputStyle}/>
+                                    <input type="date" aria-label="Unavailable to" value={r.to} onChange={e=>updateCastRange(c.name,idx,'to',e.target.value)} style={inputStyle}/>
+                                    <button type="button" aria-label="Remove date range" onClick={()=>removeCastRange(c.name,idx)} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'inline-flex'}}>
+                                      <X size={14}/>
+                                    </button>
+                                  </div>
+                                ))}
+
+                                <button
+                                  type="button"
+                                  onClick={()=>addCastRange(c.name)}
+                                  style={{background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}
+                                >
+                                  <Plus size={12}/>
+                                  <span>Add unavailable dates</span>
+                                </button>
+
+                                {!hasRanges&&(
+                                  <div style={{fontSize:10.5,color:'#71717A',marginTop:5}}>
+                                    No dates recorded — treated as available and flagged for review.
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* 9. Footer */}
+            <div style={{padding:mob?'12px 18px 16px':'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0,background:'#0F0F11'}}>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={()=>{if(!submitting)onClose();}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:submitting?'default':'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="submit"
+                disabled={submitting||readyScenes.length===0}
+                whileHover={!submitting&&readyScenes.length>0?{y:-1}:undefined}
+                whileTap={!submitting&&readyScenes.length>0?{scale:0.98}:undefined}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':readyScenes.length===0?'not-allowed':'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+              >
+                <Sparkles size={14}/>
+                <span>{submitting?'Generating...':'Generate Schedule'}</span>
+              </motion.button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+function AddShootDayModal({open,onClose,defaultDate='',onAddShootDay}){
+  const mob=useIsMobile();
+  const[date,setDate]=useState(defaultDate);
+  const[notes,setNotes]=useState('');
+  const[submitting,setSubmitting]=useState(false);
+
+  useEffect(()=>{
+    if(!open)return;
+    setDate(defaultDate||'');
+    setNotes('');
+    setSubmitting(false);
+  },[open,defaultDate]);
+
+  useEffect(()=>{
+    if(!open)return;
+    const onKey=e=>{if(e.key==='Escape'&&!submitting)onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,submitting,onClose]);
+
+  const handleSubmit=async e=>{
+    e.preventDefault();
+    if(submitting||!date)return;
+    setSubmitting(true);
+    try{
+      await onAddShootDay({date,notes:notes.trim()});
+      onClose();
+    }finally{
+      setSubmitting(false);
+    }
+  };
+
+  return(
+    <AnimatePresence>
+      {open&&(
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={()=>{if(!submitting)onClose();}}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:mob?12:20}}
+        >
+          <motion.form
+            onSubmit={handleSubmit}
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.93,y:16,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.95,y:10,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:460,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:mob?'18px 18px 12px':'22px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Add shoot day</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4,lineHeight:1.45}}>
+                  Add an empty shooting day, then drag or assign scenes to it.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={()=>{if(!submitting)onClose();}}
+                style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+              >
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:mob?'4px 18px 18px':'4px 24px 22px',display:'flex',flexDirection:'column',gap:16}}>
+              <div>
+                <label style={{display:'block',fontSize:11.5,fontWeight:600,color:'#D4D4D8',marginBottom:7}}>
+                  Shooting date<span style={{color:'#F5C451',marginLeft:2}}>*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={date}
+                  onChange={e=>setDate(e.target.value)}
+                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12.5,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',colorScheme:'dark'}}
+                />
+              </div>
+
+              <div>
+                <label style={{display:'block',fontSize:11.5,fontWeight:600,color:'#D4D4D8',marginBottom:3}}>Notes</label>
+                <div style={{fontSize:11,color:'#71717A',marginBottom:8}}>Optional &nbsp;e.g. second unit, weather cover.</div>
+                <textarea
+                  rows={4}
+                  value={notes}
+                  onChange={e=>setNotes(e.target.value)}
+                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12.5,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:mob?'12px 18px 16px':'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10}}>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={()=>{if(!submitting)onClose();}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:submitting?'default':'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="submit"
+                disabled={submitting||!date}
+                whileHover={!submitting&&date?{y:-1}:undefined}
+                whileTap={!submitting&&date?{scale:0.98}:undefined}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 20px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':!date?'not-allowed':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+              >
+                {submitting?'Adding...':'Add Day'}
+              </motion.button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+function CreateCallSheetModal({open,onClose,shootDays,shootNo,dayScenes,sumPg,anyPages,pg,existingIds,onSelectDay}){
+  const mob=useIsMobile();
+
+  useEffect(()=>{
+    if(!open)return;
+    const onKey=e=>{if(e.key==='Escape')onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,onClose]);
+
+  return(
+    <AnimatePresence>
+      {open&&(
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={onClose}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:mob?12:20}}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Create call sheet"
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.93,y:16,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.95,y:10,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:490,maxHeight:'85vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* Header */}
+            <div style={{padding:mob?'18px 18px 14px':'22px 24px 16px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Create call sheet</h3>
+                <div style={{fontSize:12.5,color:'#8E8E93',marginTop:5,lineHeight:1.5}}>
+                  Choose a shooting day. Its scenes, cast, location and notes are copied from the schedule and breakdown.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+              >
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Scrollable Shooting Days List */}
+            <div style={{flex:1,overflowY:'auto',padding:mob?'2px 12px 16px':'4px 16px 20px'}}>
+              {shootDays.length===0?(
+                <div style={{padding:'28px 12px',textAlign:'center',fontSize:12.5,color:'#71717A'}}>
+                  No shooting days scheduled yet. Add a shoot day first.
+                </div>
+              ):(
+                <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                  {shootDays.map(d=>{
+                    const n=shootNo[d.id];
+                    const list=dayScenes(d);
+                    const tot=sumPg(list);
+                    const primaryLoc=d.location||(list[0]?sceneLoc(list[0]):'')||'Location not set';
+                    const hasCallSheet=existingIds.has(d.id)||Boolean(d.call_time)||(d.cast_calls&&Object.keys(d.cast_calls).length>0);
+                    return(
+                      <motion.button
+                        key={d.id}
+                        type="button"
+                        whileHover={{backgroundColor:'rgba(255,255,255,0.04)'}}
+                        whileTap={{scale:0.99}}
+                        onClick={()=>onSelectDay(d)}
+                        style={{
+                          width:'100%',
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'space-between',
+                          gap:12,
+                          padding:'12px 10px',
+                          borderRadius:10,
+                          border:'none',
+                          background:'transparent',
+                          textAlign:'left',
+                          cursor:'pointer',
+                          fontFamily:'Manrope,sans-serif',
+                        }}
+                      >
+                        <div style={{minWidth:0,flex:1}}>
+                          <div style={{fontSize:13,lineHeight:1.35}}>
+                            <span style={{fontWeight:700,color:T.cream}}>Day {n}</span>
+                            <span style={{color:'#71717A',margin:'0 5px'}}>·</span>
+                            <span style={{fontWeight:500,color:'#A1A1AA'}}>{d.date?shortDate(d.date):'Date TBC'}</span>
+                          </div>
+                          <div style={{fontSize:11.5,color:'#71717A',marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                            {primaryLoc} · {list.length} scene{list.length===1?'':'s'}{anyPages?` · ${pg(tot)} pp`:''}
+                          </div>
+                        </div>
+                        {hasCallSheet&&(
+                          <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:12,fontWeight:600,color:'#52B07A',flexShrink:0}}>
+                            <FileText size={13}/>
+                            <span>Update</span>
+                          </span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+function ShootingDayDrawer({day,dayNum,scenesList,characters,conflicts,anyPages,target,hasCallSheet,isOwner,onClose,onCallSheet}){
+  const mob=useIsMobile();
+
+  useEffect(()=>{
+    if(!day)return;
+    const onKey=e=>{if(e.key==='Escape')onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[day,onClose]);
+
+  const sumPg=list=>list.reduce((s,x)=>s+(Number(x.pages8)||0),0);
+  const tot=day?sumPg(scenesList):0;
+  const isHeavy=Boolean(day&&anyPages&&tot>target*1.25);
+  const dayConflicts=day?(conflicts||[]).filter(c=>c.dayId===day.id):[];
+  const needsReview=isHeavy||dayConflicts.length>0;
+  const isEmpty=!scenesList||scenesList.length===0;
+
+  const statusBadge=isEmpty
+    ?{label:'Empty',border:'rgba(161,161,170,0.35)',color:'#A1A1AA',bg:'rgba(161,161,170,0.08)'}
+    :needsReview
+    ?{label:'Needs review',border:'rgba(224,107,82,0.5)',color:'#E06B52',bg:'rgba(224,107,82,0.08)'}
+    :{label:'Ready',border:'rgba(82,176,122,0.45)',color:'#52B07A',bg:'rgba(82,176,122,0.08)'};
+
+  const primaryLoc=day?(day.location||(scenesList[0]?sceneLoc(scenesList[0]):'')||'Location not set'):'';
+  const subLoc=day&&day.location&&scenesList[0]&&sceneLoc(scenesList[0])&&sceneLoc(scenesList[0])!==day.location?sceneLoc(scenesList[0]):'';
+
+  const estMins=tot>0?Math.round((tot/8)*150):0;
+  const estStr=estMins>0?`${Math.floor(estMins/60)}h ${estMins%60}m`:'—';
+  const callWrapStr=(()=>{
+    if(!day?.call_time)return'—';
+    const [hh,mm]=String(day.call_time).split(':').map(Number);
+    if(!Number.isFinite(hh)||!Number.isFinite(mm))return day.call_time;
+    const wrapTotal=(hh*60+mm+720)%(24*60);
+    const wh=String(Math.floor(wrapTotal/60)).padStart(2,'0');
+    const wm=String(wrapTotal%60).padStart(2,'0');
+    return `${day.call_time}–${wh}:${wm}`;
+  })();
+
+  // Cast list
+  const calls=day?.cast_calls||{};
+  const uniqueCast=[...new Set((scenesList||[]).flatMap(sc=>sc.cast||[]))];
+  const castRows=uniqueCast.map(name=>{
+    const meta=(characters||[]).find(ch=>String(ch.name||'').toLowerCase()===String(name||'').toLowerCase())||{};
+    return{name,actor:meta.actor||'',call:calls[name]||day?.call_time||''};
+  });
+
+  // Background extras
+  const bgTotal=(scenesList||[]).reduce((sum,sc)=>sum+(Number(sc.backgroundActors)||0),0);
+  const talkingList=[...new Set((scenesList||[]).flatMap(sc=>sc.talkingExtras||[]))];
+
+  // Production elements (wardrobe, props, specialEquip)
+  const elemMap={};
+  const addElem=(item,dept,scNum)=>{
+    const clean=String(item||'').trim();
+    if(!clean)return;
+    const key=`${dept}::${clean.toLowerCase()}`;
+    if(!elemMap[key])elemMap[key]={name:clean,dept,scenes:[]};
+    if(scNum&&!elemMap[key].scenes.includes(scNum))elemMap[key].scenes.push(scNum);
+  };
+  (scenesList||[]).forEach(sc=>{
+    (sc.wardrobe||[]).forEach(w=>addElem(w,'Wardrobe and Costume',sc.sceneNumber));
+    (sc.props||[]).forEach(p=>addElem(p,'Props',sc.sceneNumber));
+    (sc.specialEquip||[]).forEach(eq=>addElem(eq,'Special Equipment',sc.sceneNumber));
+  });
+  const elemRows=Object.values(elemMap);
+
+  // Picture vehicles
+  const vehMap={};
+  (scenesList||[]).forEach(sc=>{
+    (sc.vehicles||[]).forEach(v=>{
+      const clean=String(v||'').trim();
+      if(!clean)return;
+      const key=clean.toLowerCase();
+      if(!vehMap[key])vehMap[key]={name:clean,scenes:[]};
+      if(sc.sceneNumber&&!vehMap[key].scenes.includes(sc.sceneNumber))vehMap[key].scenes.push(sc.sceneNumber);
+    });
+  });
+  const vehRows=Object.values(vehMap);
+
+  return(
+    <AnimatePresence>
+      {day&&(
+        <motion.div
+          key="shooting-day-backdrop"
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.2,ease:'easeOut'}}
+          onClick={onClose}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.58)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',justifyContent:'flex-end'}}
+        >
+          <motion.aside
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Day ${dayNum} details`}
+            onClick={e=>e.stopPropagation()}
+            initial={{x:'100%',opacity:0.75}}
+            animate={{x:0,opacity:1}}
+            exit={{x:'100%',opacity:0.75}}
+            transition={{type:'spring',stiffness:360,damping:34,mass:0.9}}
+            style={{width:'100%',maxWidth:mob?'100%':440,height:'100%',background:'#0F0F11',borderLeft:mob?'none':'1px solid #222226',boxShadow:'-24px 0 60px rgba(0,0,0,0.8)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* 1. Header */}
+            <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1E1E22',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:14}}>
+                <button
+                  type="button"
+                  aria-label="Close shooting day details"
+                  onClick={onClose}
+                  style={{background:'none',border:'none',color:'#8E8E93',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+                >
+                  <X size={16}/>
+                </button>
+                <span style={{fontSize:12.5,fontWeight:500,color:'#8E8E93'}}>Shooting day</span>
+              </div>
+              <span style={{fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:7,background:statusBadge.bg,border:`1px solid ${statusBadge.border}`,color:statusBadge.color,whiteSpace:'nowrap'}}>
+                {statusBadge.label}
+              </span>
+            </div>
+
+            {/* Scrollable Body */}
+            <div style={{flex:1,overflowY:'auto',padding:mob?'18px 18px 24px':'22px 22px 26px'}}>
+              {/* 2. Day Summary */}
+              <div>
+                <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
+                  <h3 style={{margin:0,fontSize:22,fontWeight:700,color:T.cream,letterSpacing:'-0.025em'}}>Day {dayNum}</h3>
+                  <span style={{fontSize:13.5,color:'#8E8E93',fontWeight:400}}>{day.date?longDate(day.date):'Date TBC'}</span>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:needsReview?'#E06B52':'#4A90D9',flexShrink:0}}/>
+                  <span style={{fontSize:13,fontWeight:600,color:T.cream}}>{primaryLoc}</span>
+                </div>
+                {subLoc&&(
+                  <div style={{fontSize:11.5,color:'#71717A',marginTop:3,paddingLeft:16}}>{subLoc}</div>
+                )}
+              </div>
+
+              {/* 3. Stats Grid */}
+              <div style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(4,minmax(0,1fr))',gap:12,padding:'16px 0',margin:'18px 0',borderTop:'1px solid #1E1E22',borderBottom:'1px solid #1E1E22'}}>
+                <div>
+                  <div style={{fontSize:11,color:'#71717A',marginBottom:4}}>Scenes</div>
+                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13.5,fontWeight:600,color:T.cream}}>{scenesList.length}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:'#71717A',marginBottom:4}}>Pages</div>
+                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13.5,fontWeight:600,color:T.cream}}>{anyPages&&tot>0?fmtPages8(tot):'—'}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:'#71717A',marginBottom:4}}>Est. shooting</div>
+                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13.5,fontWeight:600,color:T.cream}}>{estStr}</div>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:'#71717A',marginBottom:4}}>Call - Wrap</div>
+                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:600,color:T.cream,whiteSpace:'nowrap'}}>{callWrapStr}</div>
+                </div>
+              </div>
+
+              {/* 4. Alert Banner (only if real conflicts exist) */}
+              {dayConflicts.length>0&&(
+                <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                  {dayConflicts.map(cf=>(
+                    <div key={cf.id} style={{background:'rgba(245,196,81,0.05)',border:'1px solid rgba(245,196,81,0.32)',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10}}>
+                      <AlertTriangle size={15} style={{color:'#F5C451',flexShrink:0,marginTop:2}}/>
+                      <div style={{minWidth:0}}>
+                        <div style={{fontSize:12.5,fontWeight:600,color:T.cream}}>{cf.title}</div>
+                        <div style={{fontSize:11.5,color:'#8E8E93',marginTop:3,lineHeight:1.45}}>{cf.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 5. Scene Order */}
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12.5,fontWeight:600,color:T.cream,marginBottom:10}}>
+                  Scene order <span style={{color:'#71717A',fontWeight:500,marginLeft:4}}>{scenesList.length}</span>
+                </div>
+                {scenesList.length===0?(
+                  <div style={{fontSize:12,color:'#71717A'}}>No scenes assigned to this day.</div>
+                ):(
+                  <div style={{display:'flex',flexDirection:'column'}}>
+                    {scenesList.map((sc,idx)=>{
+                      const tod=String(sc.dayNight||todLabel(sc)||'').toUpperCase();
+                      const barColor=tod.includes('NIGHT')?'#E06B52':'#52B07A';
+                      return(
+                        <div key={sc.id} style={{display:'flex',alignItems:'stretch',gap:10,padding:'10px 0',borderBottom:idx===scenesList.length-1?'none':'1px solid #1A1A1E'}}>
+                          <span style={{width:3,borderRadius:2,background:barColor,flexShrink:0}}/>
+                          <div style={{minWidth:0,flex:1}}>
+                            <div style={{fontSize:12.5,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                              <span style={{fontFamily:'IBM Plex Mono,monospace',marginRight:8}}>{sc.sceneNumber}</span>
+                              <span style={{textTransform:'uppercase'}}>{sc.heading||`${sc.intExt||'INT'}. ${sceneLoc(sc)||'UNTITLED'} - ${tod||'DAY'}`}</span>
+                            </div>
+                            <div style={{fontSize:11,color:'#71717A',marginTop:3,fontFamily:'IBM Plex Mono,monospace'}}>
+                              {sc.pages8>0?`${fmtPages8(sc.pages8)} pp`:'—'}{day.call_time?` · ${day.call_time}`:''}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Cast */}
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12.5,fontWeight:600,color:T.cream,marginBottom:8}}>
+                  Cast <span style={{color:'#71717A',fontWeight:500,marginLeft:4}}>{castRows.length}</span>
+                </div>
+                {castRows.length===0?(
+                  <div style={{fontSize:12,color:'#71717A'}}>No cast scheduled.</div>
+                ):(
+                  <div style={{display:'flex',flexDirection:'column'}}>
+                    {castRows.map((c,idx)=>(
+                      <div key={c.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'8px 0',borderBottom:idx===castRows.length-1?'none':'1px solid #1A1A1E',fontSize:12}}>
+                        <div style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          <span style={{fontWeight:600,color:T.cream,textTransform:'uppercase'}}>{c.name}</span>
+                          {c.actor&&<span style={{color:'#8E8E93'}}> · {c.actor}</span>}
+                        </div>
+                        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#8E8E93',whiteSpace:'nowrap'}}>
+                          {c.call?`Call ${c.call}`:'—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 7. Background Extras */}
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12.5,fontWeight:600,color:T.cream,marginBottom:6}}>
+                  Background extras and crowd <span style={{color:'#71717A',fontWeight:500,marginLeft:4}}>{bgTotal}</span>
+                </div>
+                {bgTotal===0&&talkingList.length===0?(
+                  <div style={{fontSize:12,color:'#71717A'}}>None needed.</div>
+                ):(
+                  <div style={{fontSize:12,color:'#A1A1AA',lineHeight:1.5}}>
+                    {bgTotal>0&&<div>{bgTotal} background actor{bgTotal===1?'':'s'}</div>}
+                    {talkingList.length>0&&<div>Talking extras: {talkingList.join(', ')}</div>}
+                  </div>
+                )}
+              </div>
+
+              {/* 8. Production Elements */}
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12.5,fontWeight:600,color:T.cream,marginBottom:8}}>
+                  Production elements <span style={{color:'#71717A',fontWeight:500,marginLeft:4}}>{elemRows.length}</span>
+                </div>
+                {elemRows.length===0?(
+                  <div style={{fontSize:12,color:'#71717A'}}>No production elements listed.</div>
+                ):(
+                  <div style={{display:'flex',flexDirection:'column',gap:7}}>
+                    {elemRows.map((el,idx)=>(
+                      <div key={`${el.name}-${idx}`} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,fontSize:12}}>
+                        <span style={{color:'#E4E4E7',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{el.name}</span>
+                        <span style={{fontSize:11,color:'#71717A',whiteSpace:'nowrap'}}>
+                          {el.dept}{el.scenes.length>0?` · Sc ${el.scenes.join(', ')}`:''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 9. Picture Vehicles */}
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12.5,fontWeight:600,color:T.cream,marginBottom:8}}>
+                  Picture vehicles <span style={{color:'#71717A',fontWeight:500,marginLeft:4}}>{vehRows.length}</span>
+                </div>
+                {vehRows.length===0?(
+                  <div style={{fontSize:12,color:'#71717A'}}>No picture vehicles listed.</div>
+                ):(
+                  <div style={{display:'flex',flexDirection:'column',gap:7}}>
+                    {vehRows.map((v,idx)=>(
+                      <div key={`${v.name}-${idx}`} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,fontSize:12}}>
+                        <span style={{color:'#E4E4E7',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v.name}</span>
+                        <span style={{fontSize:11,color:'#71717A',whiteSpace:'nowrap'}}>
+                          {v.scenes.length>0?`Sc ${v.scenes.join(', ')}`:'—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 10. Daily Notes */}
+              <div>
+                <div style={{fontSize:12.5,fontWeight:600,color:T.cream,marginBottom:6}}>Daily notes</div>
+                <div style={{fontSize:12,color:'#8E8E93',lineHeight:1.55,whiteSpace:'pre-wrap'}}>
+                  {day.notes&&day.notes.trim()?day.notes:'No notes.'}
+                </div>
+              </div>
+            </div>
+
+            {/* 11. Footer */}
+            <div style={{padding:mob?'12px 16px 14px':'14px 20px 16px',borderTop:'1px solid #1E1E22',background:'#0F0F11',flexShrink:0}}>
+              <motion.button
+                type="button"
+                disabled={!isOwner}
+                whileHover={isOwner?{y:-1}:undefined}
+                whileTap={isOwner?{scale:0.985}:undefined}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                onClick={()=>onCallSheet&&onCallSheet(day)}
+                title={!isOwner?'Only the production admin can update call sheets':undefined}
+                style={{width:'100%',background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'11px 16px',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:isOwner?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,boxShadow:'0 6px 22px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+              >
+                <FileText size={15}/>
+                <span>{hasCallSheet?'Update Call Sheet':'Create Call Sheet'}</span>
+              </motion.button>
+              <div style={{fontSize:11,color:'#71717A',textAlign:'center',marginTop:8}}>
+                Uses this day&apos;s scenes, cast, location and notes from the breakdown.
+              </div>
+            </div>
+          </motion.aside>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,target,conflicts,createdCallSheetIds,onSelectDay}){
+  const mob=useIsMobile();
+  const datedShoots=shootDays.filter(d=>d.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const initialDateStr=datedShoots[0]?.date||new Date().toISOString().slice(0,10);
+
+  const[viewMonth,setViewMonth]=useState(()=>{
+    const dt=new Date(`${initialDateStr}T00:00:00`);
+    return Number.isNaN(dt.getTime())?{y:new Date().getFullYear(),m:new Date().getMonth()}:{y:dt.getFullYear(),m:dt.getMonth()};
+  });
+
+  const stepMonth=delta=>{
+    setViewMonth(prev=>{
+      const d=new Date(prev.y,prev.m+delta,1);
+      return{y:d.getFullYear(),m:d.getMonth()};
+    });
+  };
+
+  const monthLabel=new Date(viewMonth.y,viewMonth.m,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const firstDate=datedShoots[0]?.date;
+  const lastDate=datedShoots[datedShoots.length-1]?.date;
+  const rangeText=firstDate&&lastDate
+    ?(firstDate===lastDate?`Production date ${shortDate(firstDate)}`:`Production dates ${shortDate(firstDate)} – ${shortDate(lastDate)}`)
+    :'No dated shoot days yet';
+  const statusText=shootDays.length===0?'':(conflicts.length>0?'Needs review':'Ready');
+
+  // Index days by YYYY-MM-DD
+  const shootByDate={};
+  const offByDate={};
+  days.forEach(d=>{
+    if(!d.date)return;
+    const key=String(d.date).slice(0,10);
+    if(d.kind==='shoot'&&!shootByDate[key])shootByDate[key]=d;
+    else if(d.kind==='off')offByDate[key]=d;
+  });
+
+  // Build 6-week (or 5-week) Monday-first grid
+  const firstOfMonth=new Date(viewMonth.y,viewMonth.m,1);
+  const startOffset=(firstOfMonth.getDay()+6)%7; // Mon=0..Sun=6
+  const daysInMonth=new Date(viewMonth.y,viewMonth.m+1,0).getDate();
+  const totalCells=Math.ceil((startOffset+daysInMonth)/7)*7;
+  const cells=[];
+  for(let i=0;i<totalCells;i++){
+    const cellDate=new Date(viewMonth.y,viewMonth.m,1-startOffset+i);
+    const y=cellDate.getFullYear();
+    const m=String(cellDate.getMonth()+1).padStart(2,'0');
+    const dayNum=String(cellDate.getDate()).padStart(2,'0');
+    const iso=`${y}-${m}-${dayNum}`;
+    cells.push({iso,dayNum:cellDate.getDate(),inMonth:cellDate.getMonth()===viewMonth.m});
+  }
+
+  const WEEKDAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  return(
+    <motion.div
+      initial={{opacity:0,y:6}}
+      animate={{opacity:1,y:0}}
+      exit={{opacity:0,y:-6}}
+      transition={{duration:0.18,ease:EASE_OUT}}
+      style={{background:'#0C0C0E',border:'1px solid #1E1E22',borderRadius:14,padding:mob?'14px':'18px 20px',marginBottom:16,fontFamily:'Manrope,sans-serif'}}
+    >
+      {/* Calendar Header */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700,color:T.cream,letterSpacing:'-0.015em'}}>{monthLabel}</div>
+          <div style={{fontSize:11.5,color:'#71717A',marginTop:3}}>
+            {rangeText}{statusText?` · ${statusText}`:''}
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <motion.button
+            type="button"
+            aria-label="Previous month"
+            whileHover={{scale:1.05,borderColor:'#3F3F46'}}
+            whileTap={{scale:0.94}}
+            onClick={()=>stepMonth(-1)}
+            style={{width:30,height:30,borderRadius:8,background:'#131316',border:'1px solid #242428',color:'#A1A1AA',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
+          >
+            <ChevronLeft size={14}/>
+          </motion.button>
+          <motion.button
+            type="button"
+            aria-label="Next month"
+            whileHover={{scale:1.05,borderColor:'#3F3F46'}}
+            whileTap={{scale:0.94}}
+            onClick={()=>stepMonth(1)}
+            style={{width:30,height:30,borderRadius:8,background:'#131316',border:'1px solid #242428',color:'#A1A1AA',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
+          >
+            <ChevronRight size={14}/>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* 7-Column Grid */}
+      <div style={{overflowX:'auto'}}>
+        <div style={{minWidth:mob?620:'auto'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:6,marginBottom:6}}>
+            {WEEKDAYS.map(w=>(
+              <div key={w} style={{fontSize:11,fontWeight:500,color:'#71717A',textAlign:'center',padding:'4px 0'}}>
+                {w}
+              </div>
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${viewMonth.y}-${viewMonth.m}`}
+              initial={{opacity:0,y:4}}
+              animate={{opacity:1,y:0}}
+              exit={{opacity:0,y:-4}}
+              transition={{duration:0.15,ease:EASE_OUT}}
+              style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:6}}
+            >
+              {cells.map(cell=>{
+                const shoot=shootByDate[cell.iso];
+                const off=offByDate[cell.iso];
+                const list=shoot?dayScenes(shoot):[];
+                const tot=shoot?sumPg(list):0;
+                const isHeavy=Boolean(shoot&&anyPages&&tot>target*1.25);
+                const dayHasConflict=Boolean(shoot&&conflicts.some(c=>c.dayId===shoot.id));
+                const needsReview=isHeavy||dayHasConflict;
+                const primaryLoc=shoot?(shoot.location||(list[0]?sceneLoc(list[0]):'')||'Location TBC'):'';
+                const hasCS=Boolean(shoot&&(createdCallSheetIds.has(shoot.id)||shoot.call_time));
+                return(
+                  <div
+                    key={cell.iso}
+                    style={{
+                      minHeight:92,
+                      background:cell.inMonth?'#0F0F12':'#0B0B0D',
+                      border:shoot?'1px solid #26262C':'1px solid #18181C',
+                      borderRadius:9,
+                      padding:'7px 8px',
+                      display:'flex',
+                      flexDirection:'column',
+                      justifyContent:'flex-start',
+                    }}
+                  >
+                    <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:shoot?5:0}}>
+                      <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,fontWeight:cell.inMonth?500:400,color:cell.inMonth?'#A1A1AA':'#3F3F46'}}>
+                        {cell.dayNum}
+                      </span>
+                      {off&&!shoot&&(
+                        <span style={{fontSize:10,color:'#71717A',fontWeight:500}}>· Off</span>
+                      )}
+                    </div>
+
+                    {shoot&&(
+                      <motion.button
+                        type="button"
+                        whileHover={{y:-1,borderColor:'#3F3F46'}}
+                        whileTap={{scale:0.98}}
+                        onClick={()=>onSelectDay(shoot.id)}
+                        style={{
+                          width:'100%',
+                          textAlign:'left',
+                          background:'#151519',
+                          border:'1px solid #24242B',
+                          borderLeft:`2.5px solid ${needsReview?'#E06B52':list.length>0?'#52B07A':'#71717A'}`,
+                          borderRadius:6,
+                          padding:'6px 7px',
+                          cursor:'pointer',
+                          fontFamily:'Manrope,sans-serif',
+                          display:'flex',
+                          flexDirection:'column',
+                          gap:2,
+                        }}
+                      >
+                        <div style={{display:'flex',alignItems:'center',gap:5}}>
+                          <span style={{fontSize:11,fontWeight:700,color:T.cream}}>D{shootNo[shoot.id]}</span>
+                          {hasCS&&<FileText size={10} style={{color:'#52B07A',flexShrink:0}}/>}
+                        </div>
+                        <div style={{fontSize:10.5,color:'#A1A1AA',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {primaryLoc}
+                        </div>
+                        <div style={{fontSize:10,fontWeight:600,color:needsReview?'#E06B52':list.length>0?'#52B07A':'#71717A',marginTop:1}}>
+                          {list.length===0?'Empty':needsReview?'Needs review':'Ready'}
+                        </div>
+                      </motion.button>
+                    )}
+                  </div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPdf,onExportExcel}){
+  const mob=useIsMobile();
+  const[format,setFormat]=useState('pdf');
+  const[theme,setTheme]=useState('white');
+  const[exporting,setExporting]=useState(false);
+
+  useEffect(()=>{
+    if(!open)return;
+    setExporting(false);
+    const onKey=e=>{if(e.key==='Escape'&&!exporting)onClose();};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[open,exporting,onClose]);
+
+  const handleExport=async()=>{
+    if(exporting)return;
+    setExporting(true);
+    try{
+      if(format==='pdf')await onExportPdf?.(theme);
+      else await onExportExcel?.();
+      onClose();
+    }finally{
+      setExporting(false);
+    }
+  };
+
+  return(
+    <AnimatePresence>
+      {open&&(
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.18,ease:'easeOut'}}
+          onClick={()=>{if(!exporting)onClose();}}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:mob?12:20}}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Export schedule"
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.93,y:16,filter:'blur(4px)'}}
+            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
+            exit={{opacity:0,scale:0.95,y:10,filter:'blur(3px)'}}
+            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
+            style={{width:'100%',maxWidth:440,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+          >
+            {/* 1. Header */}
+            <div style={{padding:mob?'18px 18px 12px':'22px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Export schedule</h3>
+                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
+                  {shootDaysCount} shooting day{shootDaysCount===1?'':'s'}{statusLabel?` · ${statusLabel}`:''}
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={()=>{if(!exporting)onClose();}}
+                style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}
+              >
+                <X size={16}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:mob?'4px 18px 18px':'4px 24px 20px',display:'flex',flexDirection:'column',gap:10}}>
+              {/* 2. Format Selection Cards */}
+              <motion.button
+                type="button"
+                whileTap={{scale:0.99}}
+                onClick={()=>setFormat('pdf')}
+                style={{
+                  width:'100%',
+                  display:'flex',
+                  alignItems:'flex-start',
+                  gap:12,
+                  textAlign:'left',
+                  padding:'14px 16px',
+                  borderRadius:12,
+                  cursor:'pointer',
+                  background:format==='pdf'?'rgba(245,196,81,0.06)':'#131316',
+                  border:format==='pdf'?'1px solid rgba(245,196,81,0.65)':'1px solid #242428',
+                  fontFamily:'Manrope,sans-serif',
+                  transition:'border-color 0.15s ease, background 0.15s ease',
+                }}
+              >
+                <FileText size={18} strokeWidth={1.7} style={{color:format==='pdf'?T.cream:'#A1A1AA',flexShrink:0,marginTop:1}}/>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:13.5,fontWeight:600,color:T.cream}}>PDF stripboard</div>
+                  <div style={{fontSize:12,color:'#8E8E93',lineHeight:1.45,marginTop:3}}>
+                    Landscape, one block per shooting day, ready to print or share.
+                  </div>
+                </div>
+              </motion.button>
+
+              <motion.button
+                type="button"
+                whileTap={{scale:0.99}}
+                onClick={()=>setFormat('excel')}
+                style={{
+                  width:'100%',
+                  display:'flex',
+                  alignItems:'flex-start',
+                  gap:12,
+                  textAlign:'left',
+                  padding:'14px 16px',
+                  borderRadius:12,
+                  cursor:'pointer',
+                  background:format==='excel'?'rgba(245,196,81,0.06)':'#131316',
+                  border:format==='excel'?'1px solid rgba(245,196,81,0.65)':'1px solid #242428',
+                  fontFamily:'Manrope,sans-serif',
+                  transition:'border-color 0.15s ease, background 0.15s ease',
+                }}
+              >
+                <BarChart3 size={18} strokeWidth={1.7} style={{color:format==='excel'?T.cream:'#A1A1AA',flexShrink:0,marginTop:1}}/>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:13.5,fontWeight:600,color:T.cream}}>Excel</div>
+                  <div style={{fontSize:12,color:'#8E8E93',lineHeight:1.45,marginTop:3}}>
+                    Every scheduled scene in one sheet, with unscheduled scenes on a second sheet.
+                  </div>
+                </div>
+              </motion.button>
+
+              {/* 3. Report Theme Toggles */}
+              <div style={{marginTop:6}}>
+                <div style={{fontSize:12,fontWeight:500,color:'#D4D4D8',marginBottom:8}}>Report theme</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                  {[
+                    {id:'white',label:'white'},
+                    {id:'charcoal',label:'charcoal'},
+                  ].map(opt=>{
+                    const active=theme===opt.id;
+                    return(
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={()=>setTheme(opt.id)}
+                        style={{
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          gap:8,
+                          padding:'10px 12px',
+                          borderRadius:10,
+                          cursor:'pointer',
+                          background:active?'#141417':'#121215',
+                          border:active?'1px solid rgba(245,196,81,0.65)':'1px solid #242428',
+                          color:active?T.cream:'#8E8E93',
+                          fontSize:12.5,
+                          fontWeight:active?600:500,
+                          fontFamily:'Manrope,sans-serif',
+                          transition:'border-color 0.15s ease, color 0.15s ease',
+                        }}
+                      >
+                        <span style={{
+                          width:12,
+                          height:12,
+                          borderRadius:2.5,
+                          background:opt.id==='white'?'#FFFFFF':'transparent',
+                          border:opt.id==='white'?'1px solid rgba(255,255,255,0.6)':'1px solid #52525B',
+                          flexShrink:0,
+                        }}/>
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Footer */}
+            <div style={{padding:mob?'12px 18px 16px':'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10}}>
+              <button
+                type="button"
+                disabled={exporting}
+                onClick={()=>{if(!exporting)onClose();}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:exporting?'default':'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="button"
+                disabled={exporting}
+                whileHover={!exporting?{y:-1}:undefined}
+                whileTap={!exporting?{scale:0.98}:undefined}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                onClick={handleExport}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 20px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+              >
+                {exporting?'Exporting...':format==='pdf'?'Export PDF':'Export Excel'}
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onRemoveDay,onUpdateScene,isOwner}){
   const mob=useIsMobile();
-  const[ppd,setPpd]=useState('5');const[start,setStart]=useState(nextMonday);const[skipSun,setSkipSun]=useState(true);
-  const[showBuild,setShowBuild]=useState(false);const[openDay,setOpenDay]=useState(null);
-  const[guide,setGuide]=useState(()=>{try{return localStorage.getItem('nko_guide_schedule_v1')!=='1';}catch{return true;}});
-  const closeGuide=()=>{setGuide(false);try{localStorage.setItem('nko_guide_schedule_v1','1');}catch{}};
-  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  const[ppd,setPpd]=useState('5');
+  const[start,setStart]=useState(nextMonday);
+  const[skipSun,setSkipSun]=useState(true);
+  const[showBuild,setShowBuild]=useState(false);
+  const[showAddDay,setShowAddDay]=useState(false);
+  const[openDay,setOpenDay]=useState(null);
+  const[selectedDayId,setSelectedDayId]=useState(null);
+  const[viewTab,setViewTab]=useState('stripboard');
+  const[editMode,setEditMode]=useState(false);
+  const[callSheetModalOpen,setCallSheetModalOpen]=useState(false);
+  const[exportModalOpen,setExportModalOpen]=useState(false);
+  const[moreMenuOpen,setMoreMenuOpen]=useState(false);
+  const[createdCallSheetIds,setCreatedCallSheetIds]=useState(()=>{
+    try{
+      const raw=window.localStorage.getItem(`nko_callsheets_${project?.id||'none'}`);
+      return new Set(raw?JSON.parse(raw):[]);
+    }catch{return new Set();}
+  });
+  const moreRef=useRef(null);
+
+  useEffect(()=>{
+    if(!moreMenuOpen)return;
+    const onDown=e=>{
+      if(moreRef.current&&!moreRef.current.contains(e.target))setMoreMenuOpen(false);
+    };
+    const onKey=e=>{if(e.key==='Escape')setMoreMenuOpen(false);};
+    document.addEventListener('mousedown',onDown);
+    window.addEventListener('keydown',onKey);
+    return()=>{document.removeEventListener('mousedown',onDown);window.removeEventListener('keydown',onKey);};
+  },[moreMenuOpen]);
+
+  if(!project){
+    return(
+      <div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}>
+        <div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div>
+      </div>
+    );
+  }
+
   const sorted=sortScenes(scenes.map(normalizeScene));
   const castIdx=buildCastIndex(sorted,characters);
   const byId=Object.fromEntries(sorted.map(s=>[s.id,s]));
   const placed=new Set(days.flatMap(d=>d.scene_ids||[]));
+  const scheduledScenes=sorted.filter(s=>placed.has(s.id));
   const unscheduled=sorted.filter(s=>!placed.has(s.id));
   const shootDays=days.filter(d=>d.kind==='shoot');
+  const nonShootDays=days.filter(d=>d.kind!=='shoot');
   const noPages=sorted.filter(s=>!(s.pages8>0)).length;
   const anyPages=sorted.some(s=>s.pages8>0);
   const sumPg=list=>list.reduce((s,x)=>s+(Number(x.pages8)||0),0);
   const dayScenes=d=>(d.scene_ids||[]).map(id=>byId[id]).filter(Boolean);
-  const totalPages=sumPg(sorted),scheduledPages=sumPg(sorted.filter(s=>placed.has(s.id)));
+  const totalPages=sumPg(sorted);
   const shootNo={};let c0=0;days.forEach(d=>{if(d.kind==='shoot'){c0++;shootNo[d.id]=c0;}});
   const target=Math.round((parseFloat(ppd)||5)*8);
   const pg=e=>e>0?fmtPages8(e):'—';
+
+  // Derive real schedule conflicts strictly from existing days and scenes data
+  const conflicts=[];
+  shootDays.forEach(d=>{
+    const n=shootNo[d.id];
+    const list=dayScenes(d);
+    const tot=sumPg(list);
+    if(anyPages&&tot>target*1.25){
+      conflicts.push({
+        id:`heavy-${d.id}`,
+        title:`Day ${n} exceeds page target`,
+        detail:`${fmtPages8(tot)} pages scheduled on Day ${n}${d.date?` (${shortDate(d.date)})`:''} — target is ${ppd} pages/day.`,
+        dayId:d.id,
+      });
+    }
+    if(!d.date){
+      conflicts.push({
+        id:`nodate-${d.id}`,
+        title:`Day ${n} has no shoot date`,
+        detail:'Set a date in day details so call sheets and timelines stay accurate.',
+        dayId:d.id,
+      });
+    }
+  });
+  const sceneDayMap={};
+  shootDays.forEach(d=>(d.scene_ids||[]).forEach(id=>{
+    sceneDayMap[id]=sceneDayMap[id]||[];
+    sceneDayMap[id].push(shootNo[d.id]);
+  }));
+  Object.entries(sceneDayMap).forEach(([id,dayNums])=>{
+    if(dayNums.length>1&&byId[id]){
+      conflicts.push({
+        id:`dup-${id}`,
+        title:`Scene ${byId[id].sceneNumber} is scheduled on multiple days`,
+        detail:`Appears on Day ${dayNums.join(', Day ')}.`,
+      });
+    }
+  });
+
   const moveScene=async(sceneId,toDayId)=>{
     const jobs=[];
     for(const d of days){if((d.scene_ids||[]).includes(sceneId)&&d.id!==toDayId)jobs.push(onUpdateDay(d.id,{scene_ids:(d.scene_ids||[]).filter(x=>x!==sceneId)}));}
@@ -7901,136 +9409,842 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
     jobs.push(onAddDays([{kind:'shoot',date:last?addIsoDays(last.date,1):start,scene_ids:[sceneId]}]));
     await Promise.all(jobs);
   };
-  const shift=(d,sceneId,dir)=>{const a=[...(d.scene_ids||[])];const i=a.indexOf(sceneId),j=i+dir;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];onUpdateDay(d.id,{scene_ids:a});};
-  const shiftDay=async(d,dir)=>{const i=days.findIndex(x=>x.id===d.id),o=days[i+dir];if(!o)return;await onUpdateDay(d.id,{position:o.position});await onUpdateDay(o.id,{position:d.position});};
-  const addDay=kind=>{const last=[...days].reverse().find(d=>d.date);onAddDays([{kind,date:last?addIsoDays(last.date,1):start,title:kind==='off'?'DAY OFF':kind==='note'?'NOTE':'',scene_ids:[]}]);};
-  const build=async()=>{
-    if(!unscheduled.length){alert('Every scene is already on the schedule.');return;}
-    const plan=suggestDays({scenes:unscheduled,pagesPerDay:parseFloat(ppd)||5,startDate:start,skipSundays:skipSun});
-    if(await onAddDays(plan))setShowBuild(false);
+  const shift=(d,sceneId,dir)=>{
+    const a=[...(d.scene_ids||[])];
+    const i=a.indexOf(sceneId),j=i+dir;
+    if(i<0||j<0||j>=a.length)return;
+    [a[i],a[j]]=[a[j],a[i]];
+    onUpdateDay(d.id,{scene_ids:a});
+  };
+  const shiftDay=async(d,dir)=>{
+    const i=days.findIndex(x=>x.id===d.id),o=days[i+dir];
+    if(!o)return;
+    await onUpdateDay(d.id,{position:o.position});
+    await onUpdateDay(o.id,{position:d.position});
+  };
+  const addDay=kind=>{
+    const last=[...days].reverse().find(d=>d.date);
+    onAddDays([{kind,date:last?addIsoDays(last.date,1):start,title:kind==='off'?'DAY OFF':kind==='note'?'NOTE':'',scene_ids:[]}]);
   };
   const editPages=sc=>{
     const v=window.prompt(`Page length for scene ${sc.sceneNumber}, in eighths of a page.\n8/8 = one full page, 6/8 = three-quarters.\nExamples: 7/8, 2, 1 2/8`,sc.pages8>0?fmtPages8(sc.pages8):'');
-    if(v===null)return;const p=parsePages8(v);if(p===null){alert('Use a format like 7/8, 2 or 1 2/8.');return;}
+    if(v===null)return;
+    const p=parsePages8(v);
+    if(p===null){alert('Use a format like 7/8, 2 or 1 2/8.');return;}
     onUpdateScene(sc.id,{pages8:p,pages8Source:'manual'});
   };
   const exportSafely=fn=>{try{fn();}catch(e){alert(`Could not build the PDF: ${e.message}. Please screenshot this message and send it to us.`);}};
-  const mini={color:T.dim,fontSize:12,cursor:'pointer',background:'none',border:`1px solid ${T.line}`,borderRadius:5,padding:'2px 7px',fontFamily:'Manrope,sans-serif'};
-  const dateStyle={background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.3)',borderRadius:5,color:'#fff',fontSize:11,padding:'3px 5px',fontFamily:'Manrope,sans-serif'};
-  const barBtn={color:'#fff',fontSize:11,cursor:'pointer',background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.3)',borderRadius:5,padding:'3px 8px',fontFamily:'Manrope,sans-serif'};
-  const strip=(sc,d)=>{
-    const st=stripStyle(sc);const ids=(sc.cast||[]).map(n=>castIdx.idx[n]).filter(Boolean).sort((a,b)=>a-b);
-    const light=st.fg==='#111111';const edge=light?'rgba(0,0,0,.35)':'rgba(255,255,255,.45)';
-    return<div key={sc.id} style={{background:st.bg,color:st.fg,borderRadius:6,padding:'8px 10px',marginBottom:4,border:`1px solid ${light?'rgba(0,0,0,.3)':'rgba(0,0,0,.5)'}`,fontFamily:'Manrope,sans-serif'}}>
-      <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
-        <div style={{fontWeight:800,fontSize:13,minWidth:34,textAlign:'center'}}>{sc.sceneNumber}</div>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:12,wordBreak:'break-word'}}>{String(sc.intExt||'').toUpperCase()} {sceneLoc(sc)} — {todLabel(sc)}</div>
-          {sc.synopsis&&<div style={{fontSize:11,marginTop:1,opacity:.9}}>{sc.synopsis}</div>}
-          <div style={{fontSize:10,marginTop:3,opacity:.9}}>CAST: {ids.join(', ')||'—'}{bgText(sc)?`  ·  BG: ${bgText(sc)}`:''}</div>
-        </div>
-        {anyPages&&<button onClick={()=>editPages(sc)} title="Tap to change the page length" style={{color:st.fg,background:'none',border:`1px dashed ${edge}`,borderRadius:5,fontSize:11,fontWeight:700,padding:'2px 6px',cursor:'pointer',whiteSpace:'nowrap'}}>{sc.pages8>0?fmtPages8(sc.pages8):'+ pgs'}</button>}
-      </div>
-      <div style={{display:'flex',gap:6,marginTop:6,alignItems:'center',flexWrap:'wrap'}}>
-        {d&&<><button onClick={()=>shift(d,sc.id,-1)} style={{...mini,color:st.fg,borderColor:edge}}>↑</button><button onClick={()=>shift(d,sc.id,1)} style={{...mini,color:st.fg,borderColor:edge}}>↓</button></>}
-        <select value="" onChange={e=>{const v=e.target.value;if(v==='__none')moveScene(sc.id,null);else if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}} style={{fontSize:11,padding:'3px 6px',borderRadius:5,border:`1px solid ${edge}`,background:'rgba(255,255,255,.85)',color:'#111',fontFamily:'Manrope,sans-serif'}}>
-          <option value="">{d?'Move…':'Add to day…'}</option>
-          {d&&<option value="__none">Unschedule</option>}
-          {shootDays.filter(x=>!d||x.id!==d.id).map(x=><option key={x.id} value={x.id}>Day {shootNo[x.id]} · {shortDate(x.date)}</option>)}
-          <option value="__new">＋ New shoot day</option>
-        </select>
-      </div>
-    </div>;
+  const scrollToPanel=id=>{
+    const el=document.getElementById(id);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
   };
-  return(
-    <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Schedule — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Your scenes, laid out day by day. Page lengths are in eighths, and day totals add up from them.</div><div style={{marginTop:14}}><FS/></div></div>
-      {guide&&<ScheduleGuide onClose={closeGuide}/>}
-      {sorted.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:1.6}}>The schedule is built from your scenes.<br/>Run a script breakdown first (Breakdown tab), then come back here.</div></div>:<>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:16}}>
-        <StatCard label="Shoot days" value={shootDays.length} sub="scheduled"/>
-        {anyPages?<StatCard label="Pages scheduled" value={`${pg(scheduledPages)} / ${pg(totalPages)}`} sub="of the whole script" accent={scheduledPages===totalPages?T.sage:T.gold}/>:<StatCard label="Scenes scheduled" value={`${sorted.length-unscheduled.length} / ${sorted.length}`} sub="of your scenes" accent={unscheduled.length?T.gold:T.sage}/>}
-        <StatCard label="Not scheduled" value={unscheduled.length} sub={unscheduled.length===1?'scene':'scenes'} accent={unscheduled.length?T.coral:T.sage}/>
-      </div>
-      {noPages>0&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',lineHeight:1.6}}><span style={{flex:1,minWidth:200}}><b style={{color:T.cream}}>Page lengths are optional.</b> They are counted in eighths — 8/8 is one full page, 6/8 is three-quarters — and only make the day totals and ✨ Suggest more accurate. {noPages===sorted.length?'None are set, so each scene counts as 1 page.':`${noPages} scene${noPages!==1?'s are':' is'} missing one and count${noPages!==1?'':'s'} as 1 page.`}</span><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>
-        <Btn size="sm" onClick={()=>addDay('shoot')}>+ Shoot day</Btn>
-        <Btn size="sm" variant="outline" onClick={()=>addDay('off')}>+ Day off</Btn>
-        <Btn size="sm" variant="outline" onClick={()=>addDay('note')}>+ Note</Btn>
-        <Btn size="sm" variant="outline" onClick={()=>setShowBuild(!showBuild)}>✨ Suggest a schedule</Btn>
-        <Btn size="sm" variant="ghost" onClick={()=>(guide?closeGuide():setGuide(true))}>❓ How this works</Btn>
-        {isOwner&&shootDays.length>0&&<Btn size="sm" variant="outline" onClick={()=>exportSafely(()=>scheduleStripPDF(project,days,scenes,characters))}>📄 Export schedule (PDF)</Btn>}
-        {!isOwner&&shootDays.length>0&&<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>}
-      </div>
-      <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontFamily:'Manrope,sans-serif'}}>
-        <div style={{fontSize:11,color:T.dim,lineHeight:1.7,marginBottom:8}}><b style={{color:T.cream}}>Schedule export</b> — the whole shoot on paper, scene by scene and day by day, for you and the department heads. <b style={{color:T.cream}}>Call sheet</b> — one day's instructions for the crew: call time, location, scenes and cast.</div>
-        {shootDays.length===0?<div style={{fontSize:11,color:T.coral}}>You don't have a shoot day yet. Tap “+ Shoot day” or “✨ Suggest a schedule” and a call sheet button for each day will appear here.</div>
-        :isOwner?<div><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:5}}>Print a call sheet</div><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{shootDays.map(d=><button key={d.id} onClick={()=>exportSafely(()=>callSheetPDF(project,d,shootNo[d.id],shootDays.length,scenes,characters))} style={{...mini,color:T.cream}}>📄 Day {shootNo[d.id]} · {shortDate(d.date)}</button>)}</div><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'10px 0 5px'}}>Export the whole schedule</div><button onClick={()=>exportSafely(()=>scheduleStripPDF(project,days,scenes,characters))} style={{...mini,color:T.cream}}>📄 Export schedule (PDF) — every day, scene by scene</button></div>
-        :<div style={{fontSize:11,color:T.faint}}>Only the production admin can print call sheets and export the schedule.</div>}
-      </div>
-      {showBuild&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Suggest a schedule</div>
-        <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12,lineHeight:1.6}}>Scenes at the same location are kept together, day scenes before night scenes, and each day is filled up to your page target (a scene with no page length counts as 1 page). It only places scenes that aren't scheduled yet, and you can change anything afterwards.</div>
-        <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'1fr 1fr 1fr',gap:10,marginBottom:10}}>
-          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Pages per day</div><Inp type="number" min="1" step="0.5" value={ppd} onChange={e=>setPpd(e.target.value)}/></div>
-          <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>First shoot day</div><Inp type="date" value={start} onChange={e=>setStart(e.target.value)}/></div>
-          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',alignSelf:'end',paddingBottom:8}}><input type="checkbox" checked={skipSun} onChange={e=>setSkipSun(e.target.checked)}/> Sundays off</label>
+
+  const getAccentForScene=sc=>{
+    const tod=String(sc.dayNight||todLabel(sc)||'').toUpperCase();
+    if(tod.includes('NIGHT'))return{bar:'#4A90D9',tag:'#6BB0F5'};
+    if(tod.includes('DAWN')||tod.includes('DUSK')||tod.includes('EVENING'))return{bar:'#E08E45',tag:'#F5A623'};
+    return{bar:'#E5C158',tag:'#F5C451'};
+  };
+
+  const renderSceneCard=(sc,d)=>{
+    const acc=getAccentForScene(sc);
+    const ie=String(sc.intExt||'').toUpperCase()||'INT';
+    const tod=String(sc.dayNight||todLabel(sc)||'DAY').toUpperCase();
+    const loc=sceneLoc(sc)||'Location not set';
+    const castList=sc.cast||[];
+    const elemCount=(sc.props?.length||0)+(sc.vehicles?.length||0)+(sc.wardrobe?.length||0)+(sc.specialEquip?.length||0);
+    return(
+      <div
+        key={sc.id}
+        style={{
+          background:'#141417',
+          border:'1px solid #222227',
+          borderLeft:`3px solid ${acc.bar}`,
+          borderRadius:10,
+          padding:'11px 12px',
+          marginBottom:8,
+          fontFamily:'Manrope,sans-serif',
+        }}
+      >
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:5}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11.5,fontWeight:700,color:T.cream}}>{sc.sceneNumber||'—'}</span>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,fontWeight:600,color:acc.tag,whiteSpace:'nowrap'}}>{ie} · {tod}</span>
+          </div>
+          <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,fontWeight:600,color:'#D4D4D8',whiteSpace:'nowrap'}}>
+            {sc.pages8>0?fmtPages8(sc.pages8):'—'}
+          </span>
         </div>
-        <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={build}>Build {unscheduled.length} scene{unscheduled.length!==1?'s':''}</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowBuild(false)}>Cancel</Btn></div>
-      </div>}
-      {days.map((d,di)=>{
-        if(d.kind!=='shoot')return<div key={d.id} style={{background:d.kind==='off'?'#111':'#2a2a2a',border:`1px solid ${T.line}`,borderRadius:8,padding:'10px 12px',marginBottom:14,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-          <div style={{flex:1,minWidth:140}}><DayField value={d.title||''} placeholder={d.kind==='off'?'DAY OFF':'Note — e.g. Travel back to Lagos'} onSave={v=>onUpdateDay(d.id,{title:v})} style={{background:'transparent',fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}/></div>
-          <input type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})} style={dateStyle}/>
-          <button onClick={()=>shiftDay(d,-1)} style={mini}>↑</button><button onClick={()=>shiftDay(d,1)} style={mini}>↓</button>
-          <button onClick={()=>onRemoveDay(d.id)} style={{...mini,color:T.coral}}>✕</button>
-        </div>;
-        const n=shootNo[d.id],list=dayScenes(d),tot=sumPg(list),calls=d.cast_calls||{};
-        const names=[...new Set(list.flatMap(sc=>sc.cast||[]))].sort((a,b)=>(castIdx.idx[a]||999)-(castIdx.idx[b]||999));
-        const prevShoot=shootDays.filter(x=>shootNo[x.id]<n).pop();
-        const setTime=(k,v)=>onUpdateDay(d.id,{cast_calls:{...calls,[k]:v}});
-        const timeBox=(label,k)=><div key={k} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0}}>{label}</span><input type="time" value={calls[k]||''} onChange={e=>setTime(k,e.target.value)} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>;
-        const copyPrev=()=>{const keep=Object.fromEntries(Object.entries(prevShoot.cast_calls||{}).filter(([k])=>/^(dept|meal|info):/.test(k)));onUpdateDay(d.id,{call_time:prevShoot.call_time||d.call_time||'',location:d.location||prevShoot.location||'',cast_calls:{...calls,...keep}});};
-        return<div key={d.id} style={{marginBottom:18}}>
-          <div style={{background:'#5A2E0E',borderRadius:'8px 8px 0 0',padding:'10px 12px',display:'flex',flexWrap:'wrap',gap:8,alignItems:'center',justifyContent:'space-between'}}>
-            <div style={{color:'#fff',fontWeight:800,fontSize:13,fontFamily:'Manrope,sans-serif'}}>DAY {n} · {longDate(d.date)}</div>
-            <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-              <input type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})} style={dateStyle}/>
-              <button onClick={()=>shiftDay(d,-1)} style={barBtn}>↑</button><button onClick={()=>shiftDay(d,1)} style={barBtn}>↓</button>
-              <button onClick={()=>setOpenDay(openDay===d.id?null:d.id)} style={barBtn}>⚙ Details</button>
-              {isOwner&&<button onClick={()=>exportSafely(()=>callSheetPDF(project,d,n,shootDays.length,scenes,characters))} style={barBtn}>📄 Call sheet</button>}
-              <button onClick={()=>{if(!list.length||window.confirm(`Remove Day ${n}? Its ${list.length} scene${list.length!==1?'s':''} go back to "not scheduled".`))onRemoveDay(d.id);}} style={{...barBtn,color:'#ffb4a8'}}>✕</button>
+
+        <div style={{fontSize:11.5,fontWeight:600,color:T.cream,textTransform:'uppercase',lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+          {loc}
+        </div>
+        {sc.synopsis&&(
+          <div style={{fontSize:10.5,color:'#71717A',marginTop:3,lineHeight:1.35,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            {sc.synopsis}
+          </div>
+        )}
+
+        <div style={{display:'flex',alignItems:'center',gap:5,marginTop:7,fontSize:10.5,color:'#A1A1AA',overflow:'hidden'}}>
+          <Users size={11} style={{color:'#71717A',flexShrink:0}}/>
+          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            {castList.length>0?castList.join(' · '):'No cast listed'}
+          </span>
+        </div>
+
+        {(elemCount>0||bgText(sc))&&(
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:5,fontSize:10,color:'#71717A',flexWrap:'wrap'}}>
+            {elemCount>0&&<span>{elemCount} element{elemCount===1?'':'s'}</span>}
+            {bgText(sc)&&<span>BG: {bgText(sc)}</span>}
+          </div>
+        )}
+
+        {editMode&&(
+          <div style={{display:'flex',gap:5,marginTop:9,paddingTop:8,borderTop:'1px solid #1E1E24',alignItems:'center',flexWrap:'wrap'}}>
+            {d&&(
+              <>
+                <button type="button" onClick={()=>shift(d,sc.id,-1)} title="Move up" style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:11,padding:'2px 7px',cursor:'pointer'}}>↑</button>
+                <button type="button" onClick={()=>shift(d,sc.id,1)} title="Move down" style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:11,padding:'2px 7px',cursor:'pointer'}}>↓</button>
+              </>
+            )}
+            <button type="button" onClick={()=>editPages(sc)} style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:10.5,padding:'3px 7px',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace'}}>
+              {sc.pages8>0?fmtPages8(sc.pages8):'+ pgs'}
+            </button>
+            <select
+              aria-label={`Move scene ${sc.sceneNumber}`}
+              value=""
+              onChange={e=>{const v=e.target.value;if(v==='__none')moveScene(sc.id,null);else if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}}
+              style={{flex:1,minWidth:96,fontSize:10.5,padding:'3px 6px',borderRadius:6,border:'1px solid #2A2A30',background:'#141416',color:T.cream,fontFamily:'Manrope,sans-serif',colorScheme:'dark'}}
+            >
+              <option value="">{d?'Move…':'Assign day…'}</option>
+              {d&&<option value="__none">Unschedule</option>}
+              {shootDays.filter(x=>!d||x.id!==d.id).map(x=><option key={x.id} value={x.id}>Day {shootNo[x.id]} · {shortDate(x.date)}</option>)}
+              <option value="__new">+ New shoot day</option>
+            </select>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDayDetailsEditor=d=>{
+    const n=shootNo[d.id],list=dayScenes(d),calls=d.cast_calls||{};
+    const names=[...new Set(list.flatMap(sc=>sc.cast||[]))].sort((a,b)=>(castIdx.idx[a]||999)-(castIdx.idx[b]||999));
+    const prevShoot=shootDays.filter(x=>shootNo[x.id]<n).pop();
+    const setTime=(k,v)=>onUpdateDay(d.id,{cast_calls:{...calls,[k]:v}});
+    const copyPrev=()=>{
+      const keep=Object.fromEntries(Object.entries(prevShoot.cast_calls||{}).filter(([k])=>/^(dept|meal|info):/.test(k)));
+      onUpdateDay(d.id,{call_time:prevShoot.call_time||d.call_time||'',location:d.location||prevShoot.location||'',cast_calls:{...calls,...keep}});
+    };
+    return(
+      <div style={{background:'#101013',border:'1px solid #242429',borderRadius:10,padding:12,marginBottom:10,display:'flex',flexDirection:'column',gap:10,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+          <span style={{fontSize:11,fontWeight:700,color:T.cream}}>Day {n} details</span>
+          <div style={{display:'flex',gap:6}}>
+            <button type="button" onClick={()=>shiftDay(d,-1)} title="Move day earlier" style={{background:'#18181C',border:'1px solid #2A2A30',borderRadius:6,color:T.dim,fontSize:11,padding:'2px 7px',cursor:'pointer'}}>←</button>
+            <button type="button" onClick={()=>shiftDay(d,1)} title="Move day later" style={{background:'#18181C',border:'1px solid #2A2A30',borderRadius:6,color:T.dim,fontSize:11,padding:'2px 7px',cursor:'pointer'}}>→</button>
+            {isOwner&&(
+              <button type="button" onClick={()=>exportSafely(()=>callSheetPDF(project,d,n,shootDays.length,scenes,characters))} style={{background:'#18181C',border:'1px solid #2A2A30',borderRadius:6,color:T.cream,fontSize:10.5,padding:'2px 8px',cursor:'pointer'}}>Call sheet</button>
+            )}
+            <button type="button" onClick={()=>{if(!list.length||window.confirm(`Remove Day ${n}? Its ${list.length} scene${list.length!==1?'s':''} go back to unscheduled.`))onRemoveDay(d.id);}} style={{background:'rgba(224,107,82,0.12)',border:'1px solid rgba(224,107,82,0.35)',borderRadius:6,color:'#E06B52',fontSize:10.5,padding:'2px 7px',cursor:'pointer'}}>Remove</button>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <div>
+            <div style={{fontSize:10,color:'#71717A',marginBottom:4}}>Shoot date</div>
+            <Inp type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})}/>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:'#71717A',marginBottom:4}}>Crew call</div>
+            <Inp type="time" value={d.call_time||''} onChange={e=>onUpdateDay(d.id,{call_time:e.target.value})}/>
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:10,color:'#71717A',marginBottom:4}}>Location / address</div>
+          <DayField value={d.location||''} placeholder="e.g. Studio Lagos, Stage 2" onSave={v=>onUpdateDay(d.id,{location:v})}/>
+        </div>
+        <div>
+          <div style={{fontSize:10,color:'#71717A',marginBottom:4}}>Call sheet notes</div>
+          <DayField value={d.notes||''} placeholder="Anything the crew must know that day" onSave={v=>onUpdateDay(d.id,{notes:v})}/>
+        </div>
+        <div>
+          <div style={{fontSize:10,color:'#71717A',marginBottom:4}}>Nearest hospital</div>
+          <DayField value={calls['info:hospital']||''} placeholder="Name, address and phone" onSave={v=>setTime('info:hospital',v)}/>
+        </div>
+        <div>
+          <div style={{fontSize:10,color:'#71717A',marginBottom:4}}>Meals</div>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {MEALS.map(nm=>(
+              <div key={nm} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <span style={{fontSize:11,color:'#D4D4D8'}}>{nm}</span>
+                <input type="time" value={calls['meal:'+nm]||''} onChange={e=>setTime('meal:'+nm,e.target.value)} style={{background:'#141416',border:'1px solid #242428',borderRadius:6,color:T.cream,fontSize:11,padding:'3px 6px',colorScheme:'dark'}}/>
+              </div>
+            ))}
+          </div>
+        </div>
+        {prevShoot&&(
+          <button type="button" onClick={copyPrev} style={{background:'#16161A',border:'1px solid #26262C',borderRadius:8,color:T.cream,fontSize:11,padding:'6px 10px',cursor:'pointer',textAlign:'left'}}>
+            Copy call times, meals &amp; location from Day {shootNo[prevShoot.id]}
+          </button>
+        )}
+        {names.length>0&&(
+          <div>
+            <div style={{fontSize:10,color:'#71717A',marginBottom:5}}>Cast call times</div>
+            <div style={{display:'flex',flexDirection:'column',gap:5}}>
+              {names.map(nm=>(
+                <div key={nm} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
+                  <span style={{fontSize:11,color:'#D4D4D8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{castIdx.idx[nm]}. {nm}</span>
+                  <input type="time" value={calls[nm]||''} onChange={e=>onUpdateDay(d.id,{cast_calls:{...calls,[nm]:e.target.value}})} style={{background:'#141416',border:'1px solid #242428',borderRadius:6,color:T.cream,fontSize:11,padding:'3px 6px',colorScheme:'dark'}}/>
+                </div>
+              ))}
             </div>
           </div>
-          {openDay===d.id&&<div style={{background:T.panel,border:`1px solid ${T.line}`,borderTop:'none',padding:12,display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 2fr',gap:8}}>
-              <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Crew call</div><Inp type="time" value={d.call_time||''} onChange={e=>onUpdateDay(d.id,{call_time:e.target.value})}/></div>
-              <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Location (name and address) — leave blank to use the scene locations</div><DayField value={d.location||''} placeholder="e.g. Nnaji family house, 14 Okigwe Rd, Owerri" onSave={v=>onUpdateDay(d.id,{location:v})}/></div>
-            </div>
-            <div><div style={{fontSize:10,color:T.dim,marginBottom:3}}>Notes for the call sheet</div><DayField value={d.notes||''} placeholder="Anything the crew must know that day" onSave={v=>onUpdateDay(d.id,{notes:v})}/></div>
-            <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1fr',gap:10}}>
-              <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Art department call — they often leave before the rest of the crew. Shown on the call sheet only if you fill it in.</div>{timeBox('Art call','dept:Art')}</div>
-              <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Nearest hospital — name, address and phone. Recommended on every call sheet, for crew safety.</div><DayField value={calls['info:hospital']||''} placeholder="e.g. Federal Medical Centre, Owerri · 0801 234 5678" onSave={v=>setTime('info:hospital',v)}/></div>
-            </div>
-            <div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Meals</div><div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{MEALS.map(nm=>timeBox(nm,'meal:'+nm))}</div></div>
-            {prevShoot&&<div><button onClick={copyPrev} style={{...mini,color:T.cream}}>↧ Copy call times, meals, hospital and location from Day {shootNo[prevShoot.id]}</button></div>}
-            {names.length>0&&<div><div style={{fontSize:10,color:T.dim,marginBottom:5}}>Cast call times — blank means the crew call</div>
-              <div style={{display:'grid',gridTemplateColumns:mob?'1fr 1fr':'repeat(3,1fr)',gap:6}}>{names.map(nm=><div key={nm} style={{display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,color:T.cream,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{castIdx.idx[nm]}. {nm}</span><input type="time" value={calls[nm]||''} onChange={e=>onUpdateDay(d.id,{cast_calls:{...calls,[nm]:e.target.value}})} style={{...dateStyle,background:T.hi,border:`1px solid ${T.line}`,color:T.cream,width:92}}/></div>)}</div></div>}
-          </div>}
-          <div style={{background:'#1a1a1a',padding:'6px 6px 2px',border:`1px solid ${T.line}`,borderTop:'none'}}>
-            {list.length?list.map(sc=>strip(sc,d)):<div style={{color:T.dim,fontSize:12,padding:'12px 6px',fontFamily:'Manrope,sans-serif'}}>No scenes yet. Add some from "Not scheduled" below, or use ✨ Suggest a schedule.</div>}
+        )}
+      </div>
+    );
+  };
+
+  return(
+    <div style={{fontFamily:'Manrope,sans-serif'}}>
+      {/* Breadcrumb & Header */}
+      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?10:11,color:T.faint,marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
+        Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Schedule</span>
+      </div>
+
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:20}}>
+        <div style={{minWidth:0}}>
+          <h2 style={{margin:0,fontSize:mob?22:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Shooting Schedule</h2>
+          <div style={{fontSize:12.5,color:T.dim,marginTop:4}}>
+            Plan your shooting days, organise scenes and manage production timelines.
           </div>
-          <div style={{background:'#000',borderRadius:'0 0 8px 8px',color:'#fff',textAlign:'center',fontWeight:700,fontSize:12,padding:'9px 8px',fontFamily:'Manrope,sans-serif'}}>End Day # {n}{anyPages&&<> — Total pages: {pg(tot)}</>}{anyPages&&tot>target*1.25&&<span style={{color:'#ffb4a8',fontWeight:600}}>  ·  heavy day</span>}</div>
-        </div>;
-      })}
-      {days.length>0&&<div style={{textAlign:'center',color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',margin:'6px 0 18px'}}>{shootDays.length} shoot day{shootDays.length!==1?'s':''}{anyPages&&` · ${pg(scheduledPages)} pages scheduled`}</div>}
-      <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,margin:'8px 0 8px'}}>Not scheduled {unscheduled.length>0&&<span style={{color:T.coral,fontSize:13}}>({unscheduled.length})</span>}</div>
-      {unscheduled.length===0?<div style={{color:T.sage,fontSize:12,fontFamily:'Manrope,sans-serif'}}>✓ Every scene is on the schedule.</div>:unscheduled.map(sc=>strip(sc,null))}
-      <div style={{marginTop:22,background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',lineHeight:2}}>
-        <b style={{color:T.cream}}>Strip colours and how many of your scenes use each</b><br/>
-        {[['INT day','#FFFFFF','#111111'],['EXT day','#FFF35C','#111111'],['INT night','#0B9A2A','#FFFFFF'],['EXT night','#1F3BFF','#FFFFFF'],['Evening','#FF9933','#111111']].map(([l,bg,fg])=>{const c=sorted.filter(sc=>stripStyle(sc).bg===bg).length;return<span key={l} style={{background:bg,color:fg,padding:'2px 7px',borderRadius:3,marginRight:5,opacity:c?1:.35,whiteSpace:'nowrap'}}>{l} · {c}</span>;})}
-        <div style={{marginTop:4,lineHeight:1.6}}>A colour showing 0 means none of your scenes are that type. If that looks wrong, check the scene's INT/EXT and time of day on the Breakdown tab.</div>
-      </div></>}
+        </div>
+
+        {/* Header Action Buttons */}
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',width:mob?'100%':'auto'}}>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowBuild(o=>!o)}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 15px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 22px rgba(255,179,71,0.30), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+          >
+            <Sparkles size={14}/>
+            <span>Generate Schedule</span>
+          </motion.button>
+
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowAddDay(true)}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <Calendar size={14}/>
+            <span>Add Shoot Day</span>
+          </motion.button>
+
+          <motion.button
+            type="button"
+            disabled={!isOwner}
+            whileHover={isOwner?{y:-1}:undefined}
+            whileTap={isOwner?{scale:0.98}:undefined}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setCallSheetModalOpen(true)}
+            title={!isOwner?'Only the production admin can create call sheets':'Create Call Sheet'}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:isOwner?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <FileText size={14}/>
+            <span>Create Call Sheet</span>
+          </motion.button>
+
+          <motion.button
+            type="button"
+            disabled={!isOwner||shootDays.length===0}
+            whileHover={isOwner&&shootDays.length>0?{y:-1}:undefined}
+            whileTap={isOwner&&shootDays.length>0?{scale:0.98}:undefined}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setExportModalOpen(true)}
+            title={!isOwner?'Only the production admin can export':shootDays.length===0?'Add a shoot day first':'Export schedule'}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:isOwner&&shootDays.length>0?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <Download size={14}/>
+            <span>Export</span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* 5 Top Summary Cards */}
+      <div style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(5,minmax(0,1fr))',gap:12,marginBottom:20}}>
+        <div style={{background:'linear-gradient(180deg, #111113 0%, #0D0D0F 100%)',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px'}}>
+          <div style={{fontSize:11,color:'#8E8E93',fontWeight:500,marginBottom:8}}>Shooting days</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:T.cream}}>{shootDays.length}</div>
+        </div>
+
+        <div style={{background:'linear-gradient(180deg, #111113 0%, #0D0D0F 100%)',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px'}}>
+          <div style={{fontSize:11,color:'#8E8E93',fontWeight:500,marginBottom:8}}>Scheduled scenes</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:T.cream}}>{scheduledScenes.length}</div>
+        </div>
+
+        <div style={{background:'linear-gradient(180deg, #111113 0%, #0D0D0F 100%)',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px'}}>
+          <div style={{fontSize:11,color:'#8E8E93',fontWeight:500,marginBottom:8}}>Unscheduled scenes</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:unscheduled.length>0?'#F5C451':T.cream}}>{unscheduled.length}</div>
+          {unscheduled.length>0&&(
+            <button type="button" onClick={()=>scrollToPanel('unscheduled-scenes')} style={{marginTop:6,background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+              Review →
+            </button>
+          )}
+        </div>
+
+        <div style={{background:'linear-gradient(180deg, #111113 0%, #0D0D0F 100%)',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px'}}>
+          <div style={{fontSize:11,color:'#8E8E93',fontWeight:500,marginBottom:8}}>Script pages</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:T.cream}}>{totalPages>0?fmtPages8(totalPages):0}</div>
+        </div>
+
+        <div style={{background:'linear-gradient(180deg, #111113 0%, #0D0D0F 100%)',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',gridColumn:mob?'1 / -1':'auto'}}>
+          <div style={{fontSize:11,color:'#8E8E93',fontWeight:500,marginBottom:8}}>Conflicts</div>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:conflicts.length>0?'#F5C451':T.cream}}>{conflicts.length}</div>
+          {conflicts.length>0&&(
+            <button type="button" onClick={()=>scrollToPanel('schedule-conflicts')} style={{marginTop:6,background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+              Review →
+            </button>
+          )}
+        </div>
+      </div>
+
+      <ShootingDayDrawer
+        day={shootDays.find(d=>d.id===selectedDayId)||null}
+        dayNum={selectedDayId?shootNo[selectedDayId]:null}
+        scenesList={selectedDayId?dayScenes(shootDays.find(d=>d.id===selectedDayId)||{}):[]}
+        characters={characters}
+        conflicts={conflicts}
+        anyPages={anyPages}
+        target={target}
+        hasCallSheet={Boolean(selectedDayId&&(createdCallSheetIds.has(selectedDayId)||shootDays.find(d=>d.id===selectedDayId)?.call_time))}
+        isOwner={isOwner}
+        onClose={()=>setSelectedDayId(null)}
+        onCallSheet={d=>{
+          exportSafely(()=>callSheetPDF(project,d,shootNo[d.id],shootDays.length,scenes,characters));
+          setCreatedCallSheetIds(prev=>{
+            const next=new Set(prev);
+            next.add(d.id);
+            try{window.localStorage.setItem(`nko_callsheets_${project.id}`,JSON.stringify([...next]));}catch{}
+            return next;
+          });
+        }}
+      />
+      {/* Schedule Modals */}
+      <ExportScheduleModal
+        open={exportModalOpen}
+        onClose={()=>setExportModalOpen(false)}
+        shootDaysCount={shootDays.length}
+        statusLabel={shootDays.length===0?'Empty':conflicts.length>0?'Needs review':'Ready'}
+        onExportPdf={()=>exportSafely(()=>scheduleStripPDF(project,days,scenes,characters))}
+        onExportExcel={async()=>{
+          try{
+            const XLSX=await loadXLSX();
+            const wb=XLSX.utils.book_new();
+            const schedRows=[['Day','Date','Scene','Heading','INT/EXT','Day/Night','Location','Cast','Pages']];
+            shootDays.forEach(d=>{
+              dayScenes(d).forEach(sc=>{
+                schedRows.push([
+                  `Day ${shootNo[d.id]}`,
+                  d.date||'',
+                  sc.sceneNumber||'',
+                  sc.heading||'',
+                  sc.intExt||'',
+                  sc.dayNight||'',
+                  sceneLoc(sc)||'',
+                  (sc.cast||[]).join(', '),
+                  sc.pages8>0?fmtPages8(sc.pages8):'',
+                ]);
+              });
+            });
+            const unschedRows=[['Scene','Heading','INT/EXT','Day/Night','Location','Cast','Pages']];
+            unscheduled.forEach(sc=>{
+              unschedRows.push([
+                sc.sceneNumber||'',
+                sc.heading||'',
+                sc.intExt||'',
+                sc.dayNight||'',
+                sceneLoc(sc)||'',
+                (sc.cast||[]).join(', '),
+                sc.pages8>0?fmtPages8(sc.pages8):'',
+              ]);
+            });
+            XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(schedRows),'Scheduled');
+            XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(unschedRows),'Unscheduled');
+            XLSX.writeFile(wb,`${(project.name||'Schedule').replace(/[^a-z0-9]/gi,'_')}_Schedule.xlsx`);
+          }catch(e){
+            alert(`Could not export Excel: ${e.message}`);
+          }
+        }}
+      />
+      <CreateCallSheetModal
+        open={callSheetModalOpen}
+        onClose={()=>setCallSheetModalOpen(false)}
+        shootDays={shootDays}
+        shootNo={shootNo}
+        dayScenes={dayScenes}
+        sumPg={sumPg}
+        anyPages={anyPages}
+        pg={pg}
+        existingIds={createdCallSheetIds}
+        onSelectDay={d=>{
+          exportSafely(()=>callSheetPDF(project,d,shootNo[d.id],shootDays.length,scenes,characters));
+          setCreatedCallSheetIds(prev=>{
+            const next=new Set(prev);
+            next.add(d.id);
+            try{window.localStorage.setItem(`nko_callsheets_${project.id}`,JSON.stringify([...next]));}catch{}
+            return next;
+          });
+          setCallSheetModalOpen(false);
+        }}
+      />
+      <AddShootDayModal
+        open={showAddDay}
+        onClose={()=>setShowAddDay(false)}
+        defaultDate={(()=>{const last=[...days].reverse().find(d=>d.date);return last?addIsoDays(last.date,1):start;})()}
+        onAddShootDay={async({date,notes})=>{
+          await onAddDays([{kind:'shoot',date,title:'',notes,scene_ids:[]}]);
+        }}
+      />
+      <GenerateScheduleModal
+        open={showBuild}
+        onClose={()=>setShowBuild(false)}
+        sorted={sorted}
+        unscheduled={unscheduled}
+        castList={castIdx.list}
+        characters={characters}
+        ppd={ppd}
+        setPpd={setPpd}
+        start={start}
+        setStart={setStart}
+        skipSun={skipSun}
+        setSkipSun={setSkipSun}
+        onGenerate={async opts=>{
+          const plan=suggestDays({
+            scenes:opts.scenes,
+            pagesPerDay:opts.pagesPerDay,
+            startDate:opts.startDate,
+            skipSundays:opts.skipSundays,
+          });
+          // Apply custom rest days, excluded dates, and dailyStart to the generated plan
+          const restSet=new Set(opts.restDays||[]);
+          const exSet=new Set(opts.excludedDates||[]);
+          let curDate=opts.startDate||start;
+          const adjusted=plan.map(day=>{
+            if(day.kind!=='shoot')return day;
+            let guard=0;
+            while(guard<400){
+              const dow=new Date(`${curDate}T00:00:00`).getDay();
+              if(!restSet.has(dow)&&!exSet.has(curDate))break;
+              curDate=addIsoDays(curDate,1);
+              guard++;
+            }
+            const assigned=curDate;
+            curDate=addIsoDays(curDate,1);
+            return{...day,date:assigned,call_time:opts.dailyStart||day.call_time||''};
+          });
+          if(await onAddDays(adjusted))setShowBuild(false);
+        }}
+      />
+
+      {/* Toolbar: View Toggles, Status Indicator, Edit Schedule */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:16}}>
+        <div style={{display:'inline-flex',background:'#0E0E10',border:'1px solid #222226',borderRadius:10,padding:3,gap:2}}>
+          {[
+            {id:'stripboard',label:'Stripboard',Icon:LayoutGrid},
+            {id:'calendar',label:'Calendar',Icon:Calendar},
+            {id:'list',label:'List',Icon:List},
+          ].map(tab=>{
+            const active=viewTab===tab.id;
+            const TabIcon=tab.Icon;
+            return(
+              <button
+                key={tab.id}
+                type="button"
+                onClick={()=>setViewTab(tab.id)}
+                style={{
+                  display:'inline-flex',
+                  alignItems:'center',
+                  gap:6,
+                  padding:'6px 12px',
+                  borderRadius:7,
+                  border:active?'1px solid #2C2C32':'1px solid transparent',
+                  background:active?'#1B1B1F':'transparent',
+                  color:active?T.cream:'#8E8E93',
+                  fontSize:12,
+                  fontWeight:active?600:500,
+                  cursor:'pointer',
+                  fontFamily:'Manrope,sans-serif',
+                  transition:'all 0.14s ease',
+                }}
+              >
+                <TabIcon size={13}/>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <div style={{fontSize:11.5,color:'#71717A',display:'inline-flex',alignItems:'center',gap:6}}>
+            {shootDays.length>0?(
+              <>
+                <span style={{color:conflicts.length>0?'#F5C451':'#52B07A',fontWeight:600}}>
+                  {editMode?'Editing':conflicts.length>0?'Needs review':'Ready'}
+                </span>
+                <span>·</span>
+                <span>{shootDays.length} day{shootDays.length===1?'':'s'}</span>
+                <span>·</span>
+                <span>{scheduledScenes.length}/{sorted.length} scenes</span>
+              </>
+            ):(
+              <span>No shoot days yet</span>
+            )}
+          </div>
+
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            onClick={()=>setEditMode(e=>!e)}
+            style={{
+              background:editMode?'rgba(255,179,71,0.12)':'#111113',
+              border:editMode?'1px solid rgba(255,179,71,0.45)':'1px solid #26262B',
+              color:editMode?'#F5C451':'#E5E5E0',
+              borderRadius:9,
+              padding:'7px 13px',
+              fontSize:12,
+              fontWeight:600,
+              fontFamily:'Manrope,sans-serif',
+              cursor:'pointer',
+              display:'inline-flex',
+              alignItems:'center',
+              gap:6,
+            }}
+          >
+            <Pencil size={13}/>
+            <span>{editMode?'Done Editing':'Edit Schedule'}</span>
+          </motion.button>
+
+          <div ref={moreRef} style={{position:'relative'}}>
+            <button
+              type="button"
+              aria-label="More schedule options"
+              onClick={()=>setMoreMenuOpen(o=>!o)}
+              style={{width:34,height:34,background:'#111113',border:'1px solid #26262B',borderRadius:9,color:'#A1A1AA',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
+            >
+              <MoreHorizontal size={15}/>
+            </button>
+            <AnimatePresence>
+              {moreMenuOpen&&(
+                <motion.div
+                  initial={{opacity:0,y:-6,scale:0.96}}
+                  animate={{opacity:1,y:0,scale:1}}
+                  exit={{opacity:0,y:-6,scale:0.96}}
+                  transition={{duration:0.15,ease:EASE_OUT}}
+                  style={{position:'absolute',top:'calc(100% + 6px)',right:0,zIndex:50,minWidth:190,background:'#141416',border:'1px solid #26262A',borderRadius:12,padding:6,boxShadow:'0 20px 48px rgba(0,0,0,0.8)'}}
+                >
+                  <button type="button" onClick={()=>{setMoreMenuOpen(false);addDay('off');}} style={{width:'100%',textAlign:'left',background:'transparent',border:'none',borderRadius:8,padding:'8px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>+ Add Day Off</button>
+                  <button type="button" onClick={()=>{setMoreMenuOpen(false);addDay('note');}} style={{width:'100%',textAlign:'left',background:'transparent',border:'none',borderRadius:8,padding:'8px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>+ Add Note</button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Main View: Stripboard / Calendar / List */}
+      {sorted.length===0&&shootDays.length===0?(
+        <div style={{background:'#0E0E10',border:'1px solid #1E1E22',borderRadius:14,padding:'44px 24px',textAlign:'center',marginBottom:20}}>
+          <div style={{fontSize:15,fontWeight:600,color:T.cream,marginBottom:6}}>No scenes in your breakdown yet</div>
+          <div style={{fontSize:12.5,color:'#71717A',maxWidth:420,margin:'0 auto',lineHeight:1.55}}>
+            Add or upload scenes in the Breakdown tab first, then return here to generate and organize your shooting schedule.
+          </div>
+        </div>
+      ):viewTab==='stripboard'?(
+        shootDays.length===0?(
+          <div style={{background:'#0E0E10',border:'1px solid #1E1E22',borderRadius:14,padding:'40px 24px',textAlign:'center',marginBottom:20}}>
+            <div style={{fontSize:15,fontWeight:600,color:T.cream,marginBottom:6}}>No shoot days scheduled yet</div>
+            <div style={{fontSize:12.5,color:'#71717A',maxWidth:420,margin:'0 auto 16px',lineHeight:1.55}}>
+              Click &ldquo;Generate Schedule&rdquo; to auto-group your {unscheduled.length} scene{unscheduled.length===1?'':'s'}, or click &ldquo;Add Shoot Day&rdquo; to build manually.
+            </div>
+          </div>
+        ):(
+          <div style={{display:'flex',gap:14,overflowX:'auto',paddingBottom:10,alignItems:'flex-start',marginBottom:14}}>
+            {shootDays.map(d=>{
+              const n=shootNo[d.id];
+              const list=dayScenes(d);
+              const tot=sumPg(list);
+              const uniqueCast=[...new Set(list.flatMap(sc=>sc.cast||[]))];
+              const primaryLoc=d.location||(list[0]?sceneLoc(list[0]):'')||'Location not set';
+              const isHeavy=anyPages&&tot>target*1.25;
+              const isEmpty=list.length===0;
+              const badge=isEmpty
+                ?{label:'Empty',bg:'rgba(161,161,170,0.10)',border:'rgba(161,161,170,0.25)',color:'#A1A1AA'}
+                :isHeavy
+                ?{label:'Needs review',bg:'rgba(224,107,82,0.12)',border:'rgba(224,107,82,0.35)',color:'#E06B52'}
+                :{label:'Ready',bg:'rgba(82,176,122,0.12)',border:'rgba(82,176,122,0.35)',color:'#52B07A'};
+              const isExpanded=openDay===d.id;
+              return(
+                <div
+                  key={d.id}
+                  style={{
+                    width:mob?276:286,
+                    flexShrink:0,
+                    background:'#0E0E10',
+                    border:'1px solid #1E1E22',
+                    borderRadius:14,
+                    padding:'14px 13px 10px',
+                    boxShadow:'0 10px 28px rgba(0,0,0,0.4)',
+                  }}
+                >
+                  {/* Column Header */}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
+                    <button type="button" onClick={()=>setSelectedDayId(d.id)} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'baseline',gap:7,minWidth:0,textAlign:'left'}}>
+                      <span style={{fontSize:13,fontWeight:700,color:T.cream}}>Day {n}</span>
+                      <span style={{fontSize:11.5,color:'#71717A',whiteSpace:'nowrap'}}>{d.date?shortDate(d.date):'Date TBC'}</span>
+                    </button>
+                    <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+                      <span style={{fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:6,background:badge.bg,border:`1px solid ${badge.border}`,color:badge.color,whiteSpace:'nowrap'}}>
+                        {badge.label}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Toggle Day ${n} details`}
+                        onClick={()=>{if(editMode)setOpenDay(isExpanded?null:d.id);else setSelectedDayId(d.id);}}
+                        style={{background:'none',border:'none',color:'#8E8E93',cursor:'pointer',padding:2,display:'inline-flex',alignItems:'center'}}
+                      >
+                        <ChevronRight size={14} style={{transform:isExpanded?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.15s ease'}}/>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Location & Meta */}
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                    <span style={{width:6,height:6,borderRadius:'50%',background:isHeavy?'#E06B52':'#4A90D9',flexShrink:0}}/>
+                    <span style={{fontSize:11.5,fontWeight:500,color:'#D4D4D8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{primaryLoc}</span>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,fontSize:10.5,color:'#71717A',marginBottom:12,flexWrap:'wrap'}}>
+                    <span>{list.length} scene{list.length===1?'':'s'} · {anyPages?`${pg(tot)} pp`:'—'}</span>
+                    <span>·</span>
+                    <span>{uniqueCast.length} cast</span>
+                  </div>
+
+                  {isExpanded&&renderDayDetailsEditor(d)}
+
+                  {/* Scene Cards */}
+                  {list.length===0?(
+                    <div style={{border:'1px dashed #242429',borderRadius:10,padding:'18px 12px',textAlign:'center',fontSize:11.5,color:'#71717A',marginBottom:6}}>
+                      No scenes assigned to Day {n}.
+                    </div>
+                  ):(
+                    list.map(sc=>renderSceneCard(sc,d))
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      ):viewTab==='calendar'?(
+        <ScheduleCalendarView
+          days={days}
+          shootDays={shootDays}
+          shootNo={shootNo}
+          dayScenes={dayScenes}
+          sumPg={sumPg}
+          anyPages={anyPages}
+          target={target}
+          conflicts={conflicts}
+          createdCallSheetIds={createdCallSheetIds}
+          onSelectDay={id=>setSelectedDayId(id)}
+        />
+      ):(
+        /* List View */
+        <div style={{background:'#0E0E10',border:'1px solid #1E1E22',borderRadius:14,overflow:'hidden',marginBottom:18}}>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+              <thead>
+                <tr style={{borderBottom:'1px solid #1E1E22',color:'#71717A',fontSize:11,textAlign:'left'}}>
+                  <th style={{padding:'12px 14px',fontWeight:500}}>Day</th>
+                  <th style={{padding:'12px 12px',fontWeight:500}}>Scene</th>
+                  <th style={{padding:'12px 12px',fontWeight:500}}>Heading</th>
+                  <th style={{padding:'12px 12px',fontWeight:500}}>Location</th>
+                  <th style={{padding:'12px 12px',fontWeight:500}}>Cast</th>
+                  <th style={{padding:'12px 14px',fontWeight:500,textAlign:'right'}}>Pages</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scheduledScenes.length===0?(
+                  <tr>
+                    <td colSpan={6} style={{padding:'28px 16px',textAlign:'center',color:'#71717A'}}>No scenes scheduled yet.</td>
+                  </tr>
+                ):(
+                  shootDays.flatMap(d=>dayScenes(d).map(sc=>(
+                    <tr key={`${d.id}-${sc.id}`} style={{borderBottom:'1px solid #17171B'}}>
+                      <td style={{padding:'11px 14px',fontFamily:'IBM Plex Mono,monospace',fontSize:11.5,color:'#F5C451',whiteSpace:'nowrap'}}>Day {shootNo[d.id]} · {d.date?shortDate(d.date):'TBC'}</td>
+                      <td style={{padding:'11px 12px',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>{sc.sceneNumber}</td>
+                      <td style={{padding:'11px 12px',color:T.cream}}>{sc.heading||'—'}</td>
+                      <td style={{padding:'11px 12px',color:'#A1A1AA'}}>{sceneLoc(sc)||'—'}</td>
+                      <td style={{padding:'11px 12px',color:'#A1A1AA'}}>{(sc.cast||[]).join(', ')||'—'}</td>
+                      <td style={{padding:'11px 14px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:'#D4D4D8'}}>{sc.pages8>0?fmtPages8(sc.pages8):'—'}</td>
+                    </tr>
+                  )))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Non-shoot day notes / days off (if any exist) */}
+      {nonShootDays.length>0&&(
+        <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:14}}>
+          {nonShootDays.map(d=>(
+            <div key={d.id} style={{background:'#111114',border:'1px solid #1E1E22',borderRadius:10,padding:'9px 14px',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+              <span style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',color:d.kind==='off'?'#F5C451':'#8E8E93'}}>{d.kind==='off'?'Day off':'Note'}</span>
+              <div style={{flex:1,minWidth:140}}>
+                <DayField value={d.title||''} placeholder={d.kind==='off'?'DAY OFF':'Note'} onSave={v=>onUpdateDay(d.id,{title:v})} style={{background:'transparent',fontWeight:600}}/>
+              </div>
+              <input type="date" value={d.date||''} onChange={e=>onUpdateDay(d.id,{date:e.target.value})} style={{background:'#141416',border:'1px solid #242428',borderRadius:6,color:T.cream,fontSize:11,padding:'4px 8px',colorScheme:'dark'}}/>
+              <button type="button" onClick={()=>onRemoveDay(d.id)} style={{background:'none',border:'none',color:'#E06B52',cursor:'pointer',padding:4}} title="Remove"><Trash2 size={13}/></button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Subtle status helper line */}
+      <div style={{fontSize:11,color:'#71717A',marginBottom:16}}>
+        {editMode?'Editing enabled — reorder scenes, change page lengths, or move scenes between shoot days.':'Choose Edit Schedule to rearrange scenes or assign unscheduled scenes.'}
+      </div>
+
+      {/* Bottom 2-Column Panels: Unscheduled scenes & Schedule conflicts */}
+      <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.35fr) minmax(0, 1fr)',gap:16,alignItems:'start'}}>
+        {/* Unscheduled scenes */}
+        <div id="unscheduled-scenes" style={{background:'#0E0E10',border:'1px solid #1E1E22',borderRadius:14,padding:'18px 20px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,marginBottom:14}}>
+            <div>
+              <div style={{fontSize:14.5,fontWeight:600,color:T.cream}}>Unscheduled scenes</div>
+              <div style={{fontSize:11.5,color:'#71717A',marginTop:2}}>Edit the schedule to assign these scenes.</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:6,background:unscheduled.length>0?'rgba(224,107,82,0.14)':'#17171B',color:unscheduled.length>0?'#E06B52':'#71717A'}}>
+              {unscheduled.length}
+            </span>
+          </div>
+
+          {unscheduled.length===0?(
+            <div style={{padding:'24px 0',textAlign:'center',fontSize:12,color:'#71717A'}}>
+              {sorted.length===0?'No scenes in breakdown yet.':'Every scene is currently on the schedule.'}
+            </div>
+          ):(
+            <div style={{display:'flex',flexDirection:'column'}}>
+              {unscheduled.map((sc,idx)=>{
+                const loc=sceneLoc(sc);
+                const castText=(sc.cast||[]).join(', ');
+                return(
+                  <div
+                    key={sc.id}
+                    style={{
+                      display:'flex',
+                      alignItems:'flex-start',
+                      gap:10,
+                      padding:'11px 0',
+                      borderBottom:idx===unscheduled.length-1?'none':'1px solid #18181C',
+                    }}
+                  >
+                    <span style={{width:3,alignSelf:'stretch',borderRadius:2,background:'#E5A93C',flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8}}>
+                        <div style={{fontSize:12,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          <span style={{fontFamily:'IBM Plex Mono,monospace',marginRight:6}}>{sc.sceneNumber}</span>
+                          <span>{sc.heading||`${sc.intExt||'INT'}. ${loc||'UNTITLED'} - ${sc.dayNight||'DAY'}`}</span>
+                        </div>
+                        <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#D4D4D8',whiteSpace:'nowrap'}}>
+                          {sc.pages8>0?fmtPages8(sc.pages8):'—'}
+                        </span>
+                      </div>
+                      <div style={{fontSize:11,color:'#71717A',marginTop:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                        {loc||'No location set'}{castText?` · ${castText}`:''}
+                      </div>
+                      {!loc&&(
+                        <div style={{fontSize:10.5,color:'#C96D56',marginTop:2}}>
+                          Incomplete breakdown — missing location
+                        </div>
+                      )}
+                      {editMode&&(
+                        <div style={{marginTop:8}}>
+                          <select
+                            aria-label={`Assign scene ${sc.sceneNumber} to shoot day`}
+                            value=""
+                            onChange={e=>{const v=e.target.value;if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}}
+                            style={{fontSize:11,padding:'4px 8px',borderRadius:6,border:'1px solid #2A2A30',background:'#141416',color:T.cream,fontFamily:'Manrope,sans-serif',colorScheme:'dark'}}
+                          >
+                            <option value="">Assign to shoot day…</option>
+                            {shootDays.map(d=><option key={d.id} value={d.id}>Day {shootNo[d.id]} · {d.date?shortDate(d.date):'TBC'}</option>)}
+                            <option value="__new">+ New shoot day</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Schedule conflicts */}
+        <div id="schedule-conflicts" style={{background:'#0E0E10',border:'1px solid #1E1E22',borderRadius:14,padding:'18px 20px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,marginBottom:14}}>
+            <div>
+              <div style={{fontSize:14.5,fontWeight:600,color:T.cream}}>Schedule conflicts</div>
+              <div style={{fontSize:11.5,color:'#71717A',marginTop:2}}>Warnings to review. They won&apos;t block approval.</div>
+            </div>
+            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:6,background:conflicts.length>0?'rgba(245,196,81,0.14)':'#17171B',color:conflicts.length>0?'#F5C451':'#71717A'}}>
+              {conflicts.length}
+            </span>
+          </div>
+
+          {conflicts.length===0?(
+            <div style={{padding:'24px 0',textAlign:'center',fontSize:12,color:'#71717A'}}>
+              No schedule conflicts detected.
+            </div>
+          ):(
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {conflicts.map(cf=>(
+                <div key={cf.id} style={{background:'#141417',border:'1px solid #24242A',borderRadius:10,padding:'12px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:10,minWidth:0}}>
+                    <AlertTriangle size={15} style={{color:'#F5C451',flexShrink:0,marginTop:2}}/>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:T.cream}}>{cf.title}</div>
+                      <div style={{fontSize:11,color:'#71717A',marginTop:2,lineHeight:1.45}}>{cf.detail}</div>
+                    </div>
+                  </div>
+                  {cf.dayId&&(
+                    <button
+                      type="button"
+                      onClick={()=>{setViewTab('stripboard');setOpenDay(cf.dayId);}}
+                      style={{background:'#1B1B20',border:'1px solid #2A2A32',borderRadius:8,color:T.cream,fontSize:11,fontWeight:600,padding:'6px 11px',cursor:'pointer',flexShrink:0,fontFamily:'Manrope,sans-serif'}}
+                    >
+                      Review
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {noPages>0&&(
+            <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid #18181C',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+              <span style={{fontSize:11,color:'#71717A'}}>{noPages} scene{noPages===1?' is':'s are'} missing page lengths.</span>
+              <PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
