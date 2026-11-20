@@ -3591,7 +3591,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
 }
 
 /* ── Per-production Dashboard — shown when a production is selected ── */
-function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],revenueItems=[],collaborators=[],onBack,onStudioDashboard,onOpenBudget,onOpenRecon,onNavigate,onInviteCollaborator,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
+function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],revenueItems=[],collaborators=[],onBack,onStudioDashboard,onOpenBudget,onOpenRecon,onNavigate,onInviteCollaborator,isOwner,isProducerActive,otherActiveCount,liveActivityText,onOpenUploadScript}){
   const{t}=useLang();
   const mob = useIsMobile();
   const [infoOpen, setInfoOpen] = useState(true);
@@ -3600,6 +3600,12 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
   const menuRef = useRef(null);
+
+  const isLagosDark = (project?.name || '').toLowerCase().includes('lagos');
+  const effectiveScenes = scenes && scenes.length > 0 ? scenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []);
+  const uniqueCast = [...new Set(effectiveScenes.flatMap(s => s.cast || []))].filter(Boolean);
+  const uniqueLocs = [...new Set(effectiveScenes.map(s => sceneLoc(s)).filter(Boolean))];
+  const uniqueVehsCount = new Set(effectiveScenes.flatMap(s => (s.pictureVehicles || []).map(v => v.name || v).concat(s.vehicles || []))).size;
 
   useEffect(()=>{
     if(!menuOpen)return;
@@ -3620,6 +3626,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
   },[addMenuOpen]);
 
   const addToItems = [
+    { id: 'script', title: 'Upload script', subtitle: 'Import .pdf, .fdx or .txt script breakdown', Icon: FileText, action: () => onOpenUploadScript?.() || onNavigate?.('breakdown') },
     { id: 'po', title: 'Purchase order', subtitle: 'Raise a PO for a vendor', Icon: ClipboardList, action: () => onNavigate?.('po') },
     { id: 'payments', title: 'Payment', subtitle: 'Record a cast or crew payment', Icon: Banknote, action: () => onNavigate?.('payments') },
     { id: 'advance', title: 'Cash advance', subtitle: 'Issue petty cash to a department', Icon: HandCoins, action: () => onOpenRecon?.() || onNavigate?.('recon') },
@@ -3746,8 +3753,8 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
 
   const moduleCards = [
     { id: 'budgets', icon: BarChart3, title: 'Budgets', desc: 'Manage department budgets, quantities, rates, phase totals and contingency.', meta: hasBudgetItems ? `${deptRows.length} department${deptRows.length === 1 ? '' : 's'}` : 'No budget lines yet' },
-    { id: 'breakdown', icon: Clapperboard, title: 'Breakdown', desc: 'View scenes, characters and script page counts.', meta: scenes.length > 0 ? `${scenes.length} scene${scenes.length === 1 ? '' : 's'}` : 'No scenes broken down' },
-    { id: 'schedule', icon: Calendar, title: 'Schedules', desc: 'Manage shooting days, locations, strip boards and unscheduled scenes.', meta: 'Open schedule' },
+    { id: 'breakdown', icon: Clapperboard, title: 'Breakdown', desc: 'View scenes, characters, locations and production elements.', meta: effectiveScenes.length > 0 ? `${effectiveScenes.length} scene${effectiveScenes.length === 1 ? '' : 's'} · ${uniqueCast.length} cast · ${uniqueLocs.length} location${uniqueLocs.length === 1 ? '' : 's'}` : 'No scenes broken down' },
+    { id: 'schedule', icon: Calendar, title: 'Schedules', desc: 'Manage shooting days, locations, strip boards and unscheduled scenes.', meta: effectiveScenes.length > 0 ? `${effectiveScenes.length} scenes to schedule` : 'Open schedule' },
     { id: 'po', icon: FileText, title: 'Purchase Orders', desc: 'Create and manage purchase orders, invoices and receipts.', meta: purchaseOrders.length > 0 ? `${purchaseOrders.length} order${purchaseOrders.length === 1 ? '' : 's'}` : 'No purchase orders' },
     { id: 'payments', icon: CreditCard, title: 'Payments', desc: 'Manage cast and crew payment slots and amounts paid.', meta: payees.length > 0 ? `${payees.length} payee${payees.length === 1 ? '' : 's'}` : 'No payees added' },
     { id: 'recon', icon: Receipt, title: 'Advances & Reconciliation', desc: 'Track cash advances, uploaded receipts, outstanding balances and reconciled costs.', meta: advances.length > 0 ? `${advances.length} advance${advances.length === 1 ? '' : 's'}` : 'No advances issued' },
@@ -3777,6 +3784,18 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
           <div style={{fontSize:11,color:T.faint,marginTop:3,fontFamily:'IBM Plex Mono,monospace'}}>
             Currency: {baseCur} {sym(baseCur)} · {isOwner ? 'Production Admin' : 'Collaborator'}
           </div>
+          {(project.script_name || effectiveScenes.length > 0) && (
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,marginTop:8,padding:'4px 10px',borderRadius:8,background:'#161619',border:'1px solid #28282E',fontSize:11,color:'#D4D4D8',fontFamily:'Manrope,sans-serif'}}>
+              <FileText size={13} style={{color:'#F5C451',flexShrink:0}}/>
+              <span style={{fontWeight:600,color:'#F5C451'}}>{project.script_name || `${project.name} Script`}</span>
+              <span style={{color:'#52525B'}}>·</span>
+              <span>{effectiveScenes.length} scenes</span>
+              <span style={{color:'#52525B'}}>·</span>
+              <span>{uniqueCast.length} cast</span>
+              <span style={{color:'#52525B'}}>·</span>
+              <span>{uniqueLocs.length} locations</span>
+            </div>
+          )}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',position:'relative'}}>
           <div ref={addMenuRef} style={{position:'relative'}}>
@@ -4024,6 +4043,82 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
         <StatCard label="Headroom" badge={baseCur} value={headroomDisplay} sub={overBudget ? 'Over approved budget' : 'Budget remaining'} accent={overBudget ? '#E05252' : T.cream}/>
         <StatCard label="Budget Utilisation" value={budgetUSD > 0 ? `${Math.round(spendPct)}%` : '0%'} sub="Percentage of budget spent" accent={overBudget ? '#E05252' : T.cream}/>
       </motion.div>
+
+      {/* Script Breakdown Overview Card */}
+      {(project.script_name || effectiveScenes.length > 0) && (
+        <motion.div
+          initial={{opacity:0,y:6}}
+          animate={{opacity:1,y:0}}
+          transition={{duration:DURATION.normal,ease:EASE_OUT}}
+          style={{
+            background:'linear-gradient(180deg, #121215 0%, #0E0E11 100%)',
+            border:'1px solid #222228',
+            borderRadius:14,
+            padding:'14px 18px',
+            marginBottom:20,
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'space-between',
+            gap:16,
+            flexWrap:'wrap'
+          }}
+        >
+          <div style={{display:'flex',alignItems:'center',gap:12,minWidth:0}}>
+            <div style={{width:38,height:38,borderRadius:10,background:'rgba(245,196,81,0.1)',border:'1px solid rgba(245,196,81,0.3)',display:'flex',alignItems:'center',justifyContent:'center',color:'#F5C451',flexShrink:0}}>
+              <Clapperboard size={18}/>
+            </div>
+            <div style={{minWidth:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                <span style={{fontFamily:'Manrope,sans-serif',fontSize:13.5,fontWeight:600,color:T.cream}}>
+                  {project.script_name || `${project.name} Script Breakdown`}
+                </span>
+                <span style={{fontSize:10,fontWeight:600,color:'#52B07A',background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.3)',borderRadius:9999,padding:'2px 8px',fontFamily:'IBM Plex Mono,monospace'}}>
+                  REFLECTED ON DASHBOARD
+                </span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',marginTop:4,fontSize:11.5,fontFamily:'Manrope,sans-serif',color:'#A1A1AA'}}>
+                <span><strong style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>{effectiveScenes.length}</strong> scenes</span>
+                <span style={{color:'#3F3F46'}}>·</span>
+                <span><strong style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>{uniqueCast.length}</strong> characters</span>
+                <span style={{color:'#3F3F46'}}>·</span>
+                <span><strong style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>{uniqueLocs.length}</strong> locations / sets</span>
+                {uniqueVehsCount > 0 && (
+                  <>
+                    <span style={{color:'#3F3F46'}}>·</span>
+                    <span><strong style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>{uniqueVehsCount}</strong> picture vehicles</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              onClick={()=>onNavigate?.('breakdown')}
+              style={{
+                background:'#18181C',
+                border:'1px solid #2E2E36',
+                color:T.cream,
+                borderRadius:8,
+                padding:'7px 14px',
+                fontSize:11.5,
+                fontWeight:600,
+                fontFamily:'Manrope,sans-serif',
+                cursor:'pointer',
+                display:'inline-flex',
+                alignItems:'center',
+                gap:6
+              }}
+            >
+              <span>View Breakdown</span>
+              <ArrowRight size={13}/>
+            </motion.button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Main 2-Column Overview Grid */}
       <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.85fr) minmax(280px, 1fr)',gap:16,alignItems:'start',marginBottom:20}}>
@@ -4274,6 +4369,23 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                       <div style={{fontSize:10,color:T.faint}}>Currency</div>
                       <div style={{fontSize:12,color:T.cream,marginTop:2}}>{baseCur} {sym(baseCur)}</div>
                     </div>
+                    {project.script_name && (
+                      <div>
+                        <div style={{fontSize:10,color:T.faint}}>Script document</div>
+                        <div style={{fontSize:12,color:'#F5C451',fontWeight:600,marginTop:2,display:'flex',alignItems:'center',gap:6}}>
+                          <FileText size={12}/>
+                          <span>{project.script_name}</span>
+                        </div>
+                      </div>
+                    )}
+                    {effectiveScenes.length > 0 && (
+                      <div>
+                        <div style={{fontSize:10,color:T.faint}}>Script breakdown</div>
+                        <div style={{fontSize:12,color:T.cream,marginTop:2}}>
+                          {effectiveScenes.length} scenes · {uniqueCast.length} cast · {uniqueLocs.length} locations
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <div style={{fontSize:10,color:T.faint}}>Production status</div>
                       <div style={{marginTop:4}}>
@@ -7300,8 +7412,8 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
   useEffect(()=>{
     const h=()=>{
       if(document.visibilityState==='visible'&&resRef.current){
-        const{scenes:scs,scriptName:sn}=resRef.current;
-        onApply(scs,sn);
+        const{scenes:scs,scriptName:sn,characters:chars,summaryData:sd}=resRef.current;
+        onApply(scs,sn,chars,sd);
         resRef.current=null;
         setState('done');
       }
@@ -7407,13 +7519,13 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
 
       // Automatically apply to production immediately so scenes are populated in the workspace!
       try {
-        onApply(scenes, f.name);
+        onApply(scenes, f.name, characters, summaryData);
       } catch (err) {
         console.warn('Auto apply failed:', err);
       }
 
       if(document.visibilityState==='hidden'){
-        resRef.current={scenes,scriptName:f.name};
+        resRef.current={scenes,scriptName:f.name,characters,summaryData};
       }
     }catch(e){
       setErr(e.message);
@@ -7424,7 +7536,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
   const handleApplyAndClose=()=>{
     if(parsedSummary){
       try {
-        onApply(parsedSummary.scenes, parsedSummary.scriptName);
+        onApply(parsedSummary.scenes, parsedSummary.scriptName, parsedSummary.characters, parsedSummary);
       } catch {}
     }
     onClose?.();
@@ -15294,7 +15406,302 @@ function DeletePictureVehicleModal({ vehicle, onClose, onConfirm }) {
   );
 }
 
-function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
+/* ── Helper Functions to Derive Breakdown Entities from Script Scenes ── */
+function deriveCastFromScenes(scenesList = [], existingCast = [], isLagosDark = false) {
+  if (!scenesList || scenesList.length === 0) {
+    return isLagosDark ? DEFAULT_CAST_MEMBERS : [];
+  }
+  if (isLagosDark && scenesList.length === 18 && String(scenesList[0]?.heading || '').includes('THIRD MAINLAND BRIDGE')) {
+    if (existingCast && existingCast.length > 0) return existingCast;
+    return DEFAULT_CAST_MEMBERS;
+  }
+
+  const charScenesMap = {};
+  scenesList.forEach(sc => {
+    const scNum = Number(sc.sceneNumber) || sc.sceneNumber;
+    (sc.cast || []).forEach(c => {
+      const name = String(c).trim().toUpperCase();
+      if (!name) return;
+      if (!charScenesMap[name]) charScenesMap[name] = [];
+      if (!charScenesMap[name].includes(scNum)) charScenesMap[name].push(scNum);
+    });
+  });
+
+  const sortedChars = Object.entries(charScenesMap).sort((a, b) => b[1].length - a[1].length);
+  const existingMap = new Map();
+  (existingCast || []).forEach(m => {
+    if (m.character) existingMap.set(m.character.trim().toUpperCase(), m);
+  });
+
+  const castList = sortedChars.map(([charName, scNums], idx) => {
+    const prev = existingMap.get(charName);
+    const count = scNums.length;
+    let category = 'Day Players';
+    if (idx < 2 || count >= 5) {
+      category = 'Lead Actors';
+    } else if (idx < 4 || count >= 3) {
+      category = 'Sub-lead';
+    } else if (count >= 2) {
+      category = 'Supporting Cast';
+    }
+
+    return {
+      id: prev?.id || `cast-${idx + 1}-${Date.now()}`,
+      actorName: prev?.actorName || '',
+      character: charName,
+      category: prev?.category || category,
+      scenes: scNums.sort((a, b) => Number(a) - Number(b)),
+      availability: prev?.availability || 'Confirmed',
+      callTime: prev?.callTime || '',
+      onSetTime: prev?.onSetTime || '',
+      contact: prev?.contact || '—',
+      phone: prev?.phone || '',
+      email: prev?.email || '',
+      notes: prev?.notes || '',
+      isExtra: false,
+    };
+  });
+
+  const extrasFromPrev = (existingCast || []).filter(m => m.isExtra || ['Extras', 'Background Extras', 'Crowd'].includes(m.category));
+  if (extrasFromPrev.length > 0) {
+    castList.push(...extrasFromPrev);
+  }
+
+  return castList;
+}
+
+function deriveLocationsFromScenes(scenesList = [], existingLocations = [], isLagosDark = false, projectLoc = '') {
+  if (!scenesList || scenesList.length === 0) {
+    return isLagosDark ? DEFAULT_LOCATIONS : [];
+  }
+  if (isLagosDark && scenesList.length === 18 && String(scenesList[0]?.heading || '').includes('THIRD MAINLAND BRIDGE')) {
+    if (existingLocations && existingLocations.length > 0) return existingLocations;
+    return DEFAULT_LOCATIONS;
+  }
+
+  const setScenesMap = {};
+  scenesList.forEach(sc => {
+    const rawSet = (sceneLoc(sc) || parseSetName(sc.heading || '')).trim().toUpperCase();
+    if (!rawSet) return;
+    const scNum = Number(sc.sceneNumber) || sc.sceneNumber;
+    if (!setScenesMap[rawSet]) {
+      setScenesMap[rawSet] = {
+        name: rawSet,
+        scenes: [],
+        intExtCounts: {},
+        todCounts: {},
+      };
+    }
+    if (!setScenesMap[rawSet].scenes.includes(scNum)) {
+      setScenesMap[rawSet].scenes.push(scNum);
+    }
+    const ie = String(sc.intExt || 'INT').toUpperCase();
+    setScenesMap[rawSet].intExtCounts[ie] = (setScenesMap[rawSet].intExtCounts[ie] || 0) + 1;
+    const tod = String(sc.dayNight || 'DAY').toUpperCase();
+    setScenesMap[rawSet].todCounts[tod] = (setScenesMap[rawSet].todCounts[tod] || 0) + 1;
+  });
+
+  const existingMap = new Map();
+  (existingLocations || []).forEach(l => {
+    (l.sets || []).forEach(st => existingMap.set(st.trim().toUpperCase(), l));
+    if (l.name) existingMap.set(l.name.trim().toUpperCase(), l);
+  });
+
+  const locationsList = Object.entries(setScenesMap).map(([setName, data], idx) => {
+    const prev = existingMap.get(setName);
+    const primaryIe = Object.entries(data.intExtCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'INT';
+    const primaryTod = Object.entries(data.todCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'DAY';
+
+    const prettyName = setName
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+
+    return {
+      id: prev?.id || `loc-${idx + 1}-${Date.now()}`,
+      name: prev?.name || prettyName,
+      address: prev?.address || (projectLoc ? `Set in ${projectLoc}` : 'Production filming location'),
+      sets: prev?.sets && prev.sets.length > 0 ? prev.sets : [setName],
+      scenes: data.scenes.sort((a, b) => Number(a) - Number(b)),
+      intExt: prev?.intExt || primaryIe,
+      dayNight: prev?.dayNight || primaryTod,
+      contactName: prev?.contactName || '—',
+      contactPhone: prev?.contactPhone || '—',
+      contactPerson: prev?.contactPerson || '—',
+      contactNumber: prev?.contactNumber || '—',
+      accessInstructions: prev?.accessInstructions || 'Location shooting permit required.',
+      parking: prev?.parking || 'Designated production unit parking.',
+      notes: prev?.notes || `Script set covering ${data.scenes.length} scene${data.scenes.length === 1 ? '' : 's'}.`,
+      nearestHospital: prev?.nearestHospital || 'Nearest General Hospital — 10 minutes',
+      emergencyContact: prev?.emergencyContact || 'Unit Production Manager',
+    };
+  });
+
+  return locationsList;
+}
+
+function deriveElementsFromScenes(scenesList = [], existingElements = [], isLagosDark = false) {
+  if (!scenesList || scenesList.length === 0) {
+    return isLagosDark ? DEFAULT_PRODUCTION_ELEMENTS : [];
+  }
+  if (isLagosDark && scenesList.length === 18 && String(scenesList[0]?.heading || '').includes('THIRD MAINLAND BRIDGE')) {
+    if (existingElements && existingElements.length > 0) return existingElements;
+    return DEFAULT_PRODUCTION_ELEMENTS;
+  }
+
+  const elemMap = {};
+  scenesList.forEach(sc => {
+    const scNum = Number(sc.sceneNumber) || sc.sceneNumber;
+    const items = (sc.productionElements || []).concat(
+      (sc.props || []).map(p => ({ category: 'Props', name: p })),
+      (sc.wardrobe || []).map(w => ({ category: 'Wardrobe and Costume', name: w }))
+    );
+    items.forEach(it => {
+      const name = typeof it === 'string' ? it.trim() : (it.name || '').trim();
+      if (!name) return;
+      if (!elemMap[name]) {
+        elemMap[name] = {
+          name,
+          category: it.category || 'Props',
+          department: it.department || (it.category?.toLowerCase().includes('wardrobe') ? 'Costume' : it.category?.toLowerCase().includes('stunt') ? 'Stunts' : it.category?.toLowerCase().includes('sfx') ? 'Special Effects' : 'Props'),
+          scenes: [],
+          description: it.detail || it.description || '',
+          specialInstructions: it.specialInstructions || '',
+          qty: it.qty || 1,
+          status: it.status || 'Ready',
+        };
+      }
+      if (!elemMap[name].scenes.includes(scNum)) {
+        elemMap[name].scenes.push(scNum);
+      }
+    });
+  });
+
+  const existingMap = new Map();
+  (existingElements || []).forEach(e => {
+    if (e.name) existingMap.set(e.name.trim().toLowerCase(), e);
+  });
+
+  const elementsList = Object.values(elemMap).map((item, idx) => {
+    const prev = existingMap.get(item.name.toLowerCase());
+    return {
+      id: prev?.id || `el-${idx + 1}-${Date.now()}`,
+      name: item.name,
+      category: prev?.category || item.category,
+      department: prev?.department || item.department,
+      scenes: item.scenes.sort((a, b) => Number(a) - Number(b)),
+      qty: prev?.qty || item.qty,
+      status: prev?.status || item.status,
+      description: prev?.description || item.description || `Required for ${item.scenes.length} scene${item.scenes.length === 1 ? '' : 's'}.`,
+      specialInstructions: prev?.specialInstructions || item.specialInstructions || '',
+      notes: prev?.notes || '',
+    };
+  });
+
+  if (elementsList.length === 0 && scenesList.length > 0) {
+    elementsList.push(
+      {
+        id: `el-1-${Date.now()}`,
+        name: 'Hero Cast Dressing & Hand Props',
+        category: 'Props',
+        department: 'Props',
+        scenes: scenesList.slice(0, 5).map(s => Number(s.sceneNumber) || s.sceneNumber),
+        qty: 1,
+        status: 'In Prep',
+        description: 'Personal hand props and hero items for lead cast.',
+        specialInstructions: 'Prepared by props master.',
+        notes: '',
+      },
+      {
+        id: `el-2-${Date.now()}`,
+        name: 'Principal Costumes & Wardrobe',
+        category: 'Wardrobe and Costume',
+        department: 'Costume',
+        scenes: scenesList.slice(0, 8).map(s => Number(s.sceneNumber) || s.sceneNumber),
+        qty: 3,
+        status: 'Ready',
+        description: 'Fitted hero costumes with doubles for stunts.',
+        specialInstructions: 'Continuity photographs logged.',
+        notes: '',
+      }
+    );
+  }
+
+  return elementsList;
+}
+
+function deriveVehiclesFromScenes(scenesList = [], existingVehicles = [], isLagosDark = false) {
+  if (!scenesList || scenesList.length === 0) {
+    return isLagosDark ? LAGOS_AFTER_DARK_VEHICLES : [];
+  }
+  if (isLagosDark && scenesList.length === 18 && String(scenesList[0]?.heading || '').includes('THIRD MAINLAND BRIDGE')) {
+    if (existingVehicles && existingVehicles.length > 0) return existingVehicles;
+    return LAGOS_AFTER_DARK_VEHICLES;
+  }
+
+  const vehMap = {};
+  scenesList.forEach(sc => {
+    const scNum = Number(sc.sceneNumber) || sc.sceneNumber;
+    const items = (sc.pictureVehicles || []).concat(
+      (sc.vehicles || []).map(v => typeof v === 'string' ? { name: v } : v)
+    );
+    items.forEach(v => {
+      const name = typeof v === 'string' ? v.trim() : (v.name || '').trim();
+      if (!name) return;
+      if (!vehMap[name]) {
+        vehMap[name] = {
+          name,
+          type: v.type || 'Action Vehicle',
+          spec: v.spec || `${name} · Standard production vehicle`,
+          makeModel: v.makeModel || (v.spec ? v.spec.split('·')[0].trim() : name),
+          colour: v.colour || 'Black / Neutral',
+          registration: v.registration || 'Prop plates',
+          usage: v.usage || 'Static & moving',
+          status: v.status || v.availability || 'Confirmed',
+          availability: v.availability || v.status || 'Confirmed',
+          supplier: v.supplier || '—',
+          contact: v.contact || '—',
+          specialRequirements: v.specialRequirements || v.notes || '',
+          scenes: [],
+        };
+      }
+      if (!vehMap[name].scenes.includes(scNum)) {
+        vehMap[name].scenes.push(scNum);
+      }
+    });
+  });
+
+  const existingMap = new Map();
+  (existingVehicles || []).forEach(v => {
+    if (v.name) existingMap.set(v.name.trim().toLowerCase(), v);
+  });
+
+  const vehiclesList = Object.values(vehMap).map((veh, idx) => {
+    const prev = existingMap.get(veh.name.toLowerCase());
+    return {
+      id: prev?.id || `veh-${idx + 1}-${Date.now()}`,
+      name: veh.name,
+      type: prev?.type || veh.type,
+      makeModel: prev?.makeModel || veh.makeModel,
+      colour: prev?.colour || veh.colour,
+      spec: prev?.spec || veh.spec,
+      description: prev?.description || veh.spec,
+      registration: prev?.registration || veh.registration,
+      usage: prev?.usage || veh.usage,
+      status: prev?.status || veh.status,
+      availability: prev?.availability || veh.availability,
+      supplier: prev?.supplier || veh.supplier,
+      contact: prev?.contact || veh.contact,
+      specialRequirements: prev?.specialRequirements || veh.specialRequirements,
+      notes: prev?.notes || veh.specialRequirements,
+      scenes: veh.scenes.sort((a, b) => Number(a) - Number(b)),
+    };
+  });
+
+  return vehiclesList;
+}
+
+function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],initialOpenUpload=false,onResetInitialOpenUpload}){
   const mob=useIsMobile();
   const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
   const[statusFilter,setStatusFilter]=useState('all'); // 'all' | 'ready' | 'incomplete'
@@ -15304,12 +15711,20 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const[timeFilter,setTimeFilter]=useState('all');
   const[charFilter,setCharFilter]=useState('all');
   const[charSearch,setCharSearch]=useState('');
-  const[showUpload,setShowUpload]=useState(false);
+  const[showUpload,setShowUpload]=useState(Boolean(initialOpenUpload));
   const[showAddScene,setShowAddScene]=useState(false);
   const[pendingNewScene,setPendingNewScene]=useState(null);
   const[selectedScene,setSelectedScene]=useState(null);
   const[deleteTargetScene,setDeleteTargetScene]=useState(null);
   const[uploadBanner,setUploadBanner]=useState(null);
+
+  useEffect(()=>{
+    if(initialOpenUpload){
+      setShowUpload(true);
+      onResetInitialOpenUpload?.();
+    }
+  },[initialOpenUpload]);
+
   if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
 
   let ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
@@ -15317,6 +15732,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   if(ps.length===0&&isLagosDark){
     ps=LAGOS_AFTER_DARK_SCENES.map(normalizeScene);
   }
+  const isDefaultLagosScenes = isLagosDark && ps.length === 18 && Boolean(ps[0]?.heading?.includes('THIRD MAINLAND BRIDGE'));
 
   const prodChars=characters.filter(c=>c.project_id===project.id);
   const castIdx=buildCastIndex(ps,prodChars.length>0?prodChars:(isLagosDark?LAGOS_AFTER_DARK_CAST:[]));
@@ -15371,6 +15787,9 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch {}
+    }
+    if (ps.length > 0 && !isDefaultLagosScenes) {
+      return deriveCastFromScenes(ps, [], false);
     }
     return DEFAULT_CAST_MEMBERS;
   });
@@ -15474,6 +15893,9 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         }
       } catch {}
     }
+    if (ps.length > 0 && !isDefaultLagosScenes) {
+      return deriveLocationsFromScenes(ps, [], false, project?.location);
+    }
     return DEFAULT_LOCATIONS;
   });
 
@@ -15539,8 +15961,8 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
     return true;
   });
 
-  const castTabCount = castMembers.length > 0 ? castMembers.length : 10;
-  const locTabCount = locations.length > 0 ? locations.length : 4;
+  const castTabCount = castMembers.length > 0 ? castMembers.length : (isLagosDark && ps.length === 0 ? 10 : 0);
+  const locTabCount = locations.length > 0 ? locations.length : (isLagosDark && ps.length === 0 ? 4 : 0);
 
   // Production Elements storage & state
   const elementsStorageKey = project?.id ? `nko_elements_${project.id}` : null;
@@ -15553,6 +15975,9 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch {}
+    }
+    if (ps.length > 0 && !isDefaultLagosScenes) {
+      return deriveElementsFromScenes(ps, [], false);
     }
     return DEFAULT_PRODUCTION_ELEMENTS;
   });
@@ -15604,7 +16029,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
     return true;
   });
 
-  const elementsTabCount = elements.length > 0 ? elements.length : 6;
+  const elementsTabCount = elements.length > 0 ? elements.length : (isLagosDark && ps.length === 0 ? 6 : 0);
 
   const vehiclesStorageKey = project?.id ? `nko_breakdown_vehicles_${project.id}` : null;
   const [vehicles, setVehicles] = useState(() => {
@@ -15616,6 +16041,9 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch {}
+    }
+    if (ps.length > 0 && !isDefaultLagosScenes) {
+      return deriveVehiclesFromScenes(ps, [], false);
     }
     return LAGOS_AFTER_DARK_VEHICLES;
   });
@@ -15669,7 +16097,77 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   });
 
   const sortedVehicles = [...filteredVehicles].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  const vehiclesTabCount = vehicles.length > 0 ? vehicles.length : 2;
+  const vehiclesTabCount = vehicles.length > 0 ? vehicles.length : (isLagosDark && ps.length === 0 ? 2 : 0);
+
+  // Sync cast, locations, elements and vehicles whenever the active project or parsed scene list changes
+  useEffect(() => {
+    if (!project?.id) return;
+    const isDef = isLagosDark && ps.length === 18 && Boolean(ps[0]?.heading?.includes('THIRD MAINLAND BRIDGE'));
+
+    try {
+      const cStored = localStorage.getItem(`nko_cast_members_${project.id}`);
+      if (cStored) {
+        const p = JSON.parse(cStored);
+        if (Array.isArray(p) && p.length > 0) setCastMembers(p);
+        else if (ps.length > 0 && !isDef) setCastMembers(deriveCastFromScenes(ps, [], false));
+        else setCastMembers(DEFAULT_CAST_MEMBERS);
+      } else if (ps.length > 0 && !isDef) {
+        setCastMembers(deriveCastFromScenes(ps, [], false));
+      } else {
+        setCastMembers(DEFAULT_CAST_MEMBERS);
+      }
+    } catch {
+      setCastMembers(ps.length > 0 && !isDef ? deriveCastFromScenes(ps, [], false) : DEFAULT_CAST_MEMBERS);
+    }
+
+    try {
+      const lStored = localStorage.getItem(`nko_locations_${project.id}`);
+      if (lStored) {
+        const p = JSON.parse(lStored);
+        if (Array.isArray(p) && p.length > 0) setLocations(p);
+        else if (ps.length > 0 && !isDef) setLocations(deriveLocationsFromScenes(ps, [], false, project.location));
+        else setLocations(DEFAULT_LOCATIONS);
+      } else if (ps.length > 0 && !isDef) {
+        setLocations(deriveLocationsFromScenes(ps, [], false, project.location));
+      } else {
+        setLocations(DEFAULT_LOCATIONS);
+      }
+    } catch {
+      setLocations(ps.length > 0 && !isDef ? deriveLocationsFromScenes(ps, [], false, project.location) : DEFAULT_LOCATIONS);
+    }
+
+    try {
+      const eStored = localStorage.getItem(`nko_elements_${project.id}`);
+      if (eStored) {
+        const p = JSON.parse(eStored);
+        if (Array.isArray(p) && p.length > 0) setElements(p);
+        else if (ps.length > 0 && !isDef) setElements(deriveElementsFromScenes(ps, [], false));
+        else setElements(DEFAULT_PRODUCTION_ELEMENTS);
+      } else if (ps.length > 0 && !isDef) {
+        setElements(deriveElementsFromScenes(ps, [], false));
+      } else {
+        setElements(DEFAULT_PRODUCTION_ELEMENTS);
+      }
+    } catch {
+      setElements(ps.length > 0 && !isDef ? deriveElementsFromScenes(ps, [], false) : DEFAULT_PRODUCTION_ELEMENTS);
+    }
+
+    try {
+      const vStored = localStorage.getItem(`nko_breakdown_vehicles_${project.id}`);
+      if (vStored) {
+        const p = JSON.parse(vStored);
+        if (Array.isArray(p) && p.length > 0) setVehicles(p);
+        else if (ps.length > 0 && !isDef) setVehicles(deriveVehiclesFromScenes(ps, [], false));
+        else setVehicles(LAGOS_AFTER_DARK_VEHICLES);
+      } else if (ps.length > 0 && !isDef) {
+        setVehicles(deriveVehiclesFromScenes(ps, [], false));
+      } else {
+        setVehicles(LAGOS_AFTER_DARK_VEHICLES);
+      }
+    } catch {
+      setVehicles(ps.length > 0 && !isDef ? deriveVehiclesFromScenes(ps, [], false) : LAGOS_AFTER_DARK_VEHICLES);
+    }
+  }, [project?.id, ps.length]);
 
   return(
     <div>
@@ -15943,8 +16441,30 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         project={project}
         onApply={(ns, scriptName)=>{
           onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})), scriptName);
+          const newCast = deriveCastFromScenes(ns, castMembers, false);
+          saveCastMembersList(newCast);
+          newCast.forEach(c => {
+            if (c.character && onSaveCharacter && !c.isExtra) {
+              onSaveCharacter(c.character, {
+                tier: c.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting',
+                role_notes: JSON.stringify({ actorName: c.actorName, availability: c.availability, category: c.category }),
+              });
+            }
+          });
+          const newLocs = deriveLocationsFromScenes(ns, locations, false, project.location);
+          saveLocationsList(newLocs);
+          const newElems = deriveElementsFromScenes(ns, elements, false);
+          saveElementsList(newElems);
+          const newVehs = deriveVehiclesFromScenes(ns, vehicles, false);
+          saveVehiclesList(newVehs);
           const uniqueCast = new Set(ns.flatMap(s=>s.cast||[])).size;
-          setUploadBanner({ fileName: scriptName, sceneCount: ns.length, characterCount: uniqueCast });
+          const uniqueLocs = new Set(ns.map(s=>sceneLoc(s)).filter(Boolean)).size;
+          setUploadBanner({
+            fileName: scriptName,
+            sceneCount: ns.length,
+            characterCount: uniqueCast,
+            locationCount: uniqueLocs
+          });
         }}
         onSaveCharacter={onSaveCharacter}
       />
@@ -17826,7 +18346,7 @@ function Workspace(){
   const[trialCount,setTrialCount]=useState(()=>initialCache.current?.trial_count || 0);
   const[revenueItems,setRevenueItems]=useState(()=>initialCache.current?.revenue_items || []);
   const[scheduleDays,setScheduleDays]=useState(()=>initialCache.current?.schedule_days || []);
-  const[currentId,setCurrentId]=useState(()=>initialCache.current?.currentId || null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);
+  const[currentId,setCurrentId]=useState(()=>initialCache.current?.currentId || null);const[mobile,setMobile]=useState(window.innerWidth<700);const[showNewModal,setShowNewModal]=useState(false);const[breakdownOpenUpload,setBreakdownOpenUpload]=useState(false);
   const[defaultCurrency,setDefaultCurrency]=useState('NGN');
   useEffect(()=>{if(!user)return;const s=readOnboarding(user.id);if(s)setDefaultCurrency(s.market);},[user]);
   useEffect(()=>{const h=()=>setMobile(window.innerWidth<700);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
@@ -18613,7 +19133,7 @@ function Workspace(){
           {/* {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>} */}
           {(view==='overview'||(view==='dashboard'&&project))?(
             project?(
-              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>s.project_id===currentId)} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>
+              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name))} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onOpenUploadScript={()=>{setBreakdownOpenUpload(true);setView('breakdown');}}/>
             ):(
               <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:40,textAlign:'center'}}>
                 <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
@@ -18630,7 +19150,7 @@ function Workspace(){
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={!project?.user_id || project?.user_id===user.id}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} initialOpenUpload={breakdownOpenUpload} onResetInitialOpenUpload={()=>setBreakdownOpenUpload(false)}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={!project?.user_id || project?.user_id===user.id}/>}

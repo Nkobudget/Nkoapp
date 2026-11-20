@@ -267,3 +267,39 @@ test('script breakdown picture vehicles tab layout and modals parity', async () 
   assert.match(fileContent, /function DeletePictureVehicleModal/);
   assert.match(fileContent, /Remove picture vehicle\?/);
 });
+
+test('script upload reflects scenes, cast, locations, elements, and vehicles across breakdown and dashboard', async () => {
+  const fileContent = fs.readFileSync(path.resolve('src/legacy/LegacyApp.jsx'), 'utf8');
+
+  // Verify derivation functions exist
+  assert.match(fileContent, /function deriveCastFromScenes/);
+  assert.match(fileContent, /function deriveLocationsFromScenes/);
+  assert.match(fileContent, /function deriveElementsFromScenes/);
+  assert.match(fileContent, /function deriveVehiclesFromScenes/);
+
+  // Verify cast derivation categorizes into Lead, Sub-lead, Supporting, Day Players
+  assert.match(fileContent, /'Lead Actors'/);
+  assert.match(fileContent, /'Sub-lead'/);
+  assert.match(fileContent, /'Supporting Cast'/);
+  assert.match(fileContent, /'Day Players'/);
+
+  // Verify BreakdownView initialOpenUpload & state sync effect
+  assert.match(fileContent, /initialOpenUpload/);
+  assert.match(fileContent, /nko_cast_members_/);
+  assert.match(fileContent, /nko_locations_/);
+  assert.match(fileContent, /nko_elements_/);
+  assert.match(fileContent, /nko_breakdown_vehicles_/);
+
+  // Verify BreakdownUploader onApply updates scenes, cast, locations, elements, vehicles
+  assert.match(fileContent, /saveCastMembersList\(newCast\)/);
+  assert.match(fileContent, /saveLocationsList\(newLocs\)/);
+  assert.match(fileContent, /saveElementsList\(newElems\)/);
+  assert.match(fileContent, /saveVehiclesList\(newVehs\)/);
+
+  // Verify ProductionDashboardView reflects script breakdown
+  assert.match(fileContent, /REFLECTED ON DASHBOARD/);
+  assert.match(fileContent, /Upload script/);
+  assert.match(fileContent, /effectiveScenes\.length/);
+  assert.match(fileContent, /uniqueCast\.length/);
+  assert.match(fileContent, /uniqueLocs\.length/);
+});
