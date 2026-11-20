@@ -302,4 +302,9 @@ test('script upload reflects scenes, cast, locations, elements, and vehicles acr
   assert.match(fileContent, /effectiveScenes\.length/);
   assert.match(fileContent, /uniqueCast\.length/);
   assert.match(fileContent, /uniqueLocs\.length/);
+
+  // Verify BudgetsView contains Upload Script button with BreakdownUploader
+  assert.match(fileContent, /function BudgetsView/);
+  assert.match(fileContent, /<Upload size=\{14\}[\s\S]*?<span>Upload Script<\/span>/);
+  assert.match(fileContent, /<BreakdownUploader[\s\S]*?open=\{showUpload\}[\s\S]*?project=\{project\}/);
 });

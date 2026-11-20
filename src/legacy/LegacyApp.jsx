@@ -5785,12 +5785,14 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
   );
 }
 
-function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrders=[],onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText}){
+function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrders=[],onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText,onAddScenes}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);
   const[showExport,setShowExport]=useState(false);
   const[showTools,setShowTools]=useState(false);
   const[showAddBar,setShowAddBar]=useState(false);
+  const[showUpload,setShowUpload]=useState(false);
+  const[uploadBanner,setUploadBanner]=useState(null);
   const[phaseFilter,setPhaseFilter]=useState('all');
   const[editingId,setEditingId]=useState(null);
   const[editDraft,setEditDraft]=useState({description:'',qty:1,unit:'flat',rate:0});
@@ -5928,6 +5930,12 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
           <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
             Manage, export and budget each production.
           </div>
+          {(project.script_name || uploadBanner) && (
+            <div style={{display:'inline-flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:6}}>
+              <FileText size={12} style={{color:'#F5C451'}}/>
+              <span>From <span style={{color:uploadBanner?'#F5C451':'#D4D4D8',fontWeight:uploadBanner?600:500}}>{uploadBanner?.fileName || project.script_name}</span></span>
+            </div>
+          )}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <motion.button
@@ -5935,8 +5943,19 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             whileHover={{y:-1}}
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
+            onClick={()=>setShowUpload(o=>!o)}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:mob?'11px 12px':'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+          >
+            <Upload size={14}/>
+            <span>Upload Script</span>
+          </motion.button>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowAddBar(o=>!o)}
-            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
           >
             <Plus size={14}/>
             <span>Add Budget Line</span>
@@ -5947,7 +5966,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowTpl(o=>!o)}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
           >
             <Layers size={14}/>
             <span>{tr('templates')}</span>
@@ -5958,7 +5977,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowExport(true)}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
           >
             <Download size={13}/>
             <span>Export</span>
@@ -5976,6 +5995,106 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
           </motion.button>
         </div>
       </div>
+
+      {/* Upload Success Banner */}
+      {uploadBanner&&(
+        <motion.div
+          initial={{opacity:0,y:-8}}
+          animate={{opacity:1,y:0}}
+          style={{
+            background:'linear-gradient(90deg, rgba(82,176,122,0.14) 0%, rgba(245,196,81,0.08) 100%)',
+            border:'1px solid rgba(82,176,122,0.4)',
+            borderRadius:12,
+            padding:'12px 18px',
+            marginBottom:16,
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'space-between',
+            gap:12,
+            boxShadow:'0 4px 16px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:28,height:28,borderRadius:8,background:'rgba(82,176,122,0.2)',display:'flex',alignItems:'center',justifyContent:'center',color:'#4CAF7A',flexShrink:0}}>
+              <CheckCircle2 size={16} strokeWidth={2.4}/>
+            </div>
+            <div>
+              <div style={{color:'#F0E8D0',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif'}}>
+                Script &ldquo;{uploadBanner.fileName}&rdquo; uploaded &amp; broken down successfully!
+              </div>
+              <div style={{color:'#A1A1AA',fontSize:11,marginTop:1,fontFamily:'Manrope,sans-serif'}}>
+                {uploadBanner.sceneCount} scenes and {uploadBanner.characterCount} speaking characters generated and ready to schedule.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={()=>setUploadBanner(null)}
+            style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center'}}
+            aria-label="Dismiss banner"
+          >
+            <X size={15}/>
+          </button>
+        </motion.div>
+      )}
+
+      <BreakdownUploader
+        open={showUpload}
+        onClose={()=>setShowUpload(false)}
+        project={project}
+        onApply={(ns, scriptName)=>{
+          if (onAddScenes) {
+            onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})), scriptName);
+          }
+          const newCast = deriveCastFromScenes(ns, [], false);
+          try { localStorage.setItem(`nko_cast_members_${project.id}`, JSON.stringify(newCast)); } catch {}
+          newCast.forEach(c => {
+            if (c.character && onSaveCharacter && !c.isExtra) {
+              onSaveCharacter(c.character, {
+                tier: c.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting',
+                role_notes: JSON.stringify({ actorName: c.actorName, availability: c.availability, category: c.category }),
+              });
+            }
+          });
+          const newLocs = deriveLocationsFromScenes(ns, [], false, project.location);
+          try { localStorage.setItem(`nko_locations_${project.id}`, JSON.stringify(newLocs)); } catch {}
+          const newElems = deriveElementsFromScenes(ns, [], false);
+          try { localStorage.setItem(`nko_elements_${project.id}`, JSON.stringify(newElems)); } catch {}
+          const newVehs = deriveVehiclesFromScenes(ns, [], false);
+          try { localStorage.setItem(`nko_breakdown_vehicles_${project.id}`, JSON.stringify(newVehs)); } catch {}
+          const uniqueCast = new Set(ns.flatMap(s=>s.cast||[])).size;
+          const uniqueLocs = new Set(ns.map(s=>sceneLoc(s)).filter(Boolean)).size;
+          setUploadBanner({
+            fileName: scriptName,
+            sceneCount: ns.length,
+            characterCount: uniqueCast,
+            locationCount: uniqueLocs
+          });
+
+          // Generate structured budget lines if project currently has no budget lines
+          if (onApplyScript && (!pItems || pItems.length === 0)) {
+            const sceneCount = Math.max(1, ns.length);
+            const targetBudget = Number(project.target_budget) || 30000000;
+            const shootDays = Math.max(1, Math.min(60, Math.ceil(sceneCount / 2)));
+            const budgetLines = [
+              {dept:'Above the line',category:'Above the line',description:'Director & Screenwriter Fees',qty:1,rate:Math.round(targetBudget*0.12),currency:project.base_currency},
+              {dept:'Production crew',category:'Production crew',description:`Key Crew & Department Heads (${shootDays} days)`,qty:shootDays,rate:Math.round((targetBudget*0.20)/shootDays),currency:project.base_currency},
+              {dept:'Talent & cast',category:'Talent & cast',description:`Principal Cast & Supporting Talent (${uniqueCast||6} roles)`,qty:Math.max(1,uniqueCast||6),rate:Math.round((targetBudget*0.08)/Math.max(1,uniqueCast||6)),currency:project.base_currency},
+              {dept:'Camera',category:'Camera',description:`Cinema Camera Package & Lenses (${shootDays} days)`,qty:shootDays,rate:Math.round((targetBudget*0.09)/shootDays),currency:project.base_currency},
+              {dept:'Lighting & grip',category:'Lighting & grip',description:`Grip, Electric & Lighting Rig (${shootDays} days)`,qty:shootDays,rate:Math.round((targetBudget*0.07)/shootDays),currency:project.base_currency},
+              {dept:'Art department',category:'Art department',description:'Set Dressing, Hero Props & Construction',qty:1,rate:Math.round(targetBudget*0.06),currency:project.base_currency},
+              {dept:'Wardrobe & makeup',category:'Wardrobe & makeup',description:'Costumes, SFX Makeup & Styling',qty:1,rate:Math.round(targetBudget*0.04),currency:project.base_currency},
+              {dept:'Locations & permits',category:'Locations & permits',description:'Location Fees, Permits & Security',qty:Math.max(1,uniqueLocs||3),rate:Math.round((targetBudget*0.08)/Math.max(1,uniqueLocs||3)),currency:project.base_currency},
+              {dept:'Transport & logistics',category:'Transport & logistics',description:'Production Vehicles & Fuel',qty:shootDays,rate:Math.round((targetBudget*0.05)/shootDays),currency:project.base_currency},
+              {dept:'Catering',category:'Catering',description:`Cast & Crew Meals & Craft Services (${shootDays} days)`,qty:shootDays,rate:Math.round((targetBudget*0.04)/shootDays),currency:project.base_currency},
+              {dept:'Post-production',category:'Post-production',description:'Editing, Color Grade, Sound Design & Score',qty:1,rate:Math.round(targetBudget*0.12),currency:project.base_currency},
+              {dept:'Contingency',category:'Contingency',description:'Unforeseen Production Contingency (5%)',qty:1,rate:Math.round(targetBudget*0.05),currency:project.base_currency}
+            ];
+            onApplyScript(budgetLines);
+          }
+        }}
+        onSaveCharacter={onSaveCharacter}
+      />
 
       {isProducerActive && !isOwner && (
         <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:16,color:'#72D69A',fontSize:13,fontFamily:'Manrope,sans-serif'}}>
@@ -19147,7 +19266,7 @@ function Workspace(){
           {view==='productions'&&(
             <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} initialOpenUpload={breakdownOpenUpload} onResetInitialOpenUpload={()=>setBreakdownOpenUpload(false)}/>}
