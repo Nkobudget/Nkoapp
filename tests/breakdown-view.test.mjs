@@ -142,6 +142,26 @@ test('script breakdown locations tab layout and unmapped sets parity', async () 
 
   // Verify Modals
   assert.match(fileContent, /function LocationModal/);
+  assert.match(fileContent, /Edit location/);
+  assert.match(fileContent, /A physical place you'll shoot at\. Several script sets can belong to one location\./);
+  assert.match(fileContent, /Location name/);
+  assert.match(fileContent, /placeholder="e\.g\. Club Eclipse, Victoria Island"/);
+  assert.match(fileContent, /placeholder="Street, area, city"/);
+  assert.match(fileContent, /Sets shot here/);
+  assert.match(fileContent, /Scenes are linked to this location through their set\./);
+  assert.match(fileContent, /placeholder="Add a set not in the script"/);
+  assert.match(fileContent, /On-site contact/);
+  assert.match(fileContent, /Contact person/);
+  assert.match(fileContent, /Contact number/);
+  assert.match(fileContent, /Access, parking &amp; notes/);
+  assert.match(fileContent, /Gates, permits, permitted hours\./);
+  assert.match(fileContent, /Unit base at Tinubu Square\./);
+  assert.match(fileContent, />\s*Safety\s*<\/span>/);
+  assert.match(fileContent, /Nearest hospital/);
+  assert.match(fileContent, /Name and travel time\./);
+  assert.match(fileContent, /Emergency contact/);
+  assert.match(fileContent, /Where supplied\./);
+  assert.match(fileContent, />\s*Save changes\s*<\/motion\.button>/);
   assert.match(fileContent, /function DeleteLocationModal/);
   assert.match(fileContent, /Remove location\?/);
   assert.match(fileContent, /Its sets will become unmapped\./);

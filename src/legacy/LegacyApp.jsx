@@ -9141,9 +9141,15 @@ const DEFAULT_LOCATIONS = [
     scenes: [6],
     intExt: 'EXT',
     dayNight: 'DAY',
-    contactName: 'Alhaji Musa',
+    contactName: 'Alhaji Musa (Market Association)',
     contactPhone: '+234 803 222 6060',
+    contactPerson: 'Alhaji Musa (Market Association)',
+    contactNumber: '+234 803 222 6060',
+    accessInstructions: 'Permit from Lagos Island LGA. Shoot before 10:00.',
+    parking: 'Unit base at Tinubu Square.',
     notes: 'Market association permit approved. Filming during trading hours.',
+    nearestHospital: 'Lagos Island General Hospital — 5 minutes',
+    emergencyContact: 'Alhaji Musa (+234 803 222 6060)',
   },
   {
     id: 'loc-2',
@@ -9155,7 +9161,13 @@ const DEFAULT_LOCATIONS = [
     dayNight: 'NIGHT',
     contactName: 'Alhaji Musa (Permits)',
     contactPhone: '+234 803 222 6060',
+    contactPerson: 'Alhaji Musa (Permits)',
+    contactNumber: '+234 803 222 6060',
+    accessInstructions: 'Lagos State Ministry of Transportation night closure permit.',
+    parking: 'Oworonshoki staging layby.',
     notes: 'Closed lane permit approved for night shoot.',
+    nearestHospital: 'Gbagada General Hospital — 8 minutes',
+    emergencyContact: 'LASTMA Liaison (+234 802 333 4455)',
   },
   {
     id: 'loc-3',
@@ -9167,7 +9179,13 @@ const DEFAULT_LOCATIONS = [
     dayNight: 'NIGHT',
     contactName: 'Alhaji Musa (Security)',
     contactPhone: '+234 803 222 6060',
+    contactPerson: 'Alhaji Musa (Security)',
+    contactNumber: '+234 803 222 6060',
+    accessInstructions: 'VIP lounge access from 02:00 to 07:00.',
+    parking: 'Secured valet basement parking on Adeola Odeku.',
     notes: 'VIP club and penthouse access granted.',
+    nearestHospital: 'St. Nicholas Hospital, VI — 4 minutes',
+    emergencyContact: 'Club Eclipse Security (+234 809 555 6677)',
   },
   {
     id: 'loc-4',
@@ -9179,7 +9197,13 @@ const DEFAULT_LOCATIONS = [
     dayNight: 'DAY',
     contactName: 'Alhaji Musa (Coordinator)',
     contactPhone: '+234 803 222 6060',
+    contactPerson: 'Alhaji Musa (Coordinator)',
+    contactNumber: '+234 803 222 6060',
+    accessInstructions: 'Building resident association permission and courtyard access.',
+    parking: 'Tenancy perimeter slots.',
     notes: 'Courtyard and interior shooting rights secured.',
+    nearestHospital: 'Lagos Island Maternity & General — 6 minutes',
+    emergencyContact: 'Facility Manager (+234 803 444 7788)',
   },
 ];
 
@@ -10104,48 +10128,129 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
 
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
-  const [setsInput, setSetsInput] = useState('');
-  const [intExt, setIntExt] = useState('EXT');
-  const [dayNight, setDayNight] = useState('DAY');
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [notes, setNotes] = useState('');
+  const [selectedSets, setSelectedSets] = useState([]);
+  const [customSetInput, setCustomSetInput] = useState('');
+  const [customSets, setCustomSets] = useState([]);
+  const [contactPerson, setContactPerson] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [accessNotesExpanded, setAccessNotesExpanded] = useState(true);
+  const [accessInstructions, setAccessInstructions] = useState('');
+  const [parking, setParking] = useState('');
+  const [locationNotes, setLocationNotes] = useState('');
+  const [safetyExpanded, setSafetyExpanded] = useState(true);
+  const [nearestHospital, setNearestHospital] = useState('');
+  const [emergencyContact, setEmergencyContact] = useState('');
+
+  const defaultScriptSets = [
+    "ADAOBI'S FLAT",
+    "ADAOBI'S TAXI",
+    "BALOGUN MARKET",
+    "CARTER BRIDGE",
+    "CLUB ECLIPSE",
+    "FEMI'S PENTHOUSE",
+    "HOSPITAL CORRIDOR",
+    "LEKKI TOLL GATE",
+    "MAKOKO WATERFRONT",
+    "POLICE STATION",
+    "SADE'S NEWSROOM",
+    "THIRD MAINLAND BRIDGE",
+  ];
+
+  const availableSets = Array.from(
+    new Set([
+      ...(allSets.length > 0 ? allSets : defaultScriptSets).map(s => s.toUpperCase()),
+      ...customSets,
+      ...selectedSets,
+    ])
+  ).sort();
 
   useEffect(() => {
     if (location) {
       setName(location.name || '');
       setAddress(location.address || '');
-      setSetsInput(Array.isArray(location.sets) ? location.sets.join(', ') : (location.sets || ''));
-      setIntExt(location.intExt || 'EXT');
-      setDayNight(location.dayNight || 'DAY');
-      setContactName(location.contactName || '');
-      setContactPhone(location.contactPhone || '');
-      setNotes(location.notes || '');
+      const initSets = Array.isArray(location.sets)
+        ? location.sets.map(s => s.toUpperCase())
+        : (location.sets ? [String(location.sets).toUpperCase()] : []);
+      setSelectedSets(initSets);
+      setContactPerson(location.contactPerson || location.contactName || '');
+      setContactNumber(location.contactNumber || location.contactPhone || '');
+      setAccessInstructions(
+        location.accessInstructions ||
+        (location.name?.toLowerCase().includes('balogun') ? 'Permit from Lagos Island LGA. Shoot before 10:00.' : '')
+      );
+      setParking(
+        location.parking ||
+        (location.name?.toLowerCase().includes('balogun') ? 'Unit base at Tinubu Square.' : '')
+      );
+      setLocationNotes(location.locationNotes || location.notes || '');
+      setNearestHospital(
+        location.nearestHospital ||
+        (location.name?.toLowerCase().includes('balogun') ? 'Lagos Island General Hospital — 5 minutes' : '')
+      );
+      setEmergencyContact(location.emergencyContact || '');
+      setCustomSetInput('');
     }
   }, [location]);
+
+  const toggleSet = (setStr) => {
+    const s = setStr.toUpperCase();
+    setSelectedSets(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+    );
+  };
+
+  const handleAddCustomSet = () => {
+    const trimmed = customSetInput.trim().toUpperCase();
+    if (!trimmed) return;
+    if (!customSets.includes(trimmed)) {
+      setCustomSets(prev => [...prev, trimmed]);
+    }
+    if (!selectedSets.includes(trimmed)) {
+      setSelectedSets(prev => [...prev, trimmed]);
+    }
+    setCustomSetInput('');
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-    const sets = setsInput
-      .split(',')
-      .map(s => s.trim().toUpperCase())
-      .filter(Boolean);
+
     const locScenes = allScenes
-      .filter(sc => sets.includes(sceneLoc(sc).toUpperCase()))
+      .filter(sc => selectedSets.includes(sceneLoc(sc).toUpperCase()))
       .map(s => s.sceneNumber);
+
+    const matchedScenes = allScenes.filter(sc => selectedSets.includes(sceneLoc(sc).toUpperCase()));
+    let inferredIe = location?.intExt || 'EXT';
+    if (matchedScenes.length > 0) {
+      const ies = [...new Set(matchedScenes.map(sc => (sc.intExt || '').toUpperCase()).filter(Boolean))];
+      if (ies.length > 1 || ies.includes('INT/EXT')) inferredIe = 'INT/EXT';
+      else if (ies.length === 1) inferredIe = ies[0];
+    }
+    let inferredTod = location?.dayNight || 'DAY';
+    if (matchedScenes.length > 0) {
+      const tods = [...new Set(matchedScenes.map(sc => (sc.dayNight || '').toUpperCase()).filter(Boolean))];
+      if (tods.length === 1) inferredTod = tods[0];
+      else if (tods.includes('NIGHT')) inferredTod = 'NIGHT';
+    }
 
     onSave({
       id: location?.id || `loc-${Date.now()}`,
       name: name.trim(),
       address: address.trim(),
-      sets: sets.length > 0 ? sets : [name.trim().toUpperCase()],
+      sets: selectedSets.length > 0 ? selectedSets : [name.trim().toUpperCase()],
       scenes: locScenes.length > 0 ? locScenes : (location?.scenes || []),
-      intExt,
-      dayNight,
-      contactName: contactName.trim(),
-      contactPhone: contactPhone.trim(),
-      notes: notes.trim(),
+      intExt: inferredIe,
+      dayNight: inferredTod,
+      contactName: contactPerson.trim(),
+      contactPhone: contactNumber.trim(),
+      contactPerson: contactPerson.trim(),
+      contactNumber: contactNumber.trim(),
+      accessInstructions: accessInstructions.trim(),
+      parking: parking.trim(),
+      notes: locationNotes.trim(),
+      locationNotes: locationNotes.trim(),
+      nearestHospital: nearestHospital.trim(),
+      emergencyContact: emergencyContact.trim(),
     });
     onClose();
   };
@@ -10182,7 +10287,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
               border: '1px solid #1E1E22',
               borderRadius: 16,
               width: '100%',
-              maxWidth: 480,
+              maxWidth: 520,
               boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
               overflow: 'hidden',
               display: 'flex',
@@ -10191,19 +10296,38 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
             }}
           >
             {/* Header */}
-            <div style={{
-              padding: mob ? '16px 18px 12px' : '20px 24px 14px',
-              borderBottom: '1px solid #1C1C20',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-            }}>
+            <div
+              style={{
+                padding: mob ? '16px 18px 12px' : '20px 24px 14px',
+                borderBottom: '1px solid #1C1C20',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: T.cream,
+                    letterSpacing: '-0.02em',
+                    fontFamily: 'Manrope,sans-serif',
+                  }}
+                >
                   {isEdit ? 'Edit location' : 'Add location'}
                 </h3>
-                <div style={{ fontSize: 12, color: '#8A8985', marginTop: 4, fontFamily: 'Manrope,sans-serif' }}>
-                  Map script sets to physical shooting locations, assign contact details and address.
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: '#8A8985',
+                    marginTop: 4,
+                    fontFamily: 'Manrope,sans-serif',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  A physical place you'll shoot at. Several script sets can belong to one location.
                 </div>
               </div>
               <button
@@ -10227,234 +10351,639 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
             </div>
 
             {/* Body */}
-            <div style={{ padding: mob ? '14px 18px' : '18px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+            <div
+              style={{
+                padding: mob ? '14px 18px' : '18px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                overflowY: 'auto',
+              }}
+            >
+              {/* Location Section */}
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
-                  Location Name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Balogun Market"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  autoFocus
+                <div
                   style={{
-                    width: '100%',
-                    background: '#141416',
-                    border: '1px solid #242428',
-                    borderRadius: 8,
-                    padding: '10px 12px',
-                    color: T.cream,
-                    fontSize: 12,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#71717A',
                     fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
+                    marginBottom: 10,
                   }}
-                />
+                >
+                  Location
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: mob ? '1fr' : '1fr 1fr',
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Location name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Club Eclipse, Victoria Island"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Address<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Street, area, city"
+                      value={address}
+                      onChange={e => setAddress(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
+              {/* Sets shot here Section */}
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
-                  Physical Address
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Balogun Street, Lagos Island"
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
+                <div
                   style={{
-                    width: '100%',
-                    background: '#141416',
-                    border: '1px solid #242428',
-                    borderRadius: 8,
-                    padding: '10px 12px',
-                    color: T.cream,
-                    fontSize: 12,
-                    fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 2,
                   }}
-                />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
-                    Script Sets Covered<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
-                  </label>
-                  <span style={{ fontSize: 10, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
-                    Separate with commas
+                >
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: '#D4D4D8',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Sets shot here
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      color: '#8A8985',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    {selectedSets.length} selected
                   </span>
                 </div>
-                <input
-                  type="text"
-                  required
-                  list="location-sets-datalist"
-                  placeholder="e.g. BALOGUN MARKET"
-                  value={setsInput}
-                  onChange={e => setSetsInput(e.target.value.toUpperCase())}
+                <div
                   style={{
-                    width: '100%',
-                    background: '#141416',
-                    border: '1px solid #242428',
-                    borderRadius: 8,
-                    padding: '10px 12px',
-                    color: T.cream,
-                    fontSize: 12,
+                    fontSize: 11,
+                    color: '#71717A',
+                    marginBottom: 10,
                     fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
                   }}
-                />
-                <datalist id="location-sets-datalist">
-                  {allSets.map(s => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
-                    INT / EXT
-                  </label>
-                  <select
-                    value={intExt}
-                    onChange={e => setIntExt(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 8,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <option value="EXT">EXT</option>
-                    <option value="INT">INT</option>
-                    <option value="INT/EXT">INT/EXT</option>
-                  </select>
+                >
+                  Scenes are linked to this location through their set.
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
-                    Day / Night
-                  </label>
-                  <select
-                    value={dayNight}
-                    onChange={e => setDayNight(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 8,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <option value="DAY">DAY</option>
-                    <option value="NIGHT">NIGHT</option>
-                    <option value="DAWN">DAWN</option>
-                    <option value="DUSK">DUSK</option>
-                  </select>
+                {/* Set Pills */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 6,
+                    marginBottom: 10,
+                  }}
+                >
+                  {availableSets.map(setName => {
+                    const isSelected = selectedSets.includes(setName);
+                    return (
+                      <button
+                        key={setName}
+                        type="button"
+                        onClick={() => toggleSet(setName)}
+                        style={{
+                          background: isSelected ? '#161619' : '#121215',
+                          border: isSelected ? '1px solid #F5A623' : '1px solid #222226',
+                          color: isSelected ? '#F5A623' : '#71717A',
+                          borderRadius: 6,
+                          padding: '4px 10px',
+                          fontSize: 10,
+                          fontFamily: 'IBM Plex Mono, monospace',
+                          fontWeight: isSelected ? 700 : 500,
+                          cursor: 'pointer',
+                          textTransform: 'uppercase',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {setName}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
-                    Contact Person
-                  </label>
+                {/* Add set not in the script */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
                     type="text"
-                    placeholder="e.g. Alhaji Musa"
-                    value={contactName}
-                    onChange={e => setContactName(e.target.value)}
+                    placeholder="Add a set not in the script"
+                    value={customSetInput}
+                    onChange={e => setCustomSetInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomSet();
+                      }
+                    }}
                     style={{
-                      width: '100%',
+                      flex: 1,
                       background: '#141416',
-                      border: '1px solid #242428',
+                      border: '1px solid #222226',
                       borderRadius: 8,
-                      padding: '10px 12px',
+                      padding: '8px 12px',
                       color: T.cream,
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontFamily: 'Manrope,sans-serif',
                       outline: 'none',
-                      boxSizing: 'border-box',
                     }}
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
-                    Contact Phone
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. +234 803 222 6060"
-                    value={contactPhone}
-                    onChange={e => setContactPhone(e.target.value)}
+                  <button
+                    type="button"
+                    onClick={handleAddCustomSet}
                     style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
+                      width: 34,
+                      height: 34,
                       borderRadius: 8,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
+                      background: '#1A1A1E',
+                      border: '1px solid #26262B',
+                      color: '#D4D4D8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
                     }}
-                  />
+                    title="Add custom set"
+                  >
+                    <Plus size={14} />
+                  </button>
                 </div>
               </div>
 
+              {/* On-site contact Section */}
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
-                  Permits &amp; Location Notes
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="e.g. Market association permit approved. Parking on side street."
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#71717A',
+                    fontFamily: 'Manrope,sans-serif',
+                    marginBottom: 10,
+                  }}
+                >
+                  On-site contact
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: mob ? '1fr' : '1fr 1fr',
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Contact person
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Alhaji Musa (Market Association)"
+                      value={contactPerson}
+                      onChange={e => setContactPerson(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Contact number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="+234"
+                      value={contactNumber}
+                      onChange={e => setContactNumber(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Accordion 1: Access, parking & notes */}
+              <div
+                style={{
+                  background: '#121215',
+                  border: '1px solid #1E1E22',
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setAccessNotesExpanded(prev => !prev)}
                   style={{
                     width: '100%',
-                    background: '#141416',
-                    border: '1px solid #242428',
-                    borderRadius: 8,
-                    padding: '10px 12px',
-                    color: T.cream,
-                    fontSize: 12,
-                    fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    resize: 'vertical',
+                    padding: '12px 14px',
+                    background: 'none',
+                    border: 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    textAlign: 'left',
                   }}
-                />
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#D4D4D8',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Access, parking &amp; notes
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      color: '#71717A',
+                      transform: accessNotesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  />
+                </button>
+
+                {accessNotesExpanded && (
+                  <div
+                    style={{
+                      padding: '0 14px 14px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 2,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Access instructions
+                      </label>
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          color: '#71717A',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Gates, permits, permitted hours.
+                      </div>
+                      <textarea
+                        rows={2}
+                        placeholder="Permit from Lagos Island LGA. Shoot before 10:00."
+                        value={accessInstructions}
+                        onChange={e => setAccessInstructions(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Parking
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Unit base at Tinubu Square."
+                        value={parking}
+                        onChange={e => setParking(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Location notes
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Contract terms, gate codes, catering area..."
+                        value={locationNotes}
+                        onChange={e => setLocationNotes(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Accordion 2: Safety */}
+              <div
+                style={{
+                  background: '#121215',
+                  border: '1px solid #1E1E22',
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSafetyExpanded(prev => !prev)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    background: 'none',
+                    border: 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#D4D4D8',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Safety
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      color: '#71717A',
+                      transform: safetyExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  />
+                </button>
+
+                {safetyExpanded && (
+                  <div
+                    style={{
+                      padding: '0 14px 14px 14px',
+                      display: 'grid',
+                      gridTemplateColumns: mob ? '1fr' : '1fr 1fr',
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 2,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Nearest hospital
+                      </label>
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          color: '#71717A',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Name and travel time.
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Lagos Island General Hospital — 5 minutes"
+                        value={nearestHospital}
+                        onChange={e => setNearestHospital(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 2,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Emergency contact
+                      </label>
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          color: '#71717A',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Where supplied.
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dr. Adeleke (+234 802 111 2233)"
+                        value={emergencyContact}
+                        onChange={e => setEmergencyContact(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Footer */}
-            <div style={{
-              padding: mob ? '12px 18px 16px' : '14px 24px 18px',
-              borderTop: '1px solid #1C1C20',
-              display: 'flex',
-              justifyContent: isEdit ? 'space-between' : 'flex-end',
-              alignItems: 'center',
-              gap: 10,
-              background: '#101012',
-            }}>
+            <div
+              style={{
+                padding: mob ? '12px 18px 16px' : '14px 24px 18px',
+                borderTop: '1px solid #1C1C20',
+                display: 'flex',
+                justifyContent: isEdit ? 'space-between' : 'flex-end',
+                alignItems: 'center',
+                gap: 10,
+                background: '#101012',
+              }}
+            >
               {isEdit && (
                 <button
                   type="button"
@@ -10517,7 +11046,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
                   }}
                 >
-                  {isEdit ? 'Save Changes' : 'Add Location'}
+                  Save changes
                 </motion.button>
               </div>
             </div>
