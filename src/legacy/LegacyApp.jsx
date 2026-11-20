@@ -27,6 +27,7 @@ import {
   Bell,
   Calendar,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -991,22 +992,28 @@ const lTot=i=>(Number(i.qty)||0)*(Number(i.rate)||0);
    that base64-encoding a whole PDF would otherwise hit, since screenplay TEXT is tiny
    compared to the binary PDF itself. Loads the library from cdnjs on first use only. */
 const extractPdfText=async file=>{
-  if(!window.pdfjsLib){
-    await new Promise((resolve,reject)=>{
-      const script=document.createElement('script');
-      script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js';
-      script.onload=resolve;script.onerror=()=>reject(new Error('Could not load the PDF reader library.'));
-      document.head.appendChild(script);
-    });
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
-  }
+  await ensurePdfJs();
   const buf=await file.arrayBuffer();
   const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
   let text='';
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
-    const content=await page.getTextContent();
-    text+=content.items.map(it=>it.str).join(' ')+'\n';
+    const tc=await page.getTextContent();
+    const rows={};
+    tc.items.forEach(it=>{
+      if(!it.str||!it.str.trim())return;
+      const y=it.transform[5];
+      const k=Math.round(y/3);
+      (rows[k]=rows[k]||[]).push({x:it.transform[4],s:it.str,y});
+    });
+    const sortedY=Object.keys(rows).map(Number).sort((a,b)=>b-a);
+    sortedY.forEach(k=>{
+      const r=rows[k];
+      r.sort((a,b)=>a.x-b.x);
+      const lineText=r.map(i=>i.s).join(' ').replace(/\s+/g,' ').trim();
+      if(lineText)text+=lineText+'\n';
+    });
+    text+='\n';
   }
   return text;
 };
@@ -1035,7 +1042,7 @@ const layoutScenePages=(lines,pageBody)=>{
   });
   return heads.map((h,i)=>{const end=i+1<heads.length?heads[i+1].pos:last;return{heading:h.text,eighths:Math.max(1,Math.round((end-h.pos)/pageBody*8))};});
 };
-const ensurePdfJs=async()=>{
+async function ensurePdfJs(){
   if(window.pdfjsLib)return;
   await new Promise((resolve,reject)=>{
     const sc=document.createElement('script');
@@ -1044,7 +1051,7 @@ const ensurePdfJs=async()=>{
     document.head.appendChild(sc);
   });
   window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
-};
+}
 /* Reads real line positions out of a script PDF, so page lengths are measured, not guessed. */
 const measureScenePages=async file=>{
   await ensurePdfJs();
@@ -6910,7 +6917,6 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
       {missingTotal>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}>⚠ {missingTotal} logged payment{missingTotal!==1?'s have':' has'} no receipt attached. Tap <b>No receipt · Attach</b> on each one to add it.</div>}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:18}}>
         <StatCard label="Budgeted (people)" value={money(budM)} sub="crew & cast"/>
-        <StatCard label="Paid so far" value={money(paidM)} sub="all payments" accent={T.gold}/>
         <StatCard label="Still to pay" value={money(oweM)} sub="owed" accent={T.coral}/>
       </div>
       {slots.length===0&&<div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:20,marginBottom:18,textAlign:'center',color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif'}}>No crew or cast in the budget yet. Add them in the Budget (Production Team, Talents, Camera &amp; Grip Team…) and they appear here ready to pay.</div>}
@@ -7203,67 +7209,142 @@ const shareBreakdown=(scenesIn,project,charactersIn=[])=>{
 };
 function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
   const{t:tr}=useLang();
-  const[state,setState]=useState('idle');const[err,setErr]=useState('');const[dragging,setDragging]=useState(false);const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
+  const[state,setState]=useState('idle');
+  const[err,setErr]=useState('');
+  const[dragging,setDragging]=useState(false);
+  const[fileInfo,setFileInfo]=useState(null);
+  const[parsedSummary,setParsedSummary]=useState(null);
+  const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');
+  const fr=useRef();
+  const resRef=useRef();
+
   const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
   const sendNotif=n=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKÒ Breakdown Complete',{body:`${n} scenes extracted from ${project.name}`});}catch{}};
-  useEffect(()=>{const h=()=>{if(document.visibilityState==='visible'&&resRef.current){const{scenes:scs,scriptName:sn}=resRef.current;onApply(scs,sn);resRef.current=null;setState('done');}};document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);},[onApply]);
+
+  useEffect(()=>{
+    const h=()=>{
+      if(document.visibilityState==='visible'&&resRef.current){
+        const{scenes:scs,scriptName:sn}=resRef.current;
+        onApply(scs,sn);
+        resRef.current=null;
+        setState('done');
+      }
+    };
+    document.addEventListener('visibilitychange',h);
+    return()=>document.removeEventListener('visibilitychange',h);
+  },[onApply]);
+
   useEffect(()=>{
     if(!open)return;
-    setState('idle');setErr('');setDragging(false);
+    setState('idle');setErr('');setDragging(false);setFileInfo(null);setParsedSummary(null);
     const onKey=e=>{if(e.key==='Escape'&&state!=='reading'&&state!=='analyzing')onClose?.();};
     window.addEventListener('keydown',onKey);
     return()=>window.removeEventListener('keydown',onKey);
   },[open,state,onClose]);
+
   const process=async f=>{
     const isPDF=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
     const isTxt=f.type==='text/plain'||f.name.toLowerCase().endsWith('.txt')||f.name.toLowerCase().endsWith('.fdx')||f.name.toLowerCase().endsWith('.fountain');
-    if(!isPDF&&!isTxt){setErr('Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) file.');setState('error');return;}
-    if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
-    await askNotif();setState('reading');setErr('');
+    if(!isPDF&&!isTxt){
+      setErr('Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) script.');
+      setState('error');
+      return;
+    }
+    if(f.size>25*1024*1024){
+      setErr('File is too large (max 25MB). Try a smaller export or a .txt file.');
+      setState('error');
+      return;
+    }
+
+    const name=f.name||'Script';
+    const sizeStr=f.size>1024*1024?`${(f.size/(1024*1024)).toFixed(1)} MB`:`${Math.max(1,Math.round(f.size/1024))} KB`;
+    const ext=(name.split('.').pop()||'TXT').toUpperCase();
+    setFileInfo({name,size:sizeStr,ext});
+    await askNotif();
+    setState('reading');
+    setErr('');
+
     try{
-      const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?40:200;
-      let uc;let measured=null,measuredSource='';
-      let rawTextForFallback='';
+      let rawText='';
+      let measured=null,measuredSource='';
       if(isPDF){
         try{measured=await measureScenePages(f);measuredSource='measured';}catch{measured=null;}
-        let extracted='';
-        try{extracted=await extractPdfText(f);}catch{extracted='';}
-        rawTextForFallback=extracted||'';
-        if(extracted&&extracted.length>200){
-          uc=[{type:'text',text:`Script:\n\n${extracted.slice(0,300000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
-        }else{
-          const sizeMB=f.size/1024/1024;
-          if(sizeMB>3.2)throw new Error(`This PDF looks like scanned pages with no selectable text, and is too large (${sizeMB.toFixed(1)}MB) to upload directly. Try exporting it as a text-based PDF, or paste the script into a .txt file instead.`);
-          const b=await readB64(f);
-          uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:BREAKDOWN_PROMPT(ep,max)}];
-        }
+        try{rawText=await extractPdfText(f);}catch{rawText='';}
       }else{
-        const txt=await readTxt(f);
-        rawTextForFallback=txt||'';
-        measured=estimateTxtPages(txt);measuredSource='estimated';
-        uc=[{type:'text',text:`Script:\n\n${txt.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
+        rawText=await readTxt(f);
+        measured=estimateTxtPages(rawText);measuredSource='estimated';
       }
+
       setState('analyzing');
-      let scenesRaw=[],characters=[];
-      try{
-        const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS,32000);
-        const parsed=recoverScenes(raw);
-        scenesRaw=parsed.scenes||[];characters=parsed.characters||[];
-      }catch{}
+
+      // Fast, robust client-side extraction (FDX XML, Fountain, plain text, extracted PDF)
+      let localParsed=parseScriptFile(rawText,f.name);
+      let scenesRaw=localParsed.scenes||[];
+      let characters=localParsed.characters||[];
+
+      // Fallback: If local parser found no scenes, try Claude with short timeout
       if(!scenesRaw.length){
-        const fallbackTxt = rawTextForFallback || (isPDF ? (await extractPdfText(f).catch(()=>'')) : (await readTxt(f).catch(()=>'')));
-        const localParsed = parseScriptFile(fallbackTxt, f.name);
-        scenesRaw = localParsed.scenes || [];
-        characters = localParsed.characters || [];
+        try{
+          const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?40:200;
+          let uc;
+          if(isPDF&&rawText.length<200){
+            const b=await readB64(f);
+            uc=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b}},{type:'text',text:BREAKDOWN_PROMPT(ep,max)}];
+          }else{
+            uc=[{type:'text',text:`Script:\n\n${rawText.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
+          }
+          const raw=await callClaude([{role:'user',content:uc}],BREAKDOWN_SYS,24000);
+          const parsed=recoverScenes(raw);
+          scenesRaw=parsed.scenes||[];characters=parsed.characters||[];
+        }catch{}
       }
-      if(!scenesRaw.length)throw new Error('No scenes found — ensure your script uses standard INT./EXT. scene headings.');
+
+      if(!scenesRaw.length){
+        throw new Error('No scenes found in this file. Please ensure your script uses standard INT. / EXT. sluglines or scene numbers.');
+      }
+
       const scenes=attachPageLengths(scenesRaw,measured,measuredSource);
       characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
       sendNotif(scenes.length);
       try{localStorage.setItem(`nko_bk_${project?.id}`,JSON.stringify({scenes,ts:Date.now()}));}catch{}
-      if(document.visibilityState==='hidden'){resRef.current={scenes,scriptName:f.name};}else{onApply(scenes,f.name);setState('done');}
-    }catch(e){setErr(e.message);setState('error');}
+
+      const totalP8=scenes.reduce((a,s)=>a+(Number(s.pages8)||0),0);
+      const estPages=totalP8>0?(totalP8%8===0?Math.floor(totalP8/8):fmtPages8(totalP8)):Math.ceil(scenes.length*1.5);
+      const sampleHeadings=scenes.slice(0,3).map(s=>`Scene ${s.sceneNumber}: ${s.heading}`);
+      const elemCount=new Set(scenes.flatMap(s=>(s.productionElements||[]).map(e=>e.name||e).concat(s.props||[]).concat(s.wardrobe||[]))).size;
+      const vehCount=new Set(scenes.flatMap(s=>(s.pictureVehicles||[]).map(v=>v.name||v).concat(s.vehicles||[]))).size;
+
+      const summaryData={
+        scenes,
+        characters,
+        scriptName:f.name,
+        sceneCount:scenes.length,
+        characterCount:characters.length||new Set(scenes.flatMap(s=>s.cast||[])).size,
+        pages:estPages,
+        headings:sampleHeadings,
+        elemCount,
+        vehCount,
+      };
+
+      setParsedSummary(summaryData);
+      setState('done');
+
+      if(document.visibilityState==='hidden'){
+        resRef.current={scenes,scriptName:f.name};
+      }
+    }catch(e){
+      setErr(e.message);
+      setState('error');
+    }
   };
+
+  const handleApplyAndClose=()=>{
+    if(parsedSummary){
+      onApply(parsedSummary.scenes,parsedSummary.scriptName);
+      onClose?.();
+    }
+  };
+
   return(
     <AnimatePresence>
       {open&&(
@@ -7273,7 +7354,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
           exit={{opacity:0}}
           transition={{duration:0.18,ease:'easeOut'}}
           onClick={()=>{if(state!=='reading'&&state!=='analyzing')onClose?.();}}
-          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
+          style={{position:'fixed',inset:0,zIndex:1050,background:'rgba(0,0,0,0.78)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
         >
           <motion.div
             onClick={e=>e.stopPropagation()}
@@ -7281,13 +7362,15 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:480,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,padding:'22px 24px 24px',boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:500,background:'#0F0F12',border:'1px solid #24242A',borderRadius:18,padding:'24px 26px 26px',boxShadow:'0 30px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.06)',fontFamily:'Manrope,sans-serif'}}
           >
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,marginBottom:18}}>
               <div>
-                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Upload script</h3>
-                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
-                  Uploading a new script replaces the current breakdown.
+                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>
+                  {state==='done'?'Script uploaded':'Upload script'}
+                </h3>
+                <div style={{fontSize:12,color:'#8A8985',marginTop:4}}>
+                  {state==='done'?'Breakdown complete. Review and apply to your workspace.':'Upload a screenplay to parse scenes, speaking cast and production elements.'}
                 </div>
               </div>
               <button
@@ -7299,51 +7382,150 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
                 <X size={16}/>
               </button>
             </div>
+
             {state==='analyzing'&&<div style={{background:'rgba(82,176,122,0.1)',border:'1px solid rgba(82,176,122,0.35)',borderRadius:10,padding:'10px 14px',marginBottom:12}}><div style={{fontSize:12,color:'#4CAF7A',fontFamily:'Manrope,sans-serif'}}>{notif==='granted'?tr('notifOn'):tr('keepScreenOpen')}</div></div>}
-            <div
-              onClick={()=>(state==='idle'||state==='error')&&fr.current.click()}
-              onDragOver={e=>{e.preventDefault();if(state==='idle'||state==='error')setDragging(true);}}
-              onDragLeave={()=>setDragging(false)}
-              onDrop={e=>{e.preventDefault();setDragging(false);if(state==='idle'||state==='error'){const f=e.dataTransfer?.files?.[0];if(f)process(f);}}}
-              style={{
-                background:dragging?'rgba(255,179,71,0.05)':'#121215',
-                border:dragging?'1px solid rgba(255,179,71,0.55)':state==='analyzing'?'1px solid rgba(255,179,71,0.45)':'1px solid #222226',
-                borderRadius:12,
-                padding:'38px 24px',
-                textAlign:'center',
-                cursor:(state==='idle'||state==='error')?'pointer':'default',
-                transition:'border-color 0.15s ease, background 0.15s ease',
-              }}
-            >
-              <input ref={fr} type="file" accept=".pdf,.txt,.fdx,.fountain" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
-              <div style={{width:40,height:40,borderRadius:10,background:'#1A1A1E',border:'1px solid #2A2A30',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,color:'#F5C451'}}>
-                <Upload size={17}/>
+
+            {state==='done'&&parsedSummary?(
+              <div style={{textAlign:'left'}}>
+                {/* File Success Header Card */}
+                <div style={{background:'linear-gradient(180deg, rgba(82,176,122,0.12) 0%, rgba(82,176,122,0.04) 100%)',border:'1px solid rgba(82,176,122,0.35)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
+                  <div style={{width:38,height:38,borderRadius:10,background:'rgba(82,176,122,0.2)',display:'flex',alignItems:'center',justifyContent:'center',color:'#4CAF7A',flexShrink:0}}>
+                    <CheckCircle2 size={22} strokeWidth={2.4}/>
+                  </div>
+                  <div style={{minWidth:0,flex:1}}>
+                    <div style={{fontSize:14,fontWeight:700,color:'#F0E8D0'}}>Script uploaded successfully!</div>
+                    <div style={{fontSize:11.5,color:'#A1A1AA',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontFamily:'IBM Plex Mono,monospace'}}>
+                      {parsedSummary.scriptName} · {fileInfo?.size||'Complete'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 Metric Summary Pills */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:8,marginBottom:14}}>
+                  <div style={{background:'#151518',border:'1px solid #24242A',borderRadius:10,padding:'10px 12px',textAlign:'center'}}>
+                    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,fontWeight:700,color:'#F5C451'}}>{parsedSummary.sceneCount}</div>
+                    <div style={{fontSize:10,color:'#8A8985',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2,fontWeight:600}}>Scenes</div>
+                  </div>
+                  <div style={{background:'#151518',border:'1px solid #24242A',borderRadius:10,padding:'10px 12px',textAlign:'center'}}>
+                    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,fontWeight:700,color:'#F0E8D0'}}>{parsedSummary.characterCount}</div>
+                    <div style={{fontSize:10,color:'#8A8985',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2,fontWeight:600}}>Cast</div>
+                  </div>
+                  <div style={{background:'#151518',border:'1px solid #24242A',borderRadius:10,padding:'10px 12px',textAlign:'center'}}>
+                    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,fontWeight:700,color:'#F0E8D0'}}>{parsedSummary.pages}</div>
+                    <div style={{fontSize:10,color:'#8A8985',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:2,fontWeight:600}}>Pages</div>
+                  </div>
+                </div>
+
+                {/* First Extracted Scenes Sample Preview */}
+                {parsedSummary.headings?.length>0&&(
+                  <div style={{background:'#121215',border:'1px solid #202024',borderRadius:10,padding:'11px 14px',marginBottom:16}}>
+                    <div style={{fontSize:10,color:'#71717A',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:7,fontWeight:700}}>
+                      Extracted breakdown preview
+                    </div>
+                    {parsedSummary.headings.map((h,i)=>(
+                      <div key={i} style={{fontSize:11,color:'#D4D4D8',fontFamily:'IBM Plex Mono,monospace',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:i>0?4:0}}>
+                        • {h}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Primary Action Button */}
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  <motion.button
+                    type="button"
+                    whileHover={{y:-1,scale:1.01}}
+                    whileTap={{scale:0.98}}
+                    onClick={handleApplyAndClose}
+                    style={{
+                      width:'100%',
+                      background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',
+                      color:'#0A0A0A',
+                      border:'none',
+                      borderRadius:11,
+                      padding:'13px 18px',
+                      fontSize:13,
+                      fontWeight:700,
+                      fontFamily:'Manrope,sans-serif',
+                      cursor:'pointer',
+                      display:'flex',
+                      alignItems:'center',
+                      justifyContent:'center',
+                      gap:8,
+                      boxShadow:'0 6px 20px rgba(245,166,35,0.32)',
+                    }}
+                  >
+                    <span>View Breakdown ({parsedSummary.sceneCount} scenes)</span>
+                    <ArrowRight size={15}/>
+                  </motion.button>
+                  <button
+                    type="button"
+                    onClick={()=>{setState('idle');setParsedSummary(null);setFileInfo(null);}}
+                    style={{background:'none',border:'none',color:'#8A8985',fontSize:11.5,cursor:'pointer',padding:'6px',textAlign:'center',fontFamily:'Manrope,sans-serif'}}
+                  >
+                    Upload a different file
+                  </button>
+                </div>
               </div>
-              {state==='idle'&&(
-                <>
-                  <div style={{fontSize:13,fontWeight:600,color:T.cream}}>
-                    Drop your script here or <span style={{color:'#F5C451',fontWeight:700}}>browse</span>
+            ):(
+              <div
+                onClick={()=>(state==='idle'||state==='error')&&fr.current.click()}
+                onDragOver={e=>{e.preventDefault();if(state==='idle'||state==='error')setDragging(true);}}
+                onDragLeave={()=>setDragging(false)}
+                onDrop={e=>{
+                  e.preventDefault();setDragging(false);
+                  if(state==='idle'||state==='error'){const f=e.dataTransfer?.files?.[0];if(f)process(f);}
+                }}
+                style={{
+                  background:dragging?'rgba(255,179,71,0.05)':'#121215',
+                  border:dragging?'1px solid rgba(255,179,71,0.55)':state==='analyzing'?'1px solid rgba(255,179,71,0.45)':'1px solid #222226',
+                  borderRadius:12,
+                  padding:'36px 22px',
+                  textAlign:'center',
+                  cursor:(state==='idle'||state==='error')?'pointer':'default',
+                  transition:'border-color 0.15s ease, background 0.15s ease',
+                }}
+              >
+                <input
+                  ref={fr}
+                  type="file"
+                  accept=".pdf,.txt,.fdx,.fountain"
+                  style={{display:'none'}}
+                  onChange={e=>{const f=e.target.files[0];e.target.value='';if(f)process(f);}}
+                />
+                <div style={{width:42,height:42,borderRadius:11,background:'#1A1A1E',border:'1px solid #2A2A30',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,color:'#F5C451'}}>
+                  <Upload size={18}/>
+                </div>
+                {state==='idle'&&(
+                  <>
+                    <div style={{fontSize:13,fontWeight:600,color:T.cream}}>
+                      Drop your script here or <span style={{color:'#F5C451',fontWeight:700}}>browse</span>
+                    </div>
+                    <div style={{fontSize:11,color:'#71717A',marginTop:6}}>
+                      Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt)
+                    </div>
+                  </>
+                )}
+                {state==='reading'&&(
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:T.cream}}>Reading {fileInfo?.name||'script'}…</div>
+                    <div style={{fontSize:11,color:'#71717A',marginTop:4}}>{fileInfo?.size||'Loading file content'}</div>
                   </div>
-                  <div style={{fontSize:11,color:'#71717A',marginTop:6}}>
-                    Final Draft (.fdx), Fountain (.fountain) or plain text (.txt) · up to 10 MB
+                )}
+                {state==='analyzing'&&(
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:T.cream}}>Analyzing {fileInfo?.name||'script'}…</div>
+                    <div style={{fontSize:11,color:'#71717A',marginTop:4}}>Extracting scenes, speaking cast &amp; production requirements…</div>
                   </div>
-                </>
-              )}
-              {state==='reading'&&<div style={{fontSize:13,fontWeight:600,color:T.cream}}>Reading script…</div>}
-              {state==='analyzing'&&<div style={{fontSize:13,fontWeight:600,color:T.cream}}>Analyzing your script…</div>}
-              {state==='done'&&(
-                <>
-                  <div style={{fontSize:13,fontWeight:600,color:'#4CAF7A',marginBottom:6}}>Breakdown complete</div>
-                  <button type="button" onClick={e=>{e.stopPropagation();setState('idle');}} style={{color:'#F5C451',fontSize:12,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Analyze another →</button>
-                </>
-              )}
-              {state==='error'&&(
-                <>
-                  <div style={{fontSize:12,color:'#E05252',marginBottom:10}}>{err}</div>
-                  <Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn>
-                </>
-              )}
-            </div>
+                )}
+                {state==='error'&&(
+                  <>
+                    <div style={{fontSize:12,color:'#E05252',marginBottom:10}}>{err}</div>
+                    <Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn>
+                  </>
+                )}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -8880,6 +9062,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const[pendingNewScene,setPendingNewScene]=useState(null);
   const[selectedScene,setSelectedScene]=useState(null);
   const[deleteTargetScene,setDeleteTargetScene]=useState(null);
+  const[uploadBanner,setUploadBanner]=useState(null);
   if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
 
   let ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
@@ -9025,6 +9208,48 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         })}
       </div>
 
+      {/* Upload Success Banner */}
+      {uploadBanner&&(
+        <motion.div
+          initial={{opacity:0,y:-8}}
+          animate={{opacity:1,y:0}}
+          style={{
+            background:'linear-gradient(90deg, rgba(82,176,122,0.14) 0%, rgba(245,196,81,0.08) 100%)',
+            border:'1px solid rgba(82,176,122,0.4)',
+            borderRadius:12,
+            padding:'12px 18px',
+            marginBottom:16,
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'space-between',
+            gap:12,
+            boxShadow:'0 4px 16px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:28,height:28,borderRadius:8,background:'rgba(82,176,122,0.2)',display:'flex',alignItems:'center',justifyContent:'center',color:'#4CAF7A',flexShrink:0}}>
+              <CheckCircle2 size={16} strokeWidth={2.4}/>
+            </div>
+            <div>
+              <div style={{color:'#F0E8D0',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif'}}>
+                Script &ldquo;{uploadBanner.fileName}&rdquo; uploaded &amp; broken down successfully!
+              </div>
+              <div style={{color:'#A1A1AA',fontSize:11,marginTop:1,fontFamily:'Manrope,sans-serif'}}>
+                {uploadBanner.sceneCount} scenes and {uploadBanner.characterCount} speaking characters generated and ready to schedule.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={()=>setUploadBanner(null)}
+            style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center'}}
+            aria-label="Dismiss banner"
+          >
+            <X size={15}/>
+          </button>
+        </motion.div>
+      )}
+
       {/* 4 Stat Cards */}
       <motion.div
         variants={staggerContainer(0.04, 0.02)}
@@ -9091,7 +9316,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       {/* Source script indicator */}
       <div style={{display:'flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:12,fontFamily:'Manrope,sans-serif',marginBottom:16}}>
         <FileText size={13} style={{color:'#8A8985'}}/>
-        <span>From <span style={{color:'#D4D4D8',fontWeight:500}}>{project.script_name || `${project.name} — Shooting Draft.fdx`}</span></span>
+        <span>From <span style={{color:uploadBanner?'#F5C451':'#D4D4D8',fontWeight:uploadBanner?600:500}}>{uploadBanner?.fileName || project.script_name || `${project.name} — Shooting Draft.fdx`}</span></span>
       </div>
 
       {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
@@ -9102,7 +9327,18 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         <Btn size="sm" variant="outline" onClick={()=>{if(window.confirm(`Remove ${dupeCount} duplicate scene${dupeCount!==1?'s':''}? This keeps one copy of each scene number and can't be undone.`))onDedupeScenes(project.id);}}>Clean up duplicates</Btn>
       </div>}
 
-      <BreakdownUploader open={showUpload} onClose={()=>setShowUpload(false)} project={project} onApply={(ns, scriptName)=>{onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})), scriptName);setShowUpload(false);}} onSaveCharacter={onSaveCharacter}/>
+      <BreakdownUploader
+        open={showUpload}
+        onClose={()=>setShowUpload(false)}
+        project={project}
+        onApply={(ns, scriptName)=>{
+          onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})), scriptName);
+          const uniqueCast = new Set(ns.flatMap(s=>s.cast||[])).size;
+          setUploadBanner({ fileName: scriptName, sceneCount: ns.length, characterCount: uniqueCast });
+          setShowUpload(false);
+        }}
+        onSaveCharacter={onSaveCharacter}
+      />
 
       <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={sc=>{setPendingNewScene(sc);setSelectedScene(null);}} defaultSceneNumber={ps.length+1}/>
 

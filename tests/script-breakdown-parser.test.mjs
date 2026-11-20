@@ -76,3 +76,51 @@ What did you get us into?
   assert.ok(characters.some(c => c.name === 'ADAOBI' && c.tier === 'lead' || c.tier === 'supporting'));
   assert.ok(characters.some(c => c.name === 'YINKA'));
 });
+
+test('parseScriptFile handles Final Draft XML (.fdx) format cleanly', () => {
+  const fdxXml = `<?xml version="1.0" encoding="UTF-8"?>
+<FinalDraft DocumentType="Script" Template="No" Version="1">
+  <Content>
+    <Paragraph Type="Scene Heading" Number="1">
+      <Text>INT. POLICE STATION - DAY</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Inspector Okon sifts through case files on his cluttered desk.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>INSPECTOR OKON</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>We have twenty-four hours before the commissioner steps in.</Text>
+    </Paragraph>
+    <Paragraph Type="Scene Heading" Number="2">
+      <Text>EXT. MAKOKO WATERFRONT - DAWN</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>A wooden boat drifts quietly across the lagoon waters.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>TUNDE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Keep the motor low.</Text>
+    </Paragraph>
+  </Content>
+</FinalDraft>`;
+
+  const { scenes, characters } = parseScriptFile(fdxXml, 'Lagos_Draft.fdx');
+  assert.equal(scenes.length, 2);
+  assert.equal(scenes[0].sceneNumber, '1');
+  assert.equal(scenes[0].heading, 'INT. POLICE STATION - DAY');
+  assert.equal(scenes[0].dayNight, 'DAY');
+  assert.equal(scenes[0].location, 'POLICE STATION');
+  assert.deepEqual(scenes[0].cast, ['INSPECTOR OKON']);
+
+  assert.equal(scenes[1].sceneNumber, '2');
+  assert.equal(scenes[1].heading, 'EXT. MAKOKO WATERFRONT - DAWN');
+  assert.equal(scenes[1].dayNight, 'DAWN');
+  assert.equal(scenes[1].location, 'MAKOKO WATERFRONT');
+  assert.deepEqual(scenes[1].cast, ['TUNDE']);
+  assert.ok(characters.some(c => c.name === 'INSPECTOR OKON'));
+  assert.ok(characters.some(c => c.name === 'TUNDE'));
+});

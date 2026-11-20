@@ -3,13 +3,14 @@
    from Final Draft XML (.fdx), Fountain (.fountain), plain text (.txt), and PDF text.
 */
 
-const HEADING_REGEX = /^\s*(?:(?:SCENE\s+)?(\d+[A-Z]?)\s*[.\-:\/]?\s*)?((?:INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\s*\/\s*E|INT\.?|EXT\.?)\b\s*.+)$/i;
+const HEADING_REGEX = /^\s*(?:\.?\s*)?(?:(?:SCENE\s+)?(\d+[A-Z]?)\s*[.\-:\/]?\s*)?((?:INT\.?\s*[\/&]\s*EXT\.?|EXT\.?\s*[\/&]\s*INT\.?|I\s*\/\s*E|INT\.?|EXT\.?)\b\s*.+)$/i;
+const SECONDARY_HEADING_REGEX = /^\s*(?:SCENE\s+(\d+[A-Z]?)|(\d+)[.\-]\s+([A-Z0-9\s'–-]+(?:\s*[-–—]\s*(?:NIGHT|DAY|DAWN|DUSK|MORNING|EVENING|CONTINUOUS|LATER))?))/i;
 
 const TOD_TERMS = ['NIGHT', 'DAY', 'DAWN', 'DUSK', 'MORNING', 'EVENING', 'AFTERNOON', 'SUNSET', 'SUNRISE', 'CONTINUOUS', 'LATER', 'SAME'];
 
 export function parseDayNight(heading = '') {
   const upper = heading.toUpperCase();
-  const match = upper.match(/[-–—]\s*(NIGHT|DAY|DAWN|DUSK|MORNING|EVENING|AFTERNOON|SUNSET|SUNRISE|CONTINUOUS|LATER|SAME)/i);
+  const match = upper.match(/[-–—,.]\s*(NIGHT|DAY|DAWN|DUSK|MORNING|EVENING|AFTERNOON|SUNSET|SUNRISE|CONTINUOUS|LATER|SAME)/i);
   if (!match) return 'DAY';
   const tod = match[1].toUpperCase();
   if (tod === 'MORNING' || tod === 'SUNRISE') return 'DAWN';
@@ -20,7 +21,7 @@ export function parseDayNight(heading = '') {
 
 export function parseIntExt(heading = '') {
   const upper = heading.toUpperCase().trim();
-  if (/^(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E)/i.test(upper)) return 'INT/EXT';
+  if (/^(?:INT\.?\s*[\/&]\s*EXT|EXT\.?\s*[\/&]\s*INT|I\s*\/\s*E)/i.test(upper)) return 'INT/EXT';
   if (/^EXT/i.test(upper)) return 'EXT';
   return 'INT';
 }
@@ -29,11 +30,11 @@ export function parseSetName(heading = '') {
   if (!heading) return 'UNTITLED';
   let s = heading.trim().toUpperCase();
   // Strip leading scene numbers
-  s = s.replace(/^\s*\d+[A-Z]?\s*[.\-:\/]?\s*/, '');
+  s = s.replace(/^\s*(?:SCENE\s+)?\d+[A-Z]?\s*[.\-:\/]?\s*/i, '');
   // Strip INT./EXT. prefixes
-  s = s.replace(/^(?:INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\s*\/\s*E|INT\.?|EXT\.?)\s+/i, '');
+  s = s.replace(/^(?:INT\.?\s*[\/&]\s*EXT\.?|EXT\.?\s*[\/&]\s*INT\.?|I\s*\/\s*E|INT\.?|EXT\.?)\s*[-–—.]?\s*/i, '');
   // Strip time of day suffix
-  s = s.split(/\s*[-–—]\s*(?:NIGHT|DAY|DAWN|DUSK|MORNING|EVENING|AFTERNOON|CONTINUOUS|LATER|SAME)/i)[0];
+  s = s.split(/\s*[-–—,.]\s*(?:NIGHT|DAY|DAWN|DUSK|MORNING|EVENING|AFTERNOON|SUNSET|SUNRISE|CONTINUOUS|LATER|SAME)/i)[0];
   // Strip trailing notes or numbers
   s = s.split(/\s+[-–—]\s+/)[0].trim();
   return s || 'UNTITLED';
@@ -86,30 +87,55 @@ export function extractSceneElements(text = '', heading = '') {
   return { elements, vehicles };
 }
 
+export function extractFdxParagraphs(xmlText) {
+  if (typeof window !== 'undefined' && window.DOMParser) {
+    try {
+      const doc = new window.DOMParser().parseFromString(xmlText, 'text/xml');
+      const paras = Array.from(doc.querySelectorAll('Paragraph'));
+      if (paras.length > 0) {
+        return paras.map(p => ({
+          type: p.getAttribute('Type') || '',
+          number: p.getAttribute('Number') || '',
+          text: Array.from(p.querySelectorAll('Text')).map(t => t.textContent || '').join('').trim(),
+        })).filter(p => p.text);
+      }
+    } catch {}
+  }
+  // Regex fallback for XML parsing when DOMParser is unavailable
+  const paras = [];
+  const pRegex = /<Paragraph(?:\s+Type="([^"]*)")?(?:\s+Number="([^"]*)")?[^>]*>([\s\S]*?)<\/Paragraph>/gi;
+  let match;
+  while ((match = pRegex.exec(xmlText)) !== null) {
+    const type = match[1] || '';
+    const number = match[2] || '';
+    const inner = match[3] || '';
+    const textMatches = inner.match(/<Text[^>]*>([^<]*)<\/Text>/gi) || [];
+    const text = textMatches.map(tm => tm.replace(/<[^>]+>/g, '')).join('').trim();
+    if (text) paras.push({ type, number, text });
+  }
+  return paras;
+}
+
 export function parseFinalDraftXml(xmlText) {
   const outScenes = [];
   const charCounts = {};
 
-  const parser = typeof window !== 'undefined' && window.DOMParser
-    ? new window.DOMParser()
-    : null;
-
-  if (!parser) return { scenes: [], characters: [] };
-
-  const doc = parser.parseFromString(xmlText, 'text/xml');
-  const paras = Array.from(doc.querySelectorAll('Paragraph'));
+  const paras = extractFdxParagraphs(xmlText);
+  if (!paras.length) return { scenes: [], characters: [] };
 
   let cur = null;
   let actionLines = [];
   let lineCount = 0;
 
   paras.forEach(p => {
-    const type = p.getAttribute('Type') || '';
-    const numberAttr = p.getAttribute('Number');
-    const text = Array.from(p.querySelectorAll('Text')).map(t => t.textContent || '').join('').trim();
+    const type = p.type || '';
+    const numberAttr = p.number;
+    const text = p.text || '';
     if (!text) return;
 
-    if (type === 'Scene Heading') {
+    const isSceneHeading = /scene\s*heading/i.test(type) || HEADING_REGEX.test(text);
+
+    if (isSceneHeading) {
       if (cur) {
         cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
         const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
@@ -168,6 +194,58 @@ export function parseFinalDraftXml(xmlText) {
     cur.status = isReady ? 'ready' : 'incomplete';
     cur.ready = isReady;
     outScenes.push(cur);
+  }
+
+  // Fallback pass if no scenes were identified using standard INT/EXT sluglines
+  if (!outScenes.length) {
+    cur = null;
+    actionLines = [];
+    lineCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const m2 = line.match(SECONDARY_HEADING_REGEX);
+      if (m2) {
+        if (cur) {
+          cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
+          const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
+          cur.productionElements = extracted.elements;
+          cur.pictureVehicles = extracted.vehicles;
+          cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
+          outScenes.push(cur);
+        }
+        const sNum = m2[1] || m2[2] || String(outScenes.length + 1);
+        const headingContent = (m2[3] || line).toUpperCase();
+        const upper = headingContent.startsWith('INT') || headingContent.startsWith('EXT') ? headingContent : `INT. ${headingContent}`;
+        cur = {
+          sceneNumber: sNum,
+          heading: upper,
+          intExt: parseIntExt(upper),
+          location: parseSetName(upper),
+          dayNight: parseDayNight(upper),
+          cast: [],
+          talkingExtras: [],
+          backgroundActors: 0,
+          synopsis: '',
+          pages8: 8,
+          status: 'ready',
+          ready: true,
+        };
+        actionLines = [];
+        lineCount = 2;
+      } else if (cur) {
+        lineCount += 1;
+        if (actionLines.length < 5 && line.length > 5) actionLines.push(line);
+      }
+    }
+    if (cur) {
+      cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
+      const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
+      cur.productionElements = extracted.elements;
+      cur.pictureVehicles = extracted.vehicles;
+      cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
+      outScenes.push(cur);
+    }
   }
 
   const characters = Object.entries(charCounts)
@@ -270,6 +348,58 @@ export function parseScriptText(rawText) {
     cur.status = isReady ? 'ready' : 'incomplete';
     cur.ready = isReady;
     outScenes.push(cur);
+  }
+
+  // Fallback pass if no scenes were identified using standard INT/EXT sluglines
+  if (!outScenes.length) {
+    cur = null;
+    actionLines = [];
+    lineCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const m2 = line.match(SECONDARY_HEADING_REGEX);
+      if (m2) {
+        if (cur) {
+          cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
+          const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
+          cur.productionElements = extracted.elements;
+          cur.pictureVehicles = extracted.vehicles;
+          cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
+          outScenes.push(cur);
+        }
+        const sNum = m2[1] || m2[2] || String(outScenes.length + 1);
+        const headingContent = (m2[3] || line).toUpperCase();
+        const upper = headingContent.startsWith('INT') || headingContent.startsWith('EXT') ? headingContent : `INT. ${headingContent}`;
+        cur = {
+          sceneNumber: sNum,
+          heading: upper,
+          intExt: parseIntExt(upper),
+          location: parseSetName(upper),
+          dayNight: parseDayNight(upper),
+          cast: [],
+          talkingExtras: [],
+          backgroundActors: 0,
+          synopsis: '',
+          pages8: 8,
+          status: 'ready',
+          ready: true,
+        };
+        actionLines = [];
+        lineCount = 2;
+      } else if (cur) {
+        lineCount += 1;
+        if (actionLines.length < 5 && line.length > 5) actionLines.push(line);
+      }
+    }
+    if (cur) {
+      cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
+      const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
+      cur.productionElements = extracted.elements;
+      cur.pictureVehicles = extracted.vehicles;
+      cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
+      outScenes.push(cur);
+    }
   }
 
   const characters = Object.entries(charCounts)
