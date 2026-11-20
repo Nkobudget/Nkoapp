@@ -1,6 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
 import { toNumber, BUDGET_ALLOCATIONS, saveOnboardingProduction } from '../src/onboarding/saveOnboardingProduction.js'
+import { PENDING_KEY, readPending, writePending, clearPending } from '../src/auth/pendingProduction.js'
 
 test('toNumber cleanly parses string, formatted currency, and shorthand notation', () => {
   assert.equal(toNumber('30,000,000'), 30000000)
@@ -200,4 +203,52 @@ test('schedule framework distributes days into primary set, exterior, and studio
   assert.equal(allDays[7].tone, '#75726B')
   assert.equal(allDays[9].locationName, 'Studio')
   allDays.forEach(d => assert.equal(d.dateStatus, 'Date TBC'))
+})
+
+test('Get Started and Create Your Production navigate straight to onboarding', () => {
+  const headerContent = fs.readFileSync(path.resolve('src/components/Header.jsx'), 'utf8')
+  assert.match(headerContent, /to="\/onboarding"[\s\S]*?>\s*Get Started\s*<\/Link>/)
+
+  const heroContent = fs.readFileSync(path.resolve('src/components/HeroSection.jsx'), 'utf8')
+  assert.match(heroContent, /navigate\(["']\/onboarding["']\)/)
+  assert.match(heroContent, /Create Your Production/)
+
+  const ctaContent = fs.readFileSync(path.resolve('src/components/ProductionCTASection.jsx'), 'utf8')
+  assert.match(ctaContent, /createHref\s*=\s*['"]\/onboarding['"]/)
+  assert.match(ctaContent, /Create Your Production/)
+})
+
+test('Pending production draft writes and reads safely across storage and provides login/signup paths', () => {
+  // Test mock storage
+  const mockStorage = {}
+  globalThis.sessionStorage = {
+    getItem: (k) => mockStorage[k] || null,
+    setItem: (k, v) => { mockStorage[k] = String(v) },
+    removeItem: (k) => { delete mockStorage[k] },
+  }
+  globalThis.localStorage = {
+    getItem: (k) => mockStorage[k] || null,
+    setItem: (k, v) => { mockStorage[k] = String(v) },
+    removeItem: (k) => { delete mockStorage[k] },
+  }
+
+  const sampleDraft = {
+    productionName: 'The Last Lagos Film',
+    productionType: 'Feature Film',
+    budgetAmount: '50,000,000',
+    shootingDays: 14,
+    crewSize: 25,
+    locations: 4,
+  }
+
+  writePending(sampleDraft)
+  const read = readPending()
+  assert.deepEqual(read, sampleDraft)
+
+  clearPending()
+  assert.equal(readPending(), null)
+
+  const startingPointContent = fs.readFileSync(path.resolve('src/onboarding/OnboardingStartingPointPage.jsx'), 'utf8')
+  assert.match(startingPointContent, /Proceed to Sign Up/)
+  assert.match(startingPointContent, /Log In/)
 })

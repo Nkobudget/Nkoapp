@@ -81,7 +81,7 @@ function CTAAction({ href, onClick, className, children }) {
 
 export default function ProductionCTASection({
   backgroundImage = '',
-  createHref,
+  createHref = '/onboarding',
   contactHref,
   onCreate,
   onContact,

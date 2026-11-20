@@ -24,7 +24,7 @@ import OnboardingStartingPointPage from "./onboarding/OnboardingStartingPointPag
 import { useAuth } from "./auth/AuthContext";
 import AuthGate from "./auth/AuthGate";
 import AuthProvider from "./auth/AuthProvider";
-import PendingProductionSaver, { PENDING_KEY, readPending, clearPending } from "./auth/PendingProductionSaver";
+import PendingProductionSaver, { PENDING_KEY, readPending, writePending, clearPending } from "./auth/PendingProductionSaver";
 import { saveOnboardingProduction } from "./onboarding/saveOnboardingProduction";
 import LangProvider from "./i18n/LangProvider";
 import { supabase, isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
@@ -56,12 +56,13 @@ class DashboardBoundary extends Component {
 }
 
 const LandingPage = () => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-palette-black text-palette-ivory overflow-x-hidden">
       <Header />
 
       <main className="mx-auto w-[95%] max-w-screen-2xl flex flex-col">
-        <HeroSection />
+        <HeroSection onGetStarted={() => navigate("/onboarding")} />
         <ImageDiagram />
         <ProductionFeatures id="features" />
         <ProductionComplexitySection
@@ -84,8 +85,10 @@ const LandingPage = () => {
         <ProductionRolesSection />
         <AIControlSection />
         <ProductionCTASection
-         backgroundImage="/assets/studio.png" 
-         />
+          backgroundImage="/assets/studio.png"
+          createHref="/onboarding"
+          onCreate={() => navigate("/onboarding")}
+        />
         <Footer/> 
       </main>
     </div>
@@ -116,7 +119,6 @@ function OnboardingRoute() {
   const navigate = useNavigate();
   const { status } = useAuth();
   if (status === "loading") return <AuthStatus />;
-  if (status === "authenticated") return <Navigate to="/app" replace />;
 
   return (
     <OnboardingWelcome
@@ -140,7 +142,7 @@ function OnboardingSetupRoute() {
       profile={profile}
       onBack={() => navigate("/onboarding")}
       onContinue={(nextProfile) => {
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        writePending(nextProfile);
         navigate("/onboarding/production", { state: nextProfile });
       }}
     />
@@ -161,7 +163,11 @@ function OnboardingProductionRoute() {
       onBack={() => navigate("/onboarding/setup", { state: profile })}
       onSelectOption={(choice) => {
         const nextProfile = { ...(profile || {}), choice };
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        writePending(nextProfile);
+        if (choice === 'skip') {
+          navigate("/sign-up", { state: nextProfile });
+          return;
+        }
         navigate("/onboarding/production/details", { state: nextProfile });
       }}
     />
@@ -181,7 +187,7 @@ function OnboardingProductionDetailsRoute() {
       profile={profile}
       onBack={() => navigate("/onboarding/production", { state: profile })}
       onContinue={(nextProfile) => {
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        writePending(nextProfile);
         navigate("/onboarding/scale", { state: nextProfile });
       }}
     />
@@ -201,7 +207,7 @@ function OnboardingScaleRoute() {
       profile={profile}
       onBack={() => navigate("/onboarding/production/details", { state: profile })}
       onContinue={(nextProfile) => {
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        writePending(nextProfile);
         navigate("/onboarding/goals", { state: nextProfile });
       }}
     />
@@ -221,7 +227,7 @@ function OnboardingGoalsRoute() {
       profile={profile}
       onBack={() => navigate("/onboarding/scale", { state: profile })}
       onContinue={(nextProfile) => {
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(nextProfile)); } catch {}
+        writePending(nextProfile);
         navigate("/onboarding/ai-setup", { state: nextProfile });
       }}
     />
@@ -242,7 +248,7 @@ function OnboardingAISetupRoute() {
       onBack={() => navigate("/onboarding/goals", { state: profile })}
       onGenerate={(nextProfile) => {
         const merged = nextProfile || profile;
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(merged)); } catch {}
+        writePending(merged);
         navigate("/onboarding/starting-point", { state: merged });
       }}
     />
@@ -255,36 +261,42 @@ function OnboardingStartingPointRoute() {
   const { status, user } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  if (status === "loading" || saving) return <AuthStatus />;
+  if (status === "loading" || saving) return <AuthStatus message="Saving your production and setting up workspace…" />;
 
   const profile = location.state || readPending();
+
+  const handleProceed = async (targetMode = 'signup') => {
+    const draft = profile || {};
+    writePending(draft);
+
+    if (status === "authenticated" && user && supabase) {
+      setSaving(true);
+      try {
+        const saved = await saveOnboardingProduction(supabase, user, draft);
+        if (saved) {
+          clearPending();
+          window.location.replace("/app");
+          return;
+        }
+      } catch (err) {
+        console.error("Direct production saving failed, falling back to sign-up saver:", err);
+      } finally {
+        setSaving(false);
+      }
+    }
+    navigate(targetMode === 'login' ? "/sign-in" : "/sign-up", {
+      state: { fromOnboarding: true, productionName: draft.productionName || draft.name }
+    });
+  };
 
   return (
     <OnboardingStartingPointPage
       profile={profile}
+      isAuthenticated={status === "authenticated"}
       onBack={() => navigate("/onboarding/ai-setup", { state: profile })}
       onMakeChanges={() => navigate("/onboarding/setup", { state: profile })}
-      onOpenProduction={async () => {
-        const draft = profile || {};
-        try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(draft)); } catch {}
-
-        if (status === "authenticated" && user && supabase) {
-          setSaving(true);
-          try {
-            const saved = await saveOnboardingProduction(supabase, user, draft);
-            if (saved) {
-              clearPending();
-              window.location.replace("/app");
-              return;
-            }
-          } catch (err) {
-            console.error("Direct production saving failed, falling back to sign-up saver:", err);
-          } finally {
-            setSaving(false);
-          }
-        }
-        navigate("/sign-up");
-      }}
+      onOpenProduction={() => handleProceed('signup')}
+      onSignIn={() => handleProceed('login')}
     />
   );
 }

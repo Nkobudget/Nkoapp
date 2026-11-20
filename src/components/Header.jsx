@@ -71,7 +71,7 @@ const Header = () => {
             
             <Pressable hover>
               <Link
-                to="/sign-up"
+                to="/onboarding"
                 className="rounded-full bg-palette-apricot px-5 py-2 text-sm font-semibold text-black 
                            transition-all duration-300 
                            shadow-[0_8px_20px_rgba(255,179,71,0.5)] 

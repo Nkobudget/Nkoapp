@@ -11,6 +11,7 @@ import TermsModal from './TermsModal'
 import AuthStatus from './AuthStatus'
 import { GoogleLogo } from './SignInPage'
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion'
+import { readPending } from './PendingProductionSaver'
 
 export default function AuthScreen({ initialMode = 'login' } = {}) {
   const { signIn, signInWithGoogle, signUp, requestPasswordReset, callbackError } = useAuth()
@@ -54,14 +55,14 @@ export default function AuthScreen({ initialMode = 'login' } = {}) {
       if (mode === 'login') {
         await signIn(credentials)
         setRedirecting(true)
-        if (location.pathname !== '/app') navigate('/app', { replace: true })
+        if (!readPending() && location.pathname !== '/app') navigate('/app', { replace: true })
       } else {
         const result = await signUp(credentials)
         if (result.requiresConfirmation) {
           setNotice(lang === 'fr' ? 'Consultez votre messagerie pour confirmer votre compte avant de vous connecter.' : 'Check your email to confirm your account before signing in.')
         } else {
           setRedirecting(true)
-          if (location.pathname !== '/app') navigate('/app', { replace: true })
+          if (!readPending() && location.pathname !== '/app') navigate('/app', { replace: true })
         }
       }
     })
@@ -86,6 +87,9 @@ export default function AuthScreen({ initialMode = 'login' } = {}) {
       ? 'Créez votre espace NKŌ et commencez à bâtir votre production avec l’IA.'
       : 'Create your NKŌ workspace and start building your production with AI.')
 
+  const pendingDraft = readPending()
+  const savedProdName = pendingDraft?.productionName || pendingDraft?.projectName || pendingDraft?.name
+
   return (
     <AuthSplitLayout ariaLabelledBy={headingId} headerRight={<LanguageSwitcher />}>
       {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
@@ -104,6 +108,17 @@ export default function AuthScreen({ initialMode = 'login' } = {}) {
             <span>{lang === 'fr' ? 'Retour à l’accueil' : 'Back to home'}</span>
           </Link>
         </motion.div>
+
+        {savedProdName && (
+          <motion.div
+            variants={fadeUp}
+            className="mb-5 rounded-xl border border-palette-apricot/40 bg-palette-apricot/10 px-4 py-3 text-xs text-palette-apricot flex items-center gap-2"
+          >
+            <span>
+              ✓ <strong>{savedProdName}</strong> is saved. {mode === 'login' ? 'Sign in to access your workspace.' : 'Create your account to open your workspace.'}
+            </span>
+          </motion.div>
+        )}
 
         <motion.div variants={fadeUp}>
           <AnimatePresence mode="wait" initial={false}>

@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
 import { MoveRight } from "lucide-react";
+import { useNavigate } from "react-router";
 import { fadeUp, staggerContainer } from "../lib/motion";
 import Pressable from "./motion/Pressable";
 
 const HeroSection = ({ onGetStarted }) => {
+  const navigate = useNavigate();
+  const handleStart = onGetStarted || (() => navigate("/onboarding"));
   return (
     <motion.section
       variants={staggerContainer(0.09, 0.05)}
@@ -47,7 +50,7 @@ const HeroSection = ({ onGetStarted }) => {
         <Pressable hover className="inline-flex">
           <button
             type="button"
-            onClick={onGetStarted}
+            onClick={handleStart}
             className="group inline-flex items-center justify-center gap-2 rounded-2xl
                        bg-palette-apricot px-6 py-4 text-[15px] font-medium text-black
                        transition-all duration-200 cursor-pointer

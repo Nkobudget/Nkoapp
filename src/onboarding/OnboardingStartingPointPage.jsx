@@ -42,8 +42,8 @@ const BREAKDOWN_TAGS = [
   "Sound",
 ];
 
-// CHANGED: added the onOpenProduction prop.
-export default function OnboardingStartingPointPage({ profile, onBack, onMakeChanges, onOpenProduction }) {
+// CHANGED: added onSignIn and isAuthenticated props.
+export default function OnboardingStartingPointPage({ profile, onBack, onMakeChanges, onOpenProduction, onSignIn, isAuthenticated = false }) {
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -354,8 +354,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
           </motion.div>
 
           {/* Bottom actions */}
-          <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-3.5">
-            {/* CHANGED: the button now calls onOpenProduction (sign in, then save and open the workspace). */}
+          <motion.div variants={fadeUp} className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
             <motion.button
               type="button"
               whileHover={{ scale: 1.015 }}
@@ -364,9 +363,22 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
               onClick={onOpenProduction}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-palette-apricot px-6 py-3 text-sm font-semibold text-palette-black shadow-[0_8px_28px_rgba(255,179,71,0.35)] transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold cursor-pointer"
             >
-              <span>Looks Good Open My Production</span>
+              <span>{isAuthenticated ? "Looks Good Open My Production" : "Looks Good Proceed to Sign Up"}</span>
               <ArrowRight aria-hidden="true" className="size-4" />
             </motion.button>
+
+            {!isAuthenticated && onSignIn && (
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+                onClick={onSignIn}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-palette-graphite bg-palette-near-black px-5 py-3 text-sm font-medium text-palette-stone hover:text-palette-ivory hover:border-palette-stone transition-all cursor-pointer"
+              >
+                <span>Already have an account? Log In</span>
+              </motion.button>
+            )}
 
             <motion.button
               type="button"
@@ -374,7 +386,7 @@ export default function OnboardingStartingPointPage({ profile, onBack, onMakeCha
               whileTap={{ scale: 0.985 }}
               transition={{ duration: DURATION.fast, ease: EASE_OUT }}
               onClick={onMakeChanges}
-              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-palette-graphite bg-palette-near-black px-5 py-3 text-sm font-medium text-palette-ivory transition-colors hover:border-palette-warm-gray hover:bg-palette-dark-gray focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold cursor-pointer"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-palette-graphite bg-palette-near-black px-5 py-3 text-sm font-medium text-palette-stone transition-colors hover:border-palette-warm-gray hover:bg-palette-dark-gray hover:text-palette-ivory focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-palette-gold cursor-pointer"
             >
               Make Changes
             </motion.button>
