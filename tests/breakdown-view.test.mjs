@@ -94,5 +94,14 @@ test('script breakdown cast tab layout and script characters parity', async () =
 
   // Verify Modals
   assert.match(fileContent, /function CastMemberModal/);
+  assert.match(fileContent, /Edit cast record/);
+  assert.match(fileContent, /One record per character\. An actor can appear across any number of scenes\./);
+  assert.match(fileContent, /As named in the script\./);
+  assert.match(fileContent, /appears in the script are linked automatically\. Add any others\./);
+  assert.match(fileContent, /Filter by number, set or character/);
+  assert.match(fileContent, />\s*Select\s*<\/button>/);
+  assert.match(fileContent, /Contact details &amp; notes/);
+  assert.match(fileContent, /Contract terms, dietary needs, availability windows\./);
+  assert.match(fileContent, /Save changes/);
   assert.match(fileContent, /function DeleteCastModal/);
 });

@@ -9153,6 +9153,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '05:30',
     onSetTime: '07:00',
     contact: '+234 803 412 7781',
+    phone: '+234 803 412 7781',
+    email: '',
+    notes: 'Night shoots confirmed in contract.',
   },
   {
     id: 'cast-2',
@@ -9164,6 +9167,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '06:00',
     onSetTime: '07:30',
     contact: '+234 809 551 2034',
+    phone: '+234 809 551 2034',
+    email: '',
+    notes: 'Night shoots confirmed in contract.',
   },
   {
     id: 'cast-3',
@@ -9175,6 +9181,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '',
     onSetTime: '',
     contact: 'bookings@iretidoyle.com',
+    phone: '',
+    email: 'bookings@iretidoyle.com',
+    notes: 'Available weekends only.',
   },
   {
     id: 'cast-4',
@@ -9186,6 +9195,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '',
     onSetTime: '',
     contact: '—',
+    phone: '+234',
+    email: 'Cast',
+    notes: 'Night shoots confirmed in contract.',
   },
   {
     id: 'cast-5',
@@ -9197,6 +9209,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '',
     onSetTime: '',
     contact: '—',
+    phone: '',
+    email: '',
+    notes: '',
   },
   {
     id: 'cast-6',
@@ -9208,6 +9223,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '',
     onSetTime: '',
     contact: '—',
+    phone: '',
+    email: '',
+    notes: '',
   },
   {
     id: 'cast-7',
@@ -9219,6 +9237,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '08:00',
     onSetTime: '09:30',
     contact: '—',
+    phone: '',
+    email: '',
+    notes: '',
   },
   {
     id: 'cast-8',
@@ -9232,6 +9253,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '',
     onSetTime: '',
     contact: '—',
+    phone: '',
+    email: '',
+    notes: '',
   },
   {
     id: 'cast-9',
@@ -9245,6 +9269,9 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '',
     onSetTime: '',
     contact: '—',
+    phone: '',
+    email: '',
+    notes: '',
   },
   {
     id: 'cast-10',
@@ -9258,36 +9285,85 @@ const DEFAULT_CAST_MEMBERS = [
     callTime: '',
     onSetTime: '',
     contact: '—',
+    phone: '',
+    email: '',
+    notes: '',
   },
 ];
 
-function CastMemberModal({ open, onClose, member, onSave, scriptCharacters = [] }) {
+function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = [], scriptCharacters = [] }) {
   const mob = useIsMobile();
   const isEdit = Boolean(member && !member.isNew);
 
+  const [category, setCategory] = useState('Lead Actor');
   const [character, setCharacter] = useState('');
   const [actorName, setActorName] = useState('');
-  const [category, setCategory] = useState('Supporting Cast');
+  const [selectedScenes, setSelectedScenes] = useState([]);
+  const [sceneFilter, setSceneFilter] = useState('');
   const [availability, setAvailability] = useState('Confirmed');
   const [callTime, setCallTime] = useState('');
   const [onSetTime, setOnSetTime] = useState('');
-  const [contact, setContact] = useState('');
+  const [openNotes, setOpenNotes] = useState(true);
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [notes, setNotes] = useState('');
   const [peopleCount, setPeopleCount] = useState('');
   const [isExtra, setIsExtra] = useState(false);
 
   useEffect(() => {
     if (member) {
+      const rawCat = member.category || 'Lead Actor';
+      setCategory(rawCat === 'Lead Actors' ? 'Lead Actor' : rawCat);
       setCharacter(member.character || '');
       setActorName(member.actorName || '');
-      setCategory(member.category || 'Supporting Cast');
+      setSelectedScenes(Array.isArray(member.scenes) ? [...member.scenes] : []);
       setAvailability(member.availability || 'Confirmed');
       setCallTime(member.callTime || '');
       setOnSetTime(member.onSetTime || '');
-      setContact(member.contact && member.contact !== '—' ? member.contact : '');
+      setPhone(member.phone || (member.contact && !member.contact.includes('@') && member.contact !== '—' ? member.contact : ''));
+      setEmail(member.email || (member.contact && member.contact.includes('@') ? member.contact : ''));
+      setNotes(member.notes || '');
       setPeopleCount(member.peopleCount || '');
       setIsExtra(Boolean(member.isExtra || ['Extras', 'Background Extras', 'Crowd'].includes(member.category)));
+      setSceneFilter('');
     }
   }, [member]);
+
+  // All available scene numbers
+  const sceneList = allScenes.length > 0
+    ? allScenes
+    : Array.from({ length: 18 }, (_, i) => ({ sceneNumber: i + 1, id: `sc-${i+1}` }));
+
+  // Filter scenes
+  const q = sceneFilter.trim().toLowerCase();
+  const filteredSceneList = sceneList.filter(sc => {
+    if (!q) return true;
+    const numMatch = String(sc.sceneNumber).includes(q);
+    const headMatch = (sc.heading || '').toLowerCase().includes(q);
+    const locMatch = (sc.location || '').toLowerCase().includes(q);
+    const castMatch = (sc.cast || []).some(c => c.toLowerCase().includes(q));
+    return numMatch || headMatch || locMatch || castMatch;
+  });
+
+  const toggleScene = (num) => {
+    setSelectedScenes(prev => {
+      if (prev.includes(num)) {
+        return prev.filter(n => n !== num);
+      } else {
+        return [...prev, num].sort((a, b) => Number(a) - Number(b));
+      }
+    });
+  };
+
+  const handleSelectToggle = () => {
+    const displayedNums = filteredSceneList.map(s => s.sceneNumber);
+    const allSelected = displayedNums.every(num => selectedScenes.includes(num));
+    if (allSelected) {
+      setSelectedScenes(prev => prev.filter(n => !displayedNums.includes(n)));
+    } else {
+      setSelectedScenes(prev => Array.from(new Set([...prev, ...displayedNums])).sort((a, b) => Number(a) - Number(b)));
+    }
+  };
 
   const handleCategoryChange = (val) => {
     setCategory(val);
@@ -9299,18 +9375,22 @@ function CastMemberModal({ open, onClose, member, onSave, scriptCharacters = [] 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!actorName.trim()) return;
+    const normCategory = category === 'Lead Actor' ? 'Lead Actors' : category;
     onSave({
       id: member?.id || `cast-${Date.now()}`,
       actorName: actorName.trim(),
       character: character.trim() || actorName.trim(),
-      category,
+      category: normCategory,
       availability,
       callTime: callTime.trim(),
       onSetTime: onSetTime.trim(),
-      contact: contact.trim() || '—',
+      phone: phone.trim(),
+      email: email.trim(),
+      contact: phone.trim() || email.trim() || member?.contact || '—',
+      notes: notes.trim(),
       peopleCount: peopleCount.trim(),
       isExtra: isExtra || ['Extras', 'Background Extras', 'Crowd'].includes(category),
-      scenes: member?.scenes || [],
+      scenes: selectedScenes,
     });
     onClose();
   };
@@ -9347,11 +9427,12 @@ function CastMemberModal({ open, onClose, member, onSave, scriptCharacters = [] 
               border: '1px solid #1E1E22',
               borderRadius: 16,
               width: '100%',
-              maxWidth: 480,
+              maxWidth: 510,
               boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              maxHeight: '92vh',
             }}
           >
             {/* Header */}
@@ -9363,11 +9444,11 @@ function CastMemberModal({ open, onClose, member, onSave, scriptCharacters = [] 
               alignItems: 'flex-start',
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em' }}>
-                  {isEdit ? 'Edit cast member' : 'Add cast member'}
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+                  {isEdit ? 'Edit cast record' : 'Add cast record'}
                 </h3>
-                <div style={{ fontSize: 12, color: '#71717A', marginTop: 4 }}>
-                  Link actors to script characters, set availability, call times and contacts.
+                <div style={{ fontSize: 12, color: '#8A8985', marginTop: 4, fontFamily: 'Manrope,sans-serif', lineHeight: 1.4 }}>
+                  One record per character. An actor can appear across any number of scenes.
                 </div>
               </div>
               <button
@@ -9390,215 +9471,405 @@ function CastMemberModal({ open, onClose, member, onSave, scriptCharacters = [] 
               </button>
             </div>
 
-            {/* Body */}
-            <div style={{ padding: mob ? '14px 18px 18px' : '18px 24px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Scrollable Body */}
+            <div style={{ padding: mob ? '14px 18px' : '18px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+              {/* Role Section */}
               <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                  {isExtra ? 'Group / Role Name' : 'Actor / Performer Name'} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={isExtra ? 'e.g. Police officers or Club patrons' : 'e.g. Kehinde Bankole'}
-                  value={actorName}
-                  onChange={e => setActorName(e.target.value)}
-                  autoFocus
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#71717A', textTransform: 'capitalize', marginBottom: 8, fontFamily: 'Manrope,sans-serif' }}>
+                  Role
+                </div>
+
+                {/* Category* */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    Category<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={category}
+                      onChange={e => handleCategoryChange(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #242428',
+                        borderRadius: 8,
+                        padding: '10px 32px 10px 12px',
+                        color: T.cream,
+                        fontSize: 12,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <option value="Lead Actor">Lead Actor</option>
+                      <option value="Sub-lead">Sub-lead</option>
+                      <option value="Supporting Cast">Supporting Cast</option>
+                      <option value="Day Players">Day Players</option>
+                      <option value="Extras">Extras</option>
+                      <option value="Background Extras">Background Extras</option>
+                      <option value="Crowd">Crowd</option>
+                    </select>
+                    <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+
+                {/* Character* and Actor* */}
+                <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                      Character<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    </label>
+                    <div style={{ fontSize: 10, color: '#71717A', marginTop: 1, marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                      As named in the script.
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. FEMI"
+                      value={character}
+                      onChange={e => setCharacter(e.target.value.toUpperCase())}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #242428',
+                        borderRadius: 8,
+                        padding: '10px 12px',
+                        color: T.cream,
+                        fontSize: 12,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                      Actor<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    </label>
+                    <div style={{ fontSize: 10, color: 'transparent', marginTop: 1, marginBottom: 6, userSelect: 'none' }}>
+                      &nbsp;
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Femi Jacobs"
+                      value={actorName}
+                      onChange={e => setActorName(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #242428',
+                        borderRadius: 8,
+                        padding: '10px 12px',
+                        color: T.cream,
+                        fontSize: 12,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Scenes Section */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#E5E5E0', fontFamily: 'Manrope,sans-serif' }}>
+                    Scenes
+                  </span>
+                  <span style={{ fontSize: 11, color: '#8A8985', fontFamily: 'IBM Plex Mono,monospace' }}>
+                    {selectedScenes.length} selected
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 8, fontFamily: 'Manrope,sans-serif' }}>
+                  Scenes where {character || 'ADAOBI'} appears in the script are linked automatically. Add any others.
+                </div>
+
+                {/* Filter and Scenes Box */}
+                <div style={{
+                  background: '#121214',
+                  border: '1px solid #222226',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <Search size={13} style={{ color: '#71717A', flexShrink: 0 }} />
+                      <input
+                        type="text"
+                        placeholder="Filter by number, set or character"
+                        value={sceneFilter}
+                        onChange={e => setSceneFilter(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: 'transparent',
+                          border: 'none',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSelectToggle}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#5B9DF8',
+                        fontSize: 11.5,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        padding: 0,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Select
+                    </button>
+                  </div>
+
+                  {/* Number Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
+                    gap: 6,
+                  }}>
+                    {filteredSceneList.map(sc => {
+                      const num = sc.sceneNumber;
+                      const isSelected = selectedScenes.includes(num);
+                      return (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => toggleScene(num)}
+                          style={{
+                            height: 30,
+                            borderRadius: 5,
+                            border: isSelected ? '1px solid rgba(245, 166, 35, 0.5)' : '1px solid #222226',
+                            background: isSelected ? 'rgba(245, 166, 35, 0.08)' : '#141416',
+                            color: isSelected ? '#F5C451' : '#71717A',
+                            fontFamily: 'IBM Plex Mono,monospace',
+                            fontSize: 11,
+                            fontWeight: isSelected ? 600 : 500,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.12s ease',
+                          }}
+                        >
+                          {num}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Scheduling Section */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#71717A', marginBottom: 8, fontFamily: 'Manrope,sans-serif' }}>
+                  Scheduling
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1.2fr 1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                      Availability
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={availability}
+                        onChange={e => setAvailability(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #242428',
+                          borderRadius: 8,
+                          padding: '10px 28px 10px 12px',
+                          color: T.cream,
+                          fontSize: 12,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          appearance: 'none',
+                          WebkitAppearance: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Limited">Limited</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                      <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                      Call time
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="--:--"
+                      value={callTime}
+                      onChange={e => setCallTime(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #242428',
+                        borderRadius: 8,
+                        padding: '10px 12px',
+                        color: T.cream,
+                        fontSize: 12,
+                        fontFamily: 'IBM Plex Mono,monospace',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                      On-set time
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="--:--"
+                      value={onSetTime}
+                      onChange={e => setOnSetTime(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #242428',
+                        borderRadius: 8,
+                        padding: '10px 12px',
+                        color: T.cream,
+                        fontSize: 12,
+                        fontFamily: 'IBM Plex Mono,monospace',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact details & notes (Collapsible) */}
+              <div style={{ borderTop: '1px solid #1C1C20', paddingTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setOpenNotes(o => !o)}
                   style={{
                     width: '100%',
-                    background: '#141416',
-                    border: '1px solid #242428',
-                    borderRadius: 10,
-                    padding: '10px 12px',
-                    color: T.cream,
-                    fontSize: 12,
+                    background: 'none',
+                    border: 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    padding: '4px 0',
+                    color: '#E5E5E0',
+                    fontSize: 12.5,
+                    fontWeight: 600,
                     fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
                   }}
-                />
-              </div>
-
-              {!isExtra ? (
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                    Script Character
-                  </label>
-                  <input
-                    type="text"
-                    list="cast-characters-datalist"
-                    placeholder="e.g. ADAOBI"
-                    value={character}
-                    onChange={e => setCharacter(e.target.value.toUpperCase())}
+                >
+                  <span>Contact details &amp; notes</span>
+                  <ChevronDown
+                    size={14}
                     style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
+                      color: '#71717A',
+                      transform: openNotes ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.18s ease',
                     }}
                   />
-                  <datalist id="cast-characters-datalist">
-                    {scriptCharacters.map(sc => (
-                      <option key={sc.name} value={sc.name} />
-                    ))}
-                  </datalist>
-                </div>
-              ) : (
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                    Number of People
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 6 people, 40 people"
-                    value={peopleCount}
-                    onChange={e => setPeopleCount(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              )}
+                </button>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                    Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={e => handleCategoryChange(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    {CAST_CATEGORIES.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
+                {openNotes && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                          Phone
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="+234"
+                          value={phone}
+                          onChange={e => setPhone(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: '#141416',
+                            border: '1px solid #242428',
+                            borderRadius: 8,
+                            padding: '10px 12px',
+                            color: T.cream,
+                            fontSize: 12,
+                            fontFamily: 'Manrope,sans-serif',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                          Email
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Cast"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: '#141416',
+                            border: '1px solid #242428',
+                            borderRadius: 8,
+                            padding: '10px 12px',
+                            color: T.cream,
+                            fontSize: 12,
+                            fontFamily: 'Manrope,sans-serif',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                    Availability
-                  </label>
-                  <select
-                    value={availability}
-                    onChange={e => setAvailability(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Limited">Limited</option>
-                    <option value="Pending">Pending</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                    Call Time (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 05:30"
-                    value={callTime}
-                    onChange={e => setCallTime(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'IBM Plex Mono,monospace',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                    On Set Time (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 07:00"
-                    value={onSetTime}
-                    onChange={e => setOnSetTime(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #242428',
-                      borderRadius: 10,
-                      padding: '10px 12px',
-                      color: T.cream,
-                      fontSize: 12,
-                      fontFamily: 'IBM Plex Mono,monospace',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6 }}>
-                  Contact (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. +234 803 412 7781 or email"
-                  value={contact}
-                  onChange={e => setContact(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: '#141416',
-                    border: '1px solid #242428',
-                    borderRadius: 10,
-                    padding: '10px 12px',
-                    color: T.cream,
-                    fontSize: 12,
-                    fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                        Notes
+                      </label>
+                      <div style={{ fontSize: 10.5, color: '#71717A', marginTop: 1, marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                        Contract terms, dietary needs, availability windows.
+                      </div>
+                      <textarea
+                        rows={3}
+                        placeholder="Night shoots confirmed in contract."
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #242428',
+                          borderRadius: 8,
+                          padding: '10px 12px',
+                          color: T.cream,
+                          fontSize: 12,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -9607,46 +9878,76 @@ function CastMemberModal({ open, onClose, member, onSave, scriptCharacters = [] 
               padding: mob ? '12px 18px 16px' : '14px 24px 18px',
               borderTop: '1px solid #1C1C20',
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: isEdit ? 'space-between' : 'flex-end',
+              alignItems: 'center',
               gap: 10,
+              background: '#101012',
             }}>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  background: '#141416',
-                  border: '1px solid #26262B',
-                  color: '#E5E5E0',
-                  borderRadius: 10,
-                  padding: '9px 18px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  fontFamily: 'Manrope,sans-serif',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <motion.button
-                type="submit"
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ duration: DURATION.fast, ease: EASE_OUT }}
-                style={{
-                  background: 'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',
-                  color: '#0A0A0A',
-                  border: 'none',
-                  borderRadius: 10,
-                  padding: '9px 18px',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: 'Manrope,sans-serif',
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
-                }}
-              >
-                {isEdit ? 'Save Changes' : 'Add Cast'}
-              </motion.button>
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDelete) onDelete(member);
+                    onClose();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#E05252',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    padding: '6px 0',
+                  }}
+                >
+                  <Trash2 size={13} />
+                  <span>Delete</span>
+                </button>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    background: '#141416',
+                    border: '1px solid #26262B',
+                    color: '#E5E5E0',
+                    borderRadius: 10,
+                    padding: '9px 18px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  type="submit"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+                  style={{
+                    background: 'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',
+                    color: '#0A0A0A',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '9px 20px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
+                  }}
+                >
+                  Save changes
+                </motion.button>
+              </div>
             </div>
           </motion.form>
         </motion.div>
@@ -11005,6 +11306,8 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         member={editingCastMember}
         onClose={()=>setEditingCastMember(null)}
         onSave={handleSaveCastMember}
+        onDelete={handleDeleteCastMember}
+        allScenes={ps}
         scriptCharacters={scriptCharactersData}
       />
 
