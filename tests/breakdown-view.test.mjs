@@ -252,11 +252,18 @@ test('script breakdown picture vehicles tab layout and modals parity', async () 
   // Verify Modals
   assert.match(fileContent, /function PictureVehicleModal/);
   assert.match(fileContent, /Edit picture vehicle/);
+  assert.match(fileContent, /Vehicles seen on camera – not unit transport\./);
   assert.match(fileContent, /Vehicle name/);
-  assert.match(fileContent, /Model &amp; description/);
-  assert.match(fileContent, /Registration \/ Plate/);
-  assert.match(fileContent, /Every scene that needs this vehicle\./);
-  assert.match(fileContent, /Notes &amp; special instructions/);
+  assert.match(fileContent, /As it['&apos;]+s known in the story\./);
+  assert.match(fileContent, /Make and model/);
+  assert.match(fileContent, /Colour/);
+  assert.match(fileContent, /Registration/);
+  assert.match(fileContent, /On camera/);
+  assert.match(fileContent, /Availability/);
+  assert.match(fileContent, /Every scene the vehicle appears in\./);
+  assert.match(fileContent, /Supplier &amp; special requirements/);
+  assert.match(fileContent, /Owner or supplier/);
+  assert.match(fileContent, /Rigging, doubles, livery, driver\./);
   assert.match(fileContent, /function DeletePictureVehicleModal/);
   assert.match(fileContent, /Remove picture vehicle\?/);
 });

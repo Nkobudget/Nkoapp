@@ -9199,27 +9199,37 @@ const LAGOS_AFTER_DARK_VEHICLES = [
   {
     id: 'veh-1',
     name: "Adaobi's taxi",
+    type: 'Taxi',
+    makeModel: 'Toyota Corolla 2008',
+    colour: 'Yellow with black stripe',
     spec: 'Taxi · Toyota Corolla 2008 · Yellow with black stripe',
     description: 'Taxi · Toyota Corolla 2008 · Yellow with black stripe',
-    type: 'Lead Vehicle',
     registration: 'LSR 412 KJ',
-    scenes: [1, 2, 3, 8, 9, 13],
+    scenes: [1, 2, 3, 8, 9, 13, 15, 18],
     usage: 'Static & moving',
     supplier: 'Lekki Picture Cars',
+    contact: '+234 807 330 9911',
     status: 'Confirmed',
-    notes: 'Hero taxi with yellow and black Lagos stripe. Practical meter on dashboard.',
+    availability: 'Confirmed',
+    specialRequirements: 'Needs process-trailer mounting points and a matching double for scene 15 hits.',
+    notes: 'Needs process-trailer mounting points and a matching double for scene 15 hits.',
   },
   {
     id: 'veh-2',
     name: "Okon's patrol car",
+    type: 'Police vehicle',
+    makeModel: 'Toyota Hilux',
+    colour: 'Black and white livery',
     spec: 'Police vehicle · Toyota Hilux · Black and white livery',
     description: 'Police vehicle · Toyota Hilux · Black and white livery',
-    type: 'Action Vehicle',
     registration: 'Prop plates',
     scenes: [9, 15],
     usage: 'Moving',
     supplier: '—',
+    contact: '—',
     status: 'Sourcing',
+    availability: 'Sourcing',
+    specialRequirements: 'Police cruiser for chase and bridge confrontation.',
     notes: 'Police cruiser for chase and bridge confrontation.',
   },
 ];
@@ -12092,29 +12102,41 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
   const isEdit = Boolean(vehicle && !vehicle.isNew);
 
   const [name, setName] = useState('');
-  const [spec, setSpec] = useState('');
+  const [type, setType] = useState('Taxi');
+  const [makeModel, setMakeModel] = useState('');
+  const [colour, setColour] = useState('');
   const [registration, setRegistration] = useState('');
   const [usage, setUsage] = useState('Static & moving');
-  const [supplier, setSupplier] = useState('');
-  const [status, setStatus] = useState('Confirmed');
+  const [availability, setAvailability] = useState('Confirmed');
   const [selectedScenes, setSelectedScenes] = useState([]);
   const [sceneFilter, setSceneFilter] = useState('');
   const [notesExpanded, setNotesExpanded] = useState(true);
-  const [notes, setNotes] = useState('');
+  const [supplier, setSupplier] = useState('');
+  const [contact, setContact] = useState('');
+  const [specialRequirements, setSpecialRequirements] = useState('');
 
   useEffect(() => {
     if (vehicle) {
       setName(vehicle.name || '');
-      setSpec(vehicle.spec || vehicle.description || '');
+      setType(vehicle.type || 'Taxi');
+      setMakeModel(vehicle.makeModel || (vehicle.spec ? vehicle.spec.split('·')[1]?.trim() : '') || 'Toyota Corolla 2008');
+      setColour(vehicle.colour || (vehicle.spec ? vehicle.spec.split('·')[2]?.trim() : '') || 'Yellow with black stripe');
       setRegistration(vehicle.registration && vehicle.registration !== '—' ? vehicle.registration : '');
       setUsage(vehicle.usage || 'Static & moving');
+      setAvailability(vehicle.availability || vehicle.status || 'Confirmed');
       setSupplier(vehicle.supplier && vehicle.supplier !== '—' ? vehicle.supplier : '');
-      setStatus(vehicle.status || 'Confirmed');
-      setNotes(vehicle.notes || '');
+      setContact(vehicle.contact && vehicle.contact !== '—' ? vehicle.contact : '');
+      setSpecialRequirements(
+        vehicle.specialRequirements ||
+        vehicle.notes ||
+        (vehicle.name?.toLowerCase().includes('taxi')
+          ? 'Needs process-trailer mounting points and a matching double for scene 15 hits.'
+          : '')
+      );
       const scs = Array.isArray(vehicle.scenes)
         ? vehicle.scenes
         : (vehicle.scenes ? String(vehicle.scenes).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)) : []);
-      setSelectedScenes(scs);
+      setSelectedScenes(scs.length > 0 ? scs : (vehicle.name?.toLowerCase().includes('taxi') ? [1, 2, 3, 8, 9, 13, 15, 18] : []));
       setSceneFilter('');
     }
   }, [vehicle]);
@@ -12156,17 +12178,25 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
     e.preventDefault();
     if (!name.trim()) return;
 
+    const computedSpec = [type, makeModel.trim(), colour.trim()].filter(Boolean).join(' · ');
+
     onSave({
       id: vehicle?.id || `veh-${Date.now()}`,
       name: name.trim(),
-      spec: spec.trim(),
-      description: spec.trim(),
+      type,
+      makeModel: makeModel.trim(),
+      colour: colour.trim(),
+      spec: computedSpec || vehicle?.spec || '',
+      description: computedSpec || vehicle?.description || '',
       registration: registration.trim() || '—',
       usage,
+      availability,
+      status: availability,
       supplier: supplier.trim() || '—',
-      status,
+      contact: contact.trim() || '—',
       scenes: selectedScenes,
-      notes: notes.trim(),
+      specialRequirements: specialRequirements.trim(),
+      notes: specialRequirements.trim(),
     });
     onClose();
   };
@@ -12243,7 +12273,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     lineHeight: 1.4,
                   }}
                 >
-                  Vehicles that appear on camera, and the scenes they&apos;re in.
+                  Vehicles seen on camera – not unit transport.
                 </div>
               </div>
               <button
@@ -12289,7 +12319,9 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                 >
                   Vehicle
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                {/* Row 1: Vehicle name and Type */}
+                <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '2fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div>
                     <label
                       style={{
@@ -12297,12 +12329,15 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         fontSize: 11,
                         fontWeight: 600,
                         color: '#D4D4D8',
-                        marginBottom: 6,
+                        marginBottom: 2,
                         fontFamily: 'Manrope,sans-serif',
                       }}
                     >
                       Vehicle name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
                     </label>
+                    <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                      As it&apos;s known in the story.
+                    </div>
                     <input
                       type="text"
                       required
@@ -12332,17 +12367,132 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         fontSize: 11,
                         fontWeight: 600,
                         color: '#D4D4D8',
+                        marginBottom: 2,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Type<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    </label>
+                    <div style={{ height: 16 }} />
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={type}
+                        onChange={e => setType(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '9px 30px 9px 12px',
+                          color: '#D4D4D8',
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          cursor: 'pointer',
+                          appearance: 'none',
+                        }}
+                      >
+                        <option value="Taxi">Taxi</option>
+                        <option value="Police vehicle">Police vehicle</option>
+                        <option value="Action Vehicle">Action Vehicle</option>
+                        <option value="Lead Vehicle">Lead Vehicle</option>
+                        <option value="Emergency">Emergency</option>
+                        <option value="Civilian">Civilian</option>
+                        <option value="Truck / Van">Truck / Van</option>
+                        <option value="Motorcycle">Motorcycle</option>
+                      </select>
+                      <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 2: Make and model, Colour, Registration */}
+                <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1.3fr 1.3fr 1fr', gap: 10 }}>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
                         marginBottom: 6,
                         fontFamily: 'Manrope,sans-serif',
                       }}
                     >
-                      Model &amp; description
+                      Make and model
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Taxi · Toyota Corolla 2008 · Yellow with black stripe"
-                      value={spec}
-                      onChange={e => setSpec(e.target.value)}
+                      placeholder="Toyota Corolla 2008"
+                      value={makeModel}
+                      onChange={e => setMakeModel(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Colour
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Yellow with black stripe"
+                      value={colour}
+                      onChange={e => setColour(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 12px',
+                        color: T.cream,
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4D4D8',
+                        marginBottom: 6,
+                        fontFamily: 'Manrope,sans-serif',
+                      }}
+                    >
+                      Registration
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="LSR 412 KJ"
+                      value={registration}
+                      onChange={e => setRegistration(e.target.value)}
                       style={{
                         width: '100%',
                         background: '#141416',
@@ -12360,78 +12510,22 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                 </div>
               </div>
 
-              {/* Registration & Supplier */}
-              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: '#D4D4D8',
-                      marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
-                    }}
-                  >
-                    Registration / Plate
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. LSR 412 KJ or Prop plates"
-                    value={registration}
-                    onChange={e => setRegistration(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #222226',
-                      borderRadius: 8,
-                      padding: '9px 12px',
-                      color: T.cream,
-                      fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
+              {/* On camera Section */}
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#71717A',
+                    fontFamily: 'Manrope,sans-serif',
+                    marginBottom: 8,
+                  }}
+                >
+                  On camera
                 </div>
 
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: '#D4D4D8',
-                      marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
-                    }}
-                  >
-                    Supplier
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Lekki Picture Cars"
-                    value={supplier}
-                    onChange={e => setSupplier(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #222226',
-                      borderRadius: 8,
-                      padding: '9px 12px',
-                      color: T.cream,
-                      fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Usage & Status */}
-              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
-                <div>
+                {/* Usage toggle */}
+                <div style={{ marginBottom: 12 }}>
                   <label
                     style={{
                       display: 'block',
@@ -12444,34 +12538,36 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                   >
                     Usage
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <select
-                      value={usage}
-                      onChange={e => setUsage(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: '#141416',
-                        border: '1px solid #222226',
-                        borderRadius: 8,
-                        padding: '9px 30px 9px 12px',
-                        color: '#D4D4D8',
-                        fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        cursor: 'pointer',
-                        appearance: 'none',
-                      }}
-                    >
-                      <option value="Static & moving">Static & moving</option>
-                      <option value="Moving">Moving</option>
-                      <option value="Static">Static</option>
-                      <option value="Stunt / Pursuit">Stunt / Pursuit</option>
-                    </select>
-                    <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                    {['Static', 'Moving', 'Static & moving'].map(u => {
+                      const isSelected = usage === u;
+                      return (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setUsage(u)}
+                          style={{
+                            background: isSelected ? '#17171A' : '#121215',
+                            border: isSelected ? '1px solid #F5A623' : '1px solid #242428',
+                            color: isSelected ? '#F5A623' : '#71717A',
+                            borderRadius: 8,
+                            padding: '9px 0',
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            fontFamily: 'Manrope,sans-serif',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {u}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
+                {/* Availability Dropdown */}
                 <div>
                   <label
                     style={{
@@ -12483,12 +12579,12 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       fontFamily: 'Manrope,sans-serif',
                     }}
                   >
-                    Status
+                    Availability
                   </label>
                   <div style={{ position: 'relative' }}>
                     <select
-                      value={status}
-                      onChange={e => setStatus(e.target.value)}
+                      value={availability}
+                      onChange={e => setAvailability(e.target.value)}
                       style={{
                         width: '100%',
                         background: '#141416',
@@ -12533,7 +12629,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                   </span>
                 </div>
                 <div style={{ fontSize: 11, color: '#71717A', marginBottom: 10, fontFamily: 'Manrope,sans-serif' }}>
-                  Every scene that needs this vehicle.
+                  Every scene the vehicle appears in.
                 </div>
 
                 {/* Filter bar */}
@@ -12637,7 +12733,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                 </div>
               </div>
 
-              {/* Accordion: Notes & special instructions */}
+              {/* Accordion: Supplier & special requirements */}
               <div
                 style={{
                   background: '#121215',
@@ -12669,7 +12765,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       fontFamily: 'Manrope,sans-serif',
                     }}
                   >
-                    Notes &amp; special instructions
+                    Supplier &amp; special requirements
                   </span>
                   <ChevronDown
                     size={14}
@@ -12690,6 +12786,76 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       gap: 12,
                     }}
                   >
+                    {/* Owner or supplier & Contact */}
+                    <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 10 }}>
+                      <div>
+                        <label
+                          style={{
+                            display: 'block',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#D4D4D8',
+                            marginBottom: 6,
+                            fontFamily: 'Manrope,sans-serif',
+                          }}
+                        >
+                          Owner or supplier
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Lekki Picture Cars"
+                          value={supplier}
+                          onChange={e => setSupplier(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: '#141416',
+                            border: '1px solid #222226',
+                            borderRadius: 8,
+                            padding: '9px 12px',
+                            color: T.cream,
+                            fontSize: 11.5,
+                            fontFamily: 'Manrope,sans-serif',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          style={{
+                            display: 'block',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#D4D4D8',
+                            marginBottom: 6,
+                            fontFamily: 'Manrope,sans-serif',
+                          }}
+                        >
+                          Contact
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="+234 807 330 9911"
+                          value={contact}
+                          onChange={e => setContact(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: '#141416',
+                            border: '1px solid #222226',
+                            borderRadius: 8,
+                            padding: '9px 12px',
+                            color: T.cream,
+                            fontSize: 11.5,
+                            fontFamily: 'Manrope,sans-serif',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Special requirements */}
                     <div>
                       <label
                         style={{
@@ -12697,17 +12863,27 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                           fontSize: 11,
                           fontWeight: 600,
                           color: '#D4D4D8',
+                          marginBottom: 2,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Special requirements
+                      </label>
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          color: '#71717A',
                           marginBottom: 6,
                           fontFamily: 'Manrope,sans-serif',
                         }}
                       >
-                        Special handling, stunt doubles, rigging
-                      </label>
+                        Rigging, doubles, livery, driver.
+                      </div>
                       <textarea
                         rows={2}
-                        placeholder="e.g. Hero taxi with yellow and black Lagos stripe. Practical meter on dashboard."
-                        value={notes}
-                        onChange={e => setNotes(e.target.value)}
+                        placeholder="Needs process-trailer mounting points and a matching double for scene 15 hits."
+                        value={specialRequirements}
+                        onChange={e => setSpecialRequirements(e.target.value)}
                         style={{
                           width: '100%',
                           background: '#141416',
