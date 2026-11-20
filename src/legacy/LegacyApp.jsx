@@ -34,6 +34,7 @@ import {
   ChevronsUpDown,
   Clapperboard,
   ClipboardList,
+  Clock,
   Coins,
   Compass,
   CreditCard,
@@ -2499,6 +2500,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
   const[name,setName]=useState('');
   const[cur,setCur]=useState(defaultCurrency||'NGN');
   const[budgetInput,setBudgetInput]=useState('');
+  const[prodType,setProdType]=useState(PROJ_TYPES[0]||'Feature Film');
   const[busy,setBusy]=useState(false);
   const[created,setCreated]=useState(null);
 
@@ -2507,6 +2509,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
       setName('');
       setCur(defaultCurrency||'NGN');
       setBudgetInput('');
+      setProdType(PROJ_TYPES[0]||'Feature Film');
       setBusy(false);
       setCreated(null);
       return;
@@ -2527,7 +2530,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
     setBusy(true);
     const payload={
       name:trimmedName,
-      type:PROJ_TYPES[0],
+      type:prodType||PROJ_TYPES[0],
       base_currency:cur,
       ...(hasBudget?{target_budget:parsedBudget}:{}),
     };
@@ -2538,7 +2541,8 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
         id:result.id,
         name:result.name||trimmedName,
         currency:result.base_currency||cur,
-        targetBudget:hasBudget?parsedBudget:null,
+        status:result.status||'Planning',
+        targetBudget:hasBudget?parsedBudget:(Number(result.target_budget)>0?Number(result.target_budget):null),
       });
     }
   };
@@ -2546,6 +2550,22 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
   const formattedBudget=created?.targetBudget!=null
     ? `${sym(created.currency)}${fmt(created.targetBudget)}`
     : 'Not set';
+
+  const selectStyle={
+    width:'100%',
+    boxSizing:'border-box',
+    background:'#111113',
+    border:'1px solid #2A2A2E',
+    borderRadius:10,
+    padding:'10.5px 36px 10.5px 14px',
+    color:'#F5F5F0',
+    fontSize:13,
+    fontFamily:'Manrope,sans-serif',
+    outline:'none',
+    appearance:'none',
+    WebkitAppearance:'none',
+    cursor:'pointer',
+  };
 
   return(
     <AnimatePresence>
@@ -2555,9 +2575,9 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
           initial={{opacity:0}}
           animate={{opacity:1}}
           exit={{opacity:0}}
-          transition={{duration:0.2,ease:EASE_OUT}}
+          transition={{duration:0.18,ease:EASE_OUT}}
           onClick={()=>{if(!busy)onClose();}}
-          style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:110}}
+          style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(5px)',WebkitBackdropFilter:'blur(5px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:110}}
         >
           <motion.div
             key="new-project-dialog"
@@ -2565,21 +2585,21 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
             aria-modal="true"
             aria-label={created?'Production created':'Create new production'}
             onClick={e=>e.stopPropagation()}
-            initial={{opacity:0,scale:0.78,y:16,filter:'blur(6px)'}}
-            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
-            exit={{opacity:0,scale:0.82,y:12,filter:'blur(4px)',transition:{duration:0.18,ease:[0.32,0,0.67,0]}}}
-            transition={{type:'spring',stiffness:420,damping:32,mass:0.8}}
-            style={{background:'#18181A',border:'1px solid #2A2A2D',borderRadius:16,width:'100%',maxWidth:468,boxShadow:'0 28px 80px rgba(0,0,0,0.82), 0 0 0 1px rgba(255,255,255,0.03)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            initial={{opacity:0,scale:0.95,y:14}}
+            animate={{opacity:1,scale:1,y:0}}
+            exit={{opacity:0,scale:0.95,y:10}}
+            transition={{duration:0.2,ease:EASE_OUT}}
+            style={{background:'#151517',border:'1px solid #27272B',borderRadius:16,width:'100%',maxWidth:468,boxShadow:'0 28px 80px rgba(0,0,0,0.84)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
           >
             <AnimatePresence mode="wait" initial={false}>
               {!created?(
                 <motion.form
                   key="step-create"
                   onSubmit={create}
-                  initial={{opacity:0,scale:0.96,y:8}}
-                  animate={{opacity:1,scale:1,y:0}}
-                  exit={{opacity:0,scale:0.96,y:-8}}
-                  transition={{duration:0.18,ease:EASE_OUT}}
+                  initial={{opacity:0,y:8}}
+                  animate={{opacity:1,y:0}}
+                  exit={{opacity:0,y:-8}}
+                  transition={{duration:0.16,ease:EASE_OUT}}
                   style={{padding:'24px 26px 26px'}}
                 >
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
@@ -2589,13 +2609,15 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                       aria-label="Close modal"
                       disabled={busy}
                       onClick={onClose}
-                      style={{width:26,height:26,borderRadius:7,background:'transparent',border:'none',color:'#8E8A80',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+                      style={{width:26,height:26,borderRadius:7,background:'transparent',border:'none',color:'#8E8A80',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'color 0.14s ease'}}
+                      onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                      onMouseLeave={e=>{e.currentTarget.style.color='#8E8A80';}}
                     >
                       <X size={15}/>
                     </button>
                   </div>
 
-                  <h3 style={{margin:'6px 0 0',fontSize:22,lineHeight:1.25,fontWeight:600,letterSpacing:'-0.025em',color:'#F5F5F0'}}>
+                  <h3 style={{margin:'6px 0 0',fontSize:22,lineHeight:1.25,fontWeight:700,letterSpacing:'-0.025em',color:'#F5F5F0'}}>
                     Let&apos;s start something new.
                   </h3>
                   <p style={{margin:'6px 0 0',fontSize:13,lineHeight:1.5,color:'#8E8A80'}}>
@@ -2603,8 +2625,9 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                   </p>
 
                   <div style={{marginTop:20,display:'flex',flexDirection:'column',gap:16}}>
+                    {/* Production name */}
                     <div>
-                      <label htmlFor="new-prod-name" style={{display:'block',fontSize:12,fontWeight:500,color:'#F5F5F0',marginBottom:7}}>
+                      <label htmlFor="new-prod-name" style={{display:'block',fontSize:12,fontWeight:600,color:'#F5F5F0',marginBottom:7}}>
                         Production name
                       </label>
                       <input
@@ -2615,7 +2638,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                         disabled={busy}
                         onChange={e=>setName(e.target.value)}
                         placeholder="e.g. The Last Summer"
-                        style={{width:'100%',boxSizing:'border-box',background:'#121213',border:'1px solid #2C2C2E',borderRadius:10,padding:'10px 14px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
+                        style={{width:'100%',boxSizing:'border-box',background:'#111113',border:'1px solid #2A2A2E',borderRadius:10,padding:'10.5px 14px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
                       />
                       <div style={{marginTop:6,display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#8E8A80'}}>
                         <Info size={12} style={{flexShrink:0}}/>
@@ -2623,31 +2646,36 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                       </div>
                     </div>
 
+                    {/* Currency */}
                     <div>
-                      <label htmlFor="new-prod-currency" style={{display:'block',fontSize:12,fontWeight:500,color:'#F5F5F0',marginBottom:7}}>
+                      <label htmlFor="new-prod-currency" style={{display:'block',fontSize:12,fontWeight:600,color:'#F5F5F0',marginBottom:7}}>
                         Currency
                       </label>
-                      <select
-                        id="new-prod-currency"
-                        value={cur}
-                        disabled={busy}
-                        onChange={e=>setCur(e.target.value)}
-                        style={{width:'100%',boxSizing:'border-box',background:'#121213',border:'1px solid #2C2C2E',borderRadius:10,padding:'10px 14px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
-                      >
-                        {CURRENCIES.map(c=>(
-                          <option key={c.code} value={c.code} style={{background:'#121213',color:'#F5F5F0'}}>
-                            {CURRENCY_LABELS[c.code]||`${c.code} (${c.symbol})`}
-                          </option>
-                        ))}
-                      </select>
+                      <div style={{position:'relative'}}>
+                        <select
+                          id="new-prod-currency"
+                          value={cur}
+                          disabled={busy}
+                          onChange={e=>setCur(e.target.value)}
+                          style={selectStyle}
+                        >
+                          {CURRENCIES.map(c=>(
+                            <option key={c.code} value={c.code} style={{background:'#141416',color:'#F5F5F0'}}>
+                              {CURRENCY_LABELS[c.code]||`${c.code} (${c.symbol})`}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:'#8E8A80',pointerEvents:'none'}}/>
+                      </div>
                     </div>
 
+                    {/* Target budget */}
                     <div>
-                      <label htmlFor="new-prod-budget" style={{display:'block',fontSize:12,fontWeight:500,color:'#F5F5F0',marginBottom:7}}>
+                      <label htmlFor="new-prod-budget" style={{display:'block',fontSize:12,fontWeight:600,color:'#F5F5F0',marginBottom:7}}>
                         Target budget in {cur}
                       </label>
-                      <div style={{display:'flex',alignItems:'center',background:'#121213',border:'1px solid #2C2C2E',borderRadius:10,overflow:'hidden'}}>
-                        <span style={{padding:'10px 13px',borderRight:'1px solid #242426',fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:'#9B978D',flexShrink:0}}>
+                      <div style={{display:'flex',alignItems:'center',background:'#111113',border:'1px solid #2A2A2E',borderRadius:10,overflow:'hidden'}}>
+                        <span style={{padding:'10.5px 13px',borderRight:'1px solid #242428',fontFamily:'Manrope,sans-serif',fontWeight:600,fontSize:13,color:'#E5E5E0',flexShrink:0}}>
                           {sym(cur)}
                         </span>
                         <input
@@ -2658,9 +2686,9 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                           disabled={busy}
                           onChange={e=>setBudgetInput(e.target.value)}
                           placeholder="Enter production budget"
-                          style={{flex:1,minWidth:0,background:'transparent',border:'none',padding:'10px 12px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
+                          style={{flex:1,minWidth:0,background:'transparent',border:'none',padding:'10.5px 12px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',outline:'none'}}
                         />
-                        <span style={{paddingRight:13,fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#6B6862',flexShrink:0}}>
+                        <span style={{paddingRight:13,fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A',flexShrink:0}}>
                           {cur}
                         </span>
                       </div>
@@ -2668,75 +2696,101 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                         Your planned spending limit for this production.
                       </div>
                     </div>
+
+                    {/* Type of productions */}
+                    <div>
+                      <label htmlFor="new-prod-type" style={{display:'block',fontSize:12,fontWeight:600,color:'#F5F5F0',marginBottom:7}}>
+                        Type of production
+                      </label>
+                      <div style={{position:'relative'}}>
+                        <select
+                          id="new-prod-type"
+                          value={prodType}
+                          disabled={busy}
+                          onChange={e=>setProdType(e.target.value)}
+                          style={selectStyle}
+                        >
+                          {PROJ_TYPES.map(pt=>(
+                            <option key={pt} value={pt} style={{background:'#141416',color:'#F5F5F0'}}>
+                              {pt}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:'#8E8A80',pointerEvents:'none'}}/>
+                      </div>
+                    </div>
                   </div>
 
-                  <div style={{marginTop:24,display:'flex',justifyContent:'flex-end',alignItems:'center',gap:10}}>
+                  {/* Footer Actions */}
+                  <div style={{marginTop:24,paddingTop:18,borderTop:'1px solid #232327',display:'flex',justifyContent:'center',alignItems:'center',gap:10}}>
                     <button
                       type="button"
                       disabled={busy}
                       onClick={onClose}
-                      style={{background:'transparent',border:'1px solid #2E2E32',borderRadius:10,padding:'9px 16px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:'#121214',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
                     >
                       Cancel
                     </button>
                     <motion.button
                       type="submit"
                       disabled={!canCreate}
-                      whileHover={canCreate?{scale:1.015}:undefined}
-                      whileTap={canCreate?{scale:0.985}:undefined}
+                      whileHover={canCreate?{y:-1}:undefined}
+                      whileTap={canCreate?{scale:0.98}:undefined}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                      style={{background:canCreate?'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)':'#252528',color:canCreate?'#0A0A0A':'#8E8A80',border:'none',borderRadius:10,padding:'9px 18px',fontSize:13,fontWeight:600,cursor:canCreate?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6,boxShadow:canCreate?'0 6px 20px rgba(255,179,71,0.28)':'none',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:canCreate?'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)':'#252529',color:canCreate?'#0A0A0A':'#8E8A80',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:canCreate?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:7,boxShadow:canCreate?'0 6px 20px rgba(245,166,35,0.28)':'none',fontFamily:'Manrope,sans-serif'}}
                     >
                       <span>{busy?'Creating…':'Create Production'}</span>
-                      {!busy&&<span>→</span>}
+                      {!busy&&<ArrowRight size={14} strokeWidth={2.3}/>}
                     </motion.button>
                   </div>
                 </motion.form>
               ):(
                 <motion.div
                   key="step-ready"
-                  initial={{opacity:0,scale:0.94,y:10}}
+                  initial={{opacity:0,scale:0.95,y:10}}
                   animate={{opacity:1,scale:1,y:0}}
                   exit={{opacity:0,scale:0.96,y:-8}}
-                  transition={{type:'spring',stiffness:380,damping:30}}
-                  style={{padding:'26px 28px 28px',textAlign:'center',position:'relative'}}
+                  transition={{duration:0.2,ease:EASE_OUT}}
+                  style={{padding:'28px 28px 28px',textAlign:'center',position:'relative'}}
                 >
                   <button
                     type="button"
                     aria-label="Close modal"
                     onClick={onClose}
-                    style={{position:'absolute',top:20,right:20,width:26,height:26,borderRadius:7,background:'transparent',border:'none',color:'#8E8A80',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+                    style={{position:'absolute',top:18,right:18,width:26,height:26,borderRadius:7,background:'transparent',border:'none',color:'#8E8A80',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'color 0.14s ease'}}
+                    onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                    onMouseLeave={e=>{e.currentTarget.style.color='#8E8A80';}}
                   >
                     <X size={15}/>
                   </button>
 
                   <motion.div
-                    initial={{scale:0.6,opacity:0}}
+                    initial={{scale:0.65,opacity:0}}
                     animate={{scale:1,opacity:1}}
-                    transition={{type:'spring',stiffness:450,damping:26,delay:0.05}}
-                    style={{width:44,height:44,borderRadius:'50%',margin:'4px auto 0',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.36)',color:'#D4AF37',display:'flex',alignItems:'center',justifyContent:'center'}}
+                    transition={{type:'spring',stiffness:440,damping:26,delay:0.04}}
+                    style={{width:44,height:44,borderRadius:'50%',margin:'4px auto 0',background:'rgba(212,175,55,0.12)',border:'1px solid rgba(212,175,55,0.38)',color:'#D4AF37',display:'flex',alignItems:'center',justifyContent:'center'}}
                   >
-                    <Check size={18} strokeWidth={2.25}/>
+                    <Check size={18} strokeWidth={2.3}/>
                   </motion.div>
 
-                  <h3 style={{margin:'16px 0 0',fontSize:21,lineHeight:1.25,fontWeight:600,letterSpacing:'-0.025em',color:'#F5F5F0'}}>
+                  <h3 style={{margin:'16px 0 0',fontSize:21,lineHeight:1.25,fontWeight:700,letterSpacing:'-0.025em',color:'#F5F5F0'}}>
                     Your production is ready.
                   </h3>
                   <p style={{margin:'6px 0 0',fontSize:13,color:'#8E8A80'}}>
-                    <span style={{color:'#E5E5E0',fontWeight:500}}>{created.name}</span> has been created successfully.
+                    <span style={{color:'#F5F5F0',fontWeight:600}}>{created.name}</span> has been created successfully.
                   </p>
 
-                  <div style={{marginTop:22,display:'grid',gridTemplateColumns:'1fr 1fr',border:'1px solid #2A2A2D',borderRadius:12,background:'#141416',overflow:'hidden',textAlign:'left'}}>
+                  <div style={{marginTop:22,display:'grid',gridTemplateColumns:'1fr 1fr',border:'1px solid #2A2A2E',borderRadius:10,background:'#121214',overflow:'hidden',textAlign:'left'}}>
                     <div style={{padding:'13px 16px'}}>
                       <div style={{fontSize:11,color:'#8E8A80'}}>Target budget</div>
-                      <div style={{marginTop:4,fontFamily:'IBM Plex Mono,monospace',fontSize:14,fontWeight:600,color:'#F5F5F0'}}>
+                      <div style={{marginTop:4,fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.015em',fontSize:14,fontWeight:700,color:'#F5F5F0'}}>
                         {formattedBudget}
                       </div>
                     </div>
-                    <div style={{padding:'13px 16px',borderLeft:'1px solid #2A2A2D'}}>
+                    <div style={{padding:'13px 16px',borderLeft:'1px solid #2A2A2E'}}>
                       <div style={{fontSize:11,color:'#8E8A80'}}>Status</div>
-                      <div style={{marginTop:4,fontSize:14,fontWeight:600,color:'#F5F5F0'}}>
-                        Planning
+                      <div style={{marginTop:4,fontSize:14,fontWeight:700,color:'#F5F5F0'}}>
+                        {created.status || 'Planning'}
                       </div>
                     </div>
                   </div>
@@ -2745,20 +2799,20 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                     <button
                       type="button"
                       onClick={onClose}
-                      style={{background:'#141416',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:'#121214',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
                     >
                       Back to dashboard
                     </button>
                     <motion.button
                       type="button"
-                      whileHover={{scale:1.02}}
+                      whileHover={{y:-1}}
                       whileTap={{scale:0.98}}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
                       onClick={()=>{onOpenProject?.(created.id);onClose();}}
-                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32)',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 6px 22px rgba(245,166,35,0.30)',fontFamily:'Manrope,sans-serif'}}
                     >
                       <span>Open Production</span>
-                      <span>→</span>
+                      <ArrowRight size={14} strokeWidth={2.3}/>
                     </motion.button>
                   </div>
                 </motion.div>
@@ -2770,7 +2824,6 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
     </AnimatePresence>
   );
 }
-
 
 /* ── Collaborators Modal ── */
 function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClose, isOwner }) {
@@ -3411,7 +3464,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
             </div>
           </div>
         ):(
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:14,marginBottom:onlyProductions?0:28}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,330px),1fr))',gap:20,marginBottom:onlyProductions?0:32}}>
           {visibleProjects.map(p=>{
             const isLagosDark = (p.name || '').toLowerCase().includes('lagos');
             const pScenes = (scenes || []).filter(s => matchesProject(s.project_id, p.id, p.name));
@@ -3457,89 +3510,113 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                 key={p.id}
                 whileHover={{y:-2}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                style={{background:isSel?'rgba(224,107,82,.08)':p.id===currentId?'#161616':'#111111',border:`1px solid ${isSel?T.coral:p.id===currentId?'rgba(255,179,71,0.45)':'#222222'}`,borderRadius:14,padding:18,position:'relative',display:'flex',flexDirection:'column',justifyContent:'space-between',boxShadow:'0 4px 20px rgba(0,0,0,0.45)',transition:'border-color 0.15s, background 0.15s'}}
+                style={{
+                  background:isSel?'rgba(224,107,82,.08)':p.id===currentId?'#141417':'#0F0F11',
+                  border:`1px solid ${isSel?T.coral:p.id===currentId?'rgba(245,196,81,0.42)':'#202025'}`,
+                  borderRadius:16,
+                  padding:'22px 24px 18px',
+                  position:'relative',
+                  display:'flex',
+                  flexDirection:'column',
+                  justifyContent:'space-between',
+                  boxShadow:'0 8px 28px rgba(0,0,0,0.42)',
+                  transition:'border-color 0.16s ease, background 0.16s ease',
+                }}
               >
-                <button aria-label={`Select ${p.name}`} onClick={e=>{e.stopPropagation();toggle(p.id);}} style={{position:'absolute',top:16,right:16,width:18,height:18,borderRadius:5,border:`1.5px solid ${isSel?T.coral:'#2E2E2E'}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>{isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}</button>
+                <button
+                  aria-label={`Select ${p.name}`}
+                  onClick={e=>{e.stopPropagation();toggle(p.id);}}
+                  style={{position:'absolute',top:22,right:22,width:18,height:18,borderRadius:5,border:`1.5px solid ${isSel?T.coral:'#2E2E35'}`,background:isSel?T.coral:'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                >
+                  {isSel&&<span style={{color:T.ink,fontSize:11,fontWeight:700}}>✓</span>}
+                </button>
 
-                <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',padding:0,paddingRight:26}}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap',marginBottom:2}}>
-                    <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>{p.name}</div>
+                <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',padding:0}}>
+                  {/* Header Row (padded right only here to clear the selection checkbox) */}
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',paddingRight:30,marginBottom:6}}>
+                    <div style={{fontFamily:'Manrope,sans-serif',fontSize:17,fontWeight:700,letterSpacing:'-0.02em',color:T.cream,lineHeight:1.25}}>{p.name}</div>
                     {p.type&&(
-                      <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10,padding:'2px 9px',borderRadius:9999,background:badgeTone.bg,border:`1px solid ${badgeTone.border}`,color:badgeTone.text,fontFamily:'Manrope,sans-serif',fontWeight:600}}>
+                      <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10.5,padding:'3px 10px',borderRadius:9999,background:badgeTone.bg,border:`1px solid ${badgeTone.border}`,color:badgeTone.text,fontFamily:'Manrope,sans-serif',fontWeight:600}}>
                         <span style={{width:5,height:5,borderRadius:'50%',background:badgeTone.dot}}/>
                         {p.type}
                       </span>
                     )}
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>
-                    <MapPin size={11} style={{color:T.faint,flexShrink:0}}/>
+
+                  {/* Meta Subtitle */}
+                  <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'#8E8E93',fontFamily:'Manrope,sans-serif',marginBottom:16}}>
+                    <MapPin size={11.5} style={{color:'#63636A',flexShrink:0}}/>
                     <span>{p.base_currency || 'NGN'} · {pi.length > 0 ? `${pi.length} lines` : (p.target_budget ? 'Target budget set' : '0 lines')} · {open} open advances</span>
                   </div>
 
+                  {/* Script Status Bar */}
                   {scriptTitle ? (
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'6px 10px',borderRadius:8,background:'#161619',border:'1px solid #28282E',marginBottom:12,fontSize:11,fontFamily:'Manrope,sans-serif'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0,overflow:'hidden'}}>
-                        <FileText size={12} style={{color:'#F5C451',flexShrink:0}}/>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 12px',borderRadius:10,background:'#151519',border:'1px solid #25252C',marginBottom:18,fontSize:11.5,fontFamily:'Manrope,sans-serif'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:7,minWidth:0,overflow:'hidden'}}>
+                        <FileText size={13} style={{color:'#F5C451',flexShrink:0}}/>
                         <span style={{color:'#F5C451',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{scriptTitle}</span>
                       </div>
-                      <span style={{color:'#A1A1AA',fontSize:10.5,whiteSpace:'nowrap',flexShrink:0}}>
+                      <span style={{color:'#A1A1AA',fontSize:11,whiteSpace:'nowrap',flexShrink:0}}>
                         {effectiveScenes.length} sc · {pCast.length} cast · {pLocs.length} loc
                       </span>
                     </div>
                   ) : (
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 10px',borderRadius:8,background:'rgba(255,255,255,0.02)',border:'1px dashed #2A2A30',marginBottom:12,fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 12px',borderRadius:10,background:'rgba(255,255,255,0.015)',border:'1px dashed #282830',marginBottom:18,fontSize:11.5,color:'#71717A',fontFamily:'Manrope,sans-serif'}}>
                       <span>No script uploaded</span>
                       <button
                         type="button"
                         onClick={e=>{e.stopPropagation();onOpenUploadScript?.(p.id);}}
-                        style={{background:'none',border:'none',color:'#F5C451',fontSize:10.5,fontWeight:600,cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',gap:3}}
+                        style={{background:'none',border:'none',color:'#F5C451',fontSize:11.5,fontWeight:600,cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',gap:4}}
                       >
-                        <Plus size={11}/>
+                        <Plus size={12}/>
                         <span>Upload script</span>
                       </button>
                     </div>
                   )}
 
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:12}}>
-                    <div>
-                      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:2}}>Budget</div>
-                      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:600,color:T.cream}}>
+                  {/* Financial Metrics Row */}
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:14,marginBottom:18,padding:'12px 14px',borderRadius:10,background:'#0B0B0D',border:'1px solid #1B1B20'}}>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif',marginBottom:5}}>Budget</div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:T.cream,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                         {Object.entries(totals).length===0?<span style={{color:T.faint}}>—</span>:Object.entries(totals).map(([c,a])=><span key={c}>{sym(c)}{fmt(a)} </span>)}
                       </div>
                     </div>
-                    <div>
-                      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:2}}>Spent</div>
-                      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:600,color:pSpentUSD>0?T.cream:T.dim}}>{pSpendDisplay}</div>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif',marginBottom:5}}>Spent</div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:pSpentUSD>0?T.cream:'#8E8E93',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{pSpendDisplay}</div>
                     </div>
-                    <div>
-                      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:2}}>Remaining</div>
-                      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:600,color:over?'#E05252':T.cream}}>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif',marginBottom:5}}>Remaining</div>
+                      <div style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:over?'#E05252':T.cream,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                         {Object.entries(totals).length===0?'—':`${remainingAmt<0?'-':''}${sym(remainingCur)}${fmt(Math.abs(remainingAmt))}`}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:T.dim,fontFamily:'IBM Plex Mono,monospace',marginBottom:5}}>
+                  {/* Budget Used Progress */}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,color:'#8E8E93',fontFamily:'Manrope,sans-serif',marginBottom:7}}>
                     <span>Budget used</span>
-                    <span style={{color:over?'#E05252':T.cream,fontWeight:600}}>{budgetUSD>0?`${Math.round(pct)}%${over?' · over budget':''}`:(pSpentUSD>0?'Logged spend':'0%')}</span>
+                    <span style={{fontVariantNumeric:'tabular-nums',color:over?'#E05252':T.cream,fontWeight:600}}>{budgetUSD>0?`${Math.round(pct)}%${over?' · over budget':''}`:(pSpentUSD>0?'Logged spend':'0%')}</span>
                   </div>
-                  <div style={{height:6,background:'#1D1D1F',borderRadius:9999,overflow:'hidden',marginBottom:10}}>
+                  <div style={{height:5,background:'#1C1C21',borderRadius:9999,overflow:'hidden',marginBottom:14}}>
                     <div style={{width:`${Math.min(100,pct)}%`,height:'100%',borderRadius:9999,background:over?'#E05252':pct>=80?'#E5C158':'#4CAF7A',transition:'width 0.35s ease'}}/>
                   </div>
 
                   {pSpentUSD > 0 && (
-                    <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
-                      {Object.values(pBreakdown.advances).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.cream,border:`1px solid ${T.line}`}}>Cash: {Object.entries(pBreakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
-                      {Object.values(pBreakdown.payees).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sage,border:`1px solid ${T.line}`}}>Crew: {Object.entries(pBreakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
-                      {Object.values(pBreakdown.pos).some(v=>v>0)&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:4,background:T.hi,color:T.sapphire,border:`1px solid ${T.line}`}}>POs: {Object.entries(pBreakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+                      {Object.values(pBreakdown.advances).some(v=>v>0)&&<span style={{fontSize:9.5,padding:'2.5px 7px',borderRadius:5,background:T.hi,color:T.cream,border:`1px solid ${T.line}`}}>Cash: {Object.entries(pBreakdown.advances).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                      {Object.values(pBreakdown.payees).some(v=>v>0)&&<span style={{fontSize:9.5,padding:'2.5px 7px',borderRadius:5,background:T.hi,color:T.sage,border:`1px solid ${T.line}`}}>Crew: {Object.entries(pBreakdown.payees).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
+                      {Object.values(pBreakdown.pos).some(v=>v>0)&&<span style={{fontSize:9.5,padding:'2.5px 7px',borderRadius:5,background:T.hi,color:T.sapphire,border:`1px solid ${T.line}`}}>POs: {Object.entries(pBreakdown.pos).map(([c,a])=>`${sym(c)}${fmt(a)}`).join(' ')}</span>}
                     </div>
                   )}
                 </button>
 
-                <div style={{marginTop:8,paddingTop:10,borderTop:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                {/* Card Footer */}
+                <div style={{marginTop:6,paddingTop:14,borderTop:'1px solid #1C1C21',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                     {!isOwner ? (
-                      <span style={{fontSize:10,color:T.sapphire,fontWeight:600}}>Shared production</span>
+                      <span style={{fontSize:11,color:T.sapphire,fontWeight:600}}>Shared production</span>
                     ) : count === 0 ? (
                       <button
                         onClick={e=>{
@@ -3547,16 +3624,16 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                           const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
                           if(email)onInviteCollaborator(p.id,email);
                         }}
-                        style={{background:'none',border:'none',color:T.dim,fontSize:11,cursor:'pointer',padding:0,fontFamily:'Manrope,sans-serif'}}
+                        style={{background:'none',border:'none',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',padding:0,fontFamily:'Manrope,sans-serif'}}
                       >
                         + Invite collaborator
                       </button>
                     ) : (
                       <>
-                        <span style={{fontSize:10,color:T.sage,fontWeight:600}}>{count}/4 collaborator{count > 1 ? 's' : ''}</span>
+                        <span style={{fontSize:11,color:T.sage,fontWeight:600}}>{count}/4 collaborator{count > 1 ? 's' : ''}</span>
                         <button
                           onClick={e=>{e.stopPropagation();setCollabModalProject(p);}}
-                          style={{background:'none',border:'none',color:T.dim,fontSize:10,cursor:'pointer',textDecoration:'underline',padding:0}}
+                          style={{background:'none',border:'none',color:T.dim,fontSize:11,cursor:'pointer',textDecoration:'underline',padding:0}}
                         >
                           Manage
                         </button>
@@ -3569,17 +3646,17 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                           const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
                           if(email)onInviteCollaborator(p.id,email);
                         }}
-                        style={{background:'none',border:'none',color:T.goldDim,fontSize:10,cursor:'pointer',fontWeight:700,padding:0}}
+                        style={{background:'none',border:'none',color:T.goldDim,fontSize:11,cursor:'pointer',fontWeight:700,padding:0}}
                       >
                         + Invite
                       </button>
                     )}
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:12,marginLeft:'auto'}}>
                     {isOwner && (
-                      <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,display:'flex',alignItems:'center',padding:2}} title="Delete production"><Trash2 size={13}/></button>
+                      <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{background:'none',border:'none',cursor:'pointer',color:'#63636A',display:'flex',alignItems:'center',padding:3}} title="Delete production"><Trash2 size={14}/></button>
                     )}
-                    <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',color:T.sapphire,fontSize:11,fontWeight:600,fontFamily:'Manrope,sans-serif',padding:0}}>
+                    <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#5DA3EC',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',padding:0}}>
                       Open Production →
                     </button>
                   </div>
@@ -11099,62 +11176,121 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
   };
 
   const getAccentForScene=sc=>{
+    const ie=String(sc.intExt||'').toUpperCase();
     const tod=String(sc.dayNight||todLabel(sc)||'').toUpperCase();
+    if(tod.includes('DAWN')||tod.includes('DUSK')||tod.includes('EVENING'))return{bar:'#E5A93C',tag:'#F5B742'};
+    if(tod.includes('NIGHT')&&ie.includes('EXT'))return{bar:'#E06B52',tag:'#6BB0F5'};
     if(tod.includes('NIGHT'))return{bar:'#4A90D9',tag:'#6BB0F5'};
-    if(tod.includes('DAWN')||tod.includes('DUSK')||tod.includes('EVENING'))return{bar:'#E08E45',tag:'#F5A623'};
-    return{bar:'#E5C158',tag:'#F5C451'};
+    return{bar:'#4A90D9',tag:'#F5C451'};
   };
 
-  const renderSceneCard=(sc,d)=>{
+  const estDayMinutes=(list)=>{
+    const p8=sumPg(list);
+    if(!p8||!target)return 0;
+    return Math.round((p8/target)*600);
+  };
+  const fmtDurationMins=mins=>{
+    if(!mins||mins<=0)return '';
+    const h=Math.floor(mins/60);
+    const m=mins%60;
+    return h>0?`~${h}h ${m}m`:`~${m}m`;
+  };
+  const computeSceneTimeWindows=(d,list)=>{
+    const baseStr=d?.call_time||'07:00';
+    const [bh,bm]=baseStr.split(':').map(x=>parseInt(x,10));
+    let curMin=(Number.isFinite(bh)?bh:7)*60+(Number.isFinite(bm)?bm:0);
+    const pad2=n=>String(n%24).padStart(2,'0');
+    const fmtHM=t=>`${pad2(Math.floor(t/60))}:${String(t%60).padStart(2,'0')}`;
+    const map={};
+    list.forEach(sc=>{
+      const dur=sc.pages8>0&&target>0?Math.max(30,Math.round((sc.pages8/target)*600)):0;
+      if(dur>0){
+        const st=fmtHM(curMin);
+        curMin+=dur;
+        const en=fmtHM(curMin);
+        map[sc.id]=`${st}–${en}`;
+      }
+    });
+    return map;
+  };
+
+  const renderSceneCard=(sc,d,timeRange='')=>{
     const acc=getAccentForScene(sc);
     const ie=String(sc.intExt||'').toUpperCase()||'INT';
     const tod=String(sc.dayNight||todLabel(sc)||'DAY').toUpperCase();
     const loc=sceneLoc(sc)||'Location not set';
+    const headingTitle=String(sc.setName||sc.location||loc).toUpperCase();
     const castList=sc.cast||[];
-    const elemCount=(sc.props?.length||0)+(sc.vehicles?.length||0)+(sc.wardrobe?.length||0)+(sc.specialEquip?.length||0);
+    const propsArr=[...(sc.props||[]),...(sc.wardrobe||[]),...(sc.specialEquip||[])].filter(Boolean);
+    const vehiclesArr=(sc.vehicles||[]).filter(Boolean);
+    const bgLabel=bgText(sc);
     return(
-      <div
+      <motion.div
         key={sc.id}
+        whileHover={{y:-1}}
+        transition={{duration:DURATION.fast,ease:EASE_OUT}}
+        onClick={()=>{ if(!editMode && d) setSelectedDayId(d.id); }}
         style={{
           background:'#141417',
-          border:'1px solid #222227',
-          borderLeft:`3px solid ${acc.bar}`,
+          border:'1px solid #222228',
+          borderLeft:`3.5px solid ${acc.bar}`,
           borderRadius:10,
-          padding:'11px 12px',
-          marginBottom:8,
+          padding:'11px 12px 10px',
+          marginBottom:9,
+          cursor:editMode?'default':'pointer',
           fontFamily:'Manrope,sans-serif',
+          transition:'border-color 0.14s ease, background 0.14s ease',
         }}
       >
+        {/* Top Row: Scene #, INT/EXT · TOD, Page Count */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:5}}>
-          <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11.5,fontWeight:700,color:T.cream}}>{sc.sceneNumber||'—'}</span>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,fontWeight:600,color:acc.tag,whiteSpace:'nowrap'}}>{ie} · {tod}</span>
+          <div style={{display:'flex',alignItems:'center',gap:7,minWidth:0}}>
+            <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:12,fontWeight:700,color:'#F5F5F0'}}>{sc.sceneNumber||'—'}</span>
+            <span style={{fontFamily:'Manrope,sans-serif',fontSize:9.5,fontWeight:700,letterSpacing:'0.03em',color:acc.tag,whiteSpace:'nowrap'}}>{ie} · {tod}</span>
           </div>
-          <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,fontWeight:600,color:'#D4D4D8',whiteSpace:'nowrap'}}>
+          <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:10.5,fontWeight:600,color:'#D4D4D8',whiteSpace:'nowrap'}}>
             {sc.pages8>0?fmtPages8(sc.pages8):'—'}
           </span>
         </div>
 
-        <div style={{fontSize:11.5,fontWeight:600,color:T.cream,textTransform:'uppercase',lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-          {loc}
+        {/* Heading & Location */}
+        <div style={{fontSize:11.5,fontWeight:700,color:'#F5F5F0',letterSpacing:'0.01em',lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+          {headingTitle}
         </div>
-        {sc.synopsis&&(
-          <div style={{fontSize:10.5,color:'#71717A',marginTop:3,lineHeight:1.35,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-            {sc.synopsis}
-          </div>
-        )}
+        <div style={{fontSize:10.5,color:'#7A7670',marginTop:2,lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+          {d?.location || loc}
+        </div>
 
-        <div style={{display:'flex',alignItems:'center',gap:5,marginTop:7,fontSize:10.5,color:'#A1A1AA',overflow:'hidden'}}>
+        {/* Cast Row */}
+        <div style={{display:'flex',alignItems:'center',gap:5,marginTop:8,fontSize:10,color:'#A8A39A',overflow:'hidden'}}>
           <Users size={11} style={{color:'#71717A',flexShrink:0}}/>
-          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-            {castList.length>0?castList.join(' · '):'No cast listed'}
+          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textTransform:'uppercase',letterSpacing:'0.01em'}}>
+            {castList.length>0?castList.join(' · '):'No cast listed'}{bgLabel?` · ${bgLabel}`:''}
           </span>
         </div>
 
-        {(elemCount>0||bgText(sc))&&(
-          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:5,fontSize:10,color:'#71717A',flexWrap:'wrap'}}>
-            {elemCount>0&&<span>{elemCount} element{elemCount===1?'':'s'}</span>}
-            {bgText(sc)&&<span>BG: {bgText(sc)}</span>}
+        {/* Elements & Vehicles Row */}
+        {(propsArr.length>0||vehiclesArr.length>0)&&(
+          <div style={{display:'flex',alignItems:'center',gap:10,marginTop:5,fontSize:10,color:'#847F77',flexWrap:'wrap'}}>
+            {propsArr.length>0&&(
+              <span style={{display:'inline-flex',alignItems:'center',gap:4,maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                <Layers size={10.5} style={{color:'#63636A',flexShrink:0}}/>
+                <span>{propsArr.length===1?propsArr[0]:`${propsArr.length} elements`}</span>
+              </span>
+            )}
+            {vehiclesArr.length>0&&(
+              <span style={{display:'inline-flex',alignItems:'center',gap:4,maxWidth:'100%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                <Compass size={10.5} style={{color:'#63636A',flexShrink:0}}/>
+                <span>{vehiclesArr.length===1?vehiclesArr[0]:`${vehiclesArr.length} vehicles`}</span>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Time Range Footer */}
+        {timeRange&&(
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:7,fontSize:10,color:'#6B6862',fontVariantNumeric:'tabular-nums'}}>
+            <span>{timeRange}</span>
           </div>
         )}
 
@@ -11162,16 +11298,17 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
           <div style={{display:'flex',gap:5,marginTop:9,paddingTop:8,borderTop:'1px solid #1E1E24',alignItems:'center',flexWrap:'wrap'}}>
             {d&&(
               <>
-                <button type="button" onClick={()=>shift(d,sc.id,-1)} title="Move up" style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:11,padding:'2px 7px',cursor:'pointer'}}>↑</button>
-                <button type="button" onClick={()=>shift(d,sc.id,1)} title="Move down" style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:11,padding:'2px 7px',cursor:'pointer'}}>↓</button>
+                <button type="button" onClick={e=>{e.stopPropagation();shift(d,sc.id,-1);}} title="Move up" style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:11,padding:'2px 7px',cursor:'pointer'}}>↑</button>
+                <button type="button" onClick={e=>{e.stopPropagation();shift(d,sc.id,1);}} title="Move down" style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:11,padding:'2px 7px',cursor:'pointer'}}>↓</button>
               </>
             )}
-            <button type="button" onClick={()=>editPages(sc)} style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:10.5,padding:'3px 7px',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace'}}>
+            <button type="button" onClick={e=>{e.stopPropagation();editPages(sc);}} style={{background:'#1A1A1E',border:'1px solid #2A2A30',borderRadius:6,color:'#D4D4D8',fontSize:10.5,padding:'3px 7px',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace'}}>
               {sc.pages8>0?fmtPages8(sc.pages8):'+ pgs'}
             </button>
             <select
               aria-label={`Move scene ${sc.sceneNumber}`}
               value=""
+              onClick={e=>e.stopPropagation()}
               onChange={e=>{const v=e.target.value;if(v==='__none')moveScene(sc.id,null);else if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}}
               style={{flex:1,minWidth:96,fontSize:10.5,padding:'3px 6px',borderRadius:6,border:'1px solid #2A2A30',background:'#141416',color:T.cream,fontFamily:'Manrope,sans-serif',colorScheme:'dark'}}
             >
@@ -11182,7 +11319,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
             </select>
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -11266,8 +11403,8 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
   return(
     <div style={{fontFamily:'Manrope,sans-serif'}}>
       {/* Breadcrumb & Header */}
-      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?10:11,color:T.faint,marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
-        Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Schedule</span>
+      <div style={{fontFamily:'Manrope,sans-serif',fontSize:mob?10.5:11,color:'#5E5E66',marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
+        Productions <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> {project.name} <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> <span style={{color:'#D4D4D8',fontWeight:500}}>Schedule</span>
       </div>
 
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:20}}>
@@ -11633,7 +11770,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
             </div>
           </div>
         ):(
-          <div style={{display:'flex',gap:14,overflowX:'auto',paddingBottom:10,alignItems:'flex-start',marginBottom:14}}>
+          <motion.div key="sched-stripboard" initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} transition={{duration:0.18,ease:EASE_OUT}} style={{display:'flex',gap:14,overflowX:'auto',paddingBottom:10,alignItems:'flex-start',marginBottom:14}}>
             {shootDays.map(d=>{
               const n=shootNo[d.id];
               const list=dayScenes(d);
@@ -11687,26 +11824,42 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
                     <span style={{width:6,height:6,borderRadius:'50%',background:isHeavy?'#E06B52':'#4A90D9',flexShrink:0}}/>
                     <span style={{fontSize:11.5,fontWeight:500,color:'#D4D4D8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{primaryLoc}</span>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:8,fontSize:10.5,color:'#71717A',marginBottom:12,flexWrap:'wrap'}}>
-                    <span>{list.length} scene{list.length===1?'':'s'} · {anyPages?`${pg(tot)} pp`:'—'}</span>
-                    <span>·</span>
-                    <span>{uniqueCast.length} cast</span>
-                  </div>
+                  {(()=>{
+                    const estStr=fmtDurationMins(estDayMinutes(list));
+                    const timeWin=computeSceneTimeWindows(d,list);
+                    return(
+                      <>
+                        <div style={{display:'flex',alignItems:'center',gap:10,fontSize:10.5,color:'#7A7670',marginBottom:12,flexWrap:'wrap'}}>
+                          <span>{list.length} scene{list.length===1?'':'s'} · {anyPages?`${pg(tot)} pp`:'—'}</span>
+                          {estStr&&(
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3.5}}>
+                              <Clock size={10.5} style={{color:'#63636A'}}/>
+                              <span>{estStr}</span>
+                            </span>
+                          )}
+                          <span style={{display:'inline-flex',alignItems:'center',gap:3.5}}>
+                            <Users size={10.5} style={{color:'#63636A'}}/>
+                            <span>{uniqueCast.length} cast</span>
+                          </span>
+                        </div>
 
-                  {isExpanded&&renderDayDetailsEditor(d)}
+                        {isExpanded&&renderDayDetailsEditor(d)}
 
-                  {/* Scene Cards */}
-                  {list.length===0?(
-                    <div style={{border:'1px dashed #242429',borderRadius:10,padding:'18px 12px',textAlign:'center',fontSize:11.5,color:'#71717A',marginBottom:6}}>
-                      No scenes assigned to Day {n}.
-                    </div>
-                  ):(
-                    list.map(sc=>renderSceneCard(sc,d))
-                  )}
+                        {/* Scene Cards */}
+                        {list.length===0?(
+                          <div style={{border:'1px dashed #242429',borderRadius:10,padding:'18px 12px',textAlign:'center',fontSize:11.5,color:'#71717A',marginBottom:6}}>
+                            No scenes assigned to Day {n}.
+                          </div>
+                        ):(
+                          list.map(sc=>renderSceneCard(sc,d,timeWin[sc.id]||''))
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               );
             })}
-          </div>
+          </motion.div>
         )
       ):viewTab==='calendar'?(
         <ScheduleCalendarView
@@ -11814,7 +11967,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
                       borderBottom:idx===unscheduled.length-1?'none':'1px solid #18181C',
                     }}
                   >
-                    <span style={{width:3,alignSelf:'stretch',borderRadius:2,background:'#E5A93C',flexShrink:0}}/>
+                    <span style={{width:3,alignSelf:'stretch',borderRadius:2,background:getAccentForScene(sc).bar,flexShrink:0}}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8}}>
                         <div style={{fontSize:12,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
