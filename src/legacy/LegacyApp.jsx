@@ -40,9 +40,11 @@ import {
   Download,
   Eye,
   FilePlus,
+  FileSpreadsheet,
   FileText,
   Film,
   HandCoins,
+  History,
   Info,
   Layers,
   LayoutDashboard,
@@ -50,6 +52,7 @@ import {
   Link2,
   List,
   ListPlus,
+  Lock,
   LogOut,
   MapPin,
   Menu,
@@ -61,6 +64,7 @@ import {
   Receipt,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Store,
   Trash2,
@@ -4826,6 +4830,8 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  const deptShortName = d => String(d || '').replace(/^[A-Z]+\s*-\s*/i, '').trim() || d;
+
   const fmtCompact = (val, cur = baseCur) => {
     const n = Number(val || 0);
     const abs = Math.abs(n);
@@ -4849,7 +4855,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
       map[d].lines += 1;
       map[d].total += (Number(it.qty) || 1) * (Number(it.rate) || 0);
     });
-    return Object.values(map).sort((a, b) => a.dept.localeCompare(b.dept));
+    return Object.values(map).sort((a, b) => deptShortName(a.dept).localeCompare(deptShortName(b.dept)));
   })();
 
   const handleApply = async () => {
@@ -4862,6 +4868,8 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
     }
   };
 
+  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.015em' };
+
   return (
     <AnimatePresence>
       {open && (
@@ -4869,116 +4877,175 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
           initial={{opacity:0}}
           animate={{opacity:1}}
           exit={{opacity:0}}
-          transition={{duration:0.18,ease:'easeOut'}}
+          transition={{duration:0.16,ease:EASE_OUT}}
           onClick={onClose}
-          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',padding:mob?0:20}}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(5px)',WebkitBackdropFilter:'blur(5px)',display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',padding:mob?0:20}}
         >
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="budget-templates-title"
             onClick={e=>e.stopPropagation()}
-            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
-            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
-            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
-            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:780,maxHeight:mob?'92vh':'88vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            initial={{opacity:0,scale:0.96,y:12}}
+            animate={{opacity:1,scale:1,y:0}}
+            exit={{opacity:0,scale:0.96,y:10}}
+            transition={{duration:0.2,ease:EASE_OUT}}
+            style={{
+              width:'100%',
+              maxWidth:740,
+              maxHeight:mob?'92vh':'90vh',
+              background:'#101011',
+              border:'1px solid #232327',
+              borderRadius:mob?'18px 18px 0 0':16,
+              boxShadow:'0 28px 72px rgba(0,0,0,0.82)',
+              display:'flex',
+              flexDirection:'column',
+              overflow:'hidden',
+              fontFamily:'Manrope,sans-serif',
+            }}
           >
-            {/* Header */}
-            <div style={{padding:mob?'18px 18px 14px':'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
+            {/* Header (seamless, no divider border) */}
+            <div style={{padding:mob?'20px 18px 14px':'24px 26px 18px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
               <div>
-                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Budget templates</h3>
-                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
+                <h3 id="budget-templates-title" style={{margin:0,fontSize:20,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.2}}>
+                  Budget templates
+                </h3>
+                <div style={{fontSize:12.5,color:'#847F77',marginTop:5,lineHeight:1.45}}>
                   Start from a typical structure for your production type, then adjust every line.
                 </div>
               </div>
-              <button type="button" aria-label="Close" onClick={onClose} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
-                <X size={16}/>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                style={{background:'transparent',border:'none',color:'#8E8A82',cursor:'pointer',padding:4,display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:6,transition:'color 0.14s ease'}}
+                onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                onMouseLeave={e=>{e.currentTarget.style.color='#8E8A82';}}
+              >
+                <X size={17}/>
               </button>
             </div>
 
             {/* Body */}
-            <div style={{padding:mob?'16px 18px':'20px 24px',overflowY:'auto',flex:1}}>
-              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1.15fr',gap:16,alignItems:'stretch'}}>
-                {/* Left Panel: Template Selection List */}
-                <div style={{display:'flex',flexDirection:'column',gap:10,maxHeight:360,overflowY:'auto',paddingRight:2}}>
-                  {TEMPLATES.map(tpl => {
-                    const active = tpl.id === selectedTpl?.id;
-                    const tplTotal = getTplTotal(tpl);
-                    return (
-                      <motion.button
-                        key={tpl.id}
-                        type="button"
-                        whileTap={{scale:0.99}}
-                        onClick={()=>setSelectedId(tpl.id)}
-                        style={{
-                          width:'100%',
-                          textAlign:'left',
-                          padding:'13px 14px',
-                          borderRadius:12,
-                          cursor:'pointer',
-                          background:active?'rgba(255,179,71,0.05)':'#131316',
-                          border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',
-                          transition:'border-color 0.15s ease, background 0.15s ease',
-                        }}
-                      >
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:6}}>
-                          <div style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
-                            <span style={{
-                              width:15,height:15,borderRadius:'50%',flexShrink:0,
-                              display:'inline-flex',alignItems:'center',justifyContent:'center',
-                              background:active?'#F5C451':'transparent',
-                              border:active?'1px solid #F5C451':'1px solid #3A3A40',
-                              color:'#0A0A0A',
-                            }}>
-                              {active && <Check size={10} strokeWidth={3}/>}
+            <div style={{padding:mob?'4px 18px 18px':'4px 26px 22px',overflowY:'auto',flex:1}}>
+              {TEMPLATES.length === 0 ? (
+                <div style={{padding:'36px 20px',textAlign:'center',color:'#71717A',fontSize:13,background:'#0D0D0E',border:'1px solid #222226',borderRadius:12}}>
+                  No budget templates available.
+                </div>
+              ) : (
+                <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1.12fr',gap:18,alignItems:'stretch'}}>
+                  {/* Left Column: Scrollable Radio List */}
+                  <div style={{display:'flex',flexDirection:'column',gap:10,maxHeight:mob?300:468,overflowY:'auto',paddingRight:2}}>
+                    {TEMPLATES.map(tpl => {
+                      const active = tpl.id === selectedTpl?.id;
+                      const tplTotal = getTplTotal(tpl);
+                      const lineCount = (tpl.items || []).length;
+                      return (
+                        <motion.button
+                          key={tpl.id}
+                          type="button"
+                          whileTap={{scale:0.99}}
+                          onClick={()=>setSelectedId(tpl.id)}
+                          style={{
+                            width:'100%',
+                            textAlign:'left',
+                            padding:'14px 16px',
+                            borderRadius:11,
+                            cursor:'pointer',
+                            background:active?'rgba(245,196,81,0.06)':'#0C0C0D',
+                            border:active?'1px solid #B5923A':'1px solid #222226',
+                            transition:'border-color 0.15s ease, background 0.15s ease',
+                            fontFamily:'Manrope,sans-serif',
+                          }}
+                        >
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:5}}>
+                            <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                              <span style={{
+                                width:16,
+                                height:16,
+                                borderRadius:'50%',
+                                flexShrink:0,
+                                display:'inline-flex',
+                                alignItems:'center',
+                                justifyContent:'center',
+                                background:active?'#F5C451':'transparent',
+                                border:active?'1px solid #F5C451':'1px solid #3A3A40',
+                                color:'#0A0A0A',
+                                transition:'all 0.14s ease',
+                              }}>
+                                {active && <Check size={10} strokeWidth={3}/>}
+                              </span>
+                              <span style={{fontSize:13.5,fontWeight:600,color:'#F5F5F0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                {tpl.label}
+                              </span>
+                            </div>
+                            <span style={{...numStyle,fontSize:12.5,fontWeight:500,color:'#C7C3BC',flexShrink:0}}>
+                              {fmtCompact(tplTotal, baseCur)}
                             </span>
-                            <span style={{fontSize:13,fontWeight:600,color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tpl.label}</span>
                           </div>
-                          <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:'#A1A1AA',flexShrink:0}}>
-                            {fmtCompact(tplTotal, baseCur)}
+                          <div style={{fontSize:12,color:'#847F77',lineHeight:1.45,paddingLeft:26}}>
+                            {tpl.description || `${tpl.type} · ${lineCount} standard production lines.`}
+                          </div>
+                          <div style={{fontSize:11,color:'#7A7670',marginTop:6,paddingLeft:26}}>
+                            {lineCount} line{lineCount===1?'':'s'}
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Right Column: Detailed Preview */}
+                  <div style={{background:'#0D0D0E',border:'1px solid #222226',borderRadius:12,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={selectedTpl?.id || 'empty'}
+                        initial={{opacity:0,y:4}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-4}}
+                        transition={{duration:0.14,ease:EASE_OUT}}
+                        style={{display:'flex',flexDirection:'column',flex:1}}
+                      >
+                        <div style={{padding:'14px 18px',borderBottom:'1px solid #1E1E22',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
+                          <span style={{fontSize:13.5,fontWeight:600,color:'#F5F5F0'}}>{selectedTpl?.label} preview</span>
+                          <span style={{...numStyle,fontSize:13.5,fontWeight:700,color:'#F5C451',flexShrink:0}}>
+                            {sym(baseCur)}{fmt(selectedTotal)}
                           </span>
                         </div>
-                        <div style={{fontSize:11,color:'#71717A',lineHeight:1.45,paddingLeft:23}}>
-                          {tpl.type} · {tpl.items.length} standard production lines
+                        <div style={{maxHeight:320,overflowY:'auto'}}>
+                          {deptPreviewRows.map((row) => (
+                            <div
+                              key={row.dept}
+                              style={{
+                                display:'flex',
+                                justifyContent:'space-between',
+                                alignItems:'center',
+                                gap:10,
+                                padding:'12px 18px',
+                                borderBottom:'1px solid #1B1B1F',
+                              }}
+                            >
+                              <div style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                <span style={{fontSize:12.5,color:'#E8E6E1',fontWeight:500}}>{deptShortName(row.dept)}</span>
+                                <span style={{fontSize:11,color:'#7A7670',marginLeft:8}}>{row.lines} line{row.lines===1?'':'s'}</span>
+                              </div>
+                              <span style={{...numStyle,fontSize:12.5,fontWeight:500,color:'#F5F5F0',flexShrink:0}}>
+                                {sym(baseCur)}{fmt(row.total)}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                        <div style={{fontSize:10,color:'#71717A',fontFamily:'IBM Plex Mono,monospace',marginTop:6,paddingLeft:23}}>
-                          {tpl.items.length} lines
+                        <div style={{padding:'16px 18px',fontSize:11.5,color:'#847F77',lineHeight:1.5}}>
+                          Rates are converted to {baseCur} from typical industry rates. Review them against your own quotes.
                         </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-
-                {/* Right Panel: Detailed Preview */}
-                <div style={{background:'#121215',border:'1px solid #202024',borderRadius:14,padding:'16px 18px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
-                  <div>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,paddingBottom:12,borderBottom:'1px solid #1E1E22'}}>
-                      <span style={{fontSize:13,fontWeight:600,color:T.cream}}>{selectedTpl?.label} preview</span>
-                      <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700,color:'#F5C451'}}>
-                        {sym(baseCur)}{fmt(selectedTotal)}
-                      </span>
-                    </div>
-                    <div style={{maxHeight:240,overflowY:'auto'}}>
-                      {deptPreviewRows.map((row, idx) => (
-                        <div key={row.dept} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'10px 0',borderBottom:idx===deptPreviewRows.length-1?'none':'1px solid #1A1A1E'}}>
-                          <div style={{minWidth:0}}>
-                            <span style={{fontSize:12,color:'#E5E5E0',fontWeight:500}}>{row.dept}</span>
-                            <span style={{fontSize:11,color:'#71717A',marginLeft:8}}>{row.lines} line{row.lines===1?'':'s'}</span>
-                          </div>
-                          <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:'#E5E5E0',flexShrink:0}}>
-                            {sym(baseCur)}{fmt(row.total)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{paddingTop:12,marginTop:8,borderTop:'1px solid #1A1A1E',fontSize:11,color:'#71717A',lineHeight:1.45}}>
-                    Rates are in {baseCur} from typical industry rates. Review them against your own quotes.
+                      </motion.div>
+                    </AnimatePresence>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Add to / Replace current budget radio options */}
-              <div style={{marginTop:18}}>
-                <div style={{fontSize:12,fontWeight:500,color:'#D4D4D8',marginBottom:10}}>
+              {/* Bottom Section: Add to / Replace current budget */}
+              <div style={{marginTop:20}}>
+                <div style={{fontSize:12.5,fontWeight:500,color:'#E5E5E0',marginBottom:10}}>
                   {existingLineCount > 0
                     ? `Your budget already has ${existingLineCount} line${existingLineCount===1?'':'s'}`
                     : 'Choose how to apply this template'}
@@ -4989,32 +5056,34 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
                     onClick={()=>setApplyMode('add')}
                     style={{
                       textAlign:'left',
-                      padding:'13px 15px',
-                      borderRadius:12,
+                      padding:'14px 16px',
+                      borderRadius:10,
                       cursor:'pointer',
-                      background:applyMode==='add'?'rgba(255,179,71,0.06)':'#131316',
-                      border:applyMode==='add'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',
-                      transition:'all 0.15s ease',
+                      background:applyMode==='add'?'rgba(245,196,81,0.06)':'#0D0D0E',
+                      border:applyMode==='add'?'1px solid #B5923A':'1px solid #222226',
+                      transition:'border-color 0.15s ease, background 0.15s ease',
+                      fontFamily:'Manrope,sans-serif',
                     }}
                   >
-                    <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Add to current budget</div>
-                    <div style={{fontSize:11,color:'#71717A',marginTop:3}}>Keep your lines and add the template lines.</div>
+                    <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>Add to current budget</div>
+                    <div style={{fontSize:11.5,color:'#847F77',marginTop:4}}>Keep your lines and add the template lines.</div>
                   </button>
                   <button
                     type="button"
                     onClick={()=>setApplyMode('replace')}
                     style={{
                       textAlign:'left',
-                      padding:'13px 15px',
-                      borderRadius:12,
+                      padding:'14px 16px',
+                      borderRadius:10,
                       cursor:'pointer',
-                      background:applyMode==='replace'?'rgba(255,179,71,0.06)':'#131316',
-                      border:applyMode==='replace'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',
-                      transition:'all 0.15s ease',
+                      background:applyMode==='replace'?'rgba(245,196,81,0.06)':'#0D0D0E',
+                      border:applyMode==='replace'?'1px solid #B5923A':'1px solid #222226',
+                      transition:'border-color 0.15s ease, background 0.15s ease',
+                      fontFamily:'Manrope,sans-serif',
                     }}
                   >
-                    <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Replace current budget</div>
-                    <div style={{fontSize:11,color:'#71717A',marginTop:3}}>
+                    <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>Replace current budget</div>
+                    <div style={{fontSize:11.5,color:'#847F77',marginTop:4}}>
                       {existingLineCount > 0
                         ? `Remove your ${existingLineCount} line${existingLineCount===1?'':'s'} first.`
                         : 'Start fresh with the template lines.'}
@@ -5025,22 +5094,22 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
             </div>
 
             {/* Footer */}
-            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
+            <div style={{padding:mob?'14px 18px 18px':'16px 26px 20px',borderTop:'1px solid #1F1F23',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
               <button
                 type="button"
                 onClick={onClose}
-                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:9,padding:'9px 18px',fontSize:13,fontWeight:500,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
               >
                 Cancel
               </button>
               <motion.button
                 type="button"
-                disabled={applying}
+                disabled={applying || !selectedTpl}
                 whileHover={{y:-1}}
                 whileTap={{scale:0.98}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 onClick={handleApply}
-                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:applying?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:9,padding:'9px 20px',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:applying?'wait':'pointer',boxShadow:'0 4px 16px rgba(245,166,35,0.26)',opacity:applying?0.75:1}}
               >
                 {applying ? 'Applying...' : 'Apply template'}
               </motion.button>
@@ -5052,280 +5121,50 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
   );
 }
 
-function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
-  const [dept, setDept] = useState(DEPTS[0]);
-  const [unit, setUnit] = useState('day');
-  const [description, setDescription] = useState('');
-  const [qty, setQty] = useState('1');
-  const [rate, setRate] = useState('0');
-  const phaseForDept = d => {
-    const p = PHASES.find(ph => ph.depts.includes(d))?.name || 'Production';
-    if (p.toLowerCase().includes('pre')) return 'Pre-production';
-    if (p.toLowerCase().includes('post')) return 'Post-production';
-    return 'Production';
-  };
-  const [phase, setPhase] = useState(() => phaseForDept(DEPTS[0]));
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    setDept(DEPTS[0]);
-    setUnit('day');
-    setDescription('');
-    setQty('1');
-    setRate('0');
-    setPhase(phaseForDept(DEPTS[0]));
-    setSubmitting(false);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = e => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  const numericQty = Math.max(0, Number(qty) || 0);
-  const numericRate = Math.max(0, Number(rate) || 0);
-  const lineTotal = numericQty * numericRate;
-  const deptExistingTotal = (items || []).filter(i => i.dept === dept).reduce((s, i) => s + lTot(i), 0);
-  const deptProjectedTotal = deptExistingTotal + lineTotal;
-
-  const handleSubmit = async e => {
-    e.preventDefault();
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      await onAdd({
-        dept,
-        description: description.trim(),
-        qty: numericQty || 1,
-        unit,
-        rate: numericRate,
-      });
-      onClose();
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const phaseOptions = ['Development', 'Pre-production', 'Production', 'Post-production'];
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{opacity:0}}
-          animate={{opacity:1}}
-          exit={{opacity:0}}
-          transition={{duration:0.18,ease:'easeOut'}}
-          onClick={onClose}
-          style={{position:'fixed',inset:0,zIndex:120,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}
-        >
-          <motion.form
-            onSubmit={handleSubmit}
-            onClick={e=>e.stopPropagation()}
-            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
-            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
-            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
-            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:520,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
-          >
-            {/* Header */}
-            <div style={{padding:'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
-              <div>
-                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Add budget line</h3>
-                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
-                  Lines are totalled automatically and roll up into your department budgets.
-                </div>
-              </div>
-              <button type="button" aria-label="Close modal" onClick={onClose} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
-                <X size={16}/>
-              </button>
-            </div>
-
-            {/* Body */}
-            <div style={{padding:'20px 24px',display:'flex',flexDirection:'column',gap:16}}>
-              {/* Department & Unit */}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-                <div>
-                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Department</label>
-                  <select
-                    value={dept}
-                    onChange={e=>{setDept(e.target.value);setPhase(phaseForDept(e.target.value));}}
-                    style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:'#A1A1AA',fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
-                  >
-                    {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Unit</label>
-                  <select
-                    value={unit}
-                    onChange={e=>setUnit(e.target.value)}
-                    style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:'#A1A1AA',fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
-                  >
-                    {UNITS.map(u=><option key={u} value={u}>{u.charAt(0).toUpperCase()+u.slice(1)}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Description</label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={e=>setDescription(e.target.value)}
-                  placeholder="e.g. Camera package rental"
-                  autoFocus
-                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
-                />
-              </div>
-
-              {/* Quantity & Rate */}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1.85fr',gap:12}}>
-                <div>
-                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Quantity</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={qty}
-                    onChange={e=>setQty(e.target.value)}
-                    style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none',boxSizing:'border-box'}}
-                  />
-                </div>
-                <div>
-                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Rate ({baseCur})</label>
-                  <div style={{display:'flex',alignItems:'center',background:'#141416',border:'1px solid #242428',borderRadius:10,overflow:'hidden'}}>
-                    <span style={{padding:'10px 14px',borderRight:'1px solid #242428',color:'#71717A',fontSize:12,fontFamily:'IBM Plex Mono,monospace',flexShrink:0}}>{sym(baseCur)}</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={rate}
-                      onChange={e=>setRate(e.target.value)}
-                      style={{flex:1,minWidth:0,background:'transparent',border:'none',padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'IBM Plex Mono,monospace',outline:'none'}}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Phase */}
-              <div>
-                <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Phase</label>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
-                  {phaseOptions.map(ph => {
-                    const active = phase === ph;
-                    return (
-                      <button
-                        key={ph}
-                        type="button"
-                        onClick={()=>setPhase(ph)}
-                        style={{
-                          padding:'9px 6px',
-                          borderRadius:9,
-                          fontSize:11,
-                          fontWeight:active?600:500,
-                          fontFamily:'Manrope,sans-serif',
-                          cursor:'pointer',
-                          whiteSpace:'nowrap',
-                          overflow:'hidden',
-                          textOverflow:'ellipsis',
-                          background:active?'rgba(255,179,71,0.10)':'#141416',
-                          border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',
-                          color:active?T.cream:'#71717A',
-                          transition:'all 0.15s ease',
-                        }}
-                      >
-                        {ph}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Line Total & Department Total Summary Box */}
-              <div style={{background:'#121214',border:'1px solid #202024',borderRadius:12,padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-                <div>
-                  <div style={{fontSize:10,color:'#71717A'}}>Line total</div>
-                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,fontWeight:700,color:T.cream,marginTop:3}}>
-                    {sym(baseCur)}{fmt(lineTotal)}
-                  </div>
-                </div>
-                <div style={{textAlign:'right'}}>
-                  <div style={{fontSize:10,color:'#71717A'}}>{dept} total</div>
-                  <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:'#E5E5E0',marginTop:4}}>
-                    {sym(baseCur)}{fmt(deptProjectedTotal)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10}}>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
-              >
-                Cancel
-              </button>
-              <motion.button
-                type="submit"
-                disabled={submitting}
-                whileHover={{y:-1}}
-                whileTap={{scale:0.98}}
-                transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
-              >
-                {submitting ? 'Adding...' : 'Add Budget Line'}
-              </motion.button>
-            </div>
-          </motion.form>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudget=0,totalSpend=0,remaining=0,contingency=0,baseCur='NGN',onPdf,onDocs,onExcel}){
-  const mob=useIsMobile();
-  const [format, setFormat] = useState('pdf');
+function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],deptRows=[],totalBudget=0,totalSpend=0,remaining=0,contingency=0,baseCur='NGN',onPdf,onExcel}){
+  const mob = useIsMobile();
+  const [format, setFormat] = useState(initialFormat || 'pdf');
   const [theme, setTheme] = useState('charcoal');
   const [excelSheet, setExcelSheet] = useState('lines');
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setFormat('pdf');
+    setFormat(initialFormat === 'excel' ? 'excel' : 'pdf');
     setTheme('charcoal');
     setExcelSheet('lines');
     setExporting(false);
-  }, [open]);
+  }, [open, initialFormat]);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    const onKey = e => { if (e.key === 'Escape' && !exporting) onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, exporting, onClose]);
 
+  const deptShortName = d => String(d || '').replace(/^[A-Z]+\s*-\s*/i, '').trim() || d;
+  const capUnit = u => u ? String(u).charAt(0).toUpperCase() + String(u).slice(1) : '';
+  const phaseLabelForDept = d => {
+    const found = PHASES.find(ph => ph.depts.includes(d))?.name || 'Production';
+    if (/pre/i.test(found)) return 'Pre-production';
+    if (/post/i.test(found)) return 'Post-production';
+    if (/pr|market/i.test(found)) return 'PR & Marketing';
+    return 'Production';
+  };
   const isLight = theme === 'white';
-  const sheetBg = isLight ? '#FFFFFF' : '#141416';
-  const sheetText = isLight ? '#111111' : '#F5F4F0';
-  const sheetMuted = isLight ? '#71717A' : '#8A8985';
-  const sheetBorder = isLight ? '#E4E4E7' : '#242428';
-  const sheetHeaderBg = isLight ? '#F4F4F5' : '#1C1C20';
+  const sheetBg = isLight ? '#FFFFFF' : '#171719';
+  const sheetText = isLight ? '#111111' : '#F0EFEA';
+  const sheetMuted = isLight ? '#71717A' : '#8A8780';
+  const sheetBorder = isLight ? '#E7E5E0' : '#26262A';
+  const sheetTableHeaderBg = isLight ? '#F4F3EE' : 'rgba(255,255,255,0.03)';
 
-  const generatedAt = new Date().toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const now = new Date();
+  const generatedAt = `${now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const previewLines = items.slice(0, 10);
+  const previewExcelLines = items.slice(0, 14);
   const extraCount = Math.max(0, items.length - previewLines.length);
+  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' };
 
   const handleDownload = async () => {
     if (exporting) return;
@@ -5333,8 +5172,6 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
     try {
       if (format === 'pdf') {
         if (typeof onPdf === 'function') await onPdf();
-      } else if (format === 'docs') {
-        if (typeof onDocs === 'function') await onDocs();
       } else {
         if (typeof onExcel === 'function') await onExcel();
       }
@@ -5351,292 +5188,413 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
           initial={{opacity:0}}
           animate={{opacity:1}}
           exit={{opacity:0}}
-          transition={{duration:0.18,ease:'easeOut'}}
-          onClick={onClose}
-          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',padding:mob?0:20}}
+          transition={{duration:0.16,ease:EASE_OUT}}
+          onClick={()=>{ if(!exporting) onClose(); }}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(5px)',WebkitBackdropFilter:'blur(5px)',display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',padding:mob?0:20}}
         >
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="export-budget-title"
             onClick={e=>e.stopPropagation()}
-            initial={{opacity:0,scale:0.92,y:18,filter:'blur(4px)'}}
-            animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
-            exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
-            transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:900,maxHeight:mob?'92vh':'90vh',background:'#0F0F11',border:'1px solid #242428',borderRadius:mob?'18px 18px 0 0':16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            initial={{opacity:0,scale:0.96,y:12}}
+            animate={{opacity:1,scale:1,y:0}}
+            exit={{opacity:0,scale:0.96,y:10}}
+            transition={{duration:0.2,ease:EASE_OUT}}
+            style={{
+              width:'100%',
+              maxWidth:920,
+              maxHeight:mob?'92vh':'90vh',
+              background:'#0F0F10',
+              border:'1px solid #232327',
+              borderRadius:mob?'18px 18px 0 0':16,
+              boxShadow:'0 28px 72px rgba(0,0,0,0.84)',
+              display:'flex',
+              flexDirection:'column',
+              overflow:'hidden',
+              fontFamily:'Manrope,sans-serif',
+            }}
           >
-            {/* Header */}
-            <div style={{padding:mob?'18px 18px 14px':'20px 24px 16px',borderBottom:'1px solid #1C1C20',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
+            {/* Header (seamless, no bottom border) */}
+            <div style={{padding:mob?'20px 18px 14px':'24px 26px 16px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
               <div>
-                <h3 style={{margin:0,fontSize:18,fontWeight:700,color:T.cream,letterSpacing:'-0.02em'}}>Export budget</h3>
-                <div style={{fontSize:12,color:'#71717A',marginTop:4}}>
+                <h3 id="export-budget-title" style={{margin:0,fontSize:20,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.2}}>
+                  Export budget
+                </h3>
+                <div style={{fontSize:12.5,color:'#847F77',marginTop:5}}>
                   {project?.name} · {items.length} line{items.length===1?'':'s'} · figures as currently saved
                 </div>
               </div>
-              <button type="button" aria-label="Close" onClick={onClose} style={{background:'none',border:'none',color:'#71717A',cursor:'pointer',padding:4,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:6}}>
-                <X size={16}/>
+              <button
+                type="button"
+                disabled={exporting}
+                aria-label="Close"
+                onClick={onClose}
+                style={{background:'transparent',border:'none',color:'#8E8A82',cursor:'pointer',padding:4,display:'inline-flex',borderRadius:6,transition:'color 0.14s ease'}}
+                onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                onMouseLeave={e=>{e.currentTarget.style.color='#8E8A82';}}
+              >
+                <X size={17}/>
               </button>
             </div>
 
             {/* Body */}
-            <div style={{padding:mob?'16px 18px':'20px 24px',overflowY:'auto',flex:1}}>
-              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'250px minmax(0, 1fr)',gap:20,alignItems:'start'}}>
-                {/* Left Controls */}
-                <div style={{display:'flex',flexDirection:'column',gap:18}}>
+            <div style={{padding:mob?'4px 18px 18px':'6px 26px 22px',overflowY:'auto',flex:1}}>
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'240px minmax(0, 1fr)',gap:24,alignItems:'start'}}>
+                {/* Left Panel */}
+                <div style={{display:'flex',flexDirection:'column',gap:20}}>
                   {/* Format */}
                   <div>
-                    <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Format</div>
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(3, minmax(0, 1fr))',gap:8}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#E5E5E0',marginBottom:9}}>Format</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                       <button
                         type="button"
                         onClick={()=>setFormat('pdf')}
-                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='pdf'?'rgba(255,179,71,0.08)':'#131316',border:format==='pdf'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                        style={{
+                          textAlign:'left',
+                          padding:'12px 12px',
+                          borderRadius:10,
+                          cursor:'pointer',
+                          background:format==='pdf'?'rgba(245,196,81,0.06)':'#0C0C0D',
+                          border:format==='pdf'?'1px solid #B5923A':'1px solid #232327',
+                          transition:'border-color 0.15s ease, background 0.15s ease',
+                          fontFamily:'Manrope,sans-serif',
+                        }}
                       >
-                        <FileText size={14} style={{color:format==='pdf'?'#F5C451':'#71717A',marginBottom:4}}/>
-                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>PDF</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Print / PDF</div>
+                        <FileText size={15} style={{color:format==='pdf'?'#F5C451':'#8E8A82',marginBottom:8,display:'block'}}/>
+                        <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>PDF</div>
+                        <div style={{fontSize:11,color:'#847F77',marginTop:3}}>Formatted report</div>
                       </button>
-                      <button
-                        type="button"
-                        onClick={()=>setFormat('docs')}
-                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='docs'?'rgba(91,157,248,0.1)':'#131316',border:format==='docs'?'1px solid rgba(91,157,248,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
-                      >
-                        <FileText size={14} style={{color:format==='docs'?'#5B9DF8':'#71717A',marginBottom:4}}/>
-                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Docs</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>Word &amp; Docs</div>
-                      </button>
+
                       <button
                         type="button"
                         onClick={()=>setFormat('excel')}
-                        style={{textAlign:'left',padding:'10px 10px',borderRadius:10,cursor:'pointer',background:format==='excel'?'rgba(82,176,122,0.1)':'#131316',border:format==='excel'?'1px solid rgba(82,176,122,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}
+                        style={{
+                          textAlign:'left',
+                          padding:'12px 12px',
+                          borderRadius:10,
+                          cursor:'pointer',
+                          background:format==='excel'?'rgba(245,196,81,0.06)':'#0C0C0D',
+                          border:format==='excel'?'1px solid #B5923A':'1px solid #232327',
+                          transition:'border-color 0.15s ease, background 0.15s ease',
+                          fontFamily:'Manrope,sans-serif',
+                        }}
                       >
-                        <BarChart3 size={14} style={{color:format==='excel'?'#52B07A':'#71717A',marginBottom:4}}/>
-                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Excel</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>3 sheets, .xlsx</div>
+                        <FileSpreadsheet size={15} style={{color:format==='excel'?'#F5C451':'#8E8A82',marginBottom:8,display:'block'}}/>
+                        <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>Excel</div>
+                        <div style={{fontSize:11,color:'#847F77',marginTop:3}}>3 sheets, editable</div>
                       </button>
                     </div>
                   </div>
 
-                  {/* Report Theme (PDF) or Docs / Excel Styling Note */}
-                  {format === 'pdf' ? (
-                  <div>
-                    <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:8}}>Report theme</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                      <button type="button" onClick={()=>setTheme('charcoal')} style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:theme==='charcoal'?'rgba(255,179,71,0.06)':'#131316',border:theme==='charcoal'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}>
-                        <div style={{width:20,height:13,borderRadius:4,background:'#1E1E22',border:'1px solid #2E2E34',marginBottom:6}}/>
-                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>Charcoal</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>For screens</div>
-                      </button>
-                      <button type="button" onClick={()=>setTheme('white')} style={{textAlign:'left',padding:'11px 12px',borderRadius:10,cursor:'pointer',background:theme==='white'?'rgba(255,179,71,0.06)':'#131316',border:theme==='white'?'1px solid rgba(255,179,71,0.55)':'1px solid #222226',transition:'all 0.15s ease'}}>
-                        <div style={{width:20,height:13,borderRadius:4,background:'#FFFFFF',border:'1px solid #D4D4D8',marginBottom:6}}/>
-                        <div style={{fontSize:12,fontWeight:600,color:T.cream}}>White</div>
-                        <div style={{fontSize:10,color:'#71717A',marginTop:2}}>For printing</div>
-                      </button>
-                    </div>
-                  </div>
-                  ) : format === 'docs' ? (
-                  <div style={{fontSize:11,color:'#8A8985',lineHeight:1.55,background:'#131316',border:'1px solid #222226',borderRadius:10,padding:'12px 14px'}}>
-                    <div style={{fontWeight:600,color:T.cream,marginBottom:4}}>Word &amp; Google Docs (.doc)</div>
-                    Exports an editable document formatted with production metadata, executive grand total, phase subtotals, and department tables ready to open in Microsoft Word or Google Docs.
-                  </div>
-                  ) : (
-                  <div style={{fontSize:11,color:'#71717A',lineHeight:1.55}}>
-                    Excel files use your spreadsheet app&apos;s own styling. Amounts are exported as numbers so you can keep working with them.
-                  </div>
-                  )}
+                  {/* Report theme (PDF) or Excel styling helper */}
+                  <AnimatePresence mode="wait">
+                    {format === 'pdf' ? (
+                      <motion.div
+                        key="left-pdf-theme"
+                        initial={{opacity:0,y:4}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-4}}
+                        transition={{duration:0.14,ease:EASE_OUT}}
+                      >
+                        <div style={{fontSize:12,fontWeight:600,color:'#E5E5E0',marginBottom:9}}>Report theme</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                          <button
+                            type="button"
+                            onClick={()=>setTheme('charcoal')}
+                            style={{
+                              textAlign:'left',
+                              padding:'12px 12px',
+                              borderRadius:10,
+                              cursor:'pointer',
+                              background:theme==='charcoal'?'rgba(245,196,81,0.06)':'#0C0C0D',
+                              border:theme==='charcoal'?'1px solid #B5923A':'1px solid #232327',
+                              transition:'border-color 0.15s ease, background 0.15s ease',
+                              fontFamily:'Manrope,sans-serif',
+                            }}
+                          >
+                            <div style={{width:22,height:15,borderRadius:4,background:'#161618',border:'1px solid #2A2A2F',marginBottom:8}}/>
+                            <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>Charcoal</div>
+                            <div style={{fontSize:11,color:'#847F77',marginTop:3}}>For screens</div>
+                          </button>
 
-                  {/* Included Checklist */}
+                          <button
+                            type="button"
+                            onClick={()=>setTheme('white')}
+                            style={{
+                              textAlign:'left',
+                              padding:'12px 12px',
+                              borderRadius:10,
+                              cursor:'pointer',
+                              background:theme==='white'?'rgba(245,196,81,0.06)':'#0C0C0D',
+                              border:theme==='white'?'1px solid #B5923A':'1px solid #232327',
+                              transition:'border-color 0.15s ease, background 0.15s ease',
+                              fontFamily:'Manrope,sans-serif',
+                            }}
+                          >
+                            <div style={{width:22,height:15,borderRadius:4,background:'#FFFFFF',border:'1px solid #D4D4D8',marginBottom:8}}/>
+                            <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>White</div>
+                            <div style={{fontSize:11,color:'#847F77',marginTop:3}}>For printing</div>
+                          </button>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="left-excel-note"
+                        initial={{opacity:0,y:4}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-4}}
+                        transition={{duration:0.14,ease:EASE_OUT}}
+                        style={{fontSize:12,color:'#847F77',lineHeight:1.55}}
+                      >
+                        Excel files use your spreadsheet app&apos;s own styling. Amounts are exported as numbers so you can keep working with them.
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Included */}
                   <div>
-                    <div style={{fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Included</div>
-                    <div style={{display:'flex',flexDirection:'column',gap:5,fontSize:11,color:'#8A8985'}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#E5E5E0',marginBottom:8}}>Included</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:7,fontSize:12,color:'#847F77'}}>
                       <span>Summary and contingency</span>
                       <span>Department breakdown with actuals</span>
                       <span>Phase totals</span>
-                      <span>Every budget line item</span>
-                      {format === 'docs' && <span style={{color:'#5B9DF8'}}>Editable in Microsoft Word &amp; Google Docs</span>}
+                      <span>Every budget line</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Live Report Preview */}
-                <div style={{background:'#0A0A0C',border:'1px solid #1C1C20',borderRadius:14,padding:mob?'14px':'16px 20px'}}>
-                  <div style={{fontSize:11,color:'#71717A',marginBottom:12}}>Preview</div>
+                {/* Right Panel: Live Preview */}
+                <div style={{background:'#121213',border:'1px solid #1E1E22',borderRadius:12,padding:mob?'14px':'16px 20px 24px'}}>
+                  <div style={{fontSize:11.5,color:'#7A7670',marginBottom:14}}>Preview</div>
                   <AnimatePresence mode="wait">
                     {format === 'pdf' ? (
                       <motion.div
-                        key="pdf-preview"
-                        initial={{opacity:0,y:6}}
+                        key="export-pdf-preview"
+                        initial={{opacity:0,y:5}}
                         animate={{opacity:1,y:0}}
-                        exit={{opacity:0,y:-6}}
-                        transition={{duration:0.18,ease:EASE_OUT}}
-                        style={{background:sheetBg,color:sheetText,border:`1px solid ${sheetBorder}`,borderRadius:10,padding:'22px 24px',maxWidth:540,margin:'0 auto',boxShadow:'0 16px 40px rgba(0,0,0,0.4)',transition:'background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease'}}
+                        exit={{opacity:0,y:-5}}
+                        transition={{duration:0.16,ease:EASE_OUT}}
+                        style={{
+                          background:sheetBg,
+                          color:sheetText,
+                          border:`1px solid ${sheetBorder}`,
+                          borderRadius:8,
+                          padding:'24px 26px 36px',
+                          maxWidth:540,
+                          margin:'0 auto',
+                          boxShadow:'0 18px 46px rgba(0,0,0,0.48)',
+                          transition:'background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease',
+                        }}
                       >
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-                          {isLight ? <span style={{fontWeight:800,fontSize:13,letterSpacing:'0.04em',color:'#111111'}}>NKO</span> : <NkoLogo height={18}/>}
-                          <span style={{fontSize:9,color:sheetMuted}}>Generated {generatedAt}</span>
+                          {isLight ? (
+                            <span style={{fontWeight:800,fontSize:13,letterSpacing:'0.02em',color:'#111111'}}>NKO</span>
+                          ) : (
+                            <NkoLogo height={18}/>
+                          )}
+                          <span style={{fontSize:8.5,color:sheetMuted}}>Generated {generatedAt}</span>
                         </div>
-                        <div style={{fontSize:13,fontWeight:700,color:sheetText}}>{project?.name} - Production Budget</div>
-                        <div style={{fontSize:9,color:sheetMuted,marginTop:2,marginBottom:12}}>All figures in {baseCur}</div>
-                        <div style={{borderTop:`1px solid ${sheetBorder}`,marginBottom:14}}>
-                          {[['Total budget', `${baseCur} ${fmt(totalBudget)}`],['Actual spend', `${baseCur} ${fmt(totalSpend)}`],['Remaining', `${baseCur} ${fmt(remaining)}`],['Contingency', `${baseCur} ${fmt(contingency)}`]].map(([lbl, val]) => (
-                            <div key={lbl} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${sheetBorder}`,fontSize:10}}>
+
+                        <div style={{fontSize:12,fontWeight:700,color:sheetText}}>{project?.name} - Production Budget</div>
+                        <div style={{fontSize:8.5,color:sheetMuted,marginTop:2,marginBottom:14}}>All figures in {baseCur}</div>
+
+                        {/* Top Summary */}
+                        <div style={{borderTop:`1px solid ${sheetBorder}`,marginBottom:16}}>
+                          {[
+                            ['Total budget', `${baseCur} ${fmt(totalBudget)}`],
+                            ['Actual spend', `${baseCur} ${fmt(totalSpend)}`],
+                            ['Remaining', `${baseCur} ${fmt(remaining)}`],
+                            ['Contingency', `${baseCur} ${fmt(contingency)}`],
+                          ].map(([lbl, val]) => (
+                            <div key={lbl} style={{display:'flex',justifyContent:'space-between',padding:'5.5px 0',borderBottom:`1px solid ${sheetBorder}`,fontSize:9}}>
                               <span style={{color:sheetMuted}}>{lbl}</span>
-                              <span style={{fontFamily:'IBM Plex Mono,monospace',fontWeight:700,color:sheetText}}>{val}</span>
+                              <span style={{...numStyle,fontWeight:700,color:sheetText}}>{val}</span>
                             </div>
                           ))}
                         </div>
+
+                        {/* Department Breakdown */}
                         {deptRows.length > 0 && (
-                          <div style={{marginBottom:14}}>
-                            <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1fr',gap:6,padding:'5px 6px',background:sheetHeaderBg,borderRadius:4,fontSize:9,fontWeight:600,color:sheetMuted}}>
-                              <span>Department</span><span style={{textAlign:'right'}}>Allocated</span><span style={{textAlign:'right'}}>Actual</span><span style={{textAlign:'right'}}>Remaining</span>
+                          <div style={{marginBottom:16}}>
+                            <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1fr',gap:6,padding:'5px 8px',background:sheetTableHeaderBg,borderRadius:3,fontSize:8.5,fontWeight:600,color:sheetMuted}}>
+                              <span>Department</span>
+                              <span style={{textAlign:'right'}}>Allocated</span>
+                              <span style={{textAlign:'right'}}>Actual</span>
+                              <span style={{textAlign:'right'}}>Remaining</span>
                             </div>
-                            {deptRows.slice(0, 8).map(r => (
-                              <div key={r.dept} style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1fr',gap:6,padding:'4.5px 6px',borderBottom:`1px solid ${sheetBorder}`,fontSize:9}}>
-                                <span style={{color:sheetText,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.dept}</span>
-                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetText}}>{baseCur} {fmt(r.allocated)}</span>
-                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetMuted}}>{baseCur} {fmt(r.actual)}</span>
-                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetText}}>{baseCur} {fmt(r.allocated - r.actual)}</span>
+                            {deptRows.slice(0, 12).map(r => (
+                              <div key={r.dept} style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1fr',gap:6,padding:'4.5px 8px',borderBottom:`1px solid ${sheetBorder}`,fontSize:8.5}}>
+                                <span style={{color:sheetText,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{deptShortName(r.dept)}</span>
+                                <span style={{textAlign:'right',...numStyle,color:sheetText}}>{baseCur} {fmt(r.allocated)}</span>
+                                <span style={{textAlign:'right',...numStyle,color:sheetMuted}}>{baseCur} {fmt(r.actual)}</span>
+                                <span style={{textAlign:'right',...numStyle,color:sheetText}}>{baseCur} {fmt(r.allocated - r.actual)}</span>
                               </div>
                             ))}
                           </div>
                         )}
-                        {previewLines.length > 0 && (
-                          <div>
-                            <div style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.7fr 1.1fr',gap:6,padding:'5px 6px',background:sheetHeaderBg,borderRadius:4,fontSize:9,fontWeight:600,color:sheetMuted}}>
-                              <span>Description</span><span style={{textAlign:'right'}}>Qty</span><span>Unit</span><span style={{textAlign:'right'}}>Total</span>
-                            </div>
-                            {previewLines.map(item => (
-                              <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.7fr 1.1fr',gap:6,padding:'4.5px 6px',borderBottom:`1px solid ${sheetBorder}`,fontSize:9}}>
-                                <span style={{color:sheetText,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description || 'Untitled line'}</span>
-                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:sheetMuted}}>{item.qty}</span>
-                                <span style={{color:sheetMuted}}>{item.unit}</span>
-                                <span style={{textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:sheetText}}>{baseCur} {fmt(lTot(item))}</span>
-                              </div>
-                            ))}
-                            {extraCount > 0 && <div style={{fontSize:9,color:sheetMuted,marginTop:8}}>...and {extraCount} more line{extraCount===1?'':'s'} in the full report</div>}
-                          </div>
-                        )}
-                      </motion.div>
-                    ) : format === 'docs' ? (
-                      <motion.div
-                        key="docs-preview"
-                        initial={{opacity:0,y:6}}
-                        animate={{opacity:1,y:0}}
-                        exit={{opacity:0,y:-6}}
-                        transition={{duration:0.18,ease:EASE_OUT}}
-                        style={{background:'#FFFFFF',color:'#1A1A1A',border:'1px solid #D4D4D8',borderRadius:10,padding:'24px 26px',maxWidth:540,margin:'0 auto',boxShadow:'0 16px 40px rgba(0,0,0,0.4)',fontFamily:'Calibri, Arial, sans-serif'}}
-                      >
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12,borderBottom:'2px solid #E5A823',paddingBottom:10}}>
-                          <div>
-                            <div style={{fontSize:16,fontWeight:700,color:'#111111'}}>{project?.name} — Production Budget</div>
-                            <div style={{fontSize:10,color:'#666666',marginTop:2}}>{project?.type || 'Film Production'} · Word &amp; Google Docs (.doc)</div>
-                          </div>
-                          <span style={{fontSize:9,color:'#888888',fontFamily:'Manrope,sans-serif'}}>Generated {generatedAt}</span>
-                        </div>
 
-                        {/* Top summary card */}
-                        <div style={{background:'#F7F7F8',border:'1px solid #E0E0E0',borderRadius:6,padding:'10px 12px',marginBottom:12}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                            <span style={{fontSize:10,color:'#666666',textTransform:'uppercase',letterSpacing:'0.05em',fontWeight:600}}>Total Budget ({baseCur})</span>
-                            <span style={{fontSize:15,fontWeight:700,color:'#111111',fontFamily:'Consolas,monospace'}}>{baseCur} {fmt(totalBudget)}</span>
-                          </div>
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:8,paddingTop:8,borderTop:'1px solid #E5E5E5',fontSize:9.5}}>
-                            <div><span style={{color:'#777'}}>Spend: </span><strong style={{color:'#111'}}>{baseCur} {fmt(totalSpend)}</strong></div>
-                            <div><span style={{color:'#777'}}>Headroom: </span><strong style={{color:'#111'}}>{baseCur} {fmt(remaining)}</strong></div>
-                            <div><span style={{color:'#777'}}>Contingency: </span><strong style={{color:'#111'}}>{baseCur} {fmt(contingency)}</strong></div>
-                          </div>
-                        </div>
-
-                        {/* Table preview */}
+                        {/* Line Items */}
                         {previewLines.length > 0 ? (
                           <div>
-                            <div style={{fontSize:10,fontWeight:700,color:'#333333',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.03em'}}>Sample Budget Items</div>
-                            <div style={{border:'1px solid #E0E0E0',borderRadius:4,overflow:'hidden'}}>
-                              <div style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.8fr 1fr',gap:6,padding:'5px 8px',background:'#F2F2F2',fontSize:9,fontWeight:700,color:'#444444'}}>
-                                <span>Description</span><span style={{textAlign:'center'}}>Qty</span><span>Unit</span><span style={{textAlign:'right'}}>Total ({baseCur})</span>
-                              </div>
-                              {previewLines.slice(0, 6).map(item => (
-                                <div key={item.id} style={{display:'grid',gridTemplateColumns:'2fr 0.6fr 0.8fr 1fr',gap:6,padding:'4px 8px',borderTop:'1px solid #EEEEEE',fontSize:9,color:'#222222'}}>
-                                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description || 'Untitled line'}</span>
-                                  <span style={{textAlign:'center',color:'#666666'}}>{item.qty}</span>
-                                  <span style={{color:'#666666'}}>{item.unit}</span>
-                                  <span style={{textAlign:'right',fontFamily:'Consolas,monospace',fontWeight:600}}>{fmt(lTot(item))}</span>
-                                </div>
-                              ))}
+                            <div style={{display:'grid',gridTemplateColumns:'2.1fr 0.55fr 0.7fr 1.15fr',gap:6,padding:'5px 8px',background:sheetTableHeaderBg,borderRadius:3,fontSize:8.5,fontWeight:600,color:sheetMuted}}>
+                              <span>Description</span>
+                              <span style={{textAlign:'right'}}>Qty</span>
+                              <span>Unit</span>
+                              <span style={{textAlign:'right'}}>Total</span>
                             </div>
-                            {extraCount > 0 && <div style={{fontSize:9,color:'#888888',marginTop:6}}>+ {extraCount} more lines included in the downloaded document</div>}
+                            {previewLines.map(item => (
+                              <div key={item.id} style={{display:'grid',gridTemplateColumns:'2.1fr 0.55fr 0.7fr 1.15fr',gap:6,padding:'4.5px 8px',borderBottom:`1px solid ${sheetBorder}`,fontSize:8.5}}>
+                                <span style={{color:sheetText,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.description || 'Untitled line'}</span>
+                                <span style={{textAlign:'right',...numStyle,color:sheetMuted}}>{item.qty}</span>
+                                <span style={{color:sheetMuted}}>{capUnit(item.unit)}</span>
+                                <span style={{textAlign:'right',...numStyle,fontWeight:700,color:sheetText}}>{baseCur} {fmt(lTot(item))}</span>
+                              </div>
+                            ))}
+                            {extraCount > 0 && (
+                              <div style={{fontSize:8.5,color:sheetMuted,marginTop:8,paddingLeft:2}}>
+                                ...and {extraCount} more line{extraCount===1?'':'s'} in the full report
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <div style={{fontSize:10,color:'#888888',padding:'12px 0',textAlign:'center'}}>
-                            Ready to export document with production top sheet summary.
+                          <div style={{padding:'16px 0',textAlign:'center',fontSize:9.5,color:sheetMuted}}>
+                            No budget lines recorded yet.
                           </div>
                         )}
                       </motion.div>
                     ) : (
                       <motion.div
-                        key="excel-preview"
-                        initial={{opacity:0,y:6}}
+                        key="export-excel-preview"
+                        initial={{opacity:0,y:5}}
                         animate={{opacity:1,y:0}}
-                        exit={{opacity:0,y:-6}}
+                        exit={{opacity:0,y:-5}}
                         transition={{duration:0.18,ease:EASE_OUT}}
-                        style={{background:'#FFFFFF',color:'#18181B',border:'1px solid #D4D4D8',borderRadius:8,overflow:'hidden',boxShadow:'0 16px 40px rgba(0,0,0,0.4)'}}
+                        style={{background:'#FFFFFF',color:'#111111',border:'1px solid #D6D3CC',borderRadius:8,overflow:'hidden',boxShadow:'0 18px 46px rgba(0,0,0,0.46)'}}
                       >
-                        <div style={{overflowX:'auto'}}>
-                          <table style={{width:'100%',borderCollapse:'collapse',fontSize:9.5,fontFamily:'Manrope,sans-serif'}}>
-                            <thead>
-                              <tr style={{background:'#F4F4F5',color:'#71717A',borderBottom:'1px solid #E4E4E7'}}>
-                                <th style={{width:24,padding:'4px',borderRight:'1px solid #E4E4E7',fontWeight:500}}/>
-                                {['A','B','C','D','E','F','G'].map(col => (
-                                   <th key={col} style={{padding:'4px 8px',borderRight:'1px solid #E4E4E7',fontWeight:500,textAlign:'center'}}>{col}</th>
-                                ))}
-                              </tr>
-                              <tr style={{background:'#FAFAFA',color:'#111111',borderBottom:'1px solid #D4D4D8',fontWeight:700}}>
-                                <td style={{padding:'5px 4px',textAlign:'center',background:'#F4F4F5',color:'#71717A',borderRight:'1px solid #E4E4E7',fontWeight:500}}>1</td>
-                                {(excelSheet === 'lines'
-                                  ? ['Department','Description','Quantity','Unit',`Rate (${baseCur})`,`Total (${baseCur})`,'Phase']
-                                  : excelSheet === 'depts'
-                                  ? ['Department','Lines',`Allocated (${baseCur})`,`Actual (${baseCur})`,`Remaining (${baseCur})`,'','']
-                                  : ['Metric','Value','Currency','','','','']
-                                ).map((h, i) => (
-                                  <td key={i} style={{padding:'5px 8px',borderRight:'1px solid #E4E4E7',textAlign:i>=2&&i<=5&&excelSheet!=='summary'?'right':'left',whiteSpace:'nowrap'}}>{h}</td>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(excelSheet === 'lines' ? items.slice(0, 14).map((it, idx) => [
-                                it.dept || 'General',
-                                it.description || 'Untitled line',
-                                String(it.qty || 0),
-                                it.unit || 'flat',
-                                fmt(it.rate || 0),
-                                fmt(lTot(it)),
-                                PHASES.find(ph => ph.depts.includes(it.dept))?.name || 'Production',
-                              ]) : excelSheet === 'depts' ? deptRows.slice(0, 14).map(r => [
-                                r.dept, String(r.lines), fmt(r.allocated), fmt(r.actual), fmt(r.allocated - r.actual), '', ''
-                              ]) : [
-                                ['Total budget', fmt(totalBudget), baseCur, '', '', '', ''],
-                                ['Actual spend', fmt(totalSpend), baseCur, '', '', '', ''],
-                                ['Remaining', fmt(remaining), baseCur, '', '', '', ''],
-                                ['Contingency', fmt(contingency), baseCur, '', '', '', ''],
-                              ]).map((cells, rIdx) => (
-                                <tr key={rIdx} style={{borderBottom:'1px solid #E4E4E7'}}>
-                                  <td style={{padding:'4.5px 4px',textAlign:'center',background:'#F4F4F5',color:'#71717A',borderRight:'1px solid #E4E4E7'}}>{rIdx + 2}</td>
-                                  {cells.map((val, cIdx) => (
-                                    <td key={cIdx} style={{padding:'4.5px 8px',borderRight:'1px solid #E4E4E7',textAlign:(excelSheet==='lines'&&(cIdx===2||cIdx===4||cIdx===5))||(excelSheet==='depts'&&cIdx>=1&&cIdx<=4)||(excelSheet==='summary'&&cIdx===1)?'right':'left',fontFamily:(excelSheet==='lines'&&(cIdx===2||cIdx===4||cIdx===5))||(excelSheet==='depts'&&cIdx>=1&&cIdx<=4)||(excelSheet==='summary'&&cIdx===1)?'IBM Plex Mono,monospace':'Manrope,sans-serif',whiteSpace:'nowrap',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis'}}>{val}</td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div style={{display:'flex',alignItems:'center',gap:2,background:'#F4F4F5',borderTop:'1px solid #E4E4E7',padding:'0 8px'}}>
-                          {[['summary','Summary'],['depts','Departments'],['lines','Budget lines']].map(([id, label]) => {
-                            const act = excelSheet === id;
-                            return (
-                              <button key={id} type="button" onClick={()=>setExcelSheet(id)} style={{padding:'6px 12px',fontSize:10,fontWeight:act?700:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',border:'none',background:act?'#FFFFFF':'transparent',color:act?'#111111':'#71717A',borderTop:act?'2px solid #F5A623':'2px solid transparent'}}>
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        {(() => {
+                          const sheetCols = excelSheet === 'summary'
+                            ? { grid: '26px 1.6fr 1.2fr', letters: ['A','B'] }
+                            : excelSheet === 'depts'
+                            ? { grid: '26px 1.6fr 0.6fr 1fr 1fr 1fr', letters: ['A','B','C','D','E'] }
+                            : { grid: '26px 1.15fr 1.9fr 0.62fr 0.65fr 0.92fr 0.96fr 0.96fr', letters: ['A','B','C','D','E','F','G'] };
+                          return (
+                            <>
+                              <div style={{overflowX:'auto'}}>
+                                <div style={{minWidth:excelSheet==='lines'?560:420}}>
+                                  {/* Column Letter Bar (A-G) */}
+                                  <div style={{display:'grid',gridTemplateColumns:sheetCols.grid,background:'#F4F3EE',borderBottom:'1px solid #DDDAD3',fontSize:8.5,fontWeight:600,color:'#7A7670',textAlign:'center'}}>
+                                    <span style={{padding:'5px 2px',borderRight:'1px solid #DDDAD3'}}/>
+                                    {sheetCols.letters.map((col, cIdx) => (
+                                      <span key={col} style={{padding:'5px 4px',borderRight:cIdx===sheetCols.letters.length-1?'none':'1px solid #DDDAD3'}}>{col}</span>
+                                    ))}
+                                  </div>
+
+                                  {/* Sheet Rows */}
+                                  <div style={{maxHeight:390,overflowY:'auto'}}>
+                                    {excelSheet === 'summary' ? (
+                                      [
+                                        ['Metric', `Amount (${baseCur})`],
+                                        ['Total Budget', fmt(totalBudget)],
+                                        ['Actual Spend', fmt(totalSpend)],
+                                        ['Remaining', fmt(remaining)],
+                                        ['Contingency', fmt(contingency)],
+                                      ].map((row, idx) => (
+                                        <div key={idx} style={{display:'grid',gridTemplateColumns:sheetCols.grid,borderBottom:'1px solid #E6E4DE',fontSize:9.5,background:idx===0?'#FAF9F6':'#FFFFFF',fontWeight:idx===0?700:400}}>
+                                          <span style={{padding:'5.5px 4px',textAlign:'center',color:'#8C877E',background:'#F4F3EE',borderRight:'1px solid #DDDAD3',fontWeight:500}}>{idx+1}</span>
+                                          <span style={{padding:'5.5px 8px',borderRight:'1px solid #E6E4DE',color:'#111111'}}>{row[0]}</span>
+                                          <span style={{padding:'5.5px 8px',textAlign:'right',...numStyle,color:'#111111'}}>{row[1]}</span>
+                                        </div>
+                                      ))
+                                    ) : excelSheet === 'depts' ? (
+                                      [
+                                        {dept:'Department',lines:'Lines',allocated:`Allocated (${baseCur})`,actual:`Actual (${baseCur})`,rem:`Remaining (${baseCur})`},
+                                        ...deptRows.slice(0, 14).map(r => ({
+                                          dept:deptShortName(r.dept),
+                                          lines:r.lines,
+                                          allocated:fmt(r.allocated),
+                                          actual:fmt(r.actual),
+                                          rem:fmt(r.allocated-r.actual),
+                                        })),
+                                      ].map((r, idx) => (
+                                        <div key={idx} style={{display:'grid',gridTemplateColumns:sheetCols.grid,borderBottom:'1px solid #E6E4DE',fontSize:9,background:idx===0?'#FAF9F6':'#FFFFFF',fontWeight:idx===0?700:400}}>
+                                          <span style={{padding:'5.5px 4px',textAlign:'center',color:'#8C877E',background:'#F4F3EE',borderRight:'1px solid #DDDAD3',fontWeight:500}}>{idx+1}</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#111111'}}>{r.dept}</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right',...numStyle,color:'#111111'}}>{r.lines}</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right',...numStyle,color:'#111111'}}>{r.allocated}</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right',...numStyle,color:'#111111'}}>{r.actual}</span>
+                                          <span style={{padding:'5.5px 7px',textAlign:'right',...numStyle,color:'#111111'}}>{r.rem}</span>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <>
+                                        <div style={{display:'grid',gridTemplateColumns:sheetCols.grid,borderBottom:'1px solid #DDDAD3',fontSize:9,background:'#FAF9F6',fontWeight:700,color:'#111111'}}>
+                                          <span style={{padding:'5.5px 4px',textAlign:'center',color:'#8C877E',background:'#F4F3EE',borderRight:'1px solid #DDDAD3',fontWeight:500}}>1</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE'}}>Department</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE'}}>Description</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right'}}>Quantity</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE'}}>Unit</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right'}}>Rate ({baseCur})</span>
+                                          <span style={{padding:'5.5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right'}}>Total ({baseCur})</span>
+                                          <span style={{padding:'5.5px 7px'}}>Phase</span>
+                                        </div>
+                                        {previewExcelLines.length === 0 ? (
+                                          <div style={{display:'grid',gridTemplateColumns:'26px 1fr',borderBottom:'1px solid #E6E4DE',fontSize:9.5,color:'#71717A'}}>
+                                            <span style={{padding:'10px 4px',textAlign:'center',color:'#8C877E',background:'#F4F3EE',borderRight:'1px solid #DDDAD3'}}>2</span>
+                                            <span style={{padding:'10px 10px'}}>No budget lines recorded yet.</span>
+                                          </div>
+                                        ) : (
+                                          previewExcelLines.map((i, idx) => (
+                                            <div key={i.id || idx} style={{display:'grid',gridTemplateColumns:sheetCols.grid,borderBottom:'1px solid #E6E4DE',fontSize:9,background:'#FFFFFF',color:'#18181B'}}>
+                                              <span style={{padding:'5px 4px',textAlign:'center',color:'#8C877E',background:'#F4F3EE',borderRight:'1px solid #DDDAD3',fontWeight:500}}>{idx+2}</span>
+                                              <span style={{padding:'5px 7px',borderRight:'1px solid #E6E4DE',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{deptShortName(i.dept)}</span>
+                                              <span style={{padding:'5px 7px',borderRight:'1px solid #E6E4DE',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{i.description || 'Untitled'}</span>
+                                              <span style={{padding:'5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right',...numStyle}}>{i.qty}</span>
+                                              <span style={{padding:'5px 7px',borderRight:'1px solid #E6E4DE'}}>{capUnit(i.unit)}</span>
+                                              <span style={{padding:'5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right',...numStyle}}>{fmt(i.rate)}</span>
+                                              <span style={{padding:'5px 7px',borderRight:'1px solid #E6E4DE',textAlign:'right',...numStyle}}>{fmt(lTot(i))}</span>
+                                              <span style={{padding:'5px 7px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{phaseLabelForDept(i.dept)}</span>
+                                            </div>
+                                          ))
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Bottom Sheet Tab Switcher */}
+                              <div style={{display:'flex',alignItems:'center',gap:2,background:'#F4F3EE',borderTop:'1px solid #DDDAD3',padding:'0 8px'}}>
+                                {[['summary','Summary'],['depts','Departments'],['lines','Budget lines']].map(([id, label]) => {
+                                  const act = excelSheet === id;
+                                  return (
+                                    <button
+                                      key={id}
+                                      type="button"
+                                      onClick={()=>setExcelSheet(id)}
+                                      style={{
+                                        padding:'7px 12px',
+                                        fontSize:10,
+                                        fontWeight:act?700:500,
+                                        fontFamily:'Manrope,sans-serif',
+                                        cursor:'pointer',
+                                        border:'none',
+                                        borderRight:act?'1px solid #DDDAD3':'none',
+                                        borderLeft:act?'1px solid #DDDAD3':'none',
+                                        background:act?'#FFFFFF':'transparent',
+                                        color:act?'#111111':'#7A7670',
+                                        marginTop:act?-1:0,
+                                        transition:'background 0.14s ease, color 0.14s ease',
+                                      }}
+                                    >
+                                      {label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -5645,11 +5603,12 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
             </div>
 
             {/* Footer */}
-            <div style={{padding:'14px 24px 18px',borderTop:'1px solid #1C1C20',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
+            <div style={{padding:mob?'14px 18px 18px':'16px 26px 20px',borderTop:'1px solid #1F1F23',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
               <button
                 type="button"
+                disabled={exporting}
                 onClick={onClose}
-                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
               >
                 Cancel
               </button>
@@ -5660,13 +5619,324 @@ function ExportBudgetModal({open,onClose,project,items=[],deptRows=[],totalBudge
                 whileTap={{scale:0.98}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 onClick={handleDownload}
-                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(245,166,35,0.24)',opacity:exporting?0.75:1}}
               >
-                <Download size={14}/>
-                <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : format === 'docs' ? 'Download Docs (.doc)' : 'Download Excel (.xlsx)'}</span>
+                <Download size={14} strokeWidth={2.2}/>
+                <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : 'Download Excel (.xlsx)'}</span>
               </motion.button>
             </div>
           </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
+  const mob = useIsMobile();
+  const [dept, setDept] = useState(DEPTS[0] || '');
+  const [unit, setUnit] = useState('day');
+  const [description, setDescription] = useState('');
+  const [qty, setQty] = useState('1');
+  const [rate, setRate] = useState('');
+  const [phase, setPhase] = useState('Production');
+  const [saving, setSaving] = useState(false);
+
+  const deptShortName = d => String(d || '').replace(/^[A-Z]+\s*-\s*/i, '').trim() || d;
+  const phaseForSelectedDept = d => {
+    const found = PHASES.find(ph => ph.depts.includes(d))?.name || 'Production';
+    if (/pre/i.test(found)) return 'Pre-production';
+    if (/post/i.test(found)) return 'Post-production';
+    if (/dev/i.test(found)) return 'Development';
+    return 'Production';
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const initialDept = DEPTS[0] || '';
+    setDept(initialDept);
+    setUnit('day');
+    setDescription('');
+    setQty('1');
+    setRate('');
+    setPhase(phaseForSelectedDept(initialDept));
+    setSaving(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape' && !saving) onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, saving, onClose]);
+
+  const numericQty = Math.max(0, Number(qty) || 0);
+  const numericRate = Math.max(0, Number(rate) || 0);
+  const lineTotal = numericQty * numericRate;
+  const existingDeptTotal = (items || [])
+    .filter(i => i.dept === dept)
+    .reduce((sum, i) => sum + lTot(i), 0);
+  const deptTotal = existingDeptTotal + lineTotal;
+
+  const handleSubmit = async e => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (saving || !dept) return;
+    setSaving(true);
+    try {
+      await onAdd({
+        dept,
+        description: description.trim(),
+        qty: numericQty || 1,
+        unit,
+        rate: numericRate,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.015em' };
+  const labelStyle = { display:'block', fontSize:12.5, fontWeight:600, color:'#E5E5E0', marginBottom:7 };
+  const inputStyle = {
+    width:'100%',
+    background:'#0D0D0E',
+    border:'1px solid #2A2A2F',
+    borderRadius:10,
+    padding:'10px 14px',
+    color:'#F5F5F0',
+    fontSize:13.5,
+    fontFamily:'Manrope,sans-serif',
+    outline:'none',
+    boxSizing:'border-box',
+  };
+  const PHASE_OPTIONS = ['Development', 'Pre-production', 'Production', 'Post-production'];
+  const capUnit = u => u ? u.charAt(0).toUpperCase() + u.slice(1) : u;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{opacity:0}}
+          animate={{opacity:1}}
+          exit={{opacity:0}}
+          transition={{duration:0.16,ease:EASE_OUT}}
+          onClick={()=>{ if (!saving) onClose(); }}
+          style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(5px)',WebkitBackdropFilter:'blur(5px)',display:'flex',alignItems:mob?'flex-end':'center',justifyContent:'center',padding:mob?0:20}}
+        >
+          <motion.form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-budget-line-title"
+            onSubmit={handleSubmit}
+            onClick={e=>e.stopPropagation()}
+            initial={{opacity:0,scale:0.96,y:12}}
+            animate={{opacity:1,scale:1,y:0}}
+            exit={{opacity:0,scale:0.96,y:10}}
+            transition={{duration:0.2,ease:EASE_OUT}}
+            style={{
+              width:'100%',
+              maxWidth:530,
+              maxHeight:mob?'92vh':'90vh',
+              background:'#0F0F10',
+              border:'1px solid #232327',
+              borderRadius:mob?'18px 18px 0 0':16,
+              boxShadow:'0 28px 72px rgba(0,0,0,0.82)',
+              display:'flex',
+              flexDirection:'column',
+              overflow:'hidden',
+              fontFamily:'Manrope,sans-serif',
+            }}
+          >
+            {/* Header */}
+            <div style={{padding:mob?'20px 18px 16px':'22px 26px 18px',borderBottom:'1px solid #1E1E22',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
+              <div>
+                <h3 id="add-budget-line-title" style={{margin:0,fontSize:20,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.02em',lineHeight:1.2}}>
+                  Add budget line
+                </h3>
+                <div style={{fontSize:12.5,color:'#847F77',marginTop:5,lineHeight:1.45}}>
+                  Lines are totalled automatically and roll up into your department budgets.
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={saving}
+                aria-label="Close"
+                onClick={onClose}
+                style={{background:'transparent',border:'none',color:'#8E8A82',cursor:'pointer',padding:4,display:'inline-flex',borderRadius:6,transition:'color 0.14s ease'}}
+                onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                onMouseLeave={e=>{e.currentTarget.style.color='#8E8A82';}}
+              >
+                <X size={17}/>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{padding:mob?'18px':'20px 26px 22px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}}>
+              {/* Department & Unit */}
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1fr',gap:14}}>
+                <div>
+                  <label htmlFor="add-line-dept" style={labelStyle}>Department</label>
+                  <div style={{position:'relative'}}>
+                    <select
+                      id="add-line-dept"
+                      value={dept}
+                      onChange={e=>{
+                        const nextDept = e.target.value;
+                        setDept(nextDept);
+                        setPhase(phaseForSelectedDept(nextDept));
+                      }}
+                      style={{...inputStyle,paddingRight:34,appearance:'none',WebkitAppearance:'none',cursor:'pointer',color:'#D4D4D8'}}
+                    >
+                      {DEPTS.map(d => (
+                        <option key={d} value={d} style={{background:'#141416',color:'#F5F5F0'}}>
+                          {deptShortName(d)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:'#8E8A82',pointerEvents:'none'}}/>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="add-line-unit" style={labelStyle}>Unit</label>
+                  <div style={{position:'relative'}}>
+                    <select
+                      id="add-line-unit"
+                      value={unit}
+                      onChange={e=>setUnit(e.target.value)}
+                      style={{...inputStyle,paddingRight:34,appearance:'none',WebkitAppearance:'none',cursor:'pointer',color:'#D4D4D8'}}
+                    >
+                      {UNITS.map(u => (
+                        <option key={u} value={u} style={{background:'#141416',color:'#F5F5F0'}}>
+                          {capUnit(u)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:'#8E8A82',pointerEvents:'none'}}/>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="add-line-desc" style={labelStyle}>Description</label>
+                <input
+                  id="add-line-desc"
+                  type="text"
+                  value={description}
+                  onChange={e=>setDescription(e.target.value)}
+                  placeholder="e.g. Camera package rental"
+                  style={inputStyle}
+                />
+              </div>
+
+              {/* Quantity & Rate */}
+              <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'0.85fr 1.5fr',gap:14}}>
+                <div>
+                  <label htmlFor="add-line-qty" style={labelStyle}>Quantity</label>
+                  <input
+                    id="add-line-qty"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={qty}
+                    onChange={e=>setQty(e.target.value)}
+                    style={{...inputStyle,...numStyle}}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="add-line-rate" style={labelStyle}>Rate ({baseCur})</label>
+                  <div style={{background:'#0D0D0E',border:'1px solid #2A2A2F',borderRadius:10,display:'flex',alignItems:'stretch',overflow:'hidden'}}>
+                    <span style={{padding:'10px 14px',borderRight:'1px solid #26262B',color:'#E5E5E0',fontSize:13.5,fontWeight:600,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {sym(baseCur)}
+                    </span>
+                    <input
+                      id="add-line-rate"
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0"
+                      value={rate}
+                      onChange={e=>setRate(e.target.value)}
+                      style={{flex:1,minWidth:0,background:'transparent',border:'none',outline:'none',padding:'10px 14px',color:'#F5F5F0',fontSize:13.5,...numStyle}}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Phase */}
+              <div>
+                <div style={{...labelStyle,marginBottom:8}}>Phase</div>
+                <div style={{display:'grid',gridTemplateColumns:mob?'repeat(2,1fr)':'repeat(4,1fr)',gap:8}}>
+                  {PHASE_OPTIONS.map(opt => {
+                    const active = phase === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={()=>setPhase(opt)}
+                        style={{
+                          padding:'10px 8px',
+                          borderRadius:9,
+                          background:active?'rgba(245,196,81,0.08)':'#0D0D0E',
+                          border:active?'1px solid #B5923A':'1px solid #26262B',
+                          color:active?'#F5F5F0':'#8E8A82',
+                          fontSize:12,
+                          fontWeight:active?600:500,
+                          cursor:'pointer',
+                          fontFamily:'Manrope,sans-serif',
+                          transition:'border-color 0.14s ease, background 0.14s ease, color 0.14s ease',
+                          whiteSpace:'nowrap',
+                        }}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dynamic Totals Box */}
+              <div style={{background:'#0C0C0D',border:'1px solid #232327',borderRadius:12,padding:'16px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:16}}>
+                <div>
+                  <div style={{fontSize:11.5,color:'#7A7670'}}>Line total</div>
+                  <div style={{...numStyle,fontSize:20,fontWeight:700,color:'#F5F5F0',marginTop:4,lineHeight:1.15}}>
+                    {sym(baseCur)}{fmt(lineTotal)}
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:11.5,color:'#7A7670'}}>{deptShortName(dept)} total</div>
+                  <div style={{...numStyle,fontSize:14.5,fontWeight:600,color:'#E5E5E0',marginTop:4,lineHeight:1.2}}>
+                    {sym(baseCur)}{fmt(deptTotal)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:mob?'14px 18px 18px':'16px 26px 20px',borderTop:'1px solid #1E1E22',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={onClose}
+                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:10,padding:'10px 18px',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="submit"
+                disabled={saving}
+                whileHover={{y:-1}}
+                whileTap={{scale:0.98}}
+                transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',border:'none',color:'#0A0A0A',borderRadius:10,padding:'10px 20px',fontSize:13.5,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',boxShadow:'0 4px 16px rgba(245,166,35,0.24)',opacity:saving?0.75:1}}
+              >
+                {saving ? 'Adding...' : 'Add Budget Line'}
+              </motion.button>
+            </div>
+          </motion.form>
         </motion.div>
       )}
     </AnimatePresence>
@@ -5677,13 +5947,40 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);
   const[showExport,setShowExport]=useState(false);
-  const[showTools,setShowTools]=useState(false);
+  const[exportInitFmt,setExportInitFmt]=useState('pdf');
+  const[showTools]=useState(false);
   const[showAddBar,setShowAddBar]=useState(false);
+  const[showMoreMenu,setShowMoreMenu]=useState(false);
+  const[showHistory,setShowHistory]=useState(false);
+  const[historyTab,setHistoryTab]=useState('versions');
+  const[deleteTarget,setDeleteTarget]=useState(null);
+  const[deletingLine,setDeletingLine]=useState(false);
+  const[showSettingsModal,setShowSettingsModal]=useState(false);
+  const[settingsContingency,setSettingsContingency]=useState('');
+  const[settingsProdFee,setSettingsProdFee]=useState('');
+  const[settingsFeeBasis,setSettingsFeeBasis]=useState('after_insurance');
+  const[settingsVat,setSettingsVat]=useState('');
+  const[appliedVatPct,setAppliedVatPct]=useState(null);
+  const[savingSettings,setSavingSettings]=useState(false);
+  const[viewTab,setViewTab]=useState('categories');
+  const[deptFilter,setDeptFilter]=useState('all');
   const[phaseFilter,setPhaseFilter]=useState('all');
+  const[expandedDepts,setExpandedDepts]=useState({});
   const[editingId,setEditingId]=useState(null);
   const[editDraft,setEditDraft]=useState({description:'',qty:1,unit:'flat',rate:0});
+  const moreMenuRef=useRef(null);
   const mob=useIsMobile();
   const[search,setSearch]=useState('');
+
+  useEffect(()=>{
+    if(!showMoreMenu)return;
+    const onDocClick=e=>{
+      if(moreMenuRef.current&&!moreMenuRef.current.contains(e.target))setShowMoreMenu(false);
+    };
+    document.addEventListener('mousedown',onDocClick);
+    return()=>document.removeEventListener('mousedown',onDocClick);
+  },[showMoreMenu]);
+
   if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
 
   const baseCur = project.base_currency || 'NGN';
@@ -5696,7 +5993,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
   pItems.forEach(i=>{
     const lt=lTot(i);
     totals[i.currency]=(totals[i.currency]||0)+lt;
-    if(/contingency/i.test(i.description||'')) autoContingency+=lt;
+    if(/contingency/i.test(i.description||'') || /^V\s*-/i.test(i.dept||'')) autoContingency+=lt;
   });
   const budgetUSD = pItems.reduce((s,i)=>s+toUSD(lTot(i),i.currency),0);
   const overBudget = spentUSD > budgetUSD && budgetUSD > 0;
@@ -5704,8 +6001,32 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
   const totalBudgetInBase = totals[baseCur] || Object.values(totals)[0] || 0;
   const totalSpendInBase = spentByCur[baseCur] ?? Object.values(spentByCur)[0] ?? 0;
   const headroomInBase = totalBudgetInBase - totalSpendInBase;
+  const utilPct = totalBudgetInBase > 0 ? Math.round((totalSpendInBase / totalBudgetInBase) * 100) : 0;
   const workingBudgetInBase = Math.max(0, totalBudgetInBase - autoContingency);
   const contingencyPct = totalBudgetInBase > 0 ? Math.round((autoContingency / totalBudgetInBase) * 100) : 0;
+
+  const ATL_CODES = new Set(['A','B','C','E','F']);
+  const CONT_CODES = new Set(['V']);
+  const deptCode = d => {
+    const m = String(d || '').match(/^([A-Z]+)\s*-/i);
+    return m ? m[1].toUpperCase() : String(d || '?').slice(0, 1).toUpperCase();
+  };
+  const deptShortName = d => String(d || '').replace(/^[A-Z]+\s*-\s*/i, '').trim() || d;
+  const deptSectionFor = d => {
+    const c = deptCode(d);
+    if (ATL_CODES.has(c)) return 'atl';
+    if (CONT_CODES.has(c)) return 'cont';
+    return 'btl';
+  };
+
+  const atlTotal = pItems.filter(i => deptSectionFor(i.dept) === 'atl').reduce((s,i)=>s+lTot(i), 0);
+  const btlTotal = pItems.filter(i => deptSectionFor(i.dept) === 'btl').reduce((s,i)=>s+lTot(i), 0);
+  const contSectionTotal = pItems.filter(i => deptSectionFor(i.dept) === 'cont').reduce((s,i)=>s+lTot(i), 0);
+  const atlPct = totalBudgetInBase > 0 ? Math.round((atlTotal / totalBudgetInBase) * 100) : 0;
+  const btlPct = totalBudgetInBase > 0 ? Math.round((btlTotal / totalBudgetInBase) * 100) : 0;
+  const vatPctVal = appliedVatPct != null ? appliedVatPct : (baseCur === 'NGN' ? 7.5 : 0);
+  const vatRate = vatPctVal / 100;
+  const estimatedVat = hasBudgetItems && vatRate > 0 ? Math.round(totalBudgetInBase * vatRate) : 0;
 
   const fmtCompact = (val, cur = baseCur) => {
     const n = Number(val || 0);
@@ -5723,27 +6044,28 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
   const headroomDisplay = !hasBudgetItems ? '—' : `${headroomInBase<0?'-':''}${sym(baseCur)}${fmt(Math.abs(headroomInBase))}`;
 
   const getPhaseForDept = dept => PHASES.find(ph => ph.depts.includes(dept))?.name || 'Production';
-  const getPhaseTone = phaseName => {
+  const getPhaseBadge = phaseName => {
     const pl = (phaseName || '').toLowerCase();
-    if (pl.includes('pre')) return { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' };
-    if (pl.includes('post')) return { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.28)', text: '#E5E5E0', dot: '#E5E5E0' };
-    if (pl.includes('pr') || pl.includes('market')) return { bg: 'rgba(155,151,141,0.08)', border: 'rgba(155,151,141,0.25)', text: '#9B978D', dot: '#9B978D' };
-    return { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.34)', text: '#F5C451', dot: '#F5C451' };
+    if (pl.includes('pre')) return { code: 'PRE', bg: 'rgba(76,175,122,0.14)', border: 'rgba(76,175,122,0.34)', text: '#52C488' };
+    if (pl.includes('post')) return { code: 'POST', bg: 'rgba(74,144,217,0.14)', border: 'rgba(74,144,217,0.34)', text: '#6BB0F5' };
+    if (pl.includes('pr') || pl.includes('market')) return { code: 'PR', bg: 'rgba(161,161,170,0.12)', border: 'rgba(161,161,170,0.28)', text: '#D4D4D8' };
+    return { code: 'PROD', bg: 'rgba(245,196,81,0.12)', border: 'rgba(245,196,81,0.34)', text: '#F5C451' };
   };
 
   const statusLabel = project.status || 'Planning';
   const sl = statusLabel.toLowerCase();
   const statusTone = sl === 'production'
-    ? { bg: 'rgba(255,179,71,0.08)', border: 'rgba(255,179,71,0.34)', text: '#F5C451', dot: '#F5C451' }
+    ? { bg: 'rgba(245,166,35,0.08)', border: 'rgba(245,166,35,0.34)', text: '#F5B742', dot: '#F5B742' }
     : sl.includes('pre')
-    ? { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.35)', text: '#6BB0F5', dot: '#6BB0F5' }
+    ? { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.34)', text: '#6BB0F5', dot: '#6BB0F5' }
     : sl.includes('post')
-    ? { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.28)', text: '#E5E5E0', dot: '#E5E5E0' }
-    : { bg: 'rgba(155,151,141,0.07)', border: 'rgba(155,151,141,0.22)', text: '#9B978D', dot: '#9B978D' };
+    ? { bg: 'rgba(245,245,240,0.06)', border: 'rgba(245,245,240,0.26)', text: '#E5E5E0', dot: '#E5E5E0' }
+    : { bg: 'rgba(245,166,35,0.08)', border: 'rgba(245,166,35,0.30)', text: '#F5B742', dot: '#F5B742' };
 
   const q = search.trim().toLowerCase();
-  const activeDepts = DEPTS.filter(d => pItems.some(i => i.dept === d));
-  const visibleDepts = activeDepts.filter(d => {
+  const allItemDepts = [...new Set([...DEPTS.filter(d => pItems.some(i => i.dept === d)), ...pItems.map(i => i.dept).filter(Boolean)])];
+  const visibleDepts = allItemDepts.filter(d => {
+    if (deptFilter !== 'all' && d !== deptFilter) return false;
     const matchesPhase = phaseFilter === 'all' || getPhaseForDept(d) === phaseFilter;
     if (!matchesPhase) return false;
     if (!q) return true;
@@ -5768,16 +6090,24 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
       deptBreakdownMap[re.dept].actual += Number(re.amount || 0);
     }
   });
-  const deptBreakdownRows = Object.values(deptBreakdownMap).sort((a,b)=>a.dept.localeCompare(b.dept));
+  const deptBreakdownRows = Object.values(deptBreakdownMap).sort((a,b)=>deptShortName(a.dept).localeCompare(deptShortName(b.dept)));
 
   // Real Phase Totals
-  const phaseColors = ['#4A90D9', '#F5C451', '#D4D4D8', '#71717A'];
+  const phaseColors = ['#4A90D9', '#F5C451', '#E5E5E0', '#71717A'];
   const phaseRows = PHASES.map((ph, idx) => {
     const phItems = pItems.filter(i => ph.depts.includes(i.dept));
     const total = phItems.reduce((s,i)=>s+lTot(i), 0);
     const pct = totalBudgetInBase > 0 ? Math.round((total / totalBudgetInBase) * 100) : 0;
     return { name: ph.name, lines: phItems.length, total, pct, color: phaseColors[idx % phaseColors.length] };
   });
+
+  const toggleDept = dept => setExpandedDepts(prev => ({ ...prev, [dept]: !prev[dept] }));
+  const expandAllDepts = () => {
+    const next = {};
+    visibleDepts.forEach(d => { next[d] = true; });
+    setExpandedDepts(next);
+  };
+  const collapseAllDepts = () => setExpandedDepts({});
 
   const startInlineEdit = item => {
     setEditingId(item.id);
@@ -5798,25 +6128,37 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
     setEditingId(null);
   };
 
+  const sections = [
+    { id: 'atl', label: 'Above the Line', codeRange: 'A–F', totalLabel: 'Total Above the Line Costs', depts: visibleDepts.filter(d => deptSectionFor(d) === 'atl'), sectionTotal: atlTotal },
+    { id: 'btl', label: 'Below the Line', codeRange: 'G–Z', totalLabel: 'Total Below the Line Costs', depts: visibleDepts.filter(d => deptSectionFor(d) === 'btl'), sectionTotal: btlTotal },
+    { id: 'cont', label: 'Insurance, Bond & Contingency', codeRange: 'V', totalLabel: 'Total Contingency & Support', depts: visibleDepts.filter(d => deptSectionFor(d) === 'cont'), sectionTotal: contSectionTotal },
+  ].filter(sec => sec.depts.length > 0);
+
+  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' };
+
   return(
-    <div>
-      {/* Breadcrumb & Header */}
-      <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint,marginBottom:8}}>
-        Workspace <span style={{margin:'0 4px'}}>&gt;</span> Productions <span style={{margin:'0 4px'}}>&gt;</span> {project.name} <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>Budgets</span>
+    <div style={{fontFamily:'Manrope,sans-serif'}}>
+      {/* Breadcrumb */}
+      <div style={{fontSize:mob?10.5:11,color:'#5E5E66',marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.005em'}}>
+        Workspace <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> Productions <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> {project.name} <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> <span style={{color:'#D4D4D8',fontWeight:500}}>Budgets</span>
       </div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:22}}>
+
+      {/* Header */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:18}}>
         <div>
           <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-            <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Production Budget</h2>
-            <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,fontFamily:'Manrope,sans-serif'}}>
+            <h2 style={{margin:0,fontSize:mob?22:26,fontWeight:700,letterSpacing:'-0.025em',color:'#F5F5F0',lineHeight:1.15}}>Production Budget</h2>
+            <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10.5,fontWeight:600,padding:'3px 9px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text}}>
               <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot}}/>
-              {statusLabel}
+              <span>{statusLabel}</span>
+              <ChevronDown size={10} style={{opacity:0.75}}/>
             </span>
           </div>
-          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
-            Manage, export and budget each production.
+          <div style={{fontSize:12,color:'#71717A',marginTop:5}}>
+            Manage department budgets and track planned costs.
           </div>
         </div>
+
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <motion.button
             type="button"
@@ -5824,9 +6166,9 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowAddBar(o=>!o)}
-            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+            style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F0A11B 100%)',color:'#0A0A0A',border:'none',borderRadius:8,padding:'8px 14px',fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 4px 16px rgba(245,166,35,0.24), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
           >
-            <Plus size={14}/>
+            <Plus size={14} strokeWidth={2.5}/>
             <span>Add Budget Line</span>
           </motion.button>
           <motion.button
@@ -5835,9 +6177,9 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowTpl(o=>!o)}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+            style={{background:'#0F0F12',border:'1px solid #222226',color:'#E5E5E0',borderRadius:8,padding:'8px 12px',fontSize:12,fontWeight:500,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
           >
-            <Layers size={14}/>
+            <Layers size={13} style={{color:'#A1A1AA'}}/>
             <span>{tr('templates')}</span>
           </motion.button>
           <motion.button
@@ -5845,28 +6187,118 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             whileHover={{y:-1}}
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
-            onClick={()=>setShowExport(true)}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+            onClick={()=>{
+              setSettingsContingency(String(contingencyPct || ''));
+              setSettingsProdFee(project.production_fee_pct != null ? String(project.production_fee_pct) : '');
+              setSettingsFeeBasis(project.production_fee_basis || 'after_insurance');
+              setSettingsVat(String(vatPctVal || ''));
+              setShowSettingsModal(true);
+            }}
+            style={{background:showSettingsModal?'#18181D':'#0F0F12',border:showSettingsModal?'1px solid #32323A':'1px solid #222226',color:'#E5E5E0',borderRadius:8,padding:'8px 12px',fontSize:12,fontWeight:500,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
           >
-            <Download size={13}/>
-            <span>Export</span>
+            <SlidersHorizontal size={13} style={{color:'#A1A1AA'}}/>
+            <span>Budget settings</span>
           </motion.button>
-          <motion.button
-            type="button"
-            whileHover={{y:-1}}
-            whileTap={{scale:0.97}}
-            transition={{duration:DURATION.fast,ease:EASE_OUT}}
-            aria-label="More budget tools"
-            onClick={()=>setShowTools(o=>!o)}
-            style={{width:36,height:36,background:showTools?'#1A1A1E':'#111113',border:'1px solid #242428',color:T.dim,borderRadius:10,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
-          >
-            <MoreHorizontal size={15}/>
-          </motion.button>
+
+          {/* Ellipsis More Options Menu */}
+          <div ref={moreMenuRef} style={{position:'relative'}}>
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.97}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>setShowMoreMenu(o=>!o)}
+              aria-label="More budget options"
+              aria-expanded={showMoreMenu}
+              aria-haspopup="menu"
+              style={{width:36,height:36,background:showMoreMenu?'#17171A':'#0C0C0E',border:showMoreMenu?'1px solid #323238':'1px solid #242428',color:'#D4D4D8',borderRadius:10,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',transition:'background 0.14s ease, border-color 0.14s ease'}}
+            >
+              <MoreHorizontal size={16}/>
+            </motion.button>
+            <AnimatePresence>
+              {showMoreMenu&&(
+                <motion.div
+                  role="menu"
+                  initial={{opacity:0,y:-4,scale:0.96}}
+                  animate={{opacity:1,y:0,scale:1}}
+                  exit={{opacity:0,y:-4,scale:0.96}}
+                  transition={{duration:0.16,ease:EASE_OUT}}
+                  style={{
+                    position:'absolute',
+                    right:0,
+                    top:'calc(100% + 8px)',
+                    minWidth:216,
+                    background:'#161617',
+                    border:'1px solid #262629',
+                    borderRadius:12,
+                    padding:'8px',
+                    boxShadow:'0 20px 44px rgba(0,0,0,0.68), 0 4px 12px rgba(0,0,0,0.42)',
+                    transformOrigin:'top right',
+                    zIndex:50,
+                    display:'flex',
+                    flexDirection:'column',
+                    gap:2,
+                  }}
+                >
+                  {[
+                    {
+                      id:'pdf',
+                      label:'Export PDF',
+                      Icon:FileText,
+                      onClick:()=>{setShowMoreMenu(false);setExportInitFmt('pdf');setShowExport(true);},
+                    },
+                    {
+                      id:'excel',
+                      label:'Export Excel',
+                      Icon:FileSpreadsheet,
+                      onClick:()=>{setShowMoreMenu(false);setExportInitFmt('excel');setShowExport(true);},
+                    },
+                    {
+                      id:'history',
+                      label:'View Budget History',
+                      Icon:History,
+                      onClick:()=>{setShowMoreMenu(false);setShowHistory(true);},
+                    },
+                  ].map(({id,label,Icon,onClick})=>(
+                    <button
+                      key={id}
+                      type="button"
+                      role="menuitem"
+                      onClick={onClick}
+                      style={{
+                        width:'100%',
+                        display:'flex',
+                        alignItems:'center',
+                        gap:12,
+                        padding:'10px 12px',
+                        borderRadius:8,
+                        background:'transparent',
+                        border:'none',
+                        color:'#E8E6E1',
+                        fontSize:13,
+                        fontWeight:500,
+                        letterSpacing:'-0.005em',
+                        cursor:'pointer',
+                        textAlign:'left',
+                        fontFamily:'Manrope,sans-serif',
+                        transition:'background 0.14s ease, color 0.14s ease',
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';}}
+                      onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
+                    >
+                      <Icon size={16} strokeWidth={1.8} style={{color:'#8C857B',flexShrink:0}}/>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
       {isProducerActive && !isOwner && (
-        <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:16,color:'#72D69A',fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:14,color:'#72D69A',fontSize:13}}>
           <span className="nko-live-dot" />
           <div style={{flex:1,minWidth:0}}>
             <strong>Producer is currently working on this project</strong>
@@ -5876,7 +6308,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         </div>
       )}
       {otherActiveCount > 0 && isOwner && (
-        <div style={{display:'flex',alignItems:'center',gap:10,background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:16,color:T.gold,fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:14,color:T.gold,fontSize:13}}>
           <span className="nko-live-dot-gold" />
           <div style={{flex:1,minWidth:0}}>
             <strong>{otherActiveCount} collaborator{otherActiveCount>1?'s':''} active on this project</strong>
@@ -5886,23 +6318,75 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         </div>
       )}
 
-      {/* Top 4 Summary Cards */}
+      {/* 6 Summary Cards */}
       <motion.div
-        variants={staggerContainer(0.04, 0.02)}
+        variants={staggerContainer(0.025, 0.01)}
         initial="hidden"
         animate="visible"
-        style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:20}}
+        style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(6,minmax(0,1fr))',gap:10,marginBottom:16}}
       >
-        <StatCard featured label="Total Budget" badge={baseCur} value={budgetDisplay} sub="Approved production budget" accent="#F5C451"/>
-        <StatCard label={tr('statTotalSpend')} badge={baseCur} value={spendDisplay} sub="Total recorded expenditure" accent={overBudget?'#E05252':T.cream}/>
-        <StatCard label="Headroom" badge={baseCur} value={headroomDisplay} sub={overBudget?'Over approved budget':'Budget remaining'} accent={overBudget?'#E05252':T.cream}/>
-        <StatCard label="Contingency" badge={baseCur} value={!hasBudgetItems?'—':`${sym(baseCur)}${fmt(autoContingency)}`} sub={contingencyPct>0?`${contingencyPct}% of total budget`:'Reserve for unexpected'}/>
+        <div style={{background:'linear-gradient(180deg, #13110B 0%, #0C0C0E 100%)',border:'1px solid rgba(245,166,35,0.34)',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10.5,color:'#8E8E93',marginBottom:6}}>
+            <span>Total Budget</span>
+            <span style={{fontSize:9.5,color:'#63636A',fontWeight:600}}>{baseCur}</span>
+          </div>
+          <div style={{...numStyle,fontSize:16.5,fontWeight:700,color:'#F5C451',wordBreak:'break-word',lineHeight:1.2}}>{budgetDisplay}</div>
+          <div style={{fontSize:10,color:'#63636A',marginTop:5,lineHeight:1.35}}>Grand total excluding VAT</div>
+        </div>
+
+        <div style={{background:'#0C0C0E',border:'1px solid #1C1C20',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10.5,color:'#8E8E93',marginBottom:6}}>
+            <span>Actual Spend</span>
+            <span style={{fontSize:9.5,color:'#63636A',fontWeight:600}}>{baseCur}</span>
+          </div>
+          <div style={{...numStyle,fontSize:16.5,fontWeight:700,color:overBudget?'#E05252':'#F5F5F0',wordBreak:'break-word',lineHeight:1.2}}>{spendDisplay}</div>
+          <div style={{fontSize:10,color:'#63636A',marginTop:5,lineHeight:1.35}}>Recorded production expenditure</div>
+        </div>
+
+        <div style={{background:'#0C0C0E',border:'1px solid #1C1C20',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10.5,color:'#8E8E93',marginBottom:6}}>
+            <span>Budget Headroom</span>
+            <span style={{fontSize:9.5,color:'#63636A',fontWeight:600}}>{baseCur}</span>
+          </div>
+          <div style={{...numStyle,fontSize:16.5,fontWeight:700,color:overBudget?'#E05252':'#F5F5F0',wordBreak:'break-word',lineHeight:1.2}}>{headroomDisplay}</div>
+          <div style={{fontSize:10,color:'#63636A',marginTop:5,lineHeight:1.35}}>{overBudget?'Over budget':'Budget remaining'}</div>
+        </div>
+
+        <div style={{background:'#0C0C0E',border:'1px solid #1C1C20',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          <div style={{fontSize:10.5,color:'#8E8E93',marginBottom:6}}>Budget Utilisation</div>
+          <div style={{...numStyle,fontSize:16.5,fontWeight:700,color:overBudget?'#E05252':'#F5F5F0',lineHeight:1.2}}>{utilPct}%</div>
+          <div>
+            <div style={{fontSize:10,color:'#63636A',marginTop:5,marginBottom:7,lineHeight:1.35}}>Of total budget spent</div>
+            <div style={{height:3,borderRadius:9999,background:'#1C1C20',overflow:'hidden'}}>
+              <div style={{width:`${Math.min(100,utilPct)}%`,height:'100%',borderRadius:9999,background:overBudget?'#E05252':'#4CAF7A',transition:'width 0.35s ease'}}/>
+            </div>
+          </div>
+        </div>
+
+        <div style={{background:'#0C0C0E',border:'1px solid #1C1C20',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10.5,color:'#8E8E93',marginBottom:6}}>
+            <span>Above the Line</span>
+            <span style={{fontSize:9.5,color:'#63636A',fontWeight:600}}>{baseCur}</span>
+          </div>
+          <div style={{...numStyle,fontSize:16.5,fontWeight:700,color:'#F5F5F0',wordBreak:'break-word',lineHeight:1.2}}>{hasBudgetItems?`${sym(baseCur)}${fmt(atlTotal)}`:'—'}</div>
+          <div style={{fontSize:10,color:'#63636A',marginTop:5,lineHeight:1.35}}>{atlPct}% of total budget</div>
+        </div>
+
+        <div style={{background:'#0C0C0E',border:'1px solid #1C1C20',borderRadius:10,padding:'12px 14px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:10.5,color:'#8E8E93',marginBottom:6}}>
+            <span>Below the Line</span>
+            <span style={{fontSize:9.5,color:'#63636A',fontWeight:600}}>{baseCur}</span>
+          </div>
+          <div style={{...numStyle,fontSize:16.5,fontWeight:700,color:'#F5F5F0',wordBreak:'break-word',lineHeight:1.2}}>{hasBudgetItems?`${sym(baseCur)}${fmt(btlTotal)}`:'—'}</div>
+          <div style={{fontSize:10,color:'#63636A',marginTop:5,lineHeight:1.35}}>{btlPct}% of total budget</div>
+        </div>
       </motion.div>
 
       <TemplatePickerModal open={showTpl} onClose={()=>setShowTpl(false)} onApply={async(tpl,mode)=>{await onApplyTemplate(tpl,mode);setShowTpl(false);}} project={project} existingLineCount={pItems.length}/>
 
       <ExportBudgetModal
         open={showExport}
+        initialFormat={exportInitFmt}
         onClose={()=>setShowExport(false)}
         project={project}
         items={pItems}
@@ -5925,8 +6409,665 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         items={pItems}
       />
 
+      <AnimatePresence>
+        {showHistory&&(()=>{
+          const budgetVersions = Array.isArray(project.budget_versions)
+            ? project.budget_versions
+            : Array.isArray(project.budgetVersions)
+            ? project.budgetVersions
+            : [];
+          const budgetChanges = Array.isArray(project.budget_changes)
+            ? project.budget_changes
+            : Array.isArray(project.budgetChanges)
+            ? project.budgetChanges
+            : [];
+          const fmtHistoryDate = (val, includeYear = true) => {
+            if (!val) return '';
+            const d = new Date(val);
+            if (Number.isNaN(d.getTime())) return String(val);
+            const day = d.getDate();
+            const mon = d.toLocaleString('en-GB', { month: 'short' });
+            const yr = d.getFullYear();
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            return includeYear ? `${day} ${mon} ${yr}, ${hh}:${mm}` : `${day} ${mon}, ${hh}:${mm}`;
+          };
+          const getVersionStatusStyle = st => {
+            const s = String(st || '').toLowerCase();
+            if (s === 'approved') return { bg: 'rgba(62,168,108,0.10)', border: 'rgba(62,168,108,0.42)', text: '#52C488' };
+            if (s === 'submitted') return { bg: 'rgba(74,144,217,0.10)', border: 'rgba(74,144,217,0.45)', text: '#6BB0F5' };
+            return { bg: 'rgba(161,161,170,0.08)', border: 'rgba(161,161,170,0.28)', text: '#A1A1AA' };
+          };
+          return (
+            <motion.div
+              initial={{opacity:0}}
+              animate={{opacity:1}}
+              exit={{opacity:0}}
+              transition={{duration:0.16,ease:EASE_OUT}}
+              onClick={()=>setShowHistory(false)}
+              style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,zIndex:120}}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="budget-history-title"
+                initial={{opacity:0,y:10,scale:0.96}}
+                animate={{opacity:1,y:0,scale:1}}
+                exit={{opacity:0,y:8,scale:0.96}}
+                transition={{duration:0.2,ease:EASE_OUT}}
+                onClick={e=>e.stopPropagation()}
+                style={{
+                  width:'100%',
+                  maxWidth:660,
+                  maxHeight:'84vh',
+                  display:'flex',
+                  flexDirection:'column',
+                  background:'#0F0F10',
+                  border:'1px solid #222225',
+                  borderRadius:16,
+                  padding:mob?'20px 18px 22px':'24px 26px 26px',
+                  boxShadow:'0 28px 70px rgba(0,0,0,0.78)',
+                  fontFamily:'Manrope,sans-serif',
+                }}
+              >
+                {/* Header */}
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                  <div>
+                    <h3 id="budget-history-title" style={{margin:0,fontSize:20,fontWeight:700,letterSpacing:'-0.02em',color:'#F5F5F0',lineHeight:1.2}}>
+                      Budget history
+                    </h3>
+                    <div style={{fontSize:12.5,color:'#847F77',marginTop:6,lineHeight:1.45}}>
+                      Submitted and approved versions are kept permanently. Changes show who did what, and when.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={()=>setShowHistory(false)}
+                    aria-label="Close budget history"
+                    style={{background:'transparent',border:'none',color:'#8E8A82',cursor:'pointer',padding:4,display:'inline-flex',borderRadius:6,transition:'color 0.14s ease'}}
+                    onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                    onMouseLeave={e=>{e.currentTarget.style.color='#8E8A82';}}
+                  >
+                    <X size={17}/>
+                  </button>
+                </div>
+
+                {/* Segmented Tabs */}
+                <div
+                  role="tablist"
+                  style={{
+                    display:'grid',
+                    gridTemplateColumns:'1fr 1fr',
+                    background:'#0C0C0D',
+                    border:'1px solid #232327',
+                    borderRadius:10,
+                    padding:4,
+                    marginTop:20,
+                    marginBottom:14,
+                  }}
+                >
+                  {[
+                    { id: 'versions', label: `Versions (${budgetVersions.length})` },
+                    { id: 'changes', label: `Changes (${budgetChanges.length})` },
+                  ].map(tab => {
+                    const active = historyTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={()=>setHistoryTab(tab.id)}
+                        style={{
+                          padding:'10px 14px',
+                          borderRadius:7,
+                          border:active?'1px solid #2C2C30':'1px solid transparent',
+                          background:active?'#222225':'transparent',
+                          color:active?'#F5F5F0':'#8E8A82',
+                          fontSize:13,
+                          fontWeight:active?600:500,
+                          cursor:'pointer',
+                          fontFamily:'Manrope,sans-serif',
+                          transition:'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Tab Body */}
+                <div style={{overflowY:'auto',minHeight:120,paddingRight:2}}>
+                  <AnimatePresence mode="wait">
+                    {historyTab==='versions'?(
+                      <motion.div
+                        key="history-versions"
+                        initial={{opacity:0,y:5}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-5}}
+                        transition={{duration:0.15,ease:EASE_OUT}}
+                      >
+                        {budgetVersions.length===0?(
+                          <div style={{padding:'36px 16px',textAlign:'center',color:'#71717A',fontSize:13}}>
+                            No submitted or approved budget versions yet.
+                          </div>
+                        ):(
+                          <div>
+                            {budgetVersions.map((ver, idx)=>{
+                              const stLabel = ver.status || 'Draft';
+                              const stStyle = getVersionStatusStyle(stLabel);
+                              const verTitle = ver.title || (ver.version_number != null ? `Version ${ver.version_number}` : `Version ${budgetVersions.length - idx}`);
+                              const actor = ver.actor_name || ver.user_name || ver.created_by_name || '';
+                              const actionPrefix = stLabel === 'Approved' ? 'Approved by' : stLabel === 'Submitted' ? 'Submitted by' : 'Updated by';
+                              const dateStr = fmtHistoryDate(ver.created_at || ver.timestamp || ver.date, true);
+                              const itemCount = ver.item_count ?? ver.items_count;
+                              const metaParts = [
+                                actor ? `${actionPrefix} ${actor}` : null,
+                                dateStr || null,
+                                itemCount != null ? `${itemCount} item${itemCount===1?'':'s'}` : null,
+                              ].filter(Boolean);
+                              const cur = ver.currency || baseCur;
+                              const amt = ver.total_amount ?? ver.total;
+                              return (
+                                <div
+                                  key={ver.id || `ver-${idx}`}
+                                  style={{
+                                    display:'flex',
+                                    justifyContent:'space-between',
+                                    alignItems:'center',
+                                    gap:16,
+                                    padding:'16px 2px',
+                                    borderBottom:idx===budgetVersions.length-1?'none':'1px solid #1C1C1F',
+                                  }}
+                                >
+                                  <div style={{minWidth:0}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                                      <span style={{fontSize:14.5,fontWeight:600,color:'#F5F5F0'}}>{verTitle}</span>
+                                      <span style={{fontSize:11,fontWeight:500,padding:'2.5px 9px',borderRadius:6,background:stStyle.bg,border:`1px solid ${stStyle.border}`,color:stStyle.text,lineHeight:1.3}}>
+                                        {stLabel}
+                                      </span>
+                                    </div>
+                                    {metaParts.length>0&&(
+                                      <div style={{fontSize:12,color:'#847F77',marginTop:5}}>
+                                        {metaParts.join(' · ')}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {amt!=null&&(
+                                    <div style={{...numStyle,fontSize:14.5,fontWeight:700,color:'#F5F5F0',whiteSpace:'nowrap',flexShrink:0}}>
+                                      {sym(cur)}{fmt(amt)}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </motion.div>
+                    ):(
+                      <motion.div
+                        key="history-changes"
+                        initial={{opacity:0,y:5}}
+                        animate={{opacity:1,y:0}}
+                        exit={{opacity:0,y:-5}}
+                        transition={{duration:0.15,ease:EASE_OUT}}
+                      >
+                        {budgetChanges.length===0?(
+                          <div style={{padding:'36px 16px',textAlign:'center',color:'#71717A',fontSize:13}}>
+                            No budget changes recorded yet.
+                          </div>
+                        ):(
+                          <div>
+                            {budgetChanges.map((chg, idx)=>{
+                              const userName = chg.user_name || chg.actor_name || chg.user || 'Unknown';
+                              const actionText = chg.action || chg.description || '';
+                              const timeStr = fmtHistoryDate(chg.created_at || chg.timestamp || chg.date, false);
+                              return (
+                                <div
+                                  key={chg.id || `chg-${idx}`}
+                                  style={{
+                                    display:'flex',
+                                    justifyContent:'space-between',
+                                    alignItems:'center',
+                                    gap:16,
+                                    padding:'15px 2px',
+                                    borderBottom:idx===budgetChanges.length-1?'none':'1px solid #1C1C1F',
+                                  }}
+                                >
+                                  <div style={{fontSize:13.5,lineHeight:1.4,minWidth:0}}>
+                                    <span style={{fontWeight:600,color:'#F5F5F0'}}>{userName}</span>
+                                    <span style={{margin:'0 7px',color:'#63636A'}}>·</span>
+                                    <span style={{color:'#C7C3BC',fontWeight:400}}>{actionText}</span>
+                                  </div>
+                                  {timeStr&&(
+                                    <div style={{...numStyle,fontSize:12,color:'#7A7670',whiteSpace:'nowrap',flexShrink:0}}>
+                                      {timeStr}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget&&(()=>{
+          const itemName = deleteTarget.description || 'Untitled line';
+          const itemAmount = `${sym(deleteTarget.currency||baseCur)}${fmt(lTot(deleteTarget))}`;
+          const itemDept = deptShortName(deleteTarget.dept || 'General');
+          const confirmDelete = async () => {
+            if (deletingLine) return;
+            setDeletingLine(true);
+            try {
+              await onRemove(deleteTarget.id);
+              setDeleteTarget(null);
+            } finally {
+              setDeletingLine(false);
+            }
+          };
+          return (
+            <motion.div
+              initial={{opacity:0}}
+              animate={{opacity:1}}
+              exit={{opacity:0}}
+              transition={{duration:0.16,ease:EASE_OUT}}
+              onClick={()=>{ if(!deletingLine) setDeleteTarget(null); }}
+              style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',backdropFilter:'blur(4px)',WebkitBackdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,zIndex:130}}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-budget-line-title"
+                initial={{opacity:0,y:10,scale:0.96}}
+                animate={{opacity:1,y:0,scale:1}}
+                exit={{opacity:0,y:8,scale:0.96}}
+                transition={{duration:0.18,ease:EASE_OUT}}
+                onClick={e=>e.stopPropagation()}
+                style={{
+                  width:'100%',
+                  maxWidth:468,
+                  background:'#0F0F10',
+                  border:'1px solid #232327',
+                  borderRadius:16,
+                  boxShadow:'0 28px 70px rgba(0,0,0,0.82)',
+                  overflow:'hidden',
+                  fontFamily:'Manrope,sans-serif',
+                }}
+              >
+                <div style={{padding:'24px 26px 22px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                    <h3 id="delete-budget-line-title" style={{margin:0,fontSize:20,fontWeight:700,letterSpacing:'-0.02em',color:'#F5F5F0',lineHeight:1.25}}>
+                      Delete this budget line?
+                    </h3>
+                    <button
+                      type="button"
+                      disabled={deletingLine}
+                      onClick={()=>setDeleteTarget(null)}
+                      aria-label="Close"
+                      style={{background:'transparent',border:'none',color:'#8E8A82',cursor:'pointer',padding:4,display:'inline-flex',borderRadius:6,transition:'color 0.14s ease'}}
+                      onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                      onMouseLeave={e=>{e.currentTarget.style.color='#8E8A82';}}
+                    >
+                      <X size={17}/>
+                    </button>
+                  </div>
+                  <p style={{margin:'14px 0 0',fontSize:13.5,color:'#A8A39A',lineHeight:1.55}}>
+                    {itemName} ({itemAmount}) will be removed from the {itemDept} budget. This can&rsquo;t be undone.
+                  </p>
+                </div>
+
+                <div style={{padding:'16px 26px 20px',borderTop:'1px solid #1F1F23',display:'flex',justifyContent:'flex-end',gap:10}}>
+                  <button
+                    type="button"
+                    disabled={deletingLine}
+                    onClick={()=>setDeleteTarget(null)}
+                    style={{
+                      background:'#121214',
+                      border:'1px solid #2C2C30',
+                      color:'#F5F5F0',
+                      borderRadius:10,
+                      padding:'10px 18px',
+                      fontSize:13.5,
+                      fontWeight:500,
+                      fontFamily:'Manrope,sans-serif',
+                      cursor:'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <motion.button
+                    type="button"
+                    disabled={deletingLine}
+                    whileHover={{y:-1}}
+                    whileTap={{scale:0.98}}
+                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                    onClick={confirmDelete}
+                    style={{
+                      background:'#E36F52',
+                      border:'none',
+                      color:'#111111',
+                      borderRadius:10,
+                      padding:'10px 20px',
+                      fontSize:13.5,
+                      fontWeight:600,
+                      fontFamily:'Manrope,sans-serif',
+                      cursor:deletingLine?'wait':'pointer',
+                      opacity:deletingLine?0.75:1,
+                    }}
+                  >
+                    {deletingLine ? 'Deleting...' : 'Delete line'}
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSettingsModal&&(()=>{
+          const isLockedStatus = sl === 'approved' || sl === 'submitted' || sl === 'production';
+          const handleApplySettings = async () => {
+            if (savingSettings) return;
+            setSavingSettings(true);
+            try {
+              const nextCont = settingsContingency === '' ? 0 : Math.max(0, Number(settingsContingency) || 0);
+              if (onSetContingency && nextCont !== contingencyPct) {
+                await onSetContingency(nextCont, pItems);
+              }
+              if (settingsVat !== '') {
+                const nextVat = Math.max(0, Number(settingsVat) || 0);
+                setAppliedVatPct(nextVat);
+              }
+              setShowSettingsModal(false);
+            } finally {
+              setSavingSettings(false);
+            }
+          };
+          const fieldWrapStyle = {
+            background:'#0D0D0E',
+            border:'1px solid #2A2A2F',
+            borderRadius:10,
+            padding:'10px 14px',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'space-between',
+            gap:8,
+          };
+          const bareInputStyle = {
+            width:'100%',
+            background:'transparent',
+            border:'none',
+            outline:'none',
+            color:'#F5F5F0',
+            fontSize:13.5,
+            fontWeight:500,
+            ...numStyle,
+          };
+          return (
+            <motion.div
+              initial={{opacity:0}}
+              animate={{opacity:1}}
+              exit={{opacity:0}}
+              transition={{duration:0.16,ease:EASE_OUT}}
+              onClick={()=>{ if(!savingSettings) setShowSettingsModal(false); }}
+              style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.74)',backdropFilter:'blur(5px)',WebkitBackdropFilter:'blur(5px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,zIndex:130}}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="budget-settings-title"
+                initial={{opacity:0,y:12,scale:0.96}}
+                animate={{opacity:1,y:0,scale:1}}
+                exit={{opacity:0,y:10,scale:0.96}}
+                transition={{duration:0.2,ease:EASE_OUT}}
+                onClick={e=>e.stopPropagation()}
+                style={{
+                  width:'100%',
+                  maxWidth:530,
+                  maxHeight:'90vh',
+                  display:'flex',
+                  flexDirection:'column',
+                  background:'#0F0F10',
+                  border:'1px solid #232327',
+                  borderRadius:16,
+                  boxShadow:'0 28px 72px rgba(0,0,0,0.82)',
+                  overflow:'hidden',
+                  fontFamily:'Manrope,sans-serif',
+                }}
+              >
+                <div style={{padding:mob?'20px 18px 18px':'24px 26px 22px',overflowY:'auto',flex:1}}>
+                  {/* Header */}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                    <div>
+                      <h3 id="budget-settings-title" style={{margin:0,fontSize:20,fontWeight:700,letterSpacing:'-0.02em',color:'#F5F5F0',lineHeight:1.2}}>
+                        Budget settings
+                      </h3>
+                      <div style={{fontSize:12.5,color:'#8C877E',marginTop:7,lineHeight:1.5}}>
+                        {isLockedStatus
+                          ? 'This budget is submitted or approved. Revise the budget to change these settings.'
+                          : 'Configure contingency, production fee, and tax rates for this production budget.'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={savingSettings}
+                      onClick={()=>setShowSettingsModal(false)}
+                      aria-label="Close"
+                      style={{background:'transparent',border:'none',color:'#8E8A82',cursor:'pointer',padding:4,display:'inline-flex',borderRadius:6,transition:'color 0.14s ease'}}
+                      onMouseEnter={e=>{e.currentTarget.style.color='#F5F5F0';}}
+                      onMouseLeave={e=>{e.currentTarget.style.color='#8E8A82';}}
+                    >
+                      <X size={17}/>
+                    </button>
+                  </div>
+
+                  {/* Contingency & production fee */}
+                  <div style={{marginTop:20}}>
+                    <div style={{fontSize:11.5,fontWeight:600,color:'#8E8A82',marginBottom:12}}>
+                      Contingency &amp; production fee
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1fr',gap:14}}>
+                      <div>
+                        <label htmlFor="budget-settings-contingency" style={{display:'block',fontSize:13,fontWeight:600,color:'#F5F5F0'}}>
+                          Contingency<span style={{color:'#F5C451',marginLeft:2}}>*</span>
+                        </label>
+                        <div style={{fontSize:11.5,color:'#7A7670',marginTop:3,marginBottom:9}}>
+                          Of Above &amp; Below the Line. Reference: 5%.
+                        </div>
+                        <div style={fieldWrapStyle}>
+                          <input
+                            id="budget-settings-contingency"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            placeholder="0"
+                            value={settingsContingency}
+                            onChange={e=>setSettingsContingency(e.target.value)}
+                            style={bareInputStyle}
+                          />
+                          <span style={{fontSize:13.5,color:'#8E8A82',flexShrink:0}}>%</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="budget-settings-prodfee" style={{display:'block',fontSize:13,fontWeight:600,color:'#F5F5F0'}}>
+                          Production fee<span style={{color:'#F5C451',marginLeft:2}}>*</span>
+                        </label>
+                        <div style={{fontSize:11.5,color:'#7A7670',marginTop:3,marginBottom:9}}>
+                          Reference: 15%.
+                        </div>
+                        <div style={fieldWrapStyle}>
+                          <input
+                            id="budget-settings-prodfee"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.5"
+                            placeholder="0"
+                            value={settingsProdFee}
+                            onChange={e=>setSettingsProdFee(e.target.value)}
+                            style={bareInputStyle}
+                          />
+                          <span style={{fontSize:13.5,color:'#8E8A82',flexShrink:0}}>%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Production fee calculation basis */}
+                  <div style={{marginTop:20}}>
+                    <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0',marginBottom:10}}>
+                      Production fee is calculated on
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1fr 1fr',gap:12}}>
+                      <button
+                        type="button"
+                        onClick={()=>setSettingsFeeBasis('after_insurance')}
+                        style={{
+                          textAlign:'left',
+                          padding:'14px 16px',
+                          borderRadius:11,
+                          cursor:'pointer',
+                          background:settingsFeeBasis==='after_insurance'?'rgba(245,196,81,0.06)':'#0D0D0E',
+                          border:settingsFeeBasis==='after_insurance'?'1px solid #B5923A':'1px solid #26262B',
+                          transition:'border-color 0.15s ease, background 0.15s ease',
+                          fontFamily:'Manrope,sans-serif',
+                        }}
+                      >
+                        <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0',lineHeight:1.35}}>
+                          Total after insurance &amp; contingency
+                        </div>
+                        <div style={{fontSize:11.5,color:'#847F77',marginTop:5,lineHeight:1.4}}>
+                          Above &amp; Below the Line + CC + contingency
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={()=>setSettingsFeeBasis('atl_btl_only')}
+                        style={{
+                          textAlign:'left',
+                          padding:'14px 16px',
+                          borderRadius:11,
+                          cursor:'pointer',
+                          background:settingsFeeBasis==='atl_btl_only'?'rgba(245,196,81,0.06)':'#0D0D0E',
+                          border:settingsFeeBasis==='atl_btl_only'?'1px solid #B5923A':'1px solid #26262B',
+                          transition:'border-color 0.15s ease, background 0.15s ease',
+                          fontFamily:'Manrope,sans-serif',
+                        }}
+                      >
+                        <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0',lineHeight:1.35}}>
+                          Above &amp; Below the Line only
+                        </div>
+                        <div style={{fontSize:11.5,color:'#847F77',marginTop:5,lineHeight:1.4}}>
+                          Excludes insurance, bond and contingency
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Other approved adjustments */}
+                  <div style={{marginTop:20}}>
+                    <div style={{fontSize:12,fontWeight:600,color:'#9A958C'}}>
+                      Other approved adjustments
+                    </div>
+                    <div style={{fontSize:11.5,color:'#7A7670',marginTop:4,lineHeight:1.45}}>
+                      Added after the grand total and before VAT. Use a negative amount for a reduction.
+                    </div>
+                  </div>
+
+                  {/* Taxes */}
+                  <div style={{marginTop:18}}>
+                    <div style={{fontSize:11.5,fontWeight:600,color:'#8E8A82',marginBottom:10}}>
+                      Taxes
+                    </div>
+                    <label htmlFor="budget-settings-vat" style={{display:'block',fontSize:13,fontWeight:600,color:'#F5F5F0'}}>
+                      VAT<span style={{color:'#F5C451',marginLeft:2}}>*</span>
+                    </label>
+                    <div style={{fontSize:11.5,color:'#7A7670',marginTop:3,marginBottom:9}}>
+                      Shown separately. Never included in the Grand Total Excluding VAT.
+                    </div>
+                    <div style={{...fieldWrapStyle,maxWidth:mob?'100%':'calc(50% - 7px)'}}>
+                      <input
+                        id="budget-settings-vat"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        placeholder="0"
+                        value={settingsVat}
+                        onChange={e=>setSettingsVat(e.target.value)}
+                        style={bareInputStyle}
+                      />
+                      <span style={{fontSize:13.5,color:'#8E8A82',flexShrink:0}}>%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div style={{padding:mob?'14px 18px 18px':'16px 26px 20px',borderTop:'1px solid #1F1F23',display:'flex',justifyContent:'flex-end',gap:10,flexShrink:0}}>
+                  <button
+                    type="button"
+                    disabled={savingSettings}
+                    onClick={()=>setShowSettingsModal(false)}
+                    style={{
+                      background:'#121214',
+                      border:'1px solid #2C2C30',
+                      color:'#F5F5F0',
+                      borderRadius:10,
+                      padding:'10px 18px',
+                      fontSize:13.5,
+                      fontWeight:500,
+                      fontFamily:'Manrope,sans-serif',
+                      cursor:'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <motion.button
+                    type="button"
+                    disabled={savingSettings}
+                    whileHover={{y:-1}}
+                    whileTap={{scale:0.98}}
+                    transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                    onClick={handleApplySettings}
+                    style={{
+                      background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',
+                      border:'none',
+                      color:'#0A0A0A',
+                      borderRadius:10,
+                      padding:'10px 20px',
+                      fontSize:13.5,
+                      fontWeight:700,
+                      fontFamily:'Manrope,sans-serif',
+                      cursor:savingSettings?'wait':'pointer',
+                      boxShadow:'0 4px 16px rgba(245,166,35,0.24)',
+                      opacity:savingSettings?0.75:1,
+                    }}
+                  >
+                    {savingSettings ? 'Applying...' : 'Apply Settings'}
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
       {showTools && (
-        <div style={{marginBottom:18}}>
+        <div style={{marginBottom:16}}>
           <BudgetSummaryHeader project={project} items={pItems} onSetContingency={onSetContingency} onSetTarget={onSetTarget}/>
           <ProductionInfoPanel project={project}/>
           <BrandPanel project={project}/>
@@ -5934,181 +7075,401 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         </div>
       )}
 
-      {/* Grouped Budget Lines Data Table */}
-      <motion.div
-        initial={{opacity:0,y:8}}
-        animate={{opacity:1,y:0}}
-        transition={{duration:DURATION.normal,ease:EASE_OUT}}
-        style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'22px 24px',marginBottom:20,boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}
-      >
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:16}}>
-          <div>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Budget Lines</div>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>All items organised by department · {baseCur}</div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-            <div style={{position:'relative'}}>
-              <Search size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:T.faint,pointerEvents:'none'}}/>
-              <input
-                type="search"
-                aria-label="Search line items"
-                placeholder="Search line items..."
-                value={search}
-                onChange={e=>setSearch(e.target.value)}
-                style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 12px 7px 32px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',minWidth:205}}
-              />
-            </div>
-            <Sel aria-label="Filter by status" value={phaseFilter} onChange={e=>setPhaseFilter(e.target.value)} style={{background:'#121214',border:'1px solid #222226',borderRadius:10,padding:'7px 10px'}}>
-              <option value="all">Filter by status</option>
-              {PHASES.map(ph=><option key={ph.name} value={ph.name}>{ph.name}</option>)}
-            </Sel>
-          </div>
+      {/* Categories / Summary Toggle Bar & Status */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',marginBottom:10}}>
+        <div style={{display:'inline-flex',background:'#0C0C0E',border:'1px solid #1E1E22',borderRadius:8,padding:3,gap:2}}>
+          {[
+            {id:'categories',label:'Categories',Icon:List},
+            {id:'summary',label:'Summary',Icon:FileText},
+          ].map(tab=>{
+            const active=viewTab===tab.id;
+            const TabIcon=tab.Icon;
+            return(
+              <button
+                key={tab.id}
+                type="button"
+                onClick={()=>setViewTab(tab.id)}
+                style={{
+                  display:'inline-flex',
+                  alignItems:'center',
+                  gap:6,
+                  padding:'5px 12px',
+                  borderRadius:6,
+                  border:active?'1px solid #2A2A30':'1px solid transparent',
+                  background:active?'#19191E':'transparent',
+                  color:active?'#F5F5F0':'#71717A',
+                  fontSize:12,
+                  fontWeight:active?600:500,
+                  cursor:'pointer',
+                  fontFamily:'Manrope,sans-serif',
+                  transition:'all 0.14s ease',
+                }}
+              >
+                <TabIcon size={12.5}/>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        <div style={{background:'#09090B',border:'1px solid #1A1A1E',borderRadius:12,overflow:'hidden'}}>
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:12}}>
-              <thead>
-                <tr style={{background:'#0F0F12',borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:11,textAlign:'left'}}>
-                  <th style={{padding:'11px 12px 11px 16px',fontWeight:500}}>Department</th>
-                  <th style={{padding:'11px 12px',fontWeight:500}}>Description</th>
-                  <th style={{padding:'11px 12px',fontWeight:500,textAlign:'right'}}>Qty</th>
-                  <th style={{padding:'11px 12px',fontWeight:500}}>Unit</th>
-                  <th style={{padding:'11px 12px',fontWeight:500,textAlign:'right'}}>Rate</th>
-                  <th style={{padding:'11px 12px',fontWeight:500,textAlign:'right'}}>Total</th>
-                  <th style={{padding:'11px 12px',fontWeight:500}}>Phase</th>
-                  <th style={{padding:'11px 16px 11px 12px',fontWeight:500,textAlign:'right'}}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleDepts.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} style={{padding:'32px 16px',textAlign:'center',color:T.faint,fontSize:12}}>
-                      {pItems.length === 0
-                        ? 'No budget lines yet. Click "Add Budget Line" or "Templates" to build your budget.'
-                        : 'No budget lines match your current search or filter.'}
-                    </td>
-                  </tr>
-                ) : (
-                  <>
-                    {visibleDepts.map(dept => {
-                      const di = pItems.filter(i => i.dept === dept);
-                      const deptNameMatches = dept.toLowerCase().includes(q);
-                      const shown = q && !deptNameMatches ? di.filter(i => (i.description || '').toLowerCase().includes(q)) : di;
-                      const deptTotal = shown.reduce((s,i)=>s+lTot(i), 0);
-                      const phaseName = getPhaseForDept(dept);
-                      const phaseTone = getPhaseTone(phaseName);
-                      return (
-                        <Fragment key={dept}>
-                          {shown.map(item => {
-                            const isEditing = editingId === item.id;
-                            return (
-                              <tr
-                                key={item.id}
-                                style={{borderBottom:'1px solid #151518',transition:'background 0.14s ease'}}
-                                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.024)';}}
-                                onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
-                              >
-                                <td style={{padding:'11px 12px 11px 16px',color:'#D4D4D8',fontWeight:500,whiteSpace:'nowrap'}}>{dept}</td>
-                              <td style={{padding:'10px 10px',color:T.cream,minWidth:180}}>
-                                {isEditing ? (
-                                  <Inp value={editDraft.description} onChange={e=>setEditDraft(d=>({...d,description:e.target.value}))} placeholder="Line description" style={{padding:'5px 8px',fontSize:12}}/>
-                                ) : (
-                                  item.description || <span style={{color:T.faint}}>Untitled line</span>
-                                )}
-                              </td>
-                              <td style={{padding:'10px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.dim}}>
-                                {isEditing ? (
-                                  <Inp type="number" value={editDraft.qty} onChange={e=>setEditDraft(d=>({...d,qty:e.target.value}))} style={{width:64,padding:'5px 6px',textAlign:'right',fontSize:12}}/>
-                                ) : (
-                                  item.qty
-                                )}
-                              </td>
-                              <td style={{padding:'10px 10px',color:T.faint}}>
-                                {isEditing ? (
-                                  <Sel value={editDraft.unit} onChange={e=>setEditDraft(d=>({...d,unit:e.target.value}))} style={{padding:'5px 6px',fontSize:11}}>
-                                    {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
-                                  </Sel>
-                                ) : (
-                                  item.unit
-                                )}
-                              </td>
-                              <td style={{padding:'10px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.dim,whiteSpace:'nowrap'}}>
-                                {isEditing ? (
-                                  <Inp type="number" value={editDraft.rate} onChange={e=>setEditDraft(d=>({...d,rate:e.target.value}))} style={{width:100,padding:'5px 6px',textAlign:'right',fontSize:12}}/>
-                                ) : (
-                                  `${sym(item.currency || baseCur)}${fmt(item.rate)}`
-                                )}
-                              </td>
-                              <td style={{padding:'10px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream,whiteSpace:'nowrap'}}>
-                                {sym(item.currency || baseCur)}{fmt(isEditing ? (Number(editDraft.qty)||0)*(Number(editDraft.rate)||0) : lTot(item))}
-                              </td>
-                              <td style={{padding:'10px 10px'}}>
-                                <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:9999,background:phaseTone.bg,border:`1px solid ${phaseTone.border}`,color:phaseTone.text,whiteSpace:'nowrap'}}>
-                                  <span style={{width:5,height:5,borderRadius:'50%',background:phaseTone.dot}}/>
-                                  {phaseName}
-                                </span>
-                              </td>
-                              <td style={{padding:'10px 16px 10px 10px',textAlign:'right',whiteSpace:'nowrap'}}>
-                                {isEditing ? (
-                                  <span style={{display:'inline-flex',gap:6}}>
-                                    <motion.button whileHover={{scale:1.12}} whileTap={{scale:0.92}} type="button" onClick={()=>saveInlineEdit(item)} style={{background:'none',border:'none',cursor:'pointer',color:'#4CAF7A',padding:2}} title="Save"><Check size={14}/></motion.button>
-                                    <motion.button whileHover={{scale:1.12}} whileTap={{scale:0.92}} type="button" onClick={()=>setEditingId(null)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Cancel"><X size={14}/></motion.button>
-                                  </span>
-                                ) : (
-                                  <span style={{display:'inline-flex',gap:8}}>
-                                    <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={()=>startInlineEdit(item)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Edit line"><Pencil size={13}/></motion.button>
-                                    <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={()=>onRemove(item.id)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Delete line"><Trash2 size={13}/></motion.button>
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {/* Department Subtotal Row */}
-                        <tr style={{background:'#0E0E11',borderBottom:'1px solid #1F1F24'}}>
-                          <td colSpan={5} style={{padding:'8px 12px 8px 16px',fontSize:11,color:'#7A7974',fontWeight:600}}>{dept}</td>
-                          <td style={{padding:'8px 12px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,whiteSpace:'nowrap'}}>
-                            {sym(baseCur)}{fmt(deptTotal)}
-                          </td>
-                          <td colSpan={2}/>
-                        </tr>
-                      </Fragment>
-                    );
-                  })}
-                  {/* Total Budget Footer Row */}
-                  <tr style={{borderTop:'1px solid #2B2B30',background:'linear-gradient(90deg, rgba(255,179,71,0.06) 0%, rgba(255,179,71,0.015) 100%)'}}>
-                    <td colSpan={5} style={{padding:'13px 12px 13px 16px',fontSize:13,fontWeight:700,color:T.cream}}>Total budget</td>
-                    <td style={{padding:'13px 12px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700,color:'#F5C451',whiteSpace:'nowrap'}}>
-                      {sym(baseCur)}{fmt(totalBudgetInBase)}
-                    </td>
-                    <td colSpan={2} style={{padding:'13px 16px 13px 12px',fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{baseCur}</td>
-                  </tr>
-                </>
-              )}
-            </tbody>
-          </table>
+        <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+          <div style={{fontSize:11,color:'#63636A',display:'inline-flex',alignItems:'center',gap:6}}>
+            <span style={{color:'#F5F5F0',fontWeight:600}}>{project.name}</span>
+            <span>·</span>
+            <span style={{color:'#4CAF7A',fontWeight:600}}>{statusLabel}</span>
+            <span>·</span>
+            <span>{pItems.length} line{pItems.length===1?'':'s'}</span>
           </div>
+          <motion.button
+            type="button"
+            whileHover={{y:-1}}
+            whileTap={{scale:0.98}}
+            onClick={()=>setShowAddBar(true)}
+            style={{background:'#0F0F12',border:'1px solid #242428',color:'#E5E5E0',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:500,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+          >
+            <Pencil size={11.5} style={{color:'#A1A1AA'}}/>
+            <span>Revise budget</span>
+          </motion.button>
         </div>
-      </motion.div>
+      </div>
+
+      {/* Version / Info Banner */}
+      <div style={{background:'#0B0B0D',border:'1px solid #1A1A1E',borderRadius:8,padding:'9px 14px',marginBottom:12,display:'flex',alignItems:'center',gap:8,fontSize:11,color:'#8E8E93'}}>
+        <Lock size={12} style={{color:'#63636A',flexShrink:0}}/>
+        <span>
+          {hasBudgetItems
+            ?`Live budget synced for ${project.name} (${baseCur}). Choose Revise budget or expand any category below to edit lines.`
+            :'No budget lines yet. Click "Add Budget Line" or "Templates" above to build your production budget.'}
+        </span>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:16}}>
+        <div style={{position:'relative',flex:'1 1 240px'}}>
+          <Search size={13} style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'#5A5A60',pointerEvents:'none'}}/>
+          <input
+            type="search"
+            aria-label="Search items, notes, departments or categories"
+            placeholder="Search items, notes, departments or categories..."
+            value={search}
+            onChange={e=>setSearch(e.target.value)}
+            style={{width:'100%',background:'#0B0B0D',border:'1px solid #1D1D22',borderRadius:8,padding:'8px 12px 8px 32px',color:'#F5F5F0',fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+          />
+        </div>
+        <Sel aria-label="Department" value={deptFilter} onChange={e=>setDeptFilter(e.target.value)} style={{background:'#0B0B0D',border:'1px solid #1D1D22',borderRadius:8,padding:'7px 10px',fontSize:11.5,color:'#A1A1AA'}}>
+          <option value="all">Department</option>
+          {allItemDepts.map(d=><option key={d} value={d}>{deptShortName(d)}</option>)}
+        </Sel>
+        <Sel aria-label="Any phase" value={phaseFilter} onChange={e=>setPhaseFilter(e.target.value)} style={{background:'#0B0B0D',border:'1px solid #1D1D22',borderRadius:8,padding:'7px 10px',fontSize:11.5,color:'#A1A1AA'}}>
+          <option value="all">Any phase</option>
+          {PHASES.map(ph=><option key={ph.name} value={ph.name}>{ph.name}</option>)}
+        </Sel>
+        {viewTab==='categories'&&visibleDepts.length>0&&(
+          <div style={{display:'inline-flex',alignItems:'center',gap:4,marginLeft:2}}>
+            <button type="button" onClick={expandAllDepts} style={{background:'transparent',border:'none',padding:'6px 8px',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}>
+              <ChevronsUpDown size={12}/>
+              <span>Expand all</span>
+            </button>
+            <button type="button" onClick={collapseAllDepts} style={{background:'transparent',border:'none',padding:'6px 8px',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}>
+              <ChevronsUpDown size={12}/>
+              <span>Collapse all</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content: Categories Accordion vs Summary View */}
+      <AnimatePresence mode="wait">
+        {viewTab==='categories'?(
+          <motion.div
+            key="budget-categories"
+            initial={{opacity:0,y:5}}
+            animate={{opacity:1,y:0}}
+            exit={{opacity:0,y:-5}}
+            transition={{duration:0.15,ease:EASE_OUT}}
+            style={{marginBottom:22}}
+          >
+            {sections.length===0?(
+              <div style={{background:'#0C0C0E',border:'1px solid #1B1B1F',borderRadius:10,padding:'38px 20px',textAlign:'center',color:T.faint,fontSize:12.5}}>
+                {pItems.length===0
+                  ?'No budget lines yet. Click "Add Budget Line" or "Templates" to build your budget.'
+                  :'No budget lines match your current search or filters.'}
+              </div>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                {sections.map(sec=>(
+                  <div key={sec.id}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,paddingLeft:2}}>
+                      <span style={{fontSize:11,fontWeight:500,color:'#71717A'}}>{sec.label}</span>
+                      <span style={{fontSize:10.5,color:'#52525B'}}>{sec.codeRange}</span>
+                    </div>
+
+                    <div style={{background:'#0C0C0E',border:'1px solid #1B1B1F',borderRadius:10,overflow:'hidden'}}>
+                      {sec.depts.map((dept, dIdx)=>{
+                        const di = pItems.filter(i => i.dept === dept);
+                        const deptNameMatches = dept.toLowerCase().includes(q);
+                        const shown = q && !deptNameMatches ? di.filter(i => (i.description || '').toLowerCase().includes(q)) : di;
+                        const deptTotal = shown.reduce((s,i)=>s+lTot(i), 0);
+                        const deptActual = deptBreakdownMap[dept]?.actual || 0;
+                        const phaseName = getPhaseForDept(dept);
+                        const phaseBadge = getPhaseBadge(phaseName);
+                        const isOpen = Boolean(expandedDepts[dept]);
+                        return(
+                          <div key={dept} style={{borderBottom:dIdx===sec.depts.length-1?'none':'1px solid #16161A'}}>
+                            <button
+                              type="button"
+                              onClick={()=>toggleDept(dept)}
+                              style={{
+                                width:'100%',
+                                display:'flex',
+                                alignItems:'center',
+                                justifyContent:'space-between',
+                                gap:12,
+                                padding:'11px 16px',
+                                background:isOpen?'#101014':'transparent',
+                                border:'none',
+                                cursor:'pointer',
+                                textAlign:'left',
+                                fontFamily:'Manrope,sans-serif',
+                                transition:'background 0.14s ease',
+                              }}
+                            >
+                              <div style={{display:'flex',alignItems:'center',gap:11,minWidth:0}}>
+                                <span style={{width:22,height:22,borderRadius:5,background:'rgba(245,196,81,0.08)',border:'1px solid rgba(245,196,81,0.22)',color:'#D4A843',fontFamily:'IBM Plex Mono,monospace',fontSize:10,fontWeight:700,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                                  {deptCode(dept)}
+                                </span>
+                                <div style={{minWidth:0}}>
+                                  <div style={{fontSize:12.5,fontWeight:600,color:'#F5F5F0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{deptShortName(dept)}</div>
+                                  <div style={{fontSize:10.5,color:'#63636A',marginTop:1.5}}>
+                                    {shown.length} line{shown.length===1?'':'s'}{deptActual>0?` · ${sym(baseCur)}${fmt(deptActual)} spent`:''}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
+                                <span style={{...numStyle,fontSize:12.5,fontWeight:600,color:'#F5F5F0'}}>
+                                  {sym(baseCur)}{fmt(deptTotal)}
+                                </span>
+                                <ChevronDown size={14} style={{color:'#63636A',transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.16s ease'}}/>
+                              </div>
+                            </button>
+
+                            <AnimatePresence initial={false}>
+                              {isOpen&&(
+                                <motion.div
+                                  initial={{height:0,opacity:0}}
+                                  animate={{height:'auto',opacity:1}}
+                                  exit={{height:0,opacity:0}}
+                                  transition={{duration:0.18,ease:EASE_OUT}}
+                                  style={{overflow:'hidden',borderTop:'1px solid #18181C',background:'#09090B'}}
+                                >
+                                  <div style={{overflowX:'auto'}}>
+                                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:11.5}}>
+                                      <thead>
+                                        <tr style={{borderBottom:'1px solid #151519',color:'#5A5A60',fontSize:10,textAlign:'left'}}>
+                                          <th style={{padding:'8px 12px 8px 16px',fontWeight:500}}>Item</th>
+                                          <th style={{padding:'8px 10px',fontWeight:500}}>Department</th>
+                                          <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Qty</th>
+                                          <th style={{padding:'8px 10px',fontWeight:500}}>Unit</th>
+                                          <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Rate</th>
+                                          <th style={{padding:'8px 10px',fontWeight:500}}>Duration</th>
+                                          <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Total</th>
+                                          <th style={{padding:'8px 10px',fontWeight:500}}>Phase</th>
+                                          <th style={{padding:'8px 16px 8px 10px',fontWeight:500,textAlign:'right'}}>Actions</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {shown.map(item=>{
+                                          const isEditing = editingId === item.id;
+                                          const durationLabel = item.duration || ((item.unit==='day'||item.unit==='week') && Number(item.qty)>0 ? `${item.qty} ${item.unit}${Number(item.qty)===1?'':'s'}` : '—');
+                                          return(
+                                            <tr key={item.id} style={{borderBottom:'1px solid #131317'}}>
+                                              <td style={{padding:'9px 12px 9px 16px',color:'#F5F5F0',fontWeight:500,minWidth:170}}>
+                                                {isEditing?(
+                                                  <Inp value={editDraft.description} onChange={e=>setEditDraft(d=>({...d,description:e.target.value}))} placeholder="Line description" style={{padding:'5px 8px',fontSize:11.5}}/>
+                                                ):(
+                                                  item.description || <span style={{color:T.faint}}>Untitled line</span>
+                                                )}
+                                              </td>
+                                              <td style={{padding:'9px 10px',color:'#71717A',whiteSpace:'nowrap'}}>{deptShortName(dept)}</td>
+                                              <td style={{padding:'9px 10px',textAlign:'right',...numStyle,color:'#A1A1AA'}}>
+                                                {isEditing?(
+                                                  <Inp type="number" value={editDraft.qty} onChange={e=>setEditDraft(d=>({...d,qty:e.target.value}))} style={{width:58,padding:'4px 6px',textAlign:'right',fontSize:11.5}}/>
+                                                ):(item.unit==='flat'&&Number(item.qty)===1?'—':item.qty)}
+                                              </td>
+                                              <td style={{padding:'9px 10px',color:'#71717A'}}>
+                                                {isEditing?(
+                                                  <Sel value={editDraft.unit} onChange={e=>setEditDraft(d=>({...d,unit:e.target.value}))} style={{padding:'4px 6px',fontSize:11}}>
+                                                    {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+                                                  </Sel>
+                                                ):item.unit}
+                                              </td>
+                                              <td style={{padding:'9px 10px',textAlign:'right',...numStyle,color:'#A1A1AA',whiteSpace:'nowrap'}}>
+                                                {isEditing?(
+                                                  <Inp type="number" value={editDraft.rate} onChange={e=>setEditDraft(d=>({...d,rate:e.target.value}))} style={{width:96,padding:'4px 6px',textAlign:'right',fontSize:11.5}}/>
+                                                ):`${sym(item.currency||baseCur)}${fmt(item.rate)}`}
+                                              </td>
+                                              <td style={{padding:'9px 10px',color:'#71717A',whiteSpace:'nowrap'}}>{durationLabel}</td>
+                                              <td style={{padding:'9px 10px',textAlign:'right',...numStyle,fontWeight:600,color:'#F5F5F0',whiteSpace:'nowrap'}}>
+                                                {sym(item.currency||baseCur)}{fmt(isEditing?(Number(editDraft.qty)||0)*(Number(editDraft.rate)||0):lTot(item))}
+                                              </td>
+                                              <td style={{padding:'9px 10px'}}>
+                                                <span style={{display:'inline-flex',alignItems:'center',fontSize:9,fontWeight:700,letterSpacing:'0.04em',padding:'2px 6px',borderRadius:4,background:phaseBadge.bg,border:`1px solid ${phaseBadge.border}`,color:phaseBadge.text,whiteSpace:'nowrap'}}>
+                                                  {phaseBadge.code}
+                                                </span>
+                                              </td>
+                                              <td style={{padding:'9px 16px 9px 10px',textAlign:'right',whiteSpace:'nowrap'}}>
+                                                {isEditing?(
+                                                  <span style={{display:'inline-flex',gap:6}}>
+                                                    <motion.button whileHover={{scale:1.12}} whileTap={{scale:0.92}} type="button" onClick={()=>saveInlineEdit(item)} style={{background:'none',border:'none',cursor:'pointer',color:'#4CAF7A',padding:2}} title="Save"><Check size={13}/></motion.button>
+                                                    <motion.button whileHover={{scale:1.12}} whileTap={{scale:0.92}} type="button" onClick={()=>setEditingId(null)} style={{background:'none',border:'none',cursor:'pointer',color:T.faint,padding:2}} title="Cancel"><X size={13}/></motion.button>
+                                                  </span>
+                                                ):(
+                                                  <span style={{display:'inline-flex',gap:8}}>
+                                                    <motion.button whileHover={{scale:1.12,color:'#F5C451'}} whileTap={{scale:0.92}} type="button" onClick={()=>startInlineEdit(item)} style={{background:'none',border:'none',cursor:'pointer',color:'#5A5A60',padding:2}} title="Edit line"><Pencil size={12.5}/></motion.button>
+                                                    <motion.button whileHover={{scale:1.12,color:'#E05252'}} whileTap={{scale:0.92}} type="button" onClick={()=>setDeleteTarget(item)} style={{background:'none',border:'none',cursor:'pointer',color:'#5A5A60',padding:2}} title="Delete line"><Trash2 size={12.5}/></motion.button>
+                                                  </span>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  <div style={{background:'#0B0B0E',borderTop:'1px solid #151519',padding:'8px 16px',display:'flex',justifyContent:'flex-end',alignItems:'center',gap:8,fontSize:11}}>
+                                    <span style={{color:'#63636A'}}>Subtotal</span>
+                                    <span style={{...numStyle,fontWeight:600,color:'#F5F5F0'}}>{sym(baseCur)}{fmt(deptTotal)}</span>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                      {/* Section Total Footer */}
+                      <div style={{background:'#0F0F13',borderTop:'1px solid #1C1C22',padding:'11px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                        <span style={{fontSize:12,fontWeight:600,color:'#E5E5E0'}}>{sec.totalLabel}</span>
+                        <span style={{...numStyle,fontSize:12.5,fontWeight:700,color:'#F5F5F0'}}>
+                          {sym(baseCur)}{fmt(sec.sectionTotal)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Contingency and Adjustments + Grand Total Card */}
+                <div style={{background:'#0C0C0E',border:'1px solid #1B1B1F',borderRadius:10,padding:'16px 18px'}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#F5F5F0',marginBottom:14}}>Contingency and Adjustments</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:11,fontSize:11.5}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                      <div>
+                        <div style={{color:'#A1A1AA',fontWeight:500}}>Total Above + Below the Line</div>
+                        <div style={{fontSize:10,color:'#5A5A60',marginTop:1}}>Direct production categories</div>
+                      </div>
+                      <span style={{...numStyle,color:'#D4D4D8',fontWeight:500}}>{sym(baseCur)}{fmt(atlTotal+btlTotal)}</span>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                      <div>
+                        <div style={{color:'#A1A1AA',fontWeight:500}}>Insurance, Bond &amp; Contingency</div>
+                        <div style={{fontSize:10,color:'#5A5A60',marginTop:1}}>Production support &amp; protection</div>
+                      </div>
+                      <span style={{...numStyle,color:'#D4D4D8',fontWeight:500}}>{sym(baseCur)}{fmt(contSectionTotal)}</span>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                      <div>
+                        <div style={{color:'#A1A1AA',fontWeight:500}}>Contingency ({contingencyPct}%)</div>
+                        <div style={{fontSize:10,color:'#5A5A60',marginTop:1}}>Reserve allocated across budget lines</div>
+                      </div>
+                      <span style={{...numStyle,color:'#D4D4D8',fontWeight:500}}>{sym(baseCur)}{fmt(autoContingency)}</span>
+                    </div>
+
+                    <div style={{height:1,background:'#1B1B1F',margin:'2px 0'}}/>
+
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12.5,fontWeight:700}}>
+                      <span style={{color:'#F5F5F0'}}>Grand Total</span>
+                      <span style={{...numStyle,color:'#F5F5F0'}}>{sym(baseCur)}{fmt(totalBudgetInBase)}</span>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12.5,fontWeight:700}}>
+                      <span style={{color:'#F5F5F0'}}>Grand Total Excluding VAT</span>
+                      <span style={{...numStyle,color:'#F5C451'}}>{sym(baseCur)}{fmt(totalBudgetInBase)}</span>
+                    </div>
+
+                    {vatRate>0&&(
+                      <div style={{background:'#08080A',border:'1px solid #18181C',borderRadius:8,padding:'11px 14px',marginTop:4,display:'flex',flexDirection:'column',gap:7}}>
+                        <div style={{fontSize:10,color:'#5A5A60'}}>VAT applies where taxable production expenditure is incurred.</div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11}}>
+                          <div>
+                            <div style={{color:'#8E8E93'}}>VAT ({vatPctVal}%)</div>
+                            <div style={{fontSize:9.5,color:'#52525B'}}>Estimated on current budget total</div>
+                          </div>
+                          <span style={{...numStyle,color:'#A1A1AA'}}>{sym(baseCur)}{fmt(estimatedVat)}</span>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11.5,fontWeight:600,paddingTop:4,borderTop:'1px solid #141418'}}>
+                          <span style={{color:'#D4D4D8'}}>Total Including VAT</span>
+                          <span style={{...numStyle,color:'#D4D4D8'}}>{sym(baseCur)}{fmt(totalBudgetInBase+estimatedVat)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        ):(
+          <motion.div
+            key="budget-summary"
+            initial={{opacity:0,y:5}}
+            animate={{opacity:1,y:0}}
+            exit={{opacity:0,y:-5}}
+            transition={{duration:0.15,ease:EASE_OUT}}
+            style={{background:'#0C0C0E',border:'1px solid #1B1B1F',borderRadius:10,padding:'18px 20px',marginBottom:22}}
+          >
+            <div style={{fontSize:14,fontWeight:600,color:'#F5F5F0',marginBottom:14}}>Budget Top Sheet Summary</div>
+            {!hasBudgetItems?(
+              <div style={{padding:'24px 0',textAlign:'center',color:T.faint,fontSize:12.5}}>
+                No budget lines recorded yet.
+              </div>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:8,fontSize:12.5}}>
+                <div style={{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid #16161A'}}>
+                  <span style={{color:'#D4D4D8'}}>Above the Line ({atlPct}%)</span>
+                  <span style={{...numStyle,fontWeight:600,color:'#F5F5F0'}}>{sym(baseCur)}{fmt(atlTotal)}</span>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid #16161A'}}>
+                  <span style={{color:'#D4D4D8'}}>Below the Line ({btlPct}%)</span>
+                  <span style={{...numStyle,fontWeight:600,color:'#F5F5F0'}}>{sym(baseCur)}{fmt(btlTotal)}</span>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid #16161A'}}>
+                  <span style={{color:'#D4D4D8'}}>Contingency ({contingencyPct}%)</span>
+                  <span style={{...numStyle,fontWeight:600,color:'#F5F5F0'}}>{sym(baseCur)}{fmt(autoContingency)}</span>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',padding:'12px 0 2px',fontSize:14,fontWeight:700}}>
+                  <span style={{color:'#F5F5F0'}}>Grand Total Excluding VAT ({baseCur})</span>
+                  <span style={{...numStyle,color:'#F5C451'}}>{sym(baseCur)}{fmt(totalBudgetInBase)}</span>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bottom 2-Column Section: Department Breakdown + Phase Totals & Contingency */}
       <motion.div
         variants={fadeUp}
         initial="hidden"
         animate="visible"
-        style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.55fr) minmax(280px, 1fr)',gap:16,alignItems:'start'}}
+        style={{display:'grid',gridTemplateColumns:mob?'1fr':'minmax(0, 1.55fr) minmax(280px, 1fr)',gap:14,alignItems:'start'}}
       >
         {/* Left: Department Breakdown */}
-        <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'22px 24px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+        <div style={{background:'#0C0C0E',border:'1px solid #1B1B1F',borderRadius:12,padding:'20px 22px'}}>
           <div style={{marginBottom:14}}>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Department Breakdown</div>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Allocated budget against recorded spend for each department</div>
+            <div style={{fontSize:14.5,fontWeight:600,color:'#F5F5F0'}}>Department Breakdown</div>
+            <div style={{fontSize:11,color:'#63636A',marginTop:2}}>Allocated budget against recorded spend for each department</div>
           </div>
           <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:12}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
               <thead>
-                <tr style={{borderBottom:'1px solid #1B1B1F',color:'#7A7974',fontSize:11,textAlign:'left'}}>
+                <tr style={{borderBottom:'1px solid #18181C',color:'#63636A',fontSize:10.5,textAlign:'left'}}>
                   <th style={{padding:'8px 0',fontWeight:500}}>Department</th>
                   <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Lines</th>
                   <th style={{padding:'8px 10px',fontWeight:500,textAlign:'right'}}>Allocated</th>
@@ -6131,13 +7492,13 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                     return (
                       <tr
                         key={row.dept}
-                        style={{borderBottom:'1px solid #161619',transition:'background 0.14s ease'}}
-                        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.02)';}}
+                        style={{borderBottom:'1px solid #151519',transition:'background 0.14s ease'}}
+                        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.015)';}}
                         onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
                       >
-                        <td style={{padding:'11px 0',minWidth:150}}>
-                          <div style={{color:T.cream,fontSize:12,fontWeight:500,marginBottom:6}}>{row.dept}</div>
-                          <div style={{width:104,height:3.5,borderRadius:9999,background:'#1C1C20',overflow:'hidden'}}>
+                        <td style={{padding:'10px 0',minWidth:150}}>
+                          <div style={{color:'#F5F5F0',fontSize:12,fontWeight:500,marginBottom:5}}>{deptShortName(row.dept)}</div>
+                          <div style={{width:108,height:3,borderRadius:9999,background:'#1A1A1E',overflow:'hidden'}}>
                             <motion.div
                               initial={{width:0}}
                               animate={{width:`${pct}%`}}
@@ -6146,10 +7507,10 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                             />
                           </div>
                         </td>
-                        <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.faint}}>{row.lines}</td>
-                        <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{fmtCompact(row.allocated, baseCur)}</td>
-                        <td style={{padding:'11px 10px',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:row.actual>0?T.dim:T.faint}}>{row.actual>0?fmtCompact(row.actual, baseCur):'—'}</td>
-                        <td style={{padding:'11px 0',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',color:over?'#E05252':T.cream}}>{fmtCompact(rem, baseCur)}</td>
+                        <td style={{padding:'10px 10px',textAlign:'right',...numStyle,color:'#63636A'}}>{row.lines}</td>
+                        <td style={{padding:'10px 10px',textAlign:'right',...numStyle,color:'#F5F5F0',fontWeight:500}}>{fmtCompact(row.allocated, baseCur)}</td>
+                        <td style={{padding:'10px 10px',textAlign:'right',...numStyle,color:row.actual>0?'#8E8E93':'#52525B'}}>{row.actual>0?fmtCompact(row.actual, baseCur):'—'}</td>
+                        <td style={{padding:'10px 0',textAlign:'right',...numStyle,color:over?'#E05252':'#F5F5F0',fontWeight:600}}>{fmtCompact(rem, baseCur)}</td>
                       </tr>
                     );
                   })
@@ -6162,12 +7523,12 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         {/* Right: Phase Totals & Contingency */}
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           {/* Phase Totals */}
-          <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+          <div style={{background:'#0C0C0E',border:'1px solid #1B1B1F',borderRadius:12,padding:'18px 20px'}}>
             <div style={{marginBottom:12}}>
-              <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Phase Totals</div>
-              <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Where the budget sits across the production timeline</div>
+              <div style={{fontSize:14.5,fontWeight:600,color:'#F5F5F0'}}>Phase Totals</div>
+              <div style={{fontSize:11,color:'#63636A',marginTop:2}}>Where the budget sits across the production timeline</div>
             </div>
-            <div style={{height:6,borderRadius:9999,background:'#18181B',overflow:'hidden',display:'flex',marginBottom:16}}>
+            <div style={{height:5,borderRadius:9999,background:'#18181B',overflow:'hidden',display:'flex',marginBottom:14}}>
               {hasBudgetItems && phaseRows.map(ph => ph.pct > 0 && (
                 <motion.div
                   key={ph.name}
@@ -6180,19 +7541,19 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             </div>
             <div style={{display:'flex',flexDirection:'column'}}>
               {phaseRows.map((ph, idx) => (
-                <div key={ph.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'9px 0',borderBottom:idx===phaseRows.length-1?'none':'1px solid #161619'}}>
+                <div key={ph.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'8px 0',borderBottom:idx===phaseRows.length-1?'none':'1px solid #151519'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <span style={{width:6,height:6,borderRadius:'50%',background:ph.color,flexShrink:0}}/>
+                    <span style={{width:5.5,height:5.5,borderRadius:'50%',background:ph.color,flexShrink:0}}/>
                     <div>
-                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:12,fontWeight:500,color:T.cream}}>{ph.name}</div>
-                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:10,color:T.faint}}>{ph.lines} line{ph.lines===1?'':'s'}</div>
+                      <div style={{fontSize:12,fontWeight:500,color:'#F5F5F0'}}>{ph.name}</div>
+                      <div style={{fontSize:10,color:'#63636A'}}>{ph.lines} line{ph.lines===1?'':'s'}</div>
                     </div>
                   </div>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:ph.total>0?T.cream:T.faint}}>
+                    <div style={{...numStyle,fontSize:12,fontWeight:600,color:ph.total>0?'#F5F5F0':'#63636A'}}>
                       {ph.total > 0 ? `${sym(baseCur)}${fmt(ph.total)}` : `${sym(baseCur)}0`}
                     </div>
-                    <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{ph.pct}%</div>
+                    <div style={{...numStyle,fontSize:10,color:'#63636A'}}>{ph.pct}%</div>
                   </div>
                 </div>
               ))}
@@ -6200,45 +7561,45 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
           </div>
 
           {/* Contingency */}
-          <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+          <div style={{background:'#0C0C0E',border:'1px solid #1B1B1F',borderRadius:12,padding:'18px 20px'}}>
             <div style={{marginBottom:10}}>
-              <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Contingency</div>
-              <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Reserve allocated for the unexpected</div>
+              <div style={{fontSize:14.5,fontWeight:600,color:'#F5F5F0'}}>Contingency</div>
+              <div style={{fontSize:11,color:'#63636A',marginTop:2}}>Reserve allocated for the unexpected</div>
             </div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
               <div>
-                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:'#F5C451'}}>
+                <span style={{...numStyle,fontSize:21,fontWeight:700,color:'#F5C451'}}>
                   {hasBudgetItems ? `${sym(baseCur)}${fmt(autoContingency)}` : '—'}
                 </span>
-                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint,marginLeft:5}}>{baseCur}</span>
+                <span style={{fontSize:9.5,color:'#63636A',marginLeft:5,fontWeight:600}}>{baseCur}</span>
               </div>
-              <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.dim}}>{contingencyPct}%</span>
+              <span style={{...numStyle,fontSize:11,color:'#8E8E93'}}>{contingencyPct}%</span>
             </div>
             <div style={{height:4,borderRadius:9999,background:'#18181B',overflow:'hidden',marginBottom:14}}>
               <motion.div
                 initial={{width:0}}
                 animate={{width:`${Math.min(100,contingencyPct * 5)}%`}}
                 transition={{duration:0.5,ease:EASE_OUT}}
-                style={{height:'100%',borderRadius:9999,background:'#F5C451',boxShadow:'0 0 10px rgba(245,196,81,0.35)'}}
+                style={{height:'100%',borderRadius:9999,background:'#F5C451',boxShadow:'0 0 8px rgba(245,196,81,0.32)'}}
               />
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,paddingTop:10,borderTop:'1px solid #19191D'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,paddingTop:10,borderTop:'1px solid #16161A'}}>
               <div>
-                <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Working budget</div>
-                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,marginTop:2}}>
+                <div style={{fontSize:10,color:'#63636A'}}>Working budget</div>
+                <div style={{...numStyle,fontSize:12,fontWeight:600,color:'#F5F5F0',marginTop:2}}>
                   {hasBudgetItems ? `${sym(baseCur)}${fmt(workingBudgetInBase)}` : '—'}
                 </div>
               </div>
               <div>
-                <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Total budget</div>
-                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,marginTop:2}}>
+                <div style={{fontSize:10,color:'#63636A'}}>Total budget</div>
+                <div style={{...numStyle,fontSize:12,fontWeight:600,color:'#F5F5F0',marginTop:2}}>
                   {hasBudgetItems ? `${sym(baseCur)}${fmt(totalBudgetInBase)}` : '—'}
                 </div>
               </div>
             </div>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12,paddingTop:10,borderTop:'1px solid #161619',fontSize:11,fontFamily:'Manrope,sans-serif'}}>
-              <span style={{color:T.faint}}>Production contingency ({contingencyPct}%)</span>
-              <span style={{fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:T.cream}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:12,paddingTop:10,borderTop:'1px solid #16161A',fontSize:11}}>
+              <span style={{color:'#63636A'}}>Production contingency ({contingencyPct}%)</span>
+              <span style={{...numStyle,fontWeight:600,color:'#F5F5F0'}}>
                 {hasBudgetItems ? `${sym(baseCur)}${fmt(autoContingency)}` : '—'}
               </span>
             </div>
