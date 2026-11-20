@@ -42,7 +42,7 @@ export function parseSetName(heading = '') {
 
 const COMMON_PROPS = [
   { term: /badge|id card/i, category: 'Props & Wardrobe', name: 'Police Badges & Official Credentials', detail: 'Ready' },
-  { term: /gun|pistol|revolver|rifle|weapon|holster/i, category: 'Props & Armory', name: 'Firearm & Tactical Holster', detail: 'Armory licensed' },
+  { term: /gun|pistol|revolver|rifle|weapon|holster|firearm/i, category: 'Props & Armory', name: 'Firearm & Tactical Holster', detail: 'Armory licensed' },
   { term: /phone|mobile|cellphone|smartphone/i, category: 'Props', name: 'Mobile Phone / Smartphone', detail: 'Hero prop' },
   { term: /briefcase|dossier|file folder|documents|ledger|manifest/i, category: 'Props', name: 'Confidential Dossier & Case Files', detail: 'Hero paperwork' },
   { term: /money|cash|naira|dollars|banknotes/i, category: 'Props', name: 'Currency Cash Bundles', detail: 'Prop currency' },
@@ -51,16 +51,22 @@ const COMMON_PROPS = [
   { term: /jacket|driver jacket|leather jacket/i, category: 'Wardrobe and Costume', name: "Driver's Jacket", detail: '× 3 · Ready' },
   { term: /uniform|police uniform|guard uniform/i, category: 'Wardrobe and Costume', name: 'Official Department Uniform', detail: 'Sized & prepped' },
   { term: /suit|designer suit|tuxedo/i, category: 'Wardrobe and Costume', name: 'Bespoke Executive Suit', detail: 'Fitted' },
+  { term: /dress|evening gown|attire|costume/i, category: 'Wardrobe and Costume', name: 'Principal Costume Wardrobe', detail: 'Continuity logged' },
+  { term: /wound|blood|injury|bruise|stitches|cut/i, category: 'Makeup and Hair', name: "SFX Wounds & Continuity Bruising", detail: 'Makeup & Hair' },
   { term: /crash|skid|pursuit|stunt|collision/i, category: 'SFX & Stunts', name: 'Precision Stunt Driving Rig', detail: 'Safety coordinator briefed' },
+  { term: /gunfire|muzzle flash|shootout|bullet hits/i, category: 'Special Effects', name: 'Bridge exchange gunfire & Muzzle FX', detail: 'Quarter loads' },
+  { term: /water rescue|drown|lagoon rescue|dive/i, category: 'Stunts and Action', name: 'Water rescue rig & safety divers', detail: 'Safety boat ready' },
   { term: /explosion|fire|blast|smoke/i, category: 'SFX & Pyro', name: 'Atmospheric Smoke & Flare SFX', detail: 'Pyro safety tech' },
 ];
 
 const COMMON_VEHICLES = [
-  { term: /taxi|cab|peugeot/i, name: "Adaobi's Taxi", type: 'Lead Character Vehicle', spec: '1984 Peugeot 504 · Classic Yellow & Black Lagos Taxi', detail: 'Static & moving' },
-  { term: /police cruiser|patrol car|hilux|police van/i, name: 'Police Cruiser', type: 'Action Vehicle', spec: 'Toyota Hilux 4x4 · Red/Blue Beacon Bar', detail: 'Static & pursuit' },
-  { term: /motorcycle|bike|okada/i, name: 'Motorcycle Courier', type: 'Secondary Vehicle', spec: 'Bajaj Boxer 100cc Dispatch Bike', detail: 'Running' },
-  { term: /ambulance/i, name: 'Emergency Ambulance', type: 'Specialty Vehicle', spec: 'Toyota HiAce Emergency Medical Unit', detail: 'Permit ready' },
-  { term: /boat|canoe|ferry/i, name: 'Lagoon Wooden Boat', type: 'Watercraft', spec: 'Outboard Motor Wooden Canoe', detail: 'Water safety crew' },
+  { term: /taxi|cab|peugeot/i, name: "Adaobi's Taxi", type: 'Taxi', spec: 'Toyota Corolla 2008 · Yellow with black stripe', makeModel: 'Toyota Corolla 2008', colour: 'Yellow with black stripe', registration: 'LSR 412 KJ', usage: 'Static & moving', detail: 'Static & moving' },
+  { term: /police cruiser|patrol car|hilux|police van/i, name: 'Police Cruiser', type: 'Police vehicle', spec: 'Toyota Hilux · Black and white livery', makeModel: 'Toyota Hilux', colour: 'Black and white livery', registration: 'Prop plates', usage: 'Moving', detail: 'Static & pursuit' },
+  { term: /motorcycle|bike|okada/i, name: 'Motorcycle Courier', type: 'Motorcycle', spec: 'Bajaj Boxer 100cc Dispatch Bike', makeModel: 'Bajaj Boxer 100cc', colour: 'Red', registration: 'Prop plates', usage: 'Moving', detail: 'Running' },
+  { term: /ambulance|paramedic/i, name: 'Emergency Ambulance', type: 'Emergency', spec: 'Toyota HiAce Emergency Medical Unit', makeModel: 'Toyota HiAce', colour: 'White / Red', registration: 'Emergency plates', usage: 'Static & moving', detail: 'Permit ready' },
+  { term: /truck|pickup|van|lorry/i, name: 'Production Transport Van', type: 'Truck / Van', spec: 'Ford Transit Cargo Van', makeModel: 'Ford Transit', colour: 'White', registration: 'Prop plates', usage: 'Moving', detail: 'Running' },
+  { term: /boat|canoe|ferry|yacht|watercraft/i, name: 'Lagoon Wooden Boat', type: 'Watercraft', spec: 'Outboard Motor Wooden Canoe', makeModel: 'Wooden Outboard Canoe', colour: 'Natural wood', registration: 'Marine permit', usage: 'Moving', detail: 'Water safety crew' },
+  { term: /sedan|suv|jeep|limo|car/i, name: 'Lead Character Sedan', type: 'Lead Vehicle', spec: 'Executive Sedan', makeModel: 'Executive Sedan', colour: 'Dark Gray', registration: 'Prop plates', usage: 'Static & moving', detail: 'Running' },
 ];
 
 export function extractSceneElements(text = '', heading = '') {
