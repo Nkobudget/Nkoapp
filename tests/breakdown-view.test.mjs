@@ -166,3 +166,40 @@ test('script breakdown locations tab layout and unmapped sets parity', async () 
   assert.match(fileContent, /Remove location\?/);
   assert.match(fileContent, /Its sets will become unmapped\./);
 });
+
+test('script breakdown production elements tab layout and modals parity', async () => {
+  const fileContent = fs.readFileSync(path.resolve('src/legacy/LegacyApp.jsx'), 'utf8');
+
+  // Verify Default Production Elements
+  assert.match(fileContent, /const DEFAULT_PRODUCTION_ELEMENTS\s*=/);
+  assert.match(fileContent, /Black holdall of cash/);
+  assert.match(fileContent, /Taxi meter \(practical\)/);
+  assert.match(fileContent, /Adaobi's driver jacket/);
+  assert.match(fileContent, /Tunde's surgery wounds/);
+  assert.match(fileContent, /Bridge exchange gunfire/);
+  assert.match(fileContent, /Water rescue rig/);
+
+  // Verify Top Action Button switches to Production Elements on elements tab
+  assert.match(fileContent, /activeTab === 'elements'\s*\?\s*\(\s*<motion\.button[^>]*>[\s\S]*?Production Elements/);
+
+  // Verify Production Elements Header & Subtitle
+  assert.match(fileContent, /Everything each scene needs, by category and department\./);
+
+  // Verify Filters
+  assert.match(fileContent, /aria-label="Search production elements"/);
+  assert.match(fileContent, /aria-label="Category filter"/);
+  assert.match(fileContent, /aria-label="Status filter"/);
+
+  // Verify Table Headers
+  assert.match(fileContent, />\s*Element\s*<\/th>/);
+  assert.match(fileContent, />\s*Category ↑\s*<\/th>/);
+  assert.match(fileContent, />\s*Qty\s*<\/th>/);
+  assert.match(fileContent, />\s*Department\s*<\/th>/);
+  assert.match(fileContent, />\s*Status\s*<\/th>/);
+
+  // Verify Modals
+  assert.match(fileContent, /function ProductionElementModal/);
+  assert.match(fileContent, /Edit production element/);
+  assert.match(fileContent, /function DeleteProductionElementModal/);
+  assert.match(fileContent, /Remove production element\?/);
+});

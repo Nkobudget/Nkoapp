@@ -9119,13 +9119,75 @@ const LAGOS_AFTER_DARK_CAST = [
 ];
 
 const LAGOS_AFTER_DARK_ELEMENTS = [
-  { id: 'el-1', category: 'Vehicles & Set', name: "Adaobi's Taxi (Yellow Peugeot 504)", scenes: '2, 8, 13', notes: 'Camera mount, dashboard glow, windshield mic' },
-  { id: 'el-2', category: 'Props', name: 'Police Dossier & Official Badges', scenes: '7, 9, 14', notes: 'Recreated stamp seals, case file, audio tape recorder' },
-  { id: 'el-3', category: 'Props & Set Dec', name: 'Club Eclipse DJ Rig & VIP Service', scenes: '3, 4, 11', notes: 'Pioneer setup, champagne buckets, neon bar signage' },
-  { id: 'el-4', category: 'Props', name: 'Hospital Stretcher & Clinical Vitals', scenes: '16', notes: 'Sterile drip stand, ward charts' },
-  { id: 'el-5', category: 'SFX & Stunts', name: 'Carter Bridge Stunt Rig & Pursuit', scenes: '15', notes: 'Precision driver, safety coordinator, road closure' },
-  { id: 'el-6', category: 'Camera & Lighting', name: 'Night Exterior HMI & Cinema Primes', scenes: '1, 9, 12, 18', notes: 'Low-light anamorphic lenses, boom genny for lagoon' },
+  {
+    id: 'el-1',
+    name: 'Black holdall of cash',
+    description: 'Worn leather holdall packed with prop naira bundles.',
+    notes: 'Worn leather holdall packed with prop naira bundles.',
+    category: 'Props',
+    scenes: [2, 3, 5, 15],
+    qty: 2,
+    department: 'Props',
+    status: 'In prep',
+  },
+  {
+    id: 'el-2',
+    name: 'Taxi meter (practical)',
+    description: 'Working practical meter for the taxi dashboard.',
+    notes: 'Working practical meter for the taxi dashboard.',
+    category: 'Props',
+    scenes: [2, 8, 13, 18],
+    qty: 1,
+    department: 'Props',
+    status: 'Ready',
+  },
+  {
+    id: 'el-3',
+    name: "Adaobi's driver jacket",
+    description: 'Faded denim jacket, continuity piece across the film.',
+    notes: 'Faded denim jacket, continuity piece across the film.',
+    category: 'Wardrobe and Costume',
+    scenes: [1, 2, 8, 12, 18],
+    qty: 3,
+    department: 'Costume',
+    status: 'Ready',
+  },
+  {
+    id: 'el-4',
+    name: "Tunde's surgery wounds",
+    description: 'Bruising and stitched wound continuity.',
+    notes: 'Bruising and stitched wound continuity.',
+    category: 'Makeup and Hair',
+    scenes: [16],
+    qty: '—',
+    department: 'Makeup & Hair',
+    status: 'Needed',
+  },
+  {
+    id: 'el-5',
+    name: 'Bridge exchange gunfire',
+    description: 'Muzzle flashes and two bullet hits on the taxi.',
+    notes: 'Muzzle flashes and two bullet hits on the taxi.',
+    category: 'Special Effects',
+    scenes: [15],
+    qty: '—',
+    department: 'Special Effects',
+    status: 'Needed',
+  },
+  {
+    id: 'el-6',
+    name: 'Water rescue rig',
+    description: 'Safety rig and divers for the waterfront rescue.',
+    notes: 'Safety rig and divers for the waterfront rescue.',
+    category: 'Stunts and Action',
+    scenes: [12],
+    qty: '—',
+    department: 'Stunts',
+    status: 'Sourcing',
+  },
 ];
+
+const DEFAULT_PRODUCTION_ELEMENTS = LAGOS_AFTER_DARK_ELEMENTS;
 
 const LAGOS_AFTER_DARK_VEHICLES = [
   { id: 'veh-1', name: "Adaobi's Taxi", type: 'Lead Vehicle', spec: '1984 Peugeot 504 · Classic Yellow & Black Lagos Taxi', scenes: '2, 8, 13', status: 'Sourced & Rigged' },
@@ -11148,6 +11210,611 @@ function DeleteLocationModal({ location, onClose, onConfirm }) {
   );
 }
 
+function ProductionElementModal({ open, onClose, element, onSave, onDelete, allScenes = [] }) {
+  const mob = useIsMobile();
+  const isEdit = Boolean(element && !element.isNew);
+
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('Props');
+  const [department, setDepartment] = useState('Props');
+  const [qty, setQty] = useState('1');
+  const [status, setStatus] = useState('Ready');
+  const [selectedScenes, setSelectedScenes] = useState([]);
+
+  useEffect(() => {
+    if (element) {
+      setName(element.name || '');
+      setDescription(element.description || element.notes || '');
+      setCategory(element.category || 'Props');
+      setDepartment(element.department || 'Props');
+      setQty(element.qty !== undefined && element.qty !== null ? String(element.qty) : '1');
+      setStatus(element.status || 'Ready');
+      const scs = Array.isArray(element.scenes)
+        ? element.scenes
+        : (element.scenes ? String(element.scenes).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)) : []);
+      setSelectedScenes(scs);
+    }
+  }, [element]);
+
+  const toggleScene = (scNum) => {
+    setSelectedScenes(prev =>
+      prev.includes(scNum) ? prev.filter(n => n !== scNum) : [...prev, scNum].sort((a,b)=>a-b)
+    );
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    onSave({
+      id: element?.id || `el-${Date.now()}`,
+      name: name.trim(),
+      description: description.trim(),
+      notes: description.trim(),
+      category,
+      department: department.trim() || category,
+      qty: qty.trim() || '—',
+      status,
+      scenes: selectedScenes,
+    });
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={onClose}
+        >
+          <motion.form
+            initial={{ scale: 0.94, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.94, opacity: 0, y: 10 }}
+            transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleSubmit}
+            style={{
+              background: '#101012',
+              border: '1px solid #1E1E22',
+              borderRadius: 16,
+              width: '100%',
+              maxWidth: 500,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '92vh',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: mob ? '16px 18px 12px' : '20px 24px 14px',
+                borderBottom: '1px solid #1C1C20',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: T.cream,
+                    letterSpacing: '-0.02em',
+                    fontFamily: 'Manrope,sans-serif',
+                  }}
+                >
+                  {isEdit ? 'Edit production element' : 'Add production element'}
+                </h3>
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: '#8A8985',
+                    marginTop: 4,
+                    fontFamily: 'Manrope,sans-serif',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Key props, wardrobe, camera package, sound and SFX requirements.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#71717A',
+                  cursor: 'pointer',
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 6,
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div
+              style={{
+                padding: mob ? '14px 18px' : '18px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+                overflowY: 'auto',
+              }}
+            >
+              {/* Element Name */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#D4D4D8',
+                    marginBottom: 6,
+                    fontFamily: 'Manrope,sans-serif',
+                  }}
+                >
+                  Element name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Black holdall of cash"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #222226',
+                    borderRadius: 8,
+                    padding: '9px 12px',
+                    color: T.cream,
+                    fontSize: 11.5,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Category & Department */}
+              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Category<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                  </label>
+                  <select
+                    value={category}
+                    onChange={e => {
+                      setCategory(e.target.value);
+                      if (e.target.value === 'Wardrobe and Costume') setDepartment('Costume');
+                      else if (e.target.value === 'Makeup and Hair') setDepartment('Makeup & Hair');
+                      else if (e.target.value === 'Stunts and Action') setDepartment('Stunts');
+                      else if (e.target.value === 'Special Effects') setDepartment('Special Effects');
+                      else if (e.target.value === 'Props') setDepartment('Props');
+                    }}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #222226',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      color: '#D4D4D8',
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="Props">Props</option>
+                    <option value="Wardrobe and Costume">Wardrobe and Costume</option>
+                    <option value="Makeup and Hair">Makeup and Hair</option>
+                    <option value="Special Effects">Special Effects</option>
+                    <option value="Stunts and Action">Stunts and Action</option>
+                    <option value="Camera and Sound">Camera and Sound</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Department<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Props, Costume"
+                    value={department}
+                    onChange={e => setDepartment(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #222226',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      color: T.cream,
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Quantity & Status */}
+              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Quantity
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2 or —"
+                    value={qty}
+                    onChange={e => setQty(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #222226',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      color: T.cream,
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Status<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                  </label>
+                  <select
+                    value={status}
+                    onChange={e => setStatus(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #222226',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      color: '#D4D4D8',
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="Ready">Ready</option>
+                    <option value="In prep">In prep</option>
+                    <option value="Sourcing">Sourcing</option>
+                    <option value="Needed">Needed</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Scenes Linked */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Scenes
+                  </label>
+                  <span style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif' }}>
+                    {selectedScenes.length} selected
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 110, overflowY: 'auto', padding: '4px 0' }}>
+                  {allScenes.map(sc => {
+                    const isSelected = selectedScenes.includes(sc.sceneNumber);
+                    return (
+                      <button
+                        key={sc.sceneNumber}
+                        type="button"
+                        onClick={() => toggleScene(sc.sceneNumber)}
+                        style={{
+                          background: isSelected ? '#161619' : '#121215',
+                          border: isSelected ? '1px solid #F5A623' : '1px solid #222226',
+                          color: isSelected ? '#F5A623' : '#71717A',
+                          borderRadius: 6,
+                          padding: '4px 9px',
+                          fontSize: 10.5,
+                          fontFamily: 'IBM Plex Mono, monospace',
+                          fontWeight: isSelected ? 700 : 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {sc.sceneNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Description & Notes */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#D4D4D8',
+                    marginBottom: 6,
+                    fontFamily: 'Manrope,sans-serif',
+                  }}
+                >
+                  Description &amp; continuity notes
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Worn leather holdall packed with prop naira bundles."
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #222226',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    color: T.cream,
+                    fontSize: 11.5,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: mob ? '12px 18px 16px' : '14px 24px 18px',
+                borderTop: '1px solid #1C1C20',
+                display: 'flex',
+                justifyContent: isEdit ? 'space-between' : 'flex-end',
+                alignItems: 'center',
+                gap: 10,
+                background: '#101012',
+              }}
+            >
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDelete) onDelete(element);
+                    onClose();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#E05252',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    padding: '6px 0',
+                  }}
+                >
+                  <Trash2 size={13} />
+                  <span>Delete</span>
+                </button>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    background: '#141416',
+                    border: '1px solid #26262B',
+                    color: '#E5E5E0',
+                    borderRadius: 10,
+                    padding: '9px 18px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  type="submit"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+                  style={{
+                    background: 'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',
+                    color: '#0A0A0A',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '9px 20px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
+                  }}
+                >
+                  Save changes
+                </motion.button>
+              </div>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function DeleteProductionElementModal({ element, onClose, onConfirm }) {
+  if (!element) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.72)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+        }}
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.94, opacity: 0, y: 10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.94, opacity: 0, y: 10 }}
+          transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: '#101012',
+            border: '1px solid #1E1E22',
+            borderRadius: 16,
+            width: '100%',
+            maxWidth: 420,
+            padding: '24px 24px 20px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+            Remove production element?
+          </h3>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+            Are you sure you want to remove <strong style={{ color: T.cream }}>{element.name}</strong> from this production?
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#141416',
+                border: '1px solid #26262B',
+                color: '#E5E5E0',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <motion.button
+              type="button"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => {
+                onConfirm(element);
+                onClose();
+              }}
+              style={{
+                background: '#E05252',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Remove
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const mob=useIsMobile();
   const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
@@ -11396,6 +12063,70 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
   const castTabCount = castMembers.length > 0 ? castMembers.length : 10;
   const locTabCount = locations.length > 0 ? locations.length : 4;
 
+  // Production Elements storage & state
+  const elementsStorageKey = project?.id ? `nko_elements_${project.id}` : null;
+  const [elements, setElements] = useState(() => {
+    if (elementsStorageKey) {
+      try {
+        const stored = localStorage.getItem(elementsStorageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return DEFAULT_PRODUCTION_ELEMENTS;
+  });
+
+  const saveElementsList = (updated) => {
+    setElements(updated);
+    if (elementsStorageKey) {
+      try {
+        localStorage.setItem(elementsStorageKey, JSON.stringify(updated));
+      } catch {}
+    }
+  };
+
+  const [elSearch, setElSearch] = useState('');
+  const [elCategoryFilter, setElCategoryFilter] = useState('all');
+  const [elStatusFilter, setElStatusFilter] = useState('all');
+  const [editingElement, setEditingElement] = useState(null);
+  const [deleteTargetElement, setDeleteTargetElement] = useState(null);
+
+  const handleSaveElement = (elData) => {
+    let updated;
+    const existingIndex = elements.findIndex(e => e.id === elData.id);
+    if (existingIndex >= 0) {
+      updated = [...elements];
+      updated[existingIndex] = { ...updated[existingIndex], ...elData };
+    } else {
+      updated = [...elements, elData];
+    }
+    saveElementsList(updated);
+  };
+
+  const handleDeleteElement = (elData) => {
+    const updated = elements.filter(e => e.id !== elData.id);
+    saveElementsList(updated);
+  };
+
+  const filteredElements = elements.filter(el => {
+    if (elCategoryFilter !== 'all' && el.category !== elCategoryFilter) return false;
+    if (elStatusFilter !== 'all' && el.status !== elStatusFilter) return false;
+    if (elSearch.trim()) {
+      const q = elSearch.trim().toLowerCase();
+      const matchName = (el.name || '').toLowerCase().includes(q);
+      const matchDesc = (el.description || el.notes || '').toLowerCase().includes(q);
+      const matchCat = (el.category || '').toLowerCase().includes(q);
+      const matchDept = (el.department || '').toLowerCase().includes(q);
+      const matchScenes = (el.scenes || []).some(sc => String(sc).toLowerCase().includes(q));
+      if (!matchName && !matchDesc && !matchCat && !matchDept && !matchScenes) return false;
+    }
+    return true;
+  });
+
+  const elementsTabCount = elements.length > 0 ? elements.length : 6;
+
   return(
     <div>
       {/* Breadcrumb & Header */}
@@ -11445,6 +12176,18 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               <Plus size={14}/>
               <span>Add Location</span>
             </motion.button>
+          ) : activeTab === 'elements' ? (
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{setEditingElement({ isNew: true, status: 'Needed', category: 'Props', department: 'Props' }); setShowUpload(false);}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+            >
+              <Plus size={14}/>
+              <span>Production Elements</span>
+            </motion.button>
           ) : (
             <motion.button
               type="button"
@@ -11467,7 +12210,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           {id:'scenes',label:'Scenes',count:ps.length,hasDot:true},
           {id:'cast',label:'Cast',count:castTabCount},
           {id:'locations',label:'Locations',count:locTabCount},
-          {id:'elements',label:'Production Elements',count:6},
+          {id:'elements',label:'Production Elements',count:elementsTabCount},
           {id:'vehicles',label:'Picture Vehicles',count:2},
         ].map(tab=>{
           const isActive=activeTab===tab.id;
@@ -12697,34 +13440,285 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       )}
 
       {/* Production Elements Tab */}
-      {activeTab==='elements'&&(
+      {activeTab === 'elements' && (
         <motion.div
-          initial={{opacity:0,y:8}}
-          animate={{opacity:1,y:0}}
-          transition={{duration:DURATION.normal,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DURATION.normal, ease: EASE_OUT }}
+          style={{
+            background: '#101012',
+            border: '1px solid #1E1E22',
+            borderRadius: 14,
+            padding: mob ? '16px' : '20px 22px',
+            marginBottom: 20,
+          }}
         >
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
-            <div>
-              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Production Elements</span>
-              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>Key props, wardrobe, camera package, sound and SFX requirements</div>
+          {/* Header */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
+              Production Elements
             </div>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{LAGOS_AFTER_DARK_ELEMENTS.length} elements</span>
+            <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+              Everything each scene needs, by category and department.
+            </div>
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
-            {LAGOS_AFTER_DARK_ELEMENTS.map(el=>(
-              <div key={el.id} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:8}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-                  <span style={{fontSize:10,fontWeight:700,fontFamily:'IBM Plex Mono,monospace',color:'#F5A623',background:'rgba(245,166,35,0.1)',padding:'2px 8px',borderRadius:6}}>
-                    {el.category}
-                  </span>
-                  <span style={{fontSize:10.5,fontFamily:'IBM Plex Mono,monospace',color:'#8A8985'}}>Scenes {el.scenes}</span>
-                </div>
-                <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,color:T.cream}}>{el.name}</div>
-                <div style={{fontSize:11,color:'#8A8985',lineHeight:1.4}}>{el.notes}</div>
+          {/* Filters Row */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', flex: 1, minWidth: mob ? '100%' : 220 }}>
+              <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+              <input
+                type="search"
+                aria-label="Search production elements"
+                placeholder="Search location, address, set or contact"
+                value={elSearch}
+                onChange={e => setElSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: '#141416',
+                  border: '1px solid #222226',
+                  borderRadius: 8,
+                  padding: '7px 12px 7px 32px',
+                  color: T.cream,
+                  fontSize: 12,
+                  fontFamily: 'Manrope,sans-serif',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Category Dropdown */}
+            <select
+              aria-label="Category filter"
+              value={elCategoryFilter}
+              onChange={e => setElCategoryFilter(e.target.value)}
+              style={{
+                background: '#141416',
+                border: '1px solid #222226',
+                borderRadius: 8,
+                padding: '7px 12px',
+                color: '#D4D4D8',
+                fontSize: 12,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value="all">Category</option>
+              <option value="Props">Props</option>
+              <option value="Wardrobe and Costume">Wardrobe and Costume</option>
+              <option value="Makeup and Hair">Makeup and Hair</option>
+              <option value="Special Effects">Special Effects</option>
+              <option value="Stunts and Action">Stunts and Action</option>
+              <option value="Camera and Sound">Camera and Sound</option>
+            </select>
+
+            {/* Status Dropdown */}
+            <select
+              aria-label="Status filter"
+              value={elStatusFilter}
+              onChange={e => setElStatusFilter(e.target.value)}
+              style={{
+                background: '#141416',
+                border: '1px solid #222226',
+                borderRadius: 8,
+                padding: '7px 12px',
+                color: '#D4D4D8',
+                fontSize: 12,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value="all">Status</option>
+              <option value="Ready">Ready</option>
+              <option value="In prep">In prep</option>
+              <option value="Sourcing">Sourcing</option>
+              <option value="Needed">Needed</option>
+            </select>
+          </div>
+
+          {/* Records count */}
+          <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Manrope,sans-serif', marginBottom: 10 }}>
+            {filteredElements.length} record{filteredElements.length === 1 ? '' : 's'}
+          </div>
+
+          {/* Table */}
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 680 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+                  <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Element
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Category ↑
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Scenes
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Qty
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Department
+                  </th>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Status
+                  </th>
+                  <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif', textAlign: 'right' }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredElements.map(el => {
+                  const scenesList = Array.isArray(el.scenes)
+                    ? el.scenes
+                    : (el.scenes ? String(el.scenes).split(',').map(s => s.trim()).filter(Boolean) : []);
+
+                  // Status style mapping
+                  let statusBg = 'rgba(16, 185, 129, 0.12)';
+                  let statusBorder = 'rgba(16, 185, 129, 0.35)';
+                  let statusColor = '#10B981';
+                  if (el.status === 'In prep') {
+                    statusBg = 'rgba(59, 130, 246, 0.12)';
+                    statusBorder = 'rgba(59, 130, 246, 0.35)';
+                    statusColor = '#3B82F6';
+                  } else if (el.status === 'Sourcing') {
+                    statusBg = 'rgba(245, 166, 35, 0.12)';
+                    statusBorder = 'rgba(245, 166, 35, 0.35)';
+                    statusColor = '#F5A623';
+                  } else if (el.status === 'Needed') {
+                    statusBg = 'rgba(239, 68, 68, 0.12)';
+                    statusBorder = 'rgba(239, 68, 68, 0.35)';
+                    statusColor = '#EF4444';
+                  }
+
+                  return (
+                    <tr key={el.id} style={{ borderBottom: '1px solid #161619' }}>
+                      {/* Element Name & Description */}
+                      <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', maxWidth: 220 }}>
+                        <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
+                          {el.name}
+                        </div>
+                        {(el.description || el.notes) && (
+                          <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif', marginTop: 2, lineHeight: 1.35 }}>
+                            {el.description || el.notes}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Category */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                          {el.category}
+                        </span>
+                      </td>
+
+                      {/* Scenes */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                          {scenesList.map(num => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => {
+                                setActiveTab('scenes');
+                                const target = ps.find(s => String(s.sceneNumber) === String(num));
+                                if (target) setSelectedScene(target);
+                              }}
+                              style={{
+                                background: '#17171B',
+                                border: '1px solid #26262C',
+                                borderRadius: 3,
+                                padding: '2px 5px',
+                                fontFamily: 'IBM Plex Mono,monospace',
+                                fontSize: 10,
+                                color: '#D4D4D8',
+                                cursor: 'pointer',
+                              }}
+                              title={`Go to scene ${num}`}
+                            >
+                              {num}
+                            </button>
+                          ))}
+                          {scenesList.length === 0 && (
+                            <span style={{ color: '#71717A', fontSize: 11 }}>—</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Quantity */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontFamily: 'IBM Plex Mono,monospace', fontSize: 11, color: '#D4D4D8' }}>
+                          {el.qty !== undefined && el.qty !== null ? el.qty : '—'}
+                        </span>
+                      </td>
+
+                      {/* Department */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                          {el.department || el.category}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            background: statusBg,
+                            border: `1px solid ${statusBorder}`,
+                            borderRadius: 20,
+                            padding: '2px 9px',
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            color: statusColor,
+                            fontFamily: 'Manrope,sans-serif',
+                          }}
+                        >
+                          {el.status || 'Ready'}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ padding: '12px 0 12px 8px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                          <motion.button
+                            whileHover={{ scale: 1.15, color: '#F5C451' }}
+                            whileTap={{ scale: 0.92 }}
+                            type="button"
+                            onClick={() => setEditingElement(el)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A', padding: 2 }}
+                            title="Edit production element"
+                          >
+                            <Pencil size={12.5} />
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.15, color: '#E05252' }}
+                            whileTap={{ scale: 0.92 }}
+                            type="button"
+                            onClick={() => setDeleteTargetElement(el)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A', padding: 2 }}
+                            title="Delete production element"
+                          >
+                            <Trash2 size={12.5} />
+                          </motion.button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filteredElements.length === 0 && (
+              <div style={{ padding: '36px 0', textAlign: 'center', color: '#71717A', fontSize: 12 }}>
+                No production elements match your filters.
               </div>
-            ))}
+            )}
           </div>
         </motion.div>
       )}
@@ -12828,6 +13822,21 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         location={deleteTargetLocation}
         onClose={() => setDeleteTargetLocation(null)}
         onConfirm={handleDeleteLocation}
+      />
+
+      <ProductionElementModal
+        open={Boolean(editingElement)}
+        element={editingElement}
+        onClose={() => setEditingElement(null)}
+        onSave={handleSaveElement}
+        onDelete={handleDeleteElement}
+        allScenes={ps}
+      />
+
+      <DeleteProductionElementModal
+        element={deleteTargetElement}
+        onClose={() => setDeleteTargetElement(null)}
+        onConfirm={handleDeleteElement}
       />
       <div style={{marginTop:8}}>
         <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>
