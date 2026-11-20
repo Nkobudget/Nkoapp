@@ -2994,7 +2994,7 @@ const computeTotalSpend = (projectAdvances = [], projectReconEntries = [], proje
 };
 
 /* ── Dashboard ── */
-function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit,searchQuery='',userEmail='',onlyProductions=false}){
+function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],onOpenUploadScript,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit,searchQuery='',userEmail='',onlyProductions=false}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const[collabModalProject,setCollabModalProject]=useState(null);
@@ -3151,7 +3151,9 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
             <Clapperboard size={14} style={{color:T.faint}}/>
           </div>
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:T.cream,fontWeight:600}}>{projects.length}</div>
-          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:4}}>{t('statActive')}</div>
+          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:4}}>
+            {scenes.length > 0 ? `${scenes.length} script scenes broken down` : t('statActive')}
+          </div>
           <div style={{display:'flex',gap:4,marginTop:10}}>
             <span style={{height:3,flex:2,borderRadius:2,background:'#4CAF7A'}}/>
             <span style={{height:3,flex:1,borderRadius:2,background:'#4A90D9'}}/>
@@ -3253,6 +3255,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                   <tr style={{borderBottom:'1px solid #1E1E22',color:'#71717A',fontSize:11.5,textAlign:'left'}}>
                     <th style={{padding:'13px 16px 13px 18px',fontWeight:500,whiteSpace:'nowrap'}}>Production</th>
                     <th style={{padding:'13px 14px',fontWeight:500,whiteSpace:'nowrap'}}>Status</th>
+                    <th style={{padding:'13px 14px',fontWeight:500,whiteSpace:'nowrap'}}>Script Breakdown</th>
                     <th style={{padding:'13px 14px',fontWeight:500,textAlign:'right',whiteSpace:'nowrap'}}>Budget</th>
                     <th style={{padding:'13px 14px',fontWeight:500,textAlign:'right',whiteSpace:'nowrap'}}>Spend</th>
                     <th style={{padding:'13px 14px',fontWeight:500,textAlign:'right',whiteSpace:'nowrap'}}>Remaining</th>
@@ -3263,6 +3266,14 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                 </thead>
                 <tbody>
                   {visibleProjects.map((p, idx)=>{
+                    const isLagosDark = (p.name || '').toLowerCase().includes('lagos');
+                    const pScenes = (scenes || []).filter(s => matchesProject(s.project_id, p.id, p.name));
+                    const effectiveScenes = pScenes.length > 0 ? pScenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []);
+                    const pScriptScene = effectiveScenes.find(s => s.script_name || s.data?.script_name);
+                    const scriptTitle = p.script_name || pScriptScene?.script_name || pScriptScene?.data?.script_name || (effectiveScenes.length > 0 ? (isLagosDark ? 'Lagos After Dark — Shooting Draft.fdx' : `${p.name} Script`) : null);
+                    const pCast = [...new Set(effectiveScenes.flatMap(s => s.cast || []))].filter(Boolean);
+                    const pLocs = [...new Set(effectiveScenes.map(s => sceneLoc(s)).filter(Boolean))];
+
                     const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
                     const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
                     const pAdv=advances.filter(a=>matchesProject(a.project_id, p.id, p.name));
@@ -3341,6 +3352,28 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                             {statusLabel}
                           </span>
                         </td>
+                        <td style={{padding:'16px 14px',verticalAlign:'middle',whiteSpace:'nowrap'}}>
+                          {scriptTitle ? (
+                            <div style={{display:'inline-flex',flexDirection:'column',gap:2}}>
+                              <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11.5,fontWeight:600,color:'#F5C451',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis'}}>
+                                <FileText size={12} style={{flexShrink:0}}/>
+                                <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{scriptTitle}</span>
+                              </div>
+                              <div style={{fontSize:10.5,color:'#8E8E93'}}>
+                                {effectiveScenes.length} sc · {pCast.length} cast · {pLocs.length} loc
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={e=>{e.stopPropagation();onOpenUploadScript?.(p.id);}}
+                              style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 8px',borderRadius:6,border:'1px dashed #3A3A40',background:'rgba(255,255,255,0.02)',color:'#A1A1AA',fontSize:11,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                            >
+                              <Plus size={11}/>
+                              <span>Upload script</span>
+                            </button>
+                          )}
+                        </td>
                         <td style={{padding:'16px 14px',verticalAlign:'middle',textAlign:'right',fontFamily:'IBM Plex Mono,monospace',fontSize:12.5,fontWeight:600,color:'#F5F4F0',whiteSpace:'nowrap'}}>
                           {budgetText}
                         </td>
@@ -3376,6 +3409,14 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         ):(
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:14,marginBottom:onlyProductions?0:28}}>
           {visibleProjects.map(p=>{
+            const isLagosDark = (p.name || '').toLowerCase().includes('lagos');
+            const pScenes = (scenes || []).filter(s => matchesProject(s.project_id, p.id, p.name));
+            const effectiveScenes = pScenes.length > 0 ? pScenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []);
+            const pScriptScene = effectiveScenes.find(s => s.script_name || s.data?.script_name);
+            const scriptTitle = p.script_name || pScriptScene?.script_name || pScriptScene?.data?.script_name || (effectiveScenes.length > 0 ? (isLagosDark ? 'Lagos After Dark — Shooting Draft.fdx' : `${p.name} Script`) : null);
+            const pCast = [...new Set(effectiveScenes.flatMap(s => s.cast || []))].filter(Boolean);
+            const pLocs = [...new Set(effectiveScenes.map(s => sceneLoc(s)).filter(Boolean))];
+
             const pi=budgetItems.filter(i=>matchesProject(i.project_id, p.id, p.name));
             const totals={};pi.forEach(i=>{totals[i.currency]=(totals[i.currency]||0)+lTot(i);});
             if (Object.keys(totals).length === 0 && Number(p.target_budget) > 0) {
@@ -3426,10 +3467,34 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                       </span>
                     )}
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14}}>
+                  <div style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>
                     <MapPin size={11} style={{color:T.faint,flexShrink:0}}/>
                     <span>{p.base_currency || 'NGN'} · {pi.length > 0 ? `${pi.length} lines` : (p.target_budget ? 'Target budget set' : '0 lines')} · {open} open advances</span>
                   </div>
+
+                  {scriptTitle ? (
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'6px 10px',borderRadius:8,background:'#161619',border:'1px solid #28282E',marginBottom:12,fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0,overflow:'hidden'}}>
+                        <FileText size={12} style={{color:'#F5C451',flexShrink:0}}/>
+                        <span style={{color:'#F5C451',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{scriptTitle}</span>
+                      </div>
+                      <span style={{color:'#A1A1AA',fontSize:10.5,whiteSpace:'nowrap',flexShrink:0}}>
+                        {effectiveScenes.length} sc · {pCast.length} cast · {pLocs.length} loc
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'5px 10px',borderRadius:8,background:'rgba(255,255,255,0.02)',border:'1px dashed #2A2A30',marginBottom:12,fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif'}}>
+                      <span>No script uploaded</span>
+                      <button
+                        type="button"
+                        onClick={e=>{e.stopPropagation();onOpenUploadScript?.(p.id);}}
+                        style={{background:'none',border:'none',color:'#F5C451',fontSize:10.5,fontWeight:600,cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',gap:3}}
+                      >
+                        <Plus size={11}/>
+                        <span>Upload script</span>
+                      </button>
+                    </div>
+                  )}
 
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:12}}>
                     <div>
@@ -3603,6 +3668,8 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
 
   const isLagosDark = (project?.name || '').toLowerCase().includes('lagos');
   const effectiveScenes = scenes && scenes.length > 0 ? scenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []);
+  const pScriptScene = (effectiveScenes || []).find(s => s.script_name || s.data?.script_name);
+  const resolvedScriptName = project?.script_name || pScriptScene?.script_name || pScriptScene?.data?.script_name || (effectiveScenes.length > 0 ? (isLagosDark ? 'Lagos After Dark — Shooting Draft.fdx' : `${project?.name} Script`) : null);
   const uniqueCast = [...new Set(effectiveScenes.flatMap(s => s.cast || []))].filter(Boolean);
   const uniqueLocs = [...new Set(effectiveScenes.map(s => sceneLoc(s)).filter(Boolean))];
   const uniqueVehsCount = new Set(effectiveScenes.flatMap(s => (s.pictureVehicles || []).map(v => v.name || v).concat(s.vehicles || []))).size;
@@ -3784,10 +3851,10 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
           <div style={{fontSize:11,color:T.faint,marginTop:3,fontFamily:'IBM Plex Mono,monospace'}}>
             Currency: {baseCur} {sym(baseCur)} · {isOwner ? 'Production Admin' : 'Collaborator'}
           </div>
-          {(project.script_name || effectiveScenes.length > 0) && (
+          {resolvedScriptName && (
             <div style={{display:'inline-flex',alignItems:'center',gap:8,marginTop:8,padding:'4px 10px',borderRadius:8,background:'#161619',border:'1px solid #28282E',fontSize:11,color:'#D4D4D8',fontFamily:'Manrope,sans-serif'}}>
               <FileText size={13} style={{color:'#F5C451',flexShrink:0}}/>
-              <span style={{fontWeight:600,color:'#F5C451'}}>{project.script_name || `${project.name} Script`}</span>
+              <span style={{fontWeight:600,color:'#F5C451'}}>{resolvedScriptName}</span>
               <span style={{color:'#52525B'}}>·</span>
               <span>{effectiveScenes.length} scenes</span>
               <span style={{color:'#52525B'}}>·</span>
@@ -4045,7 +4112,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
       </motion.div>
 
       {/* Script Breakdown Overview Card */}
-      {(project.script_name || effectiveScenes.length > 0) && (
+      {resolvedScriptName && (
         <motion.div
           initial={{opacity:0,y:6}}
           animate={{opacity:1,y:0}}
@@ -4070,7 +4137,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
             <div style={{minWidth:0}}>
               <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                 <span style={{fontFamily:'Manrope,sans-serif',fontSize:13.5,fontWeight:600,color:T.cream}}>
-                  {project.script_name || `${project.name} Script Breakdown`}
+                  {resolvedScriptName}
                 </span>
                 <span style={{fontSize:10,fontWeight:600,color:'#52B07A',background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.3)',borderRadius:9999,padding:'2px 8px',fontFamily:'IBM Plex Mono,monospace'}}>
                   REFLECTED ON DASHBOARD
@@ -4369,12 +4436,12 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                       <div style={{fontSize:10,color:T.faint}}>Currency</div>
                       <div style={{fontSize:12,color:T.cream,marginTop:2}}>{baseCur} {sym(baseCur)}</div>
                     </div>
-                    {project.script_name && (
+                    {resolvedScriptName && (
                       <div>
                         <div style={{fontSize:10,color:T.faint}}>Script document</div>
                         <div style={{fontSize:12,color:'#F5C451',fontWeight:600,marginTop:2,display:'flex',alignItems:'center',gap:6}}>
                           <FileText size={12}/>
-                          <span>{project.script_name}</span>
+                          <span>{resolvedScriptName}</span>
                         </div>
                       </div>
                     )}
@@ -7892,7 +7959,7 @@ const LOCATION_PALETTE=[
   {bg:'#8f9fd9',text:'#0c1440'},
 ];
 const asList=v=>Array.isArray(v)?v.map(x=>x&&typeof x==='object'?String(x.name||''):String(x==null?'':x)).map(x=>x.trim()).filter(Boolean):(typeof v==='string'?v.split(',').map(x=>x.trim()).filter(Boolean):[]);
-const normalizeScene=s=>({...s,sceneNumber:s.sceneNumber==null?'':String(s.sceneNumber),cast:asList(s.cast),talkingExtras:asList(s.talkingExtras),props:asList(s.props),vehicles:asList(s.vehicles),wardrobe:asList(s.wardrobe),specialEquip:asList(s.specialEquip),backgroundActors:Number(s.backgroundActors)||0,pages8:Number(s.pages8)>0?Math.round(Number(s.pages8)):null});
+const normalizeScene=s=>({...s,script_name:s.script_name||s.data?.script_name||null,sceneNumber:s.sceneNumber==null?'':String(s.sceneNumber),cast:asList(s.cast),talkingExtras:asList(s.talkingExtras),props:asList(s.props),vehicles:asList(s.vehicles),wardrobe:asList(s.wardrobe),specialEquip:asList(s.specialEquip),backgroundActors:Number(s.backgroundActors)||0,pages8:Number(s.pages8)>0?Math.round(Number(s.pages8)):null});
 const sortScenes=scenes=>[...scenes].sort((a,b)=>{
   const pa=String(a.sceneNumber??'').match(/(\d+)(.*)/);
   const pb=String(b.sceneNumber??'').match(/(\d+)(.*)/);
@@ -18508,7 +18575,21 @@ function Workspace(){
       };
       let currentCached = initialCache.current;
       try { if (cacheKey) { const raw = localStorage.getItem(cacheKey); if (raw) currentCached = JSON.parse(raw); } } catch {}
-      if(pr.data)setProjects(mergeById(pr.data, currentCached?.projects, `nko_del_pr_${user.id}`));
+      if(pr.data){
+        const mergedProjects = mergeById(pr.data, currentCached?.projects, `nko_del_pr_${user.id}`);
+        const enrichedProjects = mergedProjects.map(p => {
+          let sName = p.script_name;
+          if (!sName) {
+            try { sName = localStorage.getItem('nko_script_name_' + p.id); } catch {}
+          }
+          if (!sName && sc.data) {
+            const scMatch = sc.data.find(s => matchesProject(s.project_id, p.id, p.name) && (s.script_name || s.data?.script_name));
+            if (scMatch) sName = scMatch.script_name || scMatch.data?.script_name;
+          }
+          return sName ? { ...p, script_name: sName } : p;
+        });
+        setProjects(enrichedProjects);
+      }
       if(bi.data)setBudgetItems(mergeById(bi.data, currentCached?.budget_items, `nko_del_bi_${user.id}`));
       if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
       if(sc.data){
@@ -18640,6 +18721,9 @@ function Workspace(){
     ch.on('broadcast', { event: 'activity' }, ({ payload }) => {
       if (payload && payload.userId !== user.id) {
         setLiveActivity(payload);
+        if (payload.text && payload.text.toLowerCase().includes('script')) {
+          void loadAllRef.current?.(true);
+        }
         if (activeActivityTimer.current) clearTimeout(activeActivityTimer.current);
         activeActivityTimer.current = setTimeout(() => {
           setLiveActivity(null);
@@ -18682,9 +18766,17 @@ function Workspace(){
       if (payload.eventType === 'INSERT') {
         const item = normalizeScene({ ...payload.new.data, id: payload.new.id, project_id: payload.new.project_id });
         setScenes(prev => prev.some(s => s.id === item.id) ? prev : [...prev, item]);
+        const sName = payload.new.data?.script_name;
+        if (sName) {
+          setProjects(prev => prev.map(p => matchesProject(p.id, currentId, project?.name) ? { ...p, script_name: sName } : p));
+        }
       } else if (payload.eventType === 'UPDATE') {
         const item = normalizeScene({ ...payload.new.data, id: payload.new.id, project_id: payload.new.project_id });
         setScenes(prev => prev.map(s => s.id === item.id ? item : s));
+        const sName = payload.new.data?.script_name;
+        if (sName) {
+          setProjects(prev => prev.map(p => matchesProject(p.id, currentId, project?.name) ? { ...p, script_name: sName } : p));
+        }
       } else if (payload.eventType === 'DELETE') {
         setScenes(prev => prev.filter(s => s.id !== payload.old.id));
       }
@@ -19082,15 +19174,18 @@ function Workspace(){
     const oldIds=scenes.filter(s=>matchesProject(s.project_id, targetId, project?.name)).map(s=>String(s.id));
     try{const k=`nko_del_sc_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...oldIds])]));}catch{}
     await sb.from('scenes').delete().eq('project_id',targetId);
-    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:targetId,user_id:user.id,data:rest};});
+    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:targetId,user_id:user.id,data:{...rest, script_name: scriptName || rest.script_name || null}};});
     const{data,error}=await sb.from('scenes').insert(rows).select();
-    const saved=(!error&&data?.length)?data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id})):rows.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id}));
+    const saved=(!error&&data?.length)?data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id,script_name:scriptName||r.data?.script_name})):rows.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id,script_name:scriptName||r.data?.script_name}));
     setScenes(p=>[...p.filter(s=>!matchesProject(s.project_id, targetId, project?.name)),...saved]);
     if(scriptName){
+      try{localStorage.setItem('nko_script_name_' + targetId, scriptName);}catch{}
       setProjects(prev=>prev.map(p=>matchesProject(p.id, targetId, project?.name)?{...p, script_name: scriptName}:p));
       try{await sb.from('projects').update({script_name:scriptName}).eq('id',targetId);}catch{}
     }
-    broadcastActivity('uploaded script breakdown');
+    const isProducer = !project?.user_id || project?.user_id === user.id;
+    const actorRole = isProducer ? 'Producer' : 'Collaborator';
+    broadcastActivity(`${actorRole} uploaded script breakdown: ${scriptName || 'Screenplay'} (${scenesArr.length} scenes)`);
   };
   const updateScene=async(id,upd)=>{
     setScenes(p=>p.map(s=>s.id===id?normalizeScene({...s,...upd}):s));
@@ -19261,10 +19356,10 @@ function Workspace(){
               </div>
             )
           ):(
-            view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
+            view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
           {view==='productions'&&(
-            <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
+            <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
           {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}

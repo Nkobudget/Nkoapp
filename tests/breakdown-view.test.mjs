@@ -307,4 +307,17 @@ test('script upload reflects scenes, cast, locations, elements, and vehicles acr
   assert.match(fileContent, /function BudgetsView/);
   assert.match(fileContent, /<Upload size=\{14\}[\s\S]*?<span>Upload Script<\/span>/);
   assert.match(fileContent, /<BreakdownUploader[\s\S]*?open=\{showUpload\}[\s\S]*?project=\{project\}/);
+
+  // Verify DashboardView accepts scenes and reflects script breakdown across slate dashboard
+  assert.match(fileContent, /function DashboardView\(\{[\s\S]*?scenes=\[\]/);
+  assert.match(fileContent, /function DashboardView\(\{[\s\S]*?onOpenUploadScript/);
+  assert.match(fileContent, /scenes\.length > 0 \? `\$\{scenes\.length\} script scenes broken down`/);
+  assert.match(fileContent, /<th style=\{\{padding:'13px 14px',fontWeight:500,whiteSpace:'nowrap'\}\}>Script Breakdown<\/th>/);
+  assert.match(fileContent, /effectiveScenes\.length\} sc · \{pCast\.length\} cast · \{pLocs\.length\} loc/);
+  assert.match(fileContent, /<DashboardView[\s\S]*?scenes=\{scenes\}[\s\S]*?onOpenUploadScript=/);
+
+  // Verify multi-user collaborator / producer script breakdown broadcast & storage reflection
+  assert.match(fileContent, /uploaded script breakdown: \$\{scriptName/);
+  assert.match(fileContent, /payload\.text\.toLowerCase\(\)\.includes\('script'\)/);
+  assert.match(fileContent, /data:\s*\{\.\.\.rest,\s*script_name:\s*scriptName/);
 });
