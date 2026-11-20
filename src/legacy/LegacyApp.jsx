@@ -9132,6 +9132,57 @@ const LAGOS_AFTER_DARK_VEHICLES = [
   { id: 'veh-2', name: 'Police Cruiser', type: 'Action Vehicle', spec: 'Toyota Hilux 4x4 · Red/Blue Beacon Bar & Police Markings', scenes: '7, 9, 14', status: 'Permit Approved' },
 ];
 
+const DEFAULT_LOCATIONS = [
+  {
+    id: 'loc-1',
+    name: 'Balogun Market',
+    address: 'Balogun Street, Lagos Island',
+    sets: ['BALOGUN MARKET'],
+    scenes: [6],
+    intExt: 'EXT',
+    dayNight: 'DAY',
+    contactName: 'Alhaji Musa',
+    contactPhone: '+234 803 222 6060',
+    notes: 'Market association permit approved. Filming during trading hours.',
+  },
+  {
+    id: 'loc-2',
+    name: 'Third Mainland Bridge',
+    address: 'Third Mainland Bridge, Oworonshoki end',
+    sets: ['THIRD MAINLAND BRIDGE', 'CARTER BRIDGE'],
+    scenes: [1, 15, 18],
+    intExt: 'EXT',
+    dayNight: 'NIGHT',
+    contactName: 'Alhaji Musa (Permits)',
+    contactPhone: '+234 803 222 6060',
+    notes: 'Closed lane permit approved for night shoot.',
+  },
+  {
+    id: 'loc-3',
+    name: 'Club Eclipse',
+    address: '14 Adeola Odeku, Victoria Island',
+    sets: ['CLUB ECLIPSE', "FEMI'S PENTHOUSE"],
+    scenes: [3, 4, 11, 17],
+    intExt: 'INT/EXT',
+    dayNight: 'NIGHT',
+    contactName: 'Alhaji Musa (Security)',
+    contactPhone: '+234 803 222 6060',
+    notes: 'VIP club and penthouse access granted.',
+  },
+  {
+    id: 'loc-4',
+    name: "Adaobi's Flat & Taxi Hub",
+    address: 'Balogun Street, Lagos Island',
+    sets: ["ADAOBI'S FLAT", "ADAOBI'S TAXI", 'POLICE STATION', "SADE'S NEWSROOM"],
+    scenes: [2, 5, 7, 8, 10, 13, 14],
+    intExt: 'INT/EXT',
+    dayNight: 'DAY',
+    contactName: 'Alhaji Musa (Coordinator)',
+    contactPhone: '+234 803 222 6060',
+    notes: 'Courtyard and interior shooting rights secured.',
+  },
+];
+
 const CAST_CATEGORIES = [
   'Lead Actors',
   'Sub-lead',
@@ -10047,6 +10098,527 @@ function DeleteCastModal({ member, onClose, onConfirm }) {
   );
 }
 
+function LocationModal({ open, onClose, location, onSave, onDelete, allSets = [], allScenes = [] }) {
+  const mob = useIsMobile();
+  const isEdit = Boolean(location && !location.isNew);
+
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [setsInput, setSetsInput] = useState('');
+  const [intExt, setIntExt] = useState('EXT');
+  const [dayNight, setDayNight] = useState('DAY');
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (location) {
+      setName(location.name || '');
+      setAddress(location.address || '');
+      setSetsInput(Array.isArray(location.sets) ? location.sets.join(', ') : (location.sets || ''));
+      setIntExt(location.intExt || 'EXT');
+      setDayNight(location.dayNight || 'DAY');
+      setContactName(location.contactName || '');
+      setContactPhone(location.contactPhone || '');
+      setNotes(location.notes || '');
+    }
+  }, [location]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    const sets = setsInput
+      .split(',')
+      .map(s => s.trim().toUpperCase())
+      .filter(Boolean);
+    const locScenes = allScenes
+      .filter(sc => sets.includes(sceneLoc(sc).toUpperCase()))
+      .map(s => s.sceneNumber);
+
+    onSave({
+      id: location?.id || `loc-${Date.now()}`,
+      name: name.trim(),
+      address: address.trim(),
+      sets: sets.length > 0 ? sets : [name.trim().toUpperCase()],
+      scenes: locScenes.length > 0 ? locScenes : (location?.scenes || []),
+      intExt,
+      dayNight,
+      contactName: contactName.trim(),
+      contactPhone: contactPhone.trim(),
+      notes: notes.trim(),
+    });
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={onClose}
+        >
+          <motion.form
+            initial={{ scale: 0.94, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.94, opacity: 0, y: 10 }}
+            transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleSubmit}
+            style={{
+              background: '#101012',
+              border: '1px solid #1E1E22',
+              borderRadius: 16,
+              width: '100%',
+              maxWidth: 480,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '92vh',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: mob ? '16px 18px 12px' : '20px 24px 14px',
+              borderBottom: '1px solid #1C1C20',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+                  {isEdit ? 'Edit location' : 'Add location'}
+                </h3>
+                <div style={{ fontSize: 12, color: '#8A8985', marginTop: 4, fontFamily: 'Manrope,sans-serif' }}>
+                  Map script sets to physical shooting locations, assign contact details and address.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#71717A',
+                  cursor: 'pointer',
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 6,
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: mob ? '14px 18px' : '18px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                  Location Name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Balogun Market"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #242428',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    color: T.cream,
+                    fontSize: 12,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                  Physical Address
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Balogun Street, Lagos Island"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #242428',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    color: T.cream,
+                    fontSize: 12,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                    Script Sets Covered<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                  </label>
+                  <span style={{ fontSize: 10, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    Separate with commas
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  required
+                  list="location-sets-datalist"
+                  placeholder="e.g. BALOGUN MARKET"
+                  value={setsInput}
+                  onChange={e => setSetsInput(e.target.value.toUpperCase())}
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #242428',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    color: T.cream,
+                    fontSize: 12,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <datalist id="location-sets-datalist">
+                  {allSets.map(s => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    INT / EXT
+                  </label>
+                  <select
+                    value={intExt}
+                    onChange={e => setIntExt(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="EXT">EXT</option>
+                    <option value="INT">INT</option>
+                    <option value="INT/EXT">INT/EXT</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    Day / Night
+                  </label>
+                  <select
+                    value={dayNight}
+                    onChange={e => setDayNight(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="DAY">DAY</option>
+                    <option value="NIGHT">NIGHT</option>
+                    <option value="DAWN">DAWN</option>
+                    <option value="DUSK">DUSK</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    Contact Person
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Alhaji Musa"
+                    value={contactName}
+                    onChange={e => setContactName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    Contact Phone
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +234 803 222 6060"
+                    value={contactPhone}
+                    onChange={e => setContactPhone(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#141416',
+                      border: '1px solid #242428',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      color: T.cream,
+                      fontSize: 12,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                  Permits &amp; Location Notes
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Market association permit approved. Parking on side street."
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #242428',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    color: T.cream,
+                    fontSize: 12,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: mob ? '12px 18px 16px' : '14px 24px 18px',
+              borderTop: '1px solid #1C1C20',
+              display: 'flex',
+              justifyContent: isEdit ? 'space-between' : 'flex-end',
+              alignItems: 'center',
+              gap: 10,
+              background: '#101012',
+            }}>
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDelete) onDelete(location);
+                    onClose();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#E05252',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    padding: '6px 0',
+                  }}
+                >
+                  <Trash2 size={13} />
+                  <span>Delete</span>
+                </button>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    background: '#141416',
+                    border: '1px solid #26262B',
+                    color: '#E5E5E0',
+                    borderRadius: 10,
+                    padding: '9px 18px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  type="submit"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+                  style={{
+                    background: 'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',
+                    color: '#0A0A0A',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '9px 20px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: 'Manrope,sans-serif',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
+                  }}
+                >
+                  {isEdit ? 'Save Changes' : 'Add Location'}
+                </motion.button>
+              </div>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function DeleteLocationModal({ location, onClose, onConfirm }) {
+  if (!location) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.72)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+        }}
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.94, opacity: 0, y: 10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.94, opacity: 0, y: 10 }}
+          transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: '#101012',
+            border: '1px solid #1E1E22',
+            borderRadius: 16,
+            width: '100%',
+            maxWidth: 420,
+            padding: '24px 24px 20px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+            Remove location?
+          </h3>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+            Are you sure you want to remove <strong style={{ color: T.cream }}>{location.name}</strong>? Its sets will become unmapped.
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#141416',
+                border: '1px solid #26262B',
+                color: '#E5E5E0',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <motion.button
+              type="button"
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: DURATION.fast, ease: EASE_OUT }}
+              onClick={() => {
+                onConfirm(location);
+                onClose();
+              }}
+              style={{
+                background: '#E05252',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: 'Manrope,sans-serif',
+                cursor: 'pointer',
+              }}
+            >
+              Remove
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[]}){
   const mob=useIsMobile();
   const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
@@ -10215,8 +10787,85 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
     saveCastMembersList(updated);
   };
 
+  // Location storage & state
+  const locStorageKey = project?.id ? `nko_locations_${project.id}` : null;
+  const [locations, setLocations] = useState(() => {
+    if (locStorageKey) {
+      try {
+        const stored = localStorage.getItem(locStorageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return DEFAULT_LOCATIONS;
+  });
+
+  const saveLocationsList = (updated) => {
+    setLocations(updated);
+    if (locStorageKey) {
+      try {
+        localStorage.setItem(locStorageKey, JSON.stringify(updated));
+      } catch {}
+    }
+  };
+
+  const [locSearch, setLocSearch] = useState('');
+  const [locIeFilter, setLocIeFilter] = useState('all');
+  const [locTimeFilter, setLocTimeFilter] = useState('all');
+  const [editingLocation, setEditingLocation] = useState(null);
+  const [deleteTargetLocation, setDeleteTargetLocation] = useState(null);
+
+  const handleSaveLocation = (locData) => {
+    let updated;
+    const existingIndex = locations.findIndex(l => l.id === locData.id);
+    if (existingIndex >= 0) {
+      updated = [...locations];
+      updated[existingIndex] = { ...updated[existingIndex], ...locData };
+    } else {
+      updated = [...locations, locData];
+    }
+    saveLocationsList(updated);
+  };
+
+  const handleDeleteLocation = (locData) => {
+    const updated = locations.filter(l => l.id !== locData.id);
+    saveLocationsList(updated);
+  };
+
+  // Derive unmapped sets from ps
+  const defaultSets = ['BALOGUN MARKET', 'THIRD MAINLAND BRIDGE', 'CARTER BRIDGE', 'CLUB ECLIPSE', "FEMI'S PENTHOUSE", "ADAOBI'S FLAT", "ADAOBI'S TAXI", 'POLICE STATION', "SADE'S NEWSROOM", 'HOSPITAL CORRIDOR', 'LEKKI TOLL GATE', 'MAKOKO WATERFRONT'];
+  const scriptSetsList = Array.from(new Set(ps.map(s => sceneLoc(s).toUpperCase()).filter(Boolean)));
+  const allScriptSets = scriptSetsList.length > 0 ? scriptSetsList : (isLagosDark ? defaultSets : []);
+  const mappedSets = new Set(locations.flatMap(loc => (loc.sets || []).map(s => s.toUpperCase())));
+  const unmappedSets = allScriptSets.filter(s => !mappedSets.has(s)).map(setName => {
+    const setScenes = ps.filter(sc => sceneLoc(sc).toUpperCase() === setName).map(sc => sc.sceneNumber);
+    return { name: setName, scenes: setScenes };
+  });
+
+  const filteredLocations = locations.filter(loc => {
+    if (locIeFilter !== 'all') {
+      const matchIe = (loc.intExt || '').toUpperCase().includes(locIeFilter.toUpperCase());
+      if (!matchIe) return false;
+    }
+    if (locTimeFilter !== 'all') {
+      const matchTime = (loc.dayNight || '').toUpperCase() === locTimeFilter.toUpperCase();
+      if (!matchTime) return false;
+    }
+    if (locSearch.trim()) {
+      const q = locSearch.trim().toLowerCase();
+      const matchName = (loc.name || '').toLowerCase().includes(q);
+      const matchAddr = (loc.address || '').toLowerCase().includes(q);
+      const matchSets = (loc.sets || []).join(' ').toLowerCase().includes(q);
+      const matchContact = (loc.contactName || '').toLowerCase().includes(q) || (loc.contactPhone || '').toLowerCase().includes(q);
+      if (!matchName && !matchAddr && !matchSets && !matchContact) return false;
+    }
+    return true;
+  });
+
   const castTabCount = castMembers.length > 0 ? castMembers.length : 10;
-  const locTabCount = uniqueLocations.length > 0 ? (uniqueLocations.length >= 10 ? 4 : uniqueLocations.length) : 4;
+  const locTabCount = locations.length > 0 ? locations.length : 4;
 
   return(
     <div>
@@ -10254,6 +10903,18 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             >
               <Plus size={14}/>
               <span>Add Cast</span>
+            </motion.button>
+          ) : activeTab === 'locations' ? (
+            <motion.button
+              type="button"
+              whileHover={{y:-1}}
+              whileTap={{scale:0.98}}
+              transition={{duration:DURATION.fast,ease:EASE_OUT}}
+              onClick={()=>{setEditingLocation({ isNew: true }); setShowUpload(false);}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+            >
+              <Plus size={14}/>
+              <span>Add Location</span>
             </motion.button>
           ) : (
             <motion.button
@@ -11143,58 +11804,365 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       )}
 
       {/* Locations Tab */}
-      {activeTab==='locations'&&(
+      {activeTab === 'locations' && (
         <motion.div
-          initial={{opacity:0,y:8}}
-          animate={{opacity:1,y:0}}
-          transition={{duration:DURATION.normal,ease:EASE_OUT}}
-          style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DURATION.normal, ease: EASE_OUT }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: mob ? '1fr' : 'minmax(0, 1fr) 280px',
+            gap: 20,
+            alignItems: 'start',
+            marginBottom: 20,
+          }}
         >
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
-            <div>
-              <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Locations & Sets</span>
-              <div style={{fontSize:11,color:'#8A8985',marginTop:2}}>All filming locations and studio sets identified in the script</div>
+          {/* Left Column: Locations Table Card */}
+          <div
+            style={{
+              background: '#101012',
+              border: '1px solid #1E1E22',
+              borderRadius: 14,
+              padding: mob ? '16px' : '20px 22px',
+              minWidth: 0,
+            }}
+          >
+            {/* Header */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
+                Locations
+              </div>
+              <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+                Physical places you'll shoot at, with the sets and scenes they cover.
+              </div>
             </div>
-            <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{uniqueLocations.length} set{uniqueLocations.length===1?'':'s'}</span>
+
+            {/* Filters Row */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+              {/* Search */}
+              <div style={{ position: 'relative', flex: 1, minWidth: mob ? '100%' : 220 }}>
+                <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                <input
+                  type="search"
+                  aria-label="Search locations"
+                  placeholder="Search location, address, set or contact"
+                  value={locSearch}
+                  onChange={e => setLocSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#141416',
+                    border: '1px solid #222226',
+                    borderRadius: 8,
+                    padding: '7px 12px 7px 32px',
+                    color: T.cream,
+                    fontSize: 12,
+                    fontFamily: 'Manrope,sans-serif',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* INT/EXT Filter */}
+              <select
+                aria-label="INT/EXT filter"
+                value={locIeFilter}
+                onChange={e => setLocIeFilter(e.target.value)}
+                style={{
+                  background: '#141416',
+                  border: '1px solid #222226',
+                  borderRadius: 8,
+                  padding: '7px 12px',
+                  color: '#D4D4D8',
+                  fontSize: 12,
+                  fontFamily: 'Manrope,sans-serif',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="all">INT/EXT</option>
+                <option value="INT">INT</option>
+                <option value="EXT">EXT</option>
+                <option value="INT/EXT">INT/EXT</option>
+              </select>
+
+              {/* Day/Night Filter */}
+              <select
+                aria-label="Day/Night filter"
+                value={locTimeFilter}
+                onChange={e => setLocTimeFilter(e.target.value)}
+                style={{
+                  background: '#141416',
+                  border: '1px solid #222226',
+                  borderRadius: 8,
+                  padding: '7px 12px',
+                  color: '#D4D4D8',
+                  fontSize: 12,
+                  fontFamily: 'Manrope,sans-serif',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="all">Day/Night</option>
+                <option value="DAY">DAY</option>
+                <option value="NIGHT">NIGHT</option>
+                <option value="DAWN">DAWN</option>
+                <option value="DUSK">DUSK</option>
+              </select>
+            </div>
+
+            {/* Records count */}
+            <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Manrope,sans-serif', marginBottom: 10 }}>
+              {filteredLocations.length} record{filteredLocations.length === 1 ? '' : 's'}
+            </div>
+
+            {/* Table */}
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 620 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+                    <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                      Location ↑
+                    </th>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                      Sets
+                    </th>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                      Scenes
+                    </th>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                      INT/EXT · Time
+                    </th>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                      Contact
+                    </th>
+                    <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif', textAlign: 'right' }}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLocations.map(loc => {
+                    const scenesList = loc.scenes || [];
+                    const setsList = Array.isArray(loc.sets) ? loc.sets.join(', ') : (loc.sets || '—');
+
+                    return (
+                      <tr key={loc.id} style={{ borderBottom: '1px solid #161619' }}>
+                        {/* Location Name & Address */}
+                        <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', maxWidth: 190 }}>
+                          <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
+                            {loc.name}
+                          </div>
+                          {loc.address && (
+                            <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {loc.address}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Sets */}
+                        <td style={{ padding: '12px 8px', verticalAlign: 'middle', maxWidth: 170 }}>
+                          <div style={{ fontFamily: 'IBM Plex Mono,monospace', fontSize: 10.5, color: '#A0A0A5', lineHeight: 1.4, textTransform: 'uppercase' }}>
+                            {setsList}
+                          </div>
+                        </td>
+
+                        {/* Scenes */}
+                        <td style={{ padding: '12px 8px', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                            {scenesList.map(num => (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('scenes');
+                                  const target = ps.find(s => String(s.sceneNumber) === String(num));
+                                  if (target) setSelectedScene(target);
+                                }}
+                                style={{
+                                  background: '#17171B',
+                                  border: '1px solid #26262C',
+                                  borderRadius: 3,
+                                  padding: '2px 5px',
+                                  fontFamily: 'IBM Plex Mono,monospace',
+                                  fontSize: 10,
+                                  color: '#D4D4D8',
+                                  cursor: 'pointer',
+                                }}
+                                title={`Go to scene ${num}`}
+                              >
+                                {num}
+                              </button>
+                            ))}
+                            {scenesList.length === 0 && (
+                              <span style={{ color: '#71717A', fontSize: 11 }}>—</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* INT/EXT · Time */}
+                        <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontFamily: 'IBM Plex Mono,monospace', fontSize: 11, color: '#D4D4D8' }}>
+                            {loc.intExt || 'EXT'} · {loc.dayNight || 'DAY'}
+                          </span>
+                        </td>
+
+                        {/* Contact */}
+                        <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 11, fontWeight: 500, color: T.cream }}>
+                            {loc.contactName || '—'}
+                          </div>
+                          {loc.contactPhone && (
+                            <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'IBM Plex Mono,monospace', marginTop: 2 }}>
+                              {loc.contactPhone}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ padding: '12px 0 12px 8px', verticalAlign: 'middle', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                            <motion.button
+                              whileHover={{ scale: 1.15, color: '#F5C451' }}
+                              whileTap={{ scale: 0.92 }}
+                              type="button"
+                              onClick={() => setEditingLocation(loc)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A', padding: 2 }}
+                              title="Edit location"
+                            >
+                              <Pencil size={12.5} />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.15, color: '#E05252' }}
+                              whileTap={{ scale: 0.92 }}
+                              type="button"
+                              onClick={() => setDeleteTargetLocation(loc)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#71717A', padding: 2 }}
+                              title="Delete location"
+                            >
+                              <Trash2 size={12.5} />
+                            </motion.button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {filteredLocations.length === 0 && (
+                <div style={{ padding: '36px 0', textAlign: 'center', color: '#71717A', fontSize: 12 }}>
+                  No locations match your filters.
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'repeat(auto-fill, minmax(280px, 1fr))',gap:12}}>
-            {uniqueLocations.map(loc=>{
-              const locScenes=ps.filter(s=>sceneLoc(s)===loc);
-              const intExts=[...new Set(locScenes.map(s=>s.intExt).filter(Boolean))].join('/');
-              return(
-                <div key={loc} style={{background:'#121215',border:'1px solid #1E1E22',borderRadius:12,padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-                    <div>
-                      <div style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:T.cream}}>{loc}</div>
-                      <div style={{fontSize:10,color:'#8A8985',fontFamily:'IBM Plex Mono,monospace',marginTop:3}}>{intExts||'INT/EXT'}</div>
-                    </div>
-                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#8A8985',background:'#18181C',padding:'2px 8px',borderRadius:6}}>
-                      {locScenes.length} scene{locScenes.length===1?'':'s'}
+          {/* Right Column: Sets without a location Card */}
+          <div
+            style={{
+              background: '#101012',
+              border: '1px solid #1E1E22',
+              borderRadius: 14,
+              padding: '16px 16px',
+              position: mob ? 'static' : 'sticky',
+              top: 20,
+            }}
+          >
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 14, fontWeight: 700, color: T.cream }}>
+                Sets without a location
+              </div>
+              <div style={{ fontSize: 11, color: '#71717A', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+                {unmappedSets.length} {unmappedSets.length === 1 ? 'set' : 'sets'} can't be scheduled until mapped.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {unmappedSets.map(setObj => (
+                <div
+                  key={setObj.name}
+                  style={{
+                    padding: '10px 0',
+                    borderBottom: '1px solid #161619',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        fontFamily: 'Manrope,sans-serif',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: T.cream,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {setObj.name}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingLocation({
+                          isNew: true,
+                          name: setObj.name,
+                          sets: [setObj.name],
+                          scenes: setObj.scenes,
+                        });
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#F5A623',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        padding: 0,
+                      }}
+                    >
+                      + Location
+                    </button>
                   </div>
-                  <div>
-                    <div style={{fontSize:10,color:'#71717A',marginBottom:6}}>Scenes filmed here:</div>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                      {locScenes.map(s=>(
-                        <button
-                          key={s.id||s.sceneNumber}
-                          type="button"
-                          onClick={()=>{
-                            setActiveTab('scenes');
-                            setSelectedScene(s);
-                          }}
-                          style={{background:'#17171B',border:'1px solid #26262C',borderRadius:5,padding:'2px 7px',fontFamily:'IBM Plex Mono,monospace',fontSize:10.5,color:'#D4D4D8',cursor:'pointer'}}
-                          title={`View scene ${s.sceneNumber}`}
-                        >
-                          {s.sceneNumber}
-                        </button>
-                      ))}
-                    </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+                    {(setObj.scenes || []).map(num => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('scenes');
+                          const target = ps.find(s => String(s.sceneNumber) === String(num));
+                          if (target) setSelectedScene(target);
+                        }}
+                        style={{
+                          background: '#17171B',
+                          border: '1px solid #26262C',
+                          borderRadius: 3,
+                          padding: '1px 5px',
+                          fontFamily: 'IBM Plex Mono,monospace',
+                          fontSize: 9.5,
+                          color: '#D4D4D8',
+                          cursor: 'pointer',
+                        }}
+                        title={`Go to scene ${num}`}
+                      >
+                        {num}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
+              ))}
+
+              {unmappedSets.length === 0 && (
+                <div style={{ padding: '24px 0', textAlign: 'center', color: '#4CAF7A', fontSize: 11 }}>
+                  ✓ All sets are mapped to a location.
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
       )}
@@ -11315,6 +12283,22 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         member={deleteTargetCast}
         onClose={()=>setDeleteTargetCast(null)}
         onConfirm={handleDeleteCastMember}
+      />
+
+      <LocationModal
+        open={Boolean(editingLocation)}
+        location={editingLocation}
+        onClose={() => setEditingLocation(null)}
+        onSave={handleSaveLocation}
+        onDelete={handleDeleteLocation}
+        allSets={allScriptSets}
+        allScenes={ps}
+      />
+
+      <DeleteLocationModal
+        location={deleteTargetLocation}
+        onClose={() => setDeleteTargetLocation(null)}
+        onConfirm={handleDeleteLocation}
       />
       <div style={{marginTop:8}}>
         <ProductionSpendBreakdownPanel project={project} items={items} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders}/>

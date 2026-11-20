@@ -105,3 +105,44 @@ test('script breakdown cast tab layout and script characters parity', async () =
   assert.match(fileContent, /Save changes/);
   assert.match(fileContent, /function DeleteCastModal/);
 });
+
+test('script breakdown locations tab layout and unmapped sets parity', async () => {
+  const fileContent = fs.readFileSync(path.resolve('src/legacy/LegacyApp.jsx'), 'utf8');
+
+  // Verify Default Locations
+  assert.match(fileContent, /const DEFAULT_LOCATIONS\s*=/);
+  assert.match(fileContent, /Balogun Market/);
+  assert.match(fileContent, /Third Mainland Bridge/);
+  assert.match(fileContent, /Club Eclipse/);
+  assert.match(fileContent, /Adaobi's Flat & Taxi Hub/);
+
+  // Verify Top Action Button switches to Add Location on locations tab
+  assert.match(fileContent, /activeTab === 'locations'\s*\?\s*\(\s*<motion\.button[^>]*>[\s\S]*?Add Location/);
+
+  // Verify Locations Header & Subtitle
+  assert.match(fileContent, /Physical places you'll shoot at, with the sets and scenes they cover\./);
+
+  // Verify Filters
+  assert.match(fileContent, /placeholder="Search location, address, set or contact"/);
+  assert.match(fileContent, /aria-label="INT\/EXT filter"/);
+  assert.match(fileContent, /aria-label="Day\/Night filter"/);
+
+  // Verify Table Headers
+  assert.match(fileContent, /Location ↑/);
+  assert.match(fileContent, />\s*Sets\s*<\/th>/);
+  assert.match(fileContent, />\s*Scenes\s*<\/th>/);
+  assert.match(fileContent, />\s*INT\/EXT · Time\s*<\/th>/);
+  assert.match(fileContent, />\s*Contact\s*<\/th>/);
+  assert.match(fileContent, />\s*Actions\s*<\/th>/);
+
+  // Verify Sets without a location side panel
+  assert.match(fileContent, /Sets without a location/);
+  assert.match(fileContent, /can't be scheduled until mapped\./);
+  assert.match(fileContent, /\+\s*Location/);
+
+  // Verify Modals
+  assert.match(fileContent, /function LocationModal/);
+  assert.match(fileContent, /function DeleteLocationModal/);
+  assert.match(fileContent, /Remove location\?/);
+  assert.match(fileContent, /Its sets will become unmapped\./);
+});
