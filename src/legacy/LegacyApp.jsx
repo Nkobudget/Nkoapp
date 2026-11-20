@@ -10649,7 +10649,7 @@ function ShootingDayDrawer({day,dayNum,scenesList,characters,conflicts,anyPages,
     </AnimatePresence>
   );
 }
-function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,target,conflicts,createdCallSheetIds,onSelectDay}){
+function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,target,conflicts,createdCallSheetIds,onSelectDay,onRemoveDay}){
   const mob=useIsMobile();
   const datedShoots=shootDays.filter(d=>d.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const initialDateStr=datedShoots[0]?.date||new Date().toISOString().slice(0,10);
@@ -10658,8 +10658,10 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
     const dt=new Date(`${initialDateStr}T00:00:00`);
     return Number.isNaN(dt.getTime())?{y:new Date().getFullYear(),m:new Date().getMonth()}:{y:dt.getFullYear(),m:dt.getMonth()};
   });
+  const[navDir,setNavDir]=useState(1);
 
   const stepMonth=delta=>{
+    setNavDir(delta);
     setViewMonth(prev=>{
       const d=new Date(prev.y,prev.m+delta,1);
       return{y:d.getFullYear(),m:d.getMonth()};
@@ -10684,7 +10686,7 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
     else if(d.kind==='off')offByDate[key]=d;
   });
 
-  // Build 6-week (or 5-week) Monday-first grid
+  // Build Monday-first calendar grid
   const firstOfMonth=new Date(viewMonth.y,viewMonth.m,1);
   const startOffset=(firstOfMonth.getDay()+6)%7; // Mon=0..Sun=6
   const daysInMonth=new Date(viewMonth.y,viewMonth.m+1,0).getDate();
@@ -10703,17 +10705,18 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
 
   return(
     <motion.div
+      key="sched-calendar"
       initial={{opacity:0,y:6}}
       animate={{opacity:1,y:0}}
       exit={{opacity:0,y:-6}}
       transition={{duration:0.18,ease:EASE_OUT}}
-      style={{background:'#0C0C0E',border:'1px solid #1E1E22',borderRadius:14,padding:mob?'14px':'18px 20px',marginBottom:16,fontFamily:'Manrope,sans-serif'}}
+      style={{background:'#0C0C0E',border:'1px solid #1E1E22',borderRadius:14,padding:mob?'14px':'18px 20px 20px',marginBottom:16,fontFamily:'Manrope,sans-serif'}}
     >
       {/* Calendar Header */}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:14,marginBottom:14,borderBottom:'1px solid #1A1A1E',flexWrap:'wrap'}}>
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.cream,letterSpacing:'-0.015em'}}>{monthLabel}</div>
-          <div style={{fontSize:11.5,color:'#71717A',marginTop:3}}>
+          <div style={{fontSize:15,fontWeight:700,color:'#F5F5F0',letterSpacing:'-0.015em'}}>{monthLabel}</div>
+          <div style={{fontSize:11,color:'#7A7670',marginTop:3}}>
             {rangeText}{statusText?` · ${statusText}`:''}
           </div>
         </div>
@@ -10724,7 +10727,7 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
             whileHover={{scale:1.05,borderColor:'#3F3F46'}}
             whileTap={{scale:0.94}}
             onClick={()=>stepMonth(-1)}
-            style={{width:30,height:30,borderRadius:8,background:'#131316',border:'1px solid #242428',color:'#A1A1AA',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
+            style={{width:30,height:30,borderRadius:8,background:'#121215',border:'1px solid #242428',color:'#A1A1AA',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
           >
             <ChevronLeft size={14}/>
           </motion.button>
@@ -10734,31 +10737,31 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
             whileHover={{scale:1.05,borderColor:'#3F3F46'}}
             whileTap={{scale:0.94}}
             onClick={()=>stepMonth(1)}
-            style={{width:30,height:30,borderRadius:8,background:'#131316',border:'1px solid #242428',color:'#A1A1AA',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
+            style={{width:30,height:30,borderRadius:8,background:'#121215',border:'1px solid #242428',color:'#A1A1AA',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center'}}
           >
             <ChevronRight size={14}/>
           </motion.button>
         </div>
       </div>
 
-      {/* 7-Column Grid */}
+      {/* 7-Column Weekly Grid */}
       <div style={{overflowX:'auto'}}>
-        <div style={{minWidth:mob?620:'auto'}}>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:6,marginBottom:6}}>
+        <div style={{minWidth:mob?640:'auto'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:6,marginBottom:8}}>
             {WEEKDAYS.map(w=>(
-              <div key={w} style={{fontSize:11,fontWeight:500,color:'#71717A',textAlign:'center',padding:'4px 0'}}>
+              <div key={w} style={{fontSize:10.5,fontWeight:500,color:'#71717A',textAlign:'center',padding:'2px 0'}}>
                 {w}
               </div>
             ))}
           </div>
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={`${viewMonth.y}-${viewMonth.m}`}
-              initial={{opacity:0,y:4}}
-              animate={{opacity:1,y:0}}
-              exit={{opacity:0,y:-4}}
-              transition={{duration:0.15,ease:EASE_OUT}}
+              initial={{opacity:0,x:navDir*16}}
+              animate={{opacity:1,x:0}}
+              exit={{opacity:0,x:-navDir*16}}
+              transition={{duration:0.18,ease:EASE_OUT}}
               style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:6}}
             >
               {cells.map(cell=>{
@@ -10771,62 +10774,97 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
                 const needsReview=isHeavy||dayHasConflict;
                 const primaryLoc=shoot?(shoot.location||(list[0]?sceneLoc(list[0]):'')||'Location TBC'):'';
                 const hasCS=Boolean(shoot&&(createdCallSheetIds.has(shoot.id)||shoot.call_time));
+
+                if(shoot){
+                  const accentColor=needsReview?'#E06B52':list.length>0?'#D4D4D8':'#52525B';
+                  const statusColor=needsReview?'#E06B52':list.length>0?'#52B07A':'#71717A';
+                  const dayNumLabel=shootNo[shoot.id];
+                  return(
+                    <motion.div
+                      key={cell.iso}
+                      role="button"
+                      tabIndex={0}
+                      whileHover={{y:-1,borderColor:'#3A3A44'}}
+                      whileTap={{scale:0.985}}
+                      transition={{duration:DURATION.fast,ease:EASE_OUT}}
+                      onClick={()=>onSelectDay(shoot.id)}
+                      onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelectDay(shoot.id);}}}
+                      style={{
+                        minHeight:92,
+                        textAlign:'left',
+                        background:'#131317',
+                        border:'1px solid #2A2A32',
+                        borderRadius:9,
+                        padding:'8px 9px',
+                        display:'flex',
+                        flexDirection:'column',
+                        justifyContent:'space-between',
+                        cursor:'pointer',
+                        fontFamily:'Manrope,sans-serif',
+                        transition:'border-color 0.14s ease, background 0.14s ease',
+                      }}
+                    >
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:4,width:'100%',marginBottom:6}}>
+                        <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:11,fontWeight:600,color:'#E5E5E0'}}>
+                          {cell.dayNum}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Delete Day ${dayNumLabel}`}
+                          title={`Delete Day ${dayNumLabel}`}
+                          onClick={e=>{
+                            e.stopPropagation();
+                            if(!onRemoveDay)return;
+                            if(!list.length||window.confirm(`Remove Day ${dayNumLabel}? Its ${list.length} scene${list.length===1?'':'s'} will move back to unscheduled.`)){
+                              onRemoveDay(shoot.id);
+                            }
+                          }}
+                          style={{background:'transparent',border:'none',padding:2,margin:-2,color:'#7A7670',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:4,transition:'color 0.14s ease'}}
+                          onMouseEnter={e=>{e.currentTarget.style.color='#E06B52';}}
+                          onMouseLeave={e=>{e.currentTarget.style.color='#7A7670';}}
+                        >
+                          <Trash2 size={12}/>
+                        </button>
+                      </div>
+
+                      <div style={{borderLeft:`2px solid ${accentColor}`,paddingLeft:7,display:'flex',flexDirection:'column',gap:2,minWidth:0,width:'100%',boxSizing:'border-box'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:5}}>
+                          <span style={{fontSize:11,fontWeight:700,color:'#F5F5F0'}}>D{dayNumLabel}</span>
+                          {hasCS&&<FileText size={10} style={{color:'#52B07A',flexShrink:0}}/>}
+                        </div>
+                        <div style={{fontSize:10,color:'#9B978D',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {primaryLoc}
+                        </div>
+                        <div style={{fontSize:10,fontWeight:600,color:statusColor,marginTop:1}}>
+                          {list.length===0?'Empty':needsReview?'Needs review':'Ready'}
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                }
+
                 return(
                   <div
                     key={cell.iso}
                     style={{
                       minHeight:92,
-                      background:cell.inMonth?'#0F0F12':'#0B0B0D',
-                      border:shoot?'1px solid #26262C':'1px solid #18181C',
+                      background:off?'#0B0B0D':cell.inMonth?'#0F0F12':'#0A0A0C',
+                      border:'1px solid #18181C',
                       borderRadius:9,
-                      padding:'7px 8px',
+                      padding:'8px 9px',
                       display:'flex',
                       flexDirection:'column',
                       justifyContent:'flex-start',
                     }}
                   >
-                    <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:shoot?5:0}}>
-                      <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,fontWeight:cell.inMonth?500:400,color:cell.inMonth?'#A1A1AA':'#3F3F46'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
+                      <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:11,fontWeight:cell.inMonth?500:400,color:cell.inMonth?'#7A7670':'#3A3A40'}}>
                         {cell.dayNum}
                       </span>
-                      {off&&!shoot&&(
-                        <span style={{fontSize:10,color:'#71717A',fontWeight:500}}>· Off</span>
+                      {off&&(
+                        <span style={{fontSize:10.5,color:'#71717A',fontWeight:500}}>· Off</span>
                       )}
                     </div>
-
-                    {shoot&&(
-                      <motion.button
-                        type="button"
-                        whileHover={{y:-1,borderColor:'#3F3F46'}}
-                        whileTap={{scale:0.98}}
-                        onClick={()=>onSelectDay(shoot.id)}
-                        style={{
-                          width:'100%',
-                          textAlign:'left',
-                          background:'#151519',
-                          border:'1px solid #24242B',
-                          borderLeft:`2.5px solid ${needsReview?'#E06B52':list.length>0?'#52B07A':'#71717A'}`,
-                          borderRadius:6,
-                          padding:'6px 7px',
-                          cursor:'pointer',
-                          fontFamily:'Manrope,sans-serif',
-                          display:'flex',
-                          flexDirection:'column',
-                          gap:2,
-                        }}
-                      >
-                        <div style={{display:'flex',alignItems:'center',gap:5}}>
-                          <span style={{fontSize:11,fontWeight:700,color:T.cream}}>D{shootNo[shoot.id]}</span>
-                          {hasCS&&<FileText size={10} style={{color:'#52B07A',flexShrink:0}}/>}
-                        </div>
-                        <div style={{fontSize:10.5,color:'#A1A1AA',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                          {primaryLoc}
-                        </div>
-                        <div style={{fontSize:10,fontWeight:600,color:needsReview?'#E06B52':list.length>0?'#52B07A':'#71717A',marginTop:1}}>
-                          {list.length===0?'Empty':needsReview?'Needs review':'Ready'}
-                        </div>
-                      </motion.button>
-                    )}
                   </div>
                 );
               })}
@@ -10837,6 +10875,7 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
     </motion.div>
   );
 }
+
 function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPdf,onExportExcel}){
   const mob=useIsMobile();
   const[format,setFormat]=useState('pdf');
@@ -11873,6 +11912,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
           conflicts={conflicts}
           createdCallSheetIds={createdCallSheetIds}
           onSelectDay={id=>setSelectedDayId(id)}
+          onRemoveDay={onRemoveDay}
         />
       ):(
         /* List View */
