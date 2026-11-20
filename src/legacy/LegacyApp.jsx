@@ -9124,17 +9124,19 @@ const LAGOS_AFTER_DARK_ELEMENTS = [
     name: 'Black holdall of cash',
     description: 'Worn leather holdall packed with prop naira bundles.',
     notes: 'Worn leather holdall packed with prop naira bundles.',
+    specialInstructions: 'Hero and stunt version. Prop money must be marked "FILM USE ONLY".',
     category: 'Props',
     scenes: [2, 3, 5, 15],
     qty: 2,
     department: 'Props',
-    status: 'In prep',
+    status: 'In Prep',
   },
   {
     id: 'el-2',
     name: 'Taxi meter (practical)',
     description: 'Working practical meter for the taxi dashboard.',
     notes: 'Working practical meter for the taxi dashboard.',
+    specialInstructions: 'Working 12V cigarette lighter power lead for dashboard mounting.',
     category: 'Props',
     scenes: [2, 8, 13, 18],
     qty: 1,
@@ -9146,6 +9148,7 @@ const LAGOS_AFTER_DARK_ELEMENTS = [
     name: "Adaobi's driver jacket",
     description: 'Faded denim jacket, continuity piece across the film.',
     notes: 'Faded denim jacket, continuity piece across the film.',
+    specialInstructions: 'Hero, stunt, and wet double for lagoon water rescue.',
     category: 'Wardrobe and Costume',
     scenes: [1, 2, 8, 12, 18],
     qty: 3,
@@ -9157,6 +9160,7 @@ const LAGOS_AFTER_DARK_ELEMENTS = [
     name: "Tunde's surgery wounds",
     description: 'Bruising and stitched wound continuity.',
     notes: 'Bruising and stitched wound continuity.',
+    specialInstructions: 'SFX prosthetic silicone pieces and blood pack tubes.',
     category: 'Makeup and Hair',
     scenes: [16],
     qty: '—',
@@ -9168,6 +9172,7 @@ const LAGOS_AFTER_DARK_ELEMENTS = [
     name: 'Bridge exchange gunfire',
     description: 'Muzzle flashes and two bullet hits on the taxi.',
     notes: 'Muzzle flashes and two bullet hits on the taxi.',
+    specialInstructions: 'Armourer and pyrotechnic supervisor on set. Quarter loads.',
     category: 'Special Effects',
     scenes: [15],
     qty: '—',
@@ -9179,6 +9184,7 @@ const LAGOS_AFTER_DARK_ELEMENTS = [
     name: 'Water rescue rig',
     description: 'Safety rig and divers for the waterfront rescue.',
     notes: 'Safety rig and divers for the waterfront rescue.',
+    specialInstructions: 'Certified rescue divers and safety boat on standby.',
     category: 'Stunts and Action',
     scenes: [12],
     qty: '—',
@@ -11215,32 +11221,69 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
   const isEdit = Boolean(element && !element.isNew);
 
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Props');
-  const [department, setDepartment] = useState('Props');
+  const [status, setStatus] = useState('In Prep');
   const [qty, setQty] = useState('1');
-  const [status, setStatus] = useState('Ready');
+  const [department, setDepartment] = useState('Props');
   const [selectedScenes, setSelectedScenes] = useState([]);
+  const [sceneFilter, setSceneFilter] = useState('');
+  const [notesExpanded, setNotesExpanded] = useState(true);
+  const [description, setDescription] = useState('');
+  const [specialInstructions, setSpecialInstructions] = useState('');
 
   useEffect(() => {
     if (element) {
       setName(element.name || '');
-      setDescription(element.description || element.notes || '');
       setCategory(element.category || 'Props');
-      setDepartment(element.department || 'Props');
+      setStatus(element.status || 'In Prep');
       setQty(element.qty !== undefined && element.qty !== null ? String(element.qty) : '1');
-      setStatus(element.status || 'Ready');
+      setDepartment(element.department || element.category || 'Props');
+      setDescription(element.description || element.notes || '');
+      setSpecialInstructions(
+        element.specialInstructions ||
+        (element.name?.toLowerCase().includes('holdall')
+          ? 'Hero and stunt version. Prop money must be marked "FILM USE ONLY".'
+          : '')
+      );
       const scs = Array.isArray(element.scenes)
         ? element.scenes
         : (element.scenes ? String(element.scenes).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)) : []);
       setSelectedScenes(scs);
+      setSceneFilter('');
     }
   }, [element]);
 
+  const effectiveScenes = allScenes.length > 0
+    ? allScenes
+    : Array.from({ length: 18 }, (_, i) => ({ sceneNumber: i + 1 }));
+
+  const filteredScenes = effectiveScenes.filter(sc => {
+    if (!sceneFilter.trim()) return true;
+    const q = sceneFilter.trim().toLowerCase();
+    const numMatch = String(sc.sceneNumber).includes(q);
+    const setMatch = (sceneLoc(sc) || sc.heading || '').toLowerCase().includes(q);
+    const charMatch = (sc.cast || []).some(c => c.toLowerCase().includes(q));
+    return numMatch || setMatch || charMatch;
+  });
+
   const toggleScene = (scNum) => {
     setSelectedScenes(prev =>
-      prev.includes(scNum) ? prev.filter(n => n !== scNum) : [...prev, scNum].sort((a,b)=>a-b)
+      prev.includes(scNum) ? prev.filter(n => n !== scNum) : [...prev, scNum].sort((a, b) => a - b)
     );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const toAdd = filteredScenes.map(sc => sc.sceneNumber);
+    setSelectedScenes(prev => Array.from(new Set([...prev, ...toAdd])).sort((a, b) => a - b));
+  };
+
+  const handleClearFiltered = () => {
+    if (sceneFilter.trim()) {
+      const toRemove = new Set(filteredScenes.map(sc => sc.sceneNumber));
+      setSelectedScenes(prev => prev.filter(num => !toRemove.has(num)));
+    } else {
+      setSelectedScenes([]);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -11250,13 +11293,14 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
     onSave({
       id: element?.id || `el-${Date.now()}`,
       name: name.trim(),
+      category,
+      status,
+      qty: qty.trim() || '—',
+      department: department.trim() || category,
+      scenes: selectedScenes,
       description: description.trim(),
       notes: description.trim(),
-      category,
-      department: department.trim() || category,
-      qty: qty.trim() || '—',
-      status,
-      scenes: selectedScenes,
+      specialInstructions: specialInstructions.trim(),
     });
     onClose();
   };
@@ -11293,7 +11337,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
               border: '1px solid #1E1E22',
               borderRadius: 16,
               width: '100%',
-              maxWidth: 500,
+              maxWidth: 520,
               boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
               overflow: 'hidden',
               display: 'flex',
@@ -11322,7 +11366,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     fontFamily: 'Manrope,sans-serif',
                   }}
                 >
-                  {isEdit ? 'Edit production element' : 'Add production element'}
+                  {isEdit ? 'Edit element' : 'Add element'}
                 </h3>
                 <div
                   style={{
@@ -11333,7 +11377,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     lineHeight: 1.4,
                   }}
                 >
-                  Key props, wardrobe, camera package, sound and SFX requirements.
+                  Anything a scene needs on the day props, wardrobe, effects, animals, equipment.
                 </div>
               </div>
               <button
@@ -11362,94 +11406,23 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                 padding: mob ? '14px 18px' : '18px 24px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 14,
+                gap: 16,
                 overflowY: 'auto',
               }}
             >
-              {/* Element Name */}
+              {/* Element Section */}
               <div>
-                <label
+                <div
                   style={{
-                    display: 'block',
                     fontSize: 11,
                     fontWeight: 600,
-                    color: '#D4D4D8',
-                    marginBottom: 6,
+                    color: '#71717A',
                     fontFamily: 'Manrope,sans-serif',
+                    marginBottom: 8,
                   }}
                 >
-                  Element name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Black holdall of cash"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    background: '#141416',
-                    border: '1px solid #222226',
-                    borderRadius: 8,
-                    padding: '9px 12px',
-                    color: T.cream,
-                    fontSize: 11.5,
-                    fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              {/* Category & Department */}
-              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: '#D4D4D8',
-                      marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
-                    }}
-                  >
-                    Category<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
-                  </label>
-                  <select
-                    value={category}
-                    onChange={e => {
-                      setCategory(e.target.value);
-                      if (e.target.value === 'Wardrobe and Costume') setDepartment('Costume');
-                      else if (e.target.value === 'Makeup and Hair') setDepartment('Makeup & Hair');
-                      else if (e.target.value === 'Stunts and Action') setDepartment('Stunts');
-                      else if (e.target.value === 'Special Effects') setDepartment('Special Effects');
-                      else if (e.target.value === 'Props') setDepartment('Props');
-                    }}
-                    style={{
-                      width: '100%',
-                      background: '#141416',
-                      border: '1px solid #222226',
-                      borderRadius: 8,
-                      padding: '9px 12px',
-                      color: '#D4D4D8',
-                      fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="Props">Props</option>
-                    <option value="Wardrobe and Costume">Wardrobe and Costume</option>
-                    <option value="Makeup and Hair">Makeup and Hair</option>
-                    <option value="Special Effects">Special Effects</option>
-                    <option value="Stunts and Action">Stunts and Action</option>
-                    <option value="Camera and Sound">Camera and Sound</option>
-                  </select>
+                  Element
                 </div>
-
                 <div>
                   <label
                     style={{
@@ -11461,14 +11434,15 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontFamily: 'Manrope,sans-serif',
                     }}
                   >
-                    Department<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    Element name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Props, Costume"
-                    value={department}
-                    onChange={e => setDepartment(e.target.value)}
+                    placeholder="e.g. Black holdall of cash"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    autoFocus
                     style={{
                       width: '100%',
                       background: '#141416',
@@ -11485,7 +11459,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                 </div>
               </div>
 
-              {/* Quantity & Status */}
+              {/* Category & Status */}
               <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
                 <div>
                   <label
@@ -11498,11 +11472,108 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontFamily: 'Manrope,sans-serif',
                     }}
                   >
+                    Category<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={category}
+                      onChange={e => {
+                        setCategory(e.target.value);
+                        if (e.target.value === 'Wardrobe and Costume') setDepartment('Costume');
+                        else if (e.target.value === 'Makeup and Hair') setDepartment('Makeup & Hair');
+                        else if (e.target.value === 'Stunts and Action') setDepartment('Stunts');
+                        else if (e.target.value === 'Special Effects') setDepartment('Special Effects');
+                        else if (e.target.value === 'Props') setDepartment('Props');
+                      }}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 30px 9px 12px',
+                        color: '#D4D4D8',
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                      }}
+                    >
+                      <option value="Props">Props</option>
+                      <option value="Wardrobe and Costume">Wardrobe and Costume</option>
+                      <option value="Makeup and Hair">Makeup and Hair</option>
+                      <option value="Special Effects">Special Effects</option>
+                      <option value="Stunts and Action">Stunts and Action</option>
+                      <option value="Camera and Sound">Camera and Sound</option>
+                    </select>
+                    <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 6,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Status
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={status}
+                      onChange={e => setStatus(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#141416',
+                        border: '1px solid #222226',
+                        borderRadius: 8,
+                        padding: '9px 30px 9px 12px',
+                        color: '#D4D4D8',
+                        fontSize: 11.5,
+                        fontFamily: 'Manrope,sans-serif',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                      }}
+                    >
+                      <option value="In Prep">In Prep</option>
+                      <option value="Ready">Ready</option>
+                      <option value="Sourcing">Sourcing</option>
+                      <option value="Needed">Needed</option>
+                    </select>
+                    <ChevronDown size={13} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#71717A', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity & Responsible department */}
+              <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 2fr', gap: 12 }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#D4D4D8',
+                      marginBottom: 2,
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
                     Quantity
                   </label>
+                  <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    If applicable.
+                  </div>
                   <input
                     type="text"
-                    placeholder="e.g. 2 or —"
+                    placeholder="2"
                     value={qty}
                     onChange={e => setQty(e.target.value)}
                     style={{
@@ -11527,57 +11598,131 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontSize: 11,
                       fontWeight: 600,
                       color: '#D4D4D8',
-                      marginBottom: 6,
+                      marginBottom: 2,
                       fontFamily: 'Manrope,sans-serif',
                     }}
                   >
-                    Status<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
+                    Responsible department
                   </label>
-                  <select
-                    value={status}
-                    onChange={e => setStatus(e.target.value)}
+                  <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    Who sources and looks after it.
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Props"
+                    value={department}
+                    onChange={e => setDepartment(e.target.value)}
                     style={{
                       width: '100%',
                       background: '#141416',
                       border: '1px solid #222226',
                       borderRadius: 8,
                       padding: '9px 12px',
-                      color: '#D4D4D8',
+                      color: T.cream,
                       fontSize: 11.5,
                       fontFamily: 'Manrope,sans-serif',
                       outline: 'none',
                       boxSizing: 'border-box',
-                      cursor: 'pointer',
                     }}
-                  >
-                    <option value="Ready">Ready</option>
-                    <option value="In prep">In prep</option>
-                    <option value="Sourcing">Sourcing</option>
-                    <option value="Needed">Needed</option>
-                  </select>
+                  />
                 </div>
               </div>
 
-              {/* Scenes Linked */}
+              {/* Scenes Section */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <label
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                  <span
                     style={{
-                      fontSize: 11,
-                      fontWeight: 600,
+                      fontSize: 11.5,
+                      fontWeight: 700,
                       color: '#D4D4D8',
                       fontFamily: 'Manrope,sans-serif',
                     }}
                   >
                     Scenes
-                  </label>
+                  </span>
                   <span style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif' }}>
                     {selectedScenes.length} selected
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 110, overflowY: 'auto', padding: '4px 0' }}>
-                  {allScenes.map(sc => {
+                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 10, fontFamily: 'Manrope,sans-serif' }}>
+                  Every scene that needs this element.
+                </div>
+
+                {/* Filter bar */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: '#141416',
+                    border: '1px solid #222226',
+                    borderRadius: 8,
+                    padding: '6px 12px',
+                    marginBottom: 10,
+                  }}
+                >
+                  <Search size={13} style={{ color: '#71717A', flexShrink: 0 }} />
+                  <input
+                    type="search"
+                    placeholder="Filter by number, set or character"
+                    value={sceneFilter}
+                    onChange={e => setSceneFilter(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: 'none',
+                      border: 'none',
+                      color: T.cream,
+                      fontSize: 11.5,
+                      fontFamily: 'Manrope,sans-serif',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSelectAllFiltered}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#4A90D9',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      fontFamily: 'Manrope,sans-serif',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    Select
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearFiltered}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#71717A',
+                      fontSize: 11,
+                      fontFamily: 'Manrope,sans-serif',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                {/* 8-column Scene Number Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(8, 1fr)',
+                    gap: 6,
+                  }}
+                >
+                  {effectiveScenes.map(sc => {
                     const isSelected = selectedScenes.includes(sc.sceneNumber);
+                    const isFiltered = filteredScenes.some(f => f.sceneNumber === sc.sceneNumber);
+
                     return (
                       <button
                         key={sc.sceneNumber}
@@ -11586,14 +11731,16 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                         style={{
                           background: isSelected ? '#161619' : '#121215',
                           border: isSelected ? '1px solid #F5A623' : '1px solid #222226',
-                          color: isSelected ? '#F5A623' : '#71717A',
+                          color: isSelected ? '#F5A623' : (isFiltered ? '#D4D4D8' : '#52525B'),
                           borderRadius: 6,
-                          padding: '4px 9px',
+                          padding: '7px 0',
                           fontSize: 10.5,
                           fontFamily: 'IBM Plex Mono, monospace',
                           fontWeight: isSelected ? 700 : 500,
+                          textAlign: 'center',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
+                          opacity: isFiltered ? 1 : 0.45,
                         }}
                       >
                         {sc.sceneNumber}
@@ -11603,39 +11750,138 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                 </div>
               </div>
 
-              {/* Description & Notes */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: '#D4D4D8',
-                    marginBottom: 6,
-                    fontFamily: 'Manrope,sans-serif',
-                  }}
-                >
-                  Description &amp; continuity notes
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Worn leather holdall packed with prop naira bundles."
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
+              {/* Accordion: Description & special instructions */}
+              <div
+                style={{
+                  background: '#121215',
+                  border: '1px solid #1E1E22',
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setNotesExpanded(prev => !prev)}
                   style={{
                     width: '100%',
-                    background: '#141416',
-                    border: '1px solid #222226',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                    color: T.cream,
-                    fontSize: 11.5,
-                    fontFamily: 'Manrope,sans-serif',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    resize: 'vertical',
+                    padding: '12px 14px',
+                    background: 'none',
+                    border: 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    textAlign: 'left',
                   }}
-                />
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#D4D4D8',
+                      fontFamily: 'Manrope,sans-serif',
+                    }}
+                  >
+                    Description &amp; special instructions
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      color: '#71717A',
+                      transform: notesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  />
+                </button>
+
+                {notesExpanded && (
+                  <div
+                    style={{
+                      padding: '0 14px 14px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Description
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Worn leather holdall packed with prop naira bundles."
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#D4D4D8',
+                          marginBottom: 2,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Special instructions
+                      </label>
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          color: '#71717A',
+                          marginBottom: 6,
+                          fontFamily: 'Manrope,sans-serif',
+                        }}
+                      >
+                        Doubles, safety, licences, handling.
+                      </div>
+                      <textarea
+                        rows={2}
+                        placeholder='Hero and stunt version. Prop money must be marked "FILM USE ONLY".'
+                        value={specialInstructions}
+                        onChange={e => setSpecialInstructions(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: '#141416',
+                          border: '1px solid #222226',
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          color: T.cream,
+                          fontSize: 11.5,
+                          fontFamily: 'Manrope,sans-serif',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

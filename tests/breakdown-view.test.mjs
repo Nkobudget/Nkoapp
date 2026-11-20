@@ -199,7 +199,18 @@ test('script breakdown production elements tab layout and modals parity', async 
 
   // Verify Modals
   assert.match(fileContent, /function ProductionElementModal/);
-  assert.match(fileContent, /Edit production element/);
+  assert.match(fileContent, /Edit element/);
+  assert.match(fileContent, /Anything a scene needs on the day props, wardrobe, effects, animals, equipment\./);
+  assert.match(fileContent, /Element name/);
+  assert.match(fileContent, /Responsible department/);
+  assert.match(fileContent, /Who sources and looks after it\./);
+  assert.match(fileContent, /If applicable\./);
+  assert.match(fileContent, /Every scene that needs this element\./);
+  assert.match(fileContent, /Filter by number, set or character/);
+  assert.match(fileContent, /Description &amp; special instructions/);
+  assert.match(fileContent, /Doubles, safety, licences, handling\./);
+  assert.match(fileContent, /Special instructions/);
+  assert.match(fileContent, /Hero and stunt version\. Prop money must be marked ["&quot;\\]*FILM USE ONLY["&quot;\\]*\./);
   assert.match(fileContent, /function DeleteProductionElementModal/);
   assert.match(fileContent, /Remove production element\?/);
 });
