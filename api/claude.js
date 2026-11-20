@@ -1,27 +1,22 @@
-// Replace YOUR_DOMAIN below with your actual production domain(s) — e.g. 'https://nko-nko.vercel.app'.
-// If you use a custom domain too, add it to ALLOWED_ORIGINS as a second entry.
-const ALLOWED_ORIGINS = ['https://YOUR_DOMAIN.vercel.app'];
-
 export default async function handler(req, res) {
   const origin = req.headers.origin;
-  if (ALLOWED_ORIGINS.includes(origin)) {
+  const isAllowed = !origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.endsWith('.vercel.app') || origin.endsWith('nko.app');
+  if (origin && isAllowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Requests from origins not in ALLOWED_ORIGINS never get an Allow-Origin header above,
-  // so browsers block the response client-side — this stops casual/browser-based abuse.
-  // It does NOT stop a direct server-to-server request (curl, another backend), since CORS
-  // is a browser-enforced mechanism, not a server-side one. Closing that fully requires
-  // verifying the caller is a real logged-in NKÒ user (a Supabase auth token check) — flagged
-  // separately below, not implemented here since it needs a client-side change too.
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured on server' });
+  }
 
   try {
     const { system, messages, max_tokens = 8000 } = req.body;
+    const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -32,7 +27,7 @@ export default async function handler(req, res) {
         'anthropic-beta': 'pdfs-2024-09-25',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model,
         max_tokens,
         system,
         messages,

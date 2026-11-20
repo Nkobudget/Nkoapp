@@ -11,6 +11,7 @@ import IrisLoader from '../components/IrisLoader';
 import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
 import { generateBudgetDocsHtml, budgetDocs } from './exportBudgetDocs.js';
+import { parseScriptFile } from './scriptBreakdownParser.js';
 import './dashboard.css';
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -7205,7 +7206,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
   const[state,setState]=useState('idle');const[err,setErr]=useState('');const[dragging,setDragging]=useState(false);const[notif,setNotif]=useState(()=>typeof Notification!=='undefined'?Notification.permission:'unsupported');const fr=useRef();const resRef=useRef();
   const askNotif=async()=>{if(typeof Notification==='undefined'||Notification.permission!=='default')return;const p=await Notification.requestPermission();setNotif(p);};
   const sendNotif=n=>{if(typeof Notification==='undefined'||Notification.permission!=='granted')return;try{new Notification('NKÒ Breakdown Complete',{body:`${n} scenes extracted from ${project.name}`});}catch{}};
-  useEffect(()=>{const h=()=>{if(document.visibilityState==='visible'&&resRef.current){onApply(resRef.current);resRef.current=null;setState('done');}};document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);},[]);
+  useEffect(()=>{const h=()=>{if(document.visibilityState==='visible'&&resRef.current){const{scenes:scs,scriptName:sn}=resRef.current;onApply(scs,sn);resRef.current=null;setState('done');}};document.addEventListener('visibilitychange',h);return()=>document.removeEventListener('visibilitychange',h);},[onApply]);
   useEffect(()=>{
     if(!open)return;
     setState('idle');setErr('');setDragging(false);
@@ -7214,17 +7215,20 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
     return()=>window.removeEventListener('keydown',onKey);
   },[open,state,onClose]);
   const process=async f=>{
-    const isPDF=f.type==='application/pdf',isTxt=f.type==='text/plain'||f.name.endsWith('.txt')||f.name.endsWith('.fdx')||f.name.endsWith('.fountain');
+    const isPDF=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+    const isTxt=f.type==='text/plain'||f.name.toLowerCase().endsWith('.txt')||f.name.toLowerCase().endsWith('.fdx')||f.name.toLowerCase().endsWith('.fountain');
     if(!isPDF&&!isTxt){setErr('Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) file.');setState('error');return;}
     if(f.size>20*1024*1024){setErr('File is too large (max 20MB). Try a smaller export or a .txt file.');setState('error');return;}
     await askNotif();setState('reading');setErr('');
     try{
       const kb=f.size/1024;const ep=isPDF?kb>200:kb>50;const max=ep?40:200;
       let uc;let measured=null,measuredSource='';
+      let rawTextForFallback='';
       if(isPDF){
         try{measured=await measureScenePages(f);measuredSource='measured';}catch{measured=null;}
         let extracted='';
         try{extracted=await extractPdfText(f);}catch{extracted='';}
+        rawTextForFallback=extracted||'';
         if(extracted&&extracted.length>200){
           uc=[{type:'text',text:`Script:\n\n${extracted.slice(0,300000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
         }else{
@@ -7235,6 +7239,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
         }
       }else{
         const txt=await readTxt(f);
+        rawTextForFallback=txt||'';
         measured=estimateTxtPages(txt);measuredSource='estimated';
         uc=[{type:'text',text:`Script:\n\n${txt.slice(0,80000)}\n\n${BREAKDOWN_PROMPT(ep,max)}`}];
       }
@@ -7246,77 +7251,17 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
         scenesRaw=parsed.scenes||[];characters=parsed.characters||[];
       }catch{}
       if(!scenesRaw.length){
-        const rawTxt = isPDF ? (await extractPdfText(f).catch(()=>'')) : (await readTxt(f).catch(()=>''));
-        const localParsed = (() => {
-          const outScenes = [];
-          const charCounts = {};
-          if (f.name.toLowerCase().endsWith('.fdx') || rawTxt.includes('<FinalDraft')) {
-            const doc = new window.DOMParser().parseFromString(rawTxt, 'text/xml');
-            const paras = Array.from(doc.querySelectorAll('Paragraph'));
-            let cur = null; let lineCount = 0;
-            paras.forEach(p => {
-              const type = p.getAttribute('Type') || '';
-              const text = Array.from(p.querySelectorAll('Text')).map(t => t.textContent || '').join('').trim();
-              if (!text) return;
-              if (type === 'Scene Heading') {
-                if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7))); outScenes.push(cur); }
-                const upper = text.toUpperCase();
-                const ie = upper.startsWith('INT./EXT') || upper.startsWith('INT/EXT') || upper.startsWith('I/E') ? 'INT/EXT' : upper.startsWith('EXT') ? 'EXT' : 'INT';
-                const todMatch = upper.match(/-\s*(DAY|NIGHT|DAWN|DUSK|MORNING|EVENING|CONTINUOUS|LATER)/);
-                const dayNight = todMatch ? (todMatch[1] === 'MORNING' ? 'DAWN' : todMatch[1] === 'EVENING' ? 'DUSK' : todMatch[1] === 'CONTINUOUS' || todMatch[1] === 'LATER' ? 'DAY' : todMatch[1]) : 'DAY';
-                const loc = parseLocation(upper);
-                cur = { sceneNumber: String(outScenes.length + 1), heading: upper, intExt: ie, location: loc, dayNight, cast: [], pages8: 4 };
-                lineCount = 2;
-              } else if (cur) {
-                lineCount += Math.max(1, Math.ceil(text.length / 60));
-                if (type === 'Character') {
-                  const cname = text.replace(/\(.*?\)/g, '').trim().toUpperCase();
-                  if (cname && cname.length < 35 && !cur.cast.includes(cname)) cur.cast.push(cname);
-                  if (cname) charCounts[cname] = (charCounts[cname] || 0) + 1;
-                }
-              }
-            });
-            if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7))); outScenes.push(cur); }
-          }
-          if (!outScenes.length && rawTxt) {
-            const lines = rawTxt.split(/\r?\n/);
-            const headingRe = /^\s*(?:(\d+[A-Z]?)\s*[.\-]?\s*)?((?:INT\.?\/EXT\.?|I\/E|INT\.?|EXT\.?)\s+.+)$/i;
-            let cur = null; let lineCount = 0;
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i].trim();
-              const m = line.match(headingRe);
-              if (m) {
-                if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 6))); outScenes.push(cur); }
-                const upper = m[2].trim().toUpperCase();
-                const ie = upper.startsWith('INT./EXT') || upper.startsWith('INT/EXT') || upper.startsWith('I/E') ? 'INT/EXT' : upper.startsWith('EXT') ? 'EXT' : 'INT';
-                const todMatch = upper.match(/-\s*(DAY|NIGHT|DAWN|DUSK|MORNING|EVENING|CONTINUOUS|LATER)/);
-                const dayNight = todMatch ? (todMatch[1] === 'MORNING' ? 'DAWN' : todMatch[1] === 'EVENING' ? 'DUSK' : todMatch[1] === 'CONTINUOUS' || todMatch[1] === 'LATER' ? 'DAY' : todMatch[1]) : 'DAY';
-                const loc = parseLocation(upper);
-                cur = { sceneNumber: m[1] || String(outScenes.length + 1), heading: upper, intExt: ie, location: loc, dayNight, cast: [], pages8: 4 };
-                lineCount = 2;
-              } else if (cur && line) {
-                lineCount += 1;
-                const cleanCue = line.replace(/\(.*?\)/g, '').trim();
-                if (/^[A-Z][A-Z0-9\s.'\-]{1,28}$/.test(cleanCue) && !/^(CUT TO|FADE IN|FADE OUT|DISSOLVE TO|SMASH CUT|THE END|CONTINUED)$/.test(cleanCue)) {
-                  if (!cur.cast.includes(cleanCue)) cur.cast.push(cleanCue);
-                  charCounts[cleanCue] = (charCounts[cleanCue] || 0) + 1;
-                }
-              }
-            }
-            if (cur) { cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 6))); outScenes.push(cur); }
-          }
-          const chars = Object.entries(charCounts).map(([name, c]) => ({ name, tier: c >= 5 ? 'lead' : c >= 2 ? 'supporting' : 'day_player' }));
-          return { scenes: outScenes, characters: chars };
-        })();
-        scenesRaw = localParsed.scenes;
-        characters = localParsed.characters;
+        const fallbackTxt = rawTextForFallback || (isPDF ? (await extractPdfText(f).catch(()=>'')) : (await readTxt(f).catch(()=>'')));
+        const localParsed = parseScriptFile(fallbackTxt, f.name);
+        scenesRaw = localParsed.scenes || [];
+        characters = localParsed.characters || [];
       }
       if(!scenesRaw.length)throw new Error('No scenes found — ensure your script uses standard INT./EXT. scene headings.');
       const scenes=attachPageLengths(scenesRaw,measured,measuredSource);
       characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
       sendNotif(scenes.length);
       try{localStorage.setItem(`nko_bk_${project?.id}`,JSON.stringify({scenes,ts:Date.now()}));}catch{}
-      if(document.visibilityState==='hidden'){resRef.current=scenes;}else{onApply(scenes);setState('done');}
+      if(document.visibilityState==='hidden'){resRef.current={scenes,scriptName:f.name};}else{onApply(scenes,f.name);setState('done');}
     }catch(e){setErr(e.message);setState('error');}
   };
   return(
@@ -9157,7 +9102,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         <Btn size="sm" variant="outline" onClick={()=>{if(window.confirm(`Remove ${dupeCount} duplicate scene${dupeCount!==1?'s':''}? This keeps one copy of each scene number and can't be undone.`))onDedupeScenes(project.id);}}>Clean up duplicates</Btn>
       </div>}
 
-      <BreakdownUploader open={showUpload} onClose={()=>setShowUpload(false)} project={project} onApply={ns=>{onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})));setShowUpload(false);}} onSaveCharacter={onSaveCharacter}/>
+      <BreakdownUploader open={showUpload} onClose={()=>setShowUpload(false)} project={project} onApply={(ns, scriptName)=>{onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})), scriptName);setShowUpload(false);}} onSaveCharacter={onSaveCharacter}/>
 
       <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={sc=>{setPendingNewScene(sc);setSelectedScene(null);}} defaultSceneNumber={ps.length+1}/>
 
@@ -10335,15 +10280,20 @@ function Workspace(){
     broadcastActivity('added a scene');
     return saved;
   };
-  const addScenesBatch=async scenesArr=>{
+  const addScenesBatch=async(scenesArr, scriptName)=>{
     if(!scenesArr?.length)return;
-    const oldIds=scenes.filter(s=>s.project_id===currentId).map(s=>String(s.id));
+    const targetId=project?.id||currentId;
+    const oldIds=scenes.filter(s=>matchesProject(s.project_id, targetId, project?.name)).map(s=>String(s.id));
     try{const k=`nko_del_sc_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...oldIds])]));}catch{}
-    await sb.from('scenes').delete().eq('project_id',currentId);
-    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:rest};});
+    await sb.from('scenes').delete().eq('project_id',targetId);
+    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:targetId,user_id:user.id,data:rest};});
     const{data,error}=await sb.from('scenes').insert(rows).select();
     const saved=(!error&&data?.length)?data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id})):rows.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id}));
-    setScenes(p=>[...p.filter(s=>s.project_id!==currentId),...saved]);
+    setScenes(p=>[...p.filter(s=>!matchesProject(s.project_id, targetId, project?.name)),...saved]);
+    if(scriptName){
+      setProjects(prev=>prev.map(p=>matchesProject(p.id, targetId, project?.name)?{...p, script_name: scriptName}:p));
+      try{await sb.from('projects').update({script_name:scriptName}).eq('id',targetId);}catch{}
+    }
     broadcastActivity('uploaded script breakdown');
   };
   const updateScene=async(id,upd)=>{
