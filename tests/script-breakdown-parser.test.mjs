@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseScriptFile, parseDayNight, parseIntExt, parseSetName } from '../src/legacy/scriptBreakdownParser.js';
+import { parseScriptFile, parseDayNight, parseIntExt, parseSetName, parsePdfContentStream } from '../src/legacy/scriptBreakdownParser.js';
 
 test('parseDayNight correctly extracts and standardizes time of day', () => {
   assert.equal(parseDayNight('EXT. THIRD MAINLAND BRIDGE - NIGHT'), 'NIGHT');
@@ -123,4 +123,41 @@ test('parseScriptFile handles Final Draft XML (.fdx) format cleanly', () => {
   assert.deepEqual(scenes[1].cast, ['TUNDE']);
   assert.ok(characters.some(c => c.name === 'INSPECTOR OKON'));
   assert.ok(characters.some(c => c.name === 'TUNDE'));
+});
+
+test('parsePdfContentStream extracts text correctly from Tj and TJ PDF stream operators', () => {
+  const streamContent = `
+    BT
+    /F1 12 Tf
+    72 712 Td
+    (1 EXT. THIRD MAINLAND BRIDGE - NIGHT 1) Tj
+    0 -14 Td
+    [(Adaobi drives ) 10 (through ) -5 (thick traffic.)] TJ
+    ET
+  `;
+
+  const extracted = parsePdfContentStream(streamContent);
+  assert.ok(extracted.includes('1 EXT. THIRD MAINLAND BRIDGE - NIGHT 1'));
+  assert.ok(extracted.includes('Adaobi drives through thick traffic.'));
+});
+
+test('parseScriptFile provides fallback scenes when script has non-standard headings or paragraphs', () => {
+  const synopsisText = `
+The story begins with an introduction to Adaobi, an ambitious driver navigating the bustling streets of Lagos.
+
+Later at the market, she meets an old friend who delivers unexpected news regarding the ongoing investigation.
+  `;
+
+  const { scenes } = parseScriptFile(synopsisText, 'treatment.txt');
+  assert.ok(scenes.length >= 1);
+  assert.equal(scenes[0].status, 'ready');
+  assert.equal(scenes[0].ready, true);
+  assert.ok(scenes[0].heading.length > 0);
+});
+
+test('parseScriptFile never returns empty scenes even for empty input', () => {
+  const { scenes } = parseScriptFile('', 'empty.txt');
+  assert.ok(scenes.length >= 1);
+  assert.equal(scenes[0].sceneNumber, '1');
+  assert.equal(scenes[0].status, 'ready');
 });

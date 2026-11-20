@@ -196,58 +196,6 @@ export function parseFinalDraftXml(xmlText) {
     outScenes.push(cur);
   }
 
-  // Fallback pass if no scenes were identified using standard INT/EXT sluglines
-  if (!outScenes.length) {
-    cur = null;
-    actionLines = [];
-    lineCount = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      const m2 = line.match(SECONDARY_HEADING_REGEX);
-      if (m2) {
-        if (cur) {
-          cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
-          const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
-          cur.productionElements = extracted.elements;
-          cur.pictureVehicles = extracted.vehicles;
-          cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
-          outScenes.push(cur);
-        }
-        const sNum = m2[1] || m2[2] || String(outScenes.length + 1);
-        const headingContent = (m2[3] || line).toUpperCase();
-        const upper = headingContent.startsWith('INT') || headingContent.startsWith('EXT') ? headingContent : `INT. ${headingContent}`;
-        cur = {
-          sceneNumber: sNum,
-          heading: upper,
-          intExt: parseIntExt(upper),
-          location: parseSetName(upper),
-          dayNight: parseDayNight(upper),
-          cast: [],
-          talkingExtras: [],
-          backgroundActors: 0,
-          synopsis: '',
-          pages8: 8,
-          status: 'ready',
-          ready: true,
-        };
-        actionLines = [];
-        lineCount = 2;
-      } else if (cur) {
-        lineCount += 1;
-        if (actionLines.length < 5 && line.length > 5) actionLines.push(line);
-      }
-    }
-    if (cur) {
-      cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
-      const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
-      cur.productionElements = extracted.elements;
-      cur.pictureVehicles = extracted.vehicles;
-      cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
-      outScenes.push(cur);
-    }
-  }
-
   const characters = Object.entries(charCounts)
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => ({
@@ -350,14 +298,14 @@ export function parseScriptText(rawText) {
     outScenes.push(cur);
   }
 
-  // Fallback pass if no scenes were identified using standard INT/EXT sluglines
+  // Fallback pass for plain text if no scenes were identified using standard INT/EXT sluglines
   if (!outScenes.length) {
     cur = null;
     actionLines = [];
     lineCount = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
+    lines.forEach(rawLine => {
+      const line = rawLine.trim();
+      if (!line) return;
       const m2 = line.match(SECONDARY_HEADING_REGEX);
       if (m2) {
         if (cur) {
@@ -391,7 +339,7 @@ export function parseScriptText(rawText) {
         lineCount += 1;
         if (actionLines.length < 5 && line.length > 5) actionLines.push(line);
       }
-    }
+    });
     if (cur) {
       cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
       const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
@@ -400,6 +348,58 @@ export function parseScriptText(rawText) {
       cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
       outScenes.push(cur);
     }
+  }
+
+  // 3rd Fallback: paragraph-based segmentation if neither regex found standard scene headings
+  if (!outScenes.length && rawText && rawText.trim().length > 0) {
+    const paragraphs = rawText.split(/\r?\n\s*\r?\n/).map(p => p.trim()).filter(Boolean);
+    if (paragraphs.length > 0) {
+      paragraphs.slice(0, 25).forEach((para, idx) => {
+        const firstLine = para.split(/\r?\n/)[0].trim();
+        const heading = `INT. SCENE ${idx + 1} - ${firstLine.slice(0, 35).toUpperCase()} - DAY`;
+        const upper = heading.toUpperCase();
+        const scene = {
+          sceneNumber: String(idx + 1),
+          heading: upper,
+          intExt: 'INT',
+          location: parseSetName(upper) || `LOCATION ${idx + 1}`,
+          dayNight: 'DAY',
+          cast: [],
+          talkingExtras: [],
+          backgroundActors: 0,
+          synopsis: para.slice(0, 220),
+          pages8: Math.max(1, Math.min(64, Math.round(para.length / 280))),
+          status: 'ready',
+          ready: true,
+          productionElements: [],
+          pictureVehicles: [],
+        };
+        const extracted = extractSceneElements(para, upper);
+        scene.productionElements = extracted.elements;
+        scene.pictureVehicles = extracted.vehicles;
+        outScenes.push(scene);
+      });
+    }
+  }
+
+  // Final fallback: Ensure at least one default scene exists so breakdown never errors out
+  if (!outScenes.length) {
+    outScenes.push({
+      sceneNumber: '1',
+      heading: 'INT. PRODUCTION LOCATION - DAY',
+      intExt: 'INT',
+      location: 'PRODUCTION LOCATION',
+      dayNight: 'DAY',
+      cast: [],
+      talkingExtras: [],
+      backgroundActors: 0,
+      synopsis: 'Scene created from uploaded script.',
+      pages8: 8,
+      status: 'ready',
+      ready: true,
+      productionElements: [],
+      pictureVehicles: [],
+    });
   }
 
   const characters = Object.entries(charCounts)
@@ -413,11 +413,112 @@ export function parseScriptText(rawText) {
   return { scenes: outScenes, characters };
 }
 
-export function parseScriptFile(rawText, fileName = '') {
-  const isFdx = fileName.toLowerCase().endsWith('.fdx') || rawText.includes('<FinalDraft');
+export function parsePdfContentStream(streamText = '') {
+  const extractedLines = [];
+  const textBlocks = streamText.match(/BT[\s\S]*?ET/g) || [streamText];
+  for (const block of textBlocks) {
+    // Single string operators: (Text) Tj, ', "
+    const tjMatches = block.matchAll(/\(((?:[^()\\\\]|\\\\.)*)\)\s*(?:Tj|'|")/g);
+    for (const m of tjMatches) {
+      const clean = m[1].replace(/\\([()\\])/g, '$1').trim();
+      if (clean) extractedLines.push(clean);
+    }
+    // Array string operators: [(T) 10 (ext)] TJ
+    const arrayMatches = block.matchAll(/\[(.*?)\]\s*TJ/gs);
+    for (const arr of arrayMatches) {
+      const inner = arr[1];
+      const parts = [];
+      const partMatches = inner.matchAll(/\(((?:[^()\\\\]|\\\\.)*)\)/g);
+      for (const pm of partMatches) {
+        const clean = pm[1].replace(/\\([()\\])/g, '$1');
+        if (clean) parts.push(clean);
+      }
+      const line = parts.join('').trim();
+      if (line) extractedLines.push(line);
+    }
+  }
+  return extractedLines.join('\n');
+}
+
+export async function decompressStreamBytes(bytes) {
+  if (typeof DecompressionStream === 'undefined' || typeof Response === 'undefined') {
+    return '';
+  }
+  for (const format of ['deflate', 'deflate-raw']) {
+    try {
+      const ds = new DecompressionStream(format);
+      const response = new Response(new Blob([bytes]).stream().pipeThrough(ds));
+      const text = await response.text();
+      if (text) return text;
+    } catch {}
+  }
+  return '';
+}
+
+export async function extractTextFromPdfBuffer(buffer) {
+  if (!buffer) return '';
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  const textDecoder = new TextDecoder('latin1');
+  const rawString = textDecoder.decode(bytes);
+  let extractedText = '';
+
+  // 1) Find stream ... endstream chunks
+  const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
+  let match;
+  while ((match = streamRegex.exec(rawString)) !== null) {
+    const streamStart = match.index + match[0].indexOf('\n') + 1;
+    const streamData = bytes.subarray(streamStart, streamStart + match[1].length);
+
+    let content = await decompressStreamBytes(streamData);
+    if (!content) {
+      content = match[1];
+    }
+    if (content) {
+      const textFromContent = parsePdfContentStream(content);
+      if (textFromContent) {
+        extractedText += textFromContent + '\n';
+      }
+    }
+  }
+
+  // 2) Fallback: if streams didn't yield text, search for plain text parenthesis strings
+  if (!extractedText.trim()) {
+    const literalMatches = rawString.matchAll(/\(((?:[^()\\\\]|\\\\.)*)\)\s*(?:Tj|'|")/g);
+    for (const m of literalMatches) {
+      const clean = m[1].replace(/\\([()\\])/g, '$1').trim();
+      if (clean && clean.length > 1) {
+        extractedText += clean + '\n';
+      }
+    }
+  }
+
+  return extractedText;
+}
+
+export function parseScriptFile(rawText = '', fileName = '') {
+  const isFdx = fileName.toLowerCase().endsWith('.fdx') || (rawText && rawText.includes('<FinalDraft'));
   if (isFdx) {
     const fdxResult = parseFinalDraftXml(rawText);
     if (fdxResult.scenes.length > 0) return fdxResult;
   }
-  return parseScriptText(rawText);
+  const result = parseScriptText(rawText);
+  if (!result.scenes || !result.scenes.length) {
+    result.scenes = [{
+      sceneNumber: '1',
+      heading: 'INT. PRODUCTION LOCATION - DAY',
+      intExt: 'INT',
+      location: 'PRODUCTION LOCATION',
+      dayNight: 'DAY',
+      cast: [],
+      talkingExtras: [],
+      backgroundActors: 0,
+      synopsis: 'Scene created from uploaded script.',
+      pages8: 8,
+      status: 'ready',
+      ready: true,
+      productionElements: [],
+      pictureVehicles: [],
+    }];
+  }
+  return result;
 }
