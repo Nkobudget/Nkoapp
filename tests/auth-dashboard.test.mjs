@@ -200,7 +200,7 @@ test('successful login, loading state, refresh, restored dashboard sections, and
     await t.page.locator('.nko-dashboard').waitFor()
     assert.equal(await t.page.getByText('The workspace could not load.').count(), 0)
   }
-  const images = await t.page.locator('img[src="/assets/logo.png"]').evaluateAll(nodes => nodes.map(img => ({ loaded: img.complete && img.naturalWidth > 0, ratio: img.width / img.height, naturalRatio: img.naturalWidth / img.naturalHeight })))
+  const images = await t.page.locator('img[src="/assets/logo.svg"]').evaluateAll(nodes => nodes.map(img => ({ loaded: img.complete && img.naturalWidth > 0, ratio: img.width / img.height, naturalRatio: img.naturalWidth / img.naturalHeight })))
   assert.ok(images.length > 0)
   assert.ok(images.every(img => img.loaded && Math.abs(img.ratio - img.naturalRatio) < 0.05))
   await t.page.getByRole('button', { name: 'Sign out', exact: true }).click()
@@ -621,13 +621,15 @@ test('favicon and sharing metadata are present in server HTML and reference real
   const imageURL = await t.page.locator('meta[property="og:image"]').getAttribute('content')
   assert.equal(imageURL, 'https://nko-three.vercel.app/assets/Background.png')
   assert.equal(await t.page.locator('meta[name="twitter:image"]').getAttribute('content'), imageURL)
-  for (const pathname of ['/favicon.svg', new URL(imageURL).pathname, '/assets/logo.png']) {
+  for (const pathname of ['/favicon.svg', new URL(imageURL).pathname, '/assets/logo.svg']) {
     const asset = await t.context.request.get(new URL(pathname, baseURL).href)
     assert.equal(asset.status(), 200)
   }
   const favicon = await (await t.context.request.get(`${baseURL}favicon.svg`)).text()
-  const embedded = favicon.match(/base64,([^"\s]+)/)[1]
-  assert.deepEqual(Buffer.from(embedded, 'base64'), await readFile('public/assets/logo.png'))
+  assert.match(favicon, /<svg[^>]*viewBox="0 0 72 28"/)
+  assert.doesNotMatch(favicon, /data:image\/png|logo\.png/)
+  const logo = await (await t.context.request.get(`${baseURL}assets/logo.svg`)).text()
+  assert.match(logo, /<svg[^>]*width="72" height="28" viewBox="0 0 72 28"/)
   const imageSizes = await t.page.evaluate(async () => {
     const load = src => new Promise((resolve, reject) => {
       const img = new Image()
@@ -635,10 +637,10 @@ test('favicon and sharing metadata are present in server HTML and reference real
       img.onerror = () => reject(new Error(`Image failed to load: ${src}`))
       img.src = src
     })
-    return Promise.all([load('/favicon.svg'), load('/assets/Background.png')])
+    return Promise.all([load('/favicon.svg'), load('/assets/Background.png'), load('/assets/logo.svg')])
   })
-  assert.deepEqual(imageSizes, [[72, 72], [2512, 1498]])
-  const brandImages = await t.page.locator('img[src="/assets/logo.png"]').evaluateAll(nodes => nodes.map(node => ({ href: node.closest('a')?.getAttribute('href'), ratio: node.width / node.height })))
+  assert.deepEqual(imageSizes, [[72, 72], [2512, 1498], [72, 28]])
+  const brandImages = await t.page.locator('img[src="/assets/logo.svg"]').evaluateAll(nodes => nodes.map(node => ({ href: node.closest('a')?.getAttribute('href'), ratio: node.width / node.height })))
   assert.ok(brandImages.every(item => item.href === '/' && Math.abs(item.ratio - 72 / 28) < 0.05))
   await t.close()
 })

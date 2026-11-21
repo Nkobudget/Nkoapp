@@ -70,6 +70,6 @@ npm run test:production
 
 Results: build passed, 22 production-browser tests passed, five unit tests passed, and lint has zero errors with 19 legacy warnings. The browser suite intercepts external service requests; it never creates real accounts, writes production rows, sends emails, or invokes paid AI. It covers authentication, both confirmation modes, password recovery, onboarding validation and persistence, switching accounts, language, direct routes/history, restored dashboard sections, mobile layouts, and logo loading. See [implementation and verification notes](docs/AUTH_FLOW.md) and [the Git recovery walkthrough](docs/DASHBOARD_RECOVERY.md).
 
-All brand-logo locations use `BrandLogo` and the unchanged `/assets/logo.png` file. The dashboard retains its original business views and inline theme, with scoped typography and keyboard focus styles. Public page styles, images, APIs, and database schema remain unchanged.
+All brand-logo locations use `BrandLogo` and `/assets/logo.svg`. The dashboard retains its original business views and inline theme, with scoped typography and keyboard focus styles. Public page styles, images, APIs, and database schema remain unchanged.
 
 Real account access, database row-level-security policies, storage, AI, and email delivery still require a live acceptance check. Existing standalone API functions do not validate a Supabase JWT server-side; the frontend gate does not replace that missing protection.

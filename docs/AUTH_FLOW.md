@@ -45,7 +45,7 @@ Both supplied images were successfully inspected from the uploaded files. The lo
 
 The other image depicts Production → Scale → Goals → AI Setup, with production details. It does **not** specify role or currency screens. The explicit requested three-step flow takes precedence: the role/currency screens use that image's split layout, progress indicator, dark selection cards, spacing, and workspace preview while retaining the historical choices and behavior. Production-detail inputs and extra steps were not invented.
 
-The current welcome page/image is reused with flow-appropriate text. Small screens stack the preview below the form and reduce selection cards to one column. The brand logo everywhere remains the existing `/assets/logo.png`; its aspect ratio is preserved. Existing dashboard views keep their historical theme and gain scoped typography/focus rules, avoiding style leakage into public pages.
+The current welcome page/image is reused with flow-appropriate text. Small screens stack the preview below the form and reduce selection cards to one column. The brand logo everywhere uses `/assets/logo.svg`; its aspect ratio is preserved. Existing dashboard views keep their historical theme and gain scoped typography/focus rules, avoiding style leakage into public pages.
 
 ## Signup and password recovery
 
