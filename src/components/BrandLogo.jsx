@@ -6,7 +6,7 @@ export default function BrandLogo({
 }) {
   return (
     <img
-      src="/assets/logo.png"
+      src="/assets/logo.svg"
       alt={alt}
       width={72}
       height={28}

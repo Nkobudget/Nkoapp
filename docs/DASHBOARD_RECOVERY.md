@@ -67,7 +67,7 @@ If you prefer a worktree instead of a new clone, `git worktree add -b recover/da
 | Email form | Accessible labels, autocomplete, password visibility control, loading/duplicate-submit handling, invalid-credential/network/rate-limit messages, and redirect on authenticated state. |
 | Routing | The ZIP's `/app/*` is controlled by `AuthGate`; MainApp loads lazily after onboarding. `/dashboard` redirects to `/app`. Public routes remain. |
 | Data loading | Visible loading/error/retry states replace silent query failures; stale requests cannot update an unmounted dashboard. |
-| Logos | Dashboard logo instances now use `BrandLogo` and `/assets/logo.png`, retaining their display heights and image aspect ratio. |
+| Logos | Dashboard logo instances use `BrandLogo` and `/assets/logo.svg`, retaining their display heights and image aspect ratio. |
 | Styling | The original dashboard inline theme and print styling are retained, with scoped typography/focus styles. Current Tailwind tokens and marketing/auth styles are unchanged. |
 | Mobile | Original bottom navigation is retained; a mobile sign-out control is added. Top controls can wrap without overflowing narrow screens. |
 | Invitations | The existing invitation link points to `/app`, since `/` is the landing page. No email was sent. |

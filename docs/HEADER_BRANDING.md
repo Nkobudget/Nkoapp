@@ -31,12 +31,10 @@ initials helper. This change reuses them and finishes their integration.
 Authentication, onboarding welcome/role/currency screens, and both dashboard
 brand marks use `BrandHomeLink`. Header and footer logos also lead to `/`.
 These links do not sign users out or mark incomplete onboarding as complete.
-Every brand mark uses the original `/assets/logo.png` and retains its proportions.
+Every brand mark uses `/assets/logo.svg` and retains its 72 × 28 proportions.
 
-`public/favicon.svg` embeds the same PNG, centered without stretching on a square
-dark background. The original PNG is also declared as an icon fallback in
-`index.html`. The source logo is 72 × 28 pixels; a higher-resolution logo would
-improve large future brand graphics, but no replacement is required for this task.
+`public/favicon.svg` uses the same vector artwork, centered without stretching on
+a square dark background. Its viewBox preserves the source logo's 72 × 28 ratio.
 
 ## Website metadata
 
