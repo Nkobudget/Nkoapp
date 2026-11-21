@@ -1566,15 +1566,15 @@ const smartDeptFallback=(desc='',rawDept='')=>{
 /* ── Atoms ── */
 const NAV=[{id:'dashboard',e:'🎬',l:'Dashboard'},{id:'productions',e:'🎞️',l:'Productions'},{id:'overview',e:'🧭',l:'Overview'},{id:'budgets',e:'📊',l:'Budgets'},{id:'revenue',e:'💰',l:'Revenue'},{id:'breakdown',e:'📋',l:'Breakdown'},{id:'schedule',e:'🗓️',l:'Schedule'},{id:'recon',e:'🧾',l:'Recon'},{id:'payments',e:'💳',l:'Payments'},{id:'po',e:'📑',l:'Purchase Orders'},{id:'market',e:'🏪',l:'Marketplace'},{id:'ai',e:'✦',l:'AI Builder'}];
 const s=(x)=>({style:x});
-const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
-const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',...style}}/>;
+const Inp=({style,...p})=><input {...p} style={{width:'100%',background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',color:T.cream,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box',...style}}/>;
+const Sel=({style,...p})=><select {...p} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:6,padding:'7px 10px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',...style}}/>;
 const Btn=({variant='primary',size='md',style:sx,...p})=>{
   const bg=variant==='primary'?T.gold:variant==='sage'?T.sage:variant==='danger'?T.coral:'transparent';
   const co=variant==='ghost'||variant==='outline'?T.gold:T.ink;
   const br=variant==='outline'?`1px solid ${T.gold}`:variant==='ghost'?`1px solid ${T.line}`:'none';
-  return<button {...p} style={{background:bg,color:co,border:br,borderRadius:8,padding:size==='sm'?'5px 12px':'8px 18px',fontSize:size==='sm'?11:13,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',...sx}}/>;
+  return<button {...p} style={{background:bg,color:co,border:br,borderRadius:8,padding:size==='sm'?'5px 12px':'8px 18px',fontSize:size==='sm'?11:13,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',...sx}}/>;
 };
-const Pill=({children,color})=><span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:color?`${color}22`:T.hi,color:color||T.goldDim,border:`1px solid ${color||T.line}`,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{children}</span>;
+const Pill=({children,color})=><span style={{fontSize:10,padding:'2px 8px',borderRadius:10,background:color?`${color}22`:T.hi,color:color||T.goldDim,border:`1px solid ${color||T.line}`,fontFamily:'Inter,sans-serif',fontWeight:700}}>{children}</span>;
 const NkoLogo=({height=32,style})=><BrandHomeLink style={{height,width:'auto',...style}} linkStyle={{display:'flex',width:'fit-content'}}/>;
 const StatCard=({label,value,sub,accent,badge,featured,onClick})=>(
   <motion.div
@@ -1596,11 +1596,11 @@ const StatCard=({label,value,sub,accent,badge,featured,onClick})=>(
     }}
   >
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-      <span style={{fontSize:11,color:'#8A8985',fontFamily:'Manrope,sans-serif',fontWeight:600}}>{label}</span>
+      <span style={{fontSize:11,color:'#8A8985',fontFamily:'Inter,sans-serif',fontWeight:600}}>{label}</span>
       {badge&&<span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'#6E6D69'}}>{badge}</span>}
     </div>
     <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:accent||T.cream,fontWeight:600,letterSpacing:'-0.02em',wordBreak:'break-word'}}>{value}</div>
-    {sub!=null&&sub!==''&&<div style={{fontSize:11,color:'#6E6D69',fontFamily:'Manrope,sans-serif',marginTop:6}}>{sub}</div>}
+    {sub!=null&&sub!==''&&<div style={{fontSize:11,color:'#6E6D69',fontFamily:'Inter,sans-serif',marginTop:6}}>{sub}</div>}
   </motion.div>
 );
 function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
@@ -1609,7 +1609,7 @@ function ExportPreviewModal({title,columns,rows,totalCount,onClose,onDownload}){
       <div style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:760,width:'100%',maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <div style={{padding:'16px 20px 10px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
-            <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Export preview — {title}</div>
+            <div style={{fontFamily:'Inter,sans-serif',fontSize:16,color:T.cream}}>Export preview — {title}</div>
             <button onClick={onClose} style={{background:'none',border:'none',color:T.dim,fontSize:18,cursor:'pointer'}}>✕</button>
           </div>
           <div style={{color:T.dim,fontSize:12,marginTop:2}}>What you'll get in the .xlsx, before downloading</div>
@@ -1651,7 +1651,7 @@ function FeedbackButton({user,view,mobile}){
       whileTap={{scale:0.97}}
       transition={{duration:DURATION.fast,ease:EASE_OUT}}
       onClick={()=>setOpen(true)}
-      style={{position:'fixed',right:18,bottom:mobile?'calc(76px + env(safe-area-inset-bottom))':18,zIndex:55,background:'#141416',color:T.cream,border:'1px solid #26262B',borderRadius:9999,padding:'9px 15px',fontSize:12,fontWeight:600,cursor:'pointer',boxShadow:'0 8px 24px rgba(0,0,0,0.55)',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}
+      style={{position:'fixed',right:18,bottom:mobile?'calc(76px + env(safe-area-inset-bottom))':18,zIndex:55,background:'#141416',color:T.cream,border:'1px solid #26262B',borderRadius:9999,padding:'9px 15px',fontSize:12,fontWeight:600,cursor:'pointer',boxShadow:'0 8px 24px rgba(0,0,0,0.55)',fontFamily:'Inter,sans-serif',display:'inline-flex',alignItems:'center',gap:7}}
     >
       <MessageSquare size={13} style={{color:'#F5C451'}}/>
       <span>Feedback</span>
@@ -1659,7 +1659,7 @@ function FeedbackButton({user,view,mobile}){
     {open&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:60,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={()=>state!=='sending'&&setOpen(false)}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:12,maxWidth:420,width:'100%',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Send feedback</div>
+          <div style={{fontFamily:'Inter,sans-serif',fontSize:16,color:T.cream}}>Send feedback</div>
           <button onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:T.dim,fontSize:18,cursor:'pointer'}}>✕</button>
         </div>
         {state==='sent'?(
@@ -1668,7 +1668,7 @@ function FeedbackButton({user,view,mobile}){
           <div style={{display:'flex',gap:6,marginBottom:10}}>
             {['Idea','Bug','Other'].map(c=><button key={c} onClick={()=>setCategory(c)} style={{flex:1,background:category===c?T.gold:T.panel,color:category===c?T.ink:T.cream,border:`1px solid ${category===c?T.gold:T.line}`,borderRadius:6,padding:'6px 0',fontSize:12,cursor:'pointer',fontWeight:600}}>{c}</button>)}
           </div>
-          <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="What's on your mind — a bug, an idea, anything." rows={4} style={{width:'100%',background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',fontSize:13,fontFamily:'Manrope,sans-serif',resize:'vertical',marginBottom:10}}/>
+          <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="What's on your mind — a bug, an idea, anything." rows={4} style={{width:'100%',background:T.panel,color:T.cream,border:`1px solid ${T.line}`,borderRadius:6,padding:'8px 10px',fontSize:13,fontFamily:'Inter,sans-serif',resize:'vertical',marginBottom:10}}/>
           {state==='error'&&<div style={{color:T.coral,fontSize:12,marginBottom:8}}>Could not send — check your connection and try again.</div>}
           <Btn variant="sage" onClick={submit} disabled={state==='sending'||!message.trim()}>{state==='sending'?'Sending…':'Send'}</Btn>
         </>)}
@@ -1684,10 +1684,10 @@ function ExportMenu({onPdf,onDocs,onExcel,getPreview}){
     const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
     document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
   },[]);
-  const item={display:'block',width:'100%',textAlign:'left',padding:'10px 14px',background:'none',border:'none',color:T.cream,fontSize:13,cursor:'pointer',fontFamily:'Manrope,sans-serif'};
+  const item={display:'block',width:'100%',textAlign:'left',padding:'10px 14px',background:'none',border:'none',color:T.cream,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'};
   return(<>
     <div ref={ref} style={{position:'relative',display:'inline-block'}}>
-      <button type="button" onClick={()=>setOpen(o=>!o)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span><ChevronDown size={13} style={{color:T.faint}}/></button>
+      <button type="button" onClick={()=>setOpen(o=>!o)} style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}><Download size={13}/><span>Export</span><ChevronDown size={13} style={{color:T.faint}}/></button>
       {open&&<div style={{position:'absolute',top:'110%',left:0,background:T.panel,border:`1px solid ${T.line}`,borderRadius:8,overflow:'hidden',zIndex:20,minWidth:220,boxShadow:'0 4px 16px rgba(0,0,0,.4)'}}>
         <button type="button" onClick={()=>{onPdf();setOpen(false);}} style={{...item,display:'flex',alignItems:'center',gap:8}}><FileText size={13} style={{color:T.dim}}/><span>PDF Document</span></button>
         {onDocs&&<button type="button" onClick={()=>{onDocs();setOpen(false);}} style={{...item,display:'flex',alignItems:'center',gap:8,borderTop:`1px solid ${T.line}`}}><FileText size={13} style={{color:'#5B9DF8'}}/><span>Word &amp; Google Docs (.doc)</span></button>}
@@ -1704,7 +1704,7 @@ function LangToggle({compact}){
   const{lang,setLang}=useLang();
   return(
     <div style={{display:'flex',background:'#121212',border:'1px solid #242424',borderRadius:8,padding:2,gap:2,flexShrink:0}}>
-      {['en','fr'].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:compact?'4px 9px':'5px 10px',borderRadius:6,background:lang===l?'#222222':'transparent',color:lang===l?T.cream:T.faint,border:'none',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',transition:'background 0.15s, color 0.15s'}}>{l.toUpperCase()}</button>)}
+      {['en','fr'].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:compact?'4px 9px':'5px 10px',borderRadius:6,background:lang===l?'#222222':'transparent',color:lang===l?T.cream:T.faint,border:'none',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',transition:'background 0.15s, color 0.15s'}}>{l.toUpperCase()}</button>)}
     </div>
   );
 }
@@ -1769,12 +1769,12 @@ function ProductionSwitcher({projects=[],currentId,activeProject,onSelectProject
           boxShadow:open?'0 0 0 1px rgba(255,179,71,0.08)':'none',
         }}
       >
-        <div style={{width:compact?30:26,height:compact?30:26,borderRadius:compact?8:7,background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:compact?11:10,fontWeight:800,fontFamily:'Manrope,sans-serif',flexShrink:0}}>
+        <div style={{width:compact?30:26,height:compact?30:26,borderRadius:compact?8:7,background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',display:'flex',alignItems:'center',justifyContent:'center',fontSize:compact?11:10,fontWeight:800,fontFamily:'Inter,sans-serif',flexShrink:0}}>
           {getInitials(activeProject.name)}
         </div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:compact?10:9,color:T.faint,fontFamily:'Manrope,sans-serif',lineHeight:1.1}}>Production</div>
-          <div style={{fontSize:compact?13:12,fontWeight:600,color:T.cream,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:compact?2:1}}>{activeProject.name}</div>
+          <div style={{fontSize:compact?10:9,color:T.faint,fontFamily:'Inter,sans-serif',lineHeight:1.1}}>Production</div>
+          <div style={{fontSize:compact?13:12,fontWeight:600,color:T.cream,fontFamily:'Inter,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:compact?2:1}}>{activeProject.name}</div>
         </div>
         {canSwitch&&<ChevronsUpDown size={compact?14:13} style={{color:open?'#FFC45C':T.faint,flexShrink:0,transition:'color 0.15s ease'}}/>}
       </motion.button>
@@ -1802,7 +1802,7 @@ function ProductionSwitcher({projects=[],currentId,activeProject,onSelectProject
               maxHeight:240,
               overflowY:'auto',
               transformOrigin:'top center',
-              fontFamily:'Manrope,sans-serif',
+              fontFamily:'Inter,sans-serif',
             }}
           >
             <div style={{fontSize:9.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'#71717A',padding:'4px 8px 6px'}}>
@@ -1835,7 +1835,7 @@ function ProductionSwitcher({projects=[],currentId,activeProject,onSelectProject
                       color:isActive?T.cream:'#D4D4D8',
                       fontSize:12,
                       fontWeight:isActive?600:500,
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                       textAlign:'left',
                       cursor:'pointer',
                       transition:'color 0.12s ease',
@@ -1877,12 +1877,12 @@ function Sidebar({view,setView,onSignOut,userEmail,projects=[],currentId,onSelec
     <aside aria-label="Workspace sidebar" style={{width:224,height:'100svh',background:'#0A0A0A',borderRight:`1px solid ${T.line}`,display:'flex',flexDirection:'column',flexShrink:0,overflow:'hidden'}}>
       <div style={{padding:'20px 18px 16px',borderBottom:`1px solid ${T.line}`,flexShrink:0}}>
         <NkoLogo height={24}/>
-        <div style={{fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',marginTop:4}}>{t('tagline')}</div>
+        <div style={{fontSize:9,color:T.faint,fontFamily:'Inter,sans-serif',fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',marginTop:4}}>{t('tagline')}</div>
       </div>
       <nav aria-label="Workspace sections" style={{flex:1,padding:'14px 10px',overflowY:'auto',minHeight:0}}>
         {SIDEBAR_GROUPS.map((group, groupIdx)=>(
           <div key={group.label} style={{marginBottom:16}}>
-            <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color:T.faint,padding:'0 10px 6px',fontFamily:'Manrope,sans-serif'}}>{group.label}</div>
+            <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color:T.faint,padding:'0 10px 6px',fontFamily:'Inter,sans-serif'}}>{group.label}</div>
             {group.ids.map(id=>{
               const n=byId[id];
               if(!n)return null;
@@ -1900,7 +1900,7 @@ function Sidebar({view,setView,onSignOut,userEmail,projects=[],currentId,onSelec
                   whileHover={{x:2}}
                   whileTap={{scale:0.99}}
                   transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                  style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'8px 11px',borderRadius:10,border:on?'1px solid rgba(255,179,71,0.2)':'1px solid transparent',cursor:'pointer',background:on?'linear-gradient(90deg, rgba(255,179,71,0.12) 0%, rgba(255,255,255,0.03) 100%)':'transparent',color:on?T.cream:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:on?600:500,textAlign:'left',marginBottom:3,boxShadow:on?'inset 0 1px 0 rgba(255,255,255,0.04)':'none',transition:'background 0.15s, color 0.15s, border-color 0.15s'}}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'8px 11px',borderRadius:10,border:on?'1px solid rgba(255,179,71,0.2)':'1px solid transparent',cursor:'pointer',background:on?'linear-gradient(90deg, rgba(255,179,71,0.12) 0%, rgba(255,255,255,0.03) 100%)':'transparent',color:on?T.cream:T.dim,fontFamily:'Inter,sans-serif',fontSize:13,fontWeight:on?600:500,textAlign:'left',marginBottom:3,boxShadow:on?'inset 0 1px 0 rgba(255,255,255,0.04)':'none',transition:'background 0.15s, color 0.15s, border-color 0.15s'}}
                 >
                   <Icon size={15} strokeWidth={1.75} style={{color:on?T.cream:T.faint,flexShrink:0}}/>
                   <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t(NAV_KEY[n.id])}</span>
@@ -1921,10 +1921,10 @@ function Sidebar({view,setView,onSignOut,userEmail,projects=[],currentId,onSelec
       <div style={{padding:'12px',borderTop:`1px solid ${T.line}`,flexShrink:0}}>
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px',marginBottom:10}}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
-            <div style={{width:32,height:32,borderRadius:'50%',background:T.hi,border:`1px solid ${T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:T.cream,fontWeight:700,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{userEmail?.charAt(0).toUpperCase()||'?'}</div>
+            <div style={{width:32,height:32,borderRadius:'50%',background:T.hi,border:`1px solid ${T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:T.cream,fontWeight:700,fontFamily:'Inter,sans-serif',flexShrink:0}}>{userEmail?.charAt(0).toUpperCase()||'?'}</div>
             <div style={{overflow:'hidden',minWidth:0}}>
-              <div style={{fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t('studio')}</div>
-              <div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div>
+              <div style={{fontSize:12,color:T.cream,fontFamily:'Inter,sans-serif',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t('studio')}</div>
+              <div style={{fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{userEmail}</div>
             </div>
           </div>
         </div>
@@ -1968,7 +1968,7 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
                 value={searchQuery||''}
                 onChange={e=>onSearchChange(e.target.value)}
                 placeholder="Search productions"
-                style={{width:'100%',background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'9px 12px 9px 34px',color:T.cream,fontSize:16,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+                style={{width:'100%',background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'9px 12px 9px 34px',color:T.cream,fontSize:16,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}
               />
             </div>
           ):(
@@ -2020,7 +2020,7 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
                     </button>
                     <div
                       title={userEmail||''}
-                      style={{width:34,height:34,borderRadius:'50%',background:'#1C1C1E',border:'1px solid #2C2C2E',color:T.cream,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif'}}
+                      style={{width:34,height:34,borderRadius:'50%',background:'#1C1C1E',border:'1px solid #2C2C2E',color:T.cream,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif'}}
                     >
                       {initial}
                     </div>
@@ -2035,7 +2035,7 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
                   aria-haspopup="dialog"
                   whileTap={{scale:0.98}}
                   onClick={()=>{setMenuOpen(false);onAskNko?.();}}
-                  style={{width:'100%',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,background:'linear-gradient(135deg, #FFF8EA 0%, #FFE4B0 100%)',color:'#111111',border:'1px solid rgba(255,224,160,0.65)',borderRadius:9999,padding:'8px 16px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',boxShadow:'0 0 18px rgba(255,179,71,0.28)'}}
+                  style={{width:'100%',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,background:'linear-gradient(135deg, #FFF8EA 0%, #FFE4B0 100%)',color:'#111111',border:'1px solid rgba(255,224,160,0.65)',borderRadius:9999,padding:'8px 16px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',boxShadow:'0 0 18px rgba(255,179,71,0.28)'}}
                 >
                   <Sparkles size={13}/>
                   <span>Ask NKÒ</span>
@@ -2060,7 +2060,7 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
             value={searchQuery||''}
             onChange={e=>onSearchChange(e.target.value)}
             placeholder="Search productions"
-            style={{width:'100%',background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+            style={{width:'100%',background:'#121212',border:'1px solid #222222',borderRadius:10,padding:'8px 12px 8px 34px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}
           />
         </div>
       )}
@@ -2072,13 +2072,13 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
       )}
       {currentId && (
         isProducerActive && !isOwner ? (
-          <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(82,176,122,0.15)',border:'1px solid #52B07A',borderRadius:20,padding:'4px 10px',fontSize:11,color:'#72D69A',fontFamily:'Manrope,sans-serif',fontWeight:600}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'rgba(82,176,122,0.15)',border:'1px solid #52B07A',borderRadius:20,padding:'4px 10px',fontSize:11,color:'#72D69A',fontFamily:'Inter,sans-serif',fontWeight:600}}>
             <span className="nko-live-dot" />
             <span>Producer working on project</span>
             {liveActivityText && <span style={{color:T.cream,fontSize:10,opacity:0.85}}>({liveActivityText})</span>}
           </div>
         ) : otherActiveCount > 0 ? (
-          <div style={{display:'inline-flex',alignItems:'center',gap:6,background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'4px 10px',fontSize:11,color:T.gold,fontFamily:'Manrope,sans-serif',fontWeight:600}}>
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'4px 10px',fontSize:11,color:T.gold,fontFamily:'Inter,sans-serif',fontWeight:600}}>
             <span className="nko-live-dot-gold" />
             <span>{otherActiveCount} active now</span>
             {liveActivityText && <span style={{color:T.cream,fontSize:10,opacity:0.85}}>({liveActivityText})</span>}
@@ -2094,7 +2094,7 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
           whileTap={{scale:0.98}}
           transition={{duration:DURATION.fast,ease:EASE_OUT}}
           onClick={onAskNko}
-          style={{display:'inline-flex',alignItems:'center',gap:7,background:'linear-gradient(135deg, #FFF8EA 0%, #FFE4B0 100%)',color:'#111111',border:'1px solid rgba(255,224,160,0.65)',borderRadius:9999,padding:'7px 16px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Manrope,sans-serif',boxShadow:'0 0 22px rgba(255,179,71,0.34), 0 2px 10px rgba(255,179,71,0.22)'}}
+          style={{display:'inline-flex',alignItems:'center',gap:7,background:'linear-gradient(135deg, #FFF8EA 0%, #FFE4B0 100%)',color:'#111111',border:'1px solid rgba(255,224,160,0.65)',borderRadius:9999,padding:'7px 16px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'Inter,sans-serif',boxShadow:'0 0 22px rgba(255,179,71,0.34), 0 2px 10px rgba(255,179,71,0.22)'}}
         >
           <Sparkles size={13}/>
           <span>Ask NKÒ</span>
@@ -2111,7 +2111,7 @@ function TopBar({view,setView,projects,currentId,onSelect,onCreate,searchQuery,o
         </button>
         <div
           aria-hidden="true"
-          style={{width:32,height:32,borderRadius:'50%',background:'#1C1C1E',border:'1px solid #2C2C2E',color:T.cream,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,fontFamily:'Manrope,sans-serif'}}
+          style={{width:32,height:32,borderRadius:'50%',background:'#1C1C1E',border:'1px solid #2C2C2E',color:T.cream,display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,fontFamily:'Inter,sans-serif'}}
         >
           {initial}
         </div>
@@ -2206,7 +2206,7 @@ function AskNkoPanel({open,onClose,userEmail,projects=[],budgetItems=[],advances
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.76,y:-14,filter:'blur(4px)',transition:{duration:0.18,ease:[0.32,0,0.67,0]}}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.8}}
-            style={{position:'fixed',top:62,right:24,zIndex:95,width:'min(404px, calc(100vw - 24px))',maxHeight:'min(710px, calc(100svh - 82px))',transformOrigin:'top right',background:'#0D0D0D',border:'1px solid #242424',borderRadius:16,boxShadow:'0 24px 64px rgba(0,0,0,0.78), 0 0 0 1px rgba(255,255,255,0.03)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{position:'fixed',top:62,right:24,zIndex:95,width:'min(404px, calc(100vw - 24px))',maxHeight:'min(710px, calc(100svh - 82px))',transformOrigin:'top right',background:'#0D0D0D',border:'1px solid #242424',borderRadius:16,boxShadow:'0 24px 64px rgba(0,0,0,0.78), 0 0 0 1px rgba(255,255,255,0.03)',display:'flex',flexDirection:'column',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             {/* Header */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'16px 20px',borderBottom:'1px solid #1E1E1E',flexShrink:0}}>
@@ -2264,7 +2264,7 @@ function AskNkoPanel({open,onClose,userEmail,projects=[],budgetItems=[],advances
                         whileTap={{scale:0.99}}
                         transition={{duration:DURATION.fast,ease:EASE_OUT}}
                         onClick={()=>handleAsk(text)}
-                        style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:11,background:'#131313',border:'1px solid #242424',color:'#E5E5E0',fontSize:13,lineHeight:1.4,textAlign:'left',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                        style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:11,background:'#131313',border:'1px solid #242424',color:'#E5E5E0',fontSize:13,lineHeight:1.4,textAlign:'left',cursor:'pointer',fontFamily:'Inter,sans-serif'}}
                       >
                         <Icon size={15} strokeWidth={1.6} style={{color:'#8E8A80',flexShrink:0}}/>
                         <span>{text}</span>
@@ -2286,7 +2286,7 @@ function AskNkoPanel({open,onClose,userEmail,projects=[],budgetItems=[],advances
                   value={query}
                   onChange={e=>setQuery(e.target.value)}
                   placeholder="Ask anything about your productions..."
-                  style={{flex:1,minWidth:0,background:'transparent',border:'none',color:'#F5F5F0',fontSize:13,outline:'none',fontFamily:'Manrope,sans-serif'}}
+                  style={{flex:1,minWidth:0,background:'transparent',border:'none',color:'#F5F5F0',fontSize:13,outline:'none',fontFamily:'Inter,sans-serif'}}
                 />
                 <button
                   type="submit"
@@ -2333,7 +2333,7 @@ function MobileNav({view,setView,onSignOut,userEmail,projects=[],currentId,onSel
     return()=>{window.removeEventListener('keydown',onKey);document.body.style.overflow=prevOverflow;};
   },[sheetOpen]);
 
-  const tabStyle=on=>({flex:1,minWidth:0,position:'relative',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,padding:'9px 2px 8px',border:'none',background:'transparent',color:on?T.cream:T.faint,fontFamily:'Manrope,sans-serif',fontSize:10,fontWeight:on?600:500,cursor:'pointer',WebkitTapHighlightColor:'transparent'});
+  const tabStyle=on=>({flex:1,minWidth:0,position:'relative',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,padding:'9px 2px 8px',border:'none',background:'transparent',color:on?T.cream:T.faint,fontFamily:'Inter,sans-serif',fontSize:10,fontWeight:on?600:500,cursor:'pointer',WebkitTapHighlightColor:'transparent'});
 
   return(
     <>
@@ -2385,7 +2385,7 @@ function MobileNav({view,setView,onSignOut,userEmail,projects=[],currentId,onSel
               dragConstraints={{top:0,bottom:0}}
               dragElastic={{top:0,bottom:0.4}}
               onDragEnd={(e,info)=>{if(info.offset.y>90||info.velocity.y>600)setSheetOpen(false);}}
-              style={{width:'100%',maxHeight:'86svh',background:'#0F0F11',borderTop:'1px solid #242428',borderTopLeftRadius:20,borderTopRightRadius:20,boxShadow:'0 -24px 60px rgba(0,0,0,0.7)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif',paddingBottom:'env(safe-area-inset-bottom)'}}
+              style={{width:'100%',maxHeight:'86svh',background:'#0F0F11',borderTop:'1px solid #242428',borderTopLeftRadius:20,borderTopRightRadius:20,boxShadow:'0 -24px 60px rgba(0,0,0,0.7)',display:'flex',flexDirection:'column',fontFamily:'Inter,sans-serif',paddingBottom:'env(safe-area-inset-bottom)'}}
             >
               {/* Grab handle + header */}
               <div style={{flexShrink:0,padding:'10px 18px 12px',borderBottom:'1px solid #1E1E22'}}>
@@ -2445,7 +2445,7 @@ function MobileNav({view,setView,onSignOut,userEmail,projects=[],currentId,onSel
                             whileTap={{scale:0.97}}
                             onClick={()=>go(id)}
                             aria-current={on?'page':undefined}
-                            style={{display:'flex',alignItems:'center',gap:9,padding:'11px 12px',borderRadius:11,border:on?'1px solid rgba(255,179,71,0.28)':'1px solid #1E1E22',background:on?'linear-gradient(90deg, rgba(255,179,71,0.12) 0%, rgba(255,255,255,0.03) 100%)':'#121214',color:on?T.cream:T.dim,fontFamily:'Manrope,sans-serif',fontSize:12.5,fontWeight:on?600:500,textAlign:'left',cursor:'pointer',minWidth:0}}
+                            style={{display:'flex',alignItems:'center',gap:9,padding:'11px 12px',borderRadius:11,border:on?'1px solid rgba(255,179,71,0.28)':'1px solid #1E1E22',background:on?'linear-gradient(90deg, rgba(255,179,71,0.12) 0%, rgba(255,255,255,0.03) 100%)':'#121214',color:on?T.cream:T.dim,fontFamily:'Inter,sans-serif',fontSize:12.5,fontWeight:on?600:500,textAlign:'left',cursor:'pointer',minWidth:0}}
                           >
                             <Icon size={15} strokeWidth={1.75} style={{color:on?'#FFC45C':T.faint,flexShrink:0}}/>
                             <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t(NAV_KEY[id])}</span>
@@ -2469,7 +2469,7 @@ function MobileNav({view,setView,onSignOut,userEmail,projects=[],currentId,onSel
                 <button
                   type="button"
                   onClick={()=>{setSheetOpen(false);onSignOut?.();}}
-                  style={{display:'inline-flex',alignItems:'center',gap:6,background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 12px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',flexShrink:0}}
+                  style={{display:'inline-flex',alignItems:'center',gap:6,background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 12px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',flexShrink:0}}
                 >
                   <LogOut size={13}/>
                   <span>{t('signOut')}</span>
@@ -2560,7 +2560,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
     padding:'10.5px 36px 10.5px 14px',
     color:'#F5F5F0',
     fontSize:13,
-    fontFamily:'Manrope,sans-serif',
+    fontFamily:'Inter,sans-serif',
     outline:'none',
     appearance:'none',
     WebkitAppearance:'none',
@@ -2589,7 +2589,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
             animate={{opacity:1,scale:1,y:0}}
             exit={{opacity:0,scale:0.95,y:10}}
             transition={{duration:0.2,ease:EASE_OUT}}
-            style={{background:'#151517',border:'1px solid #27272B',borderRadius:16,width:'100%',maxWidth:468,boxShadow:'0 28px 80px rgba(0,0,0,0.84)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{background:'#151517',border:'1px solid #27272B',borderRadius:16,width:'100%',maxWidth:468,boxShadow:'0 28px 80px rgba(0,0,0,0.84)',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             <AnimatePresence mode="wait" initial={false}>
               {!created?(
@@ -2638,7 +2638,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                         disabled={busy}
                         onChange={e=>setName(e.target.value)}
                         placeholder="e.g. The Last Summer"
-                        style={{width:'100%',boxSizing:'border-box',background:'#111113',border:'1px solid #2A2A2E',borderRadius:10,padding:'10.5px 14px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',outline:'none'}}
+                        style={{width:'100%',boxSizing:'border-box',background:'#111113',border:'1px solid #2A2A2E',borderRadius:10,padding:'10.5px 14px',color:'#F5F5F0',fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}
                       />
                       <div style={{marginTop:6,display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#8E8A80'}}>
                         <Info size={12} style={{flexShrink:0}}/>
@@ -2675,7 +2675,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                         Target budget in {cur}
                       </label>
                       <div style={{display:'flex',alignItems:'center',background:'#111113',border:'1px solid #2A2A2E',borderRadius:10,overflow:'hidden'}}>
-                        <span style={{padding:'10.5px 13px',borderRight:'1px solid #242428',fontFamily:'Manrope,sans-serif',fontWeight:600,fontSize:13,color:'#E5E5E0',flexShrink:0}}>
+                        <span style={{padding:'10.5px 13px',borderRight:'1px solid #242428',fontFamily:'Inter,sans-serif',fontWeight:600,fontSize:13,color:'#E5E5E0',flexShrink:0}}>
                           {sym(cur)}
                         </span>
                         <input
@@ -2686,7 +2686,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                           disabled={busy}
                           onChange={e=>setBudgetInput(e.target.value)}
                           placeholder="Enter production budget"
-                          style={{flex:1,minWidth:0,background:'transparent',border:'none',padding:'10.5px 12px',color:'#F5F5F0',fontSize:13,fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',outline:'none'}}
+                          style={{flex:1,minWidth:0,background:'transparent',border:'none',padding:'10.5px 12px',color:'#F5F5F0',fontSize:13,fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',outline:'none'}}
                         />
                         <span style={{paddingRight:13,fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A',flexShrink:0}}>
                           {cur}
@@ -2727,7 +2727,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                       type="button"
                       disabled={busy}
                       onClick={onClose}
-                      style={{background:'#121214',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:'#121214',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Inter,sans-serif'}}
                     >
                       Cancel
                     </button>
@@ -2737,7 +2737,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                       whileHover={canCreate?{y:-1}:undefined}
                       whileTap={canCreate?{scale:0.98}:undefined}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                      style={{background:canCreate?'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)':'#252529',color:canCreate?'#0A0A0A':'#8E8A80',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:canCreate?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:7,boxShadow:canCreate?'0 6px 20px rgba(245,166,35,0.28)':'none',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:canCreate?'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)':'#252529',color:canCreate?'#0A0A0A':'#8E8A80',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:canCreate?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:7,boxShadow:canCreate?'0 6px 20px rgba(245,166,35,0.28)':'none',fontFamily:'Inter,sans-serif'}}
                     >
                       <span>{busy?'Creating…':'Create Production'}</span>
                       {!busy&&<ArrowRight size={14} strokeWidth={2.3}/>}
@@ -2783,7 +2783,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                   <div style={{marginTop:22,display:'grid',gridTemplateColumns:'1fr 1fr',border:'1px solid #2A2A2E',borderRadius:10,background:'#121214',overflow:'hidden',textAlign:'left'}}>
                     <div style={{padding:'13px 16px'}}>
                       <div style={{fontSize:11,color:'#8E8A80'}}>Target budget</div>
-                      <div style={{marginTop:4,fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.015em',fontSize:14,fontWeight:700,color:'#F5F5F0'}}>
+                      <div style={{marginTop:4,fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.015em',fontSize:14,fontWeight:700,color:'#F5F5F0'}}>
                         {formattedBudget}
                       </div>
                     </div>
@@ -2799,7 +2799,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                     <button
                       type="button"
                       onClick={onClose}
-                      style={{background:'#121214',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:'#121214',border:'1px solid #2E2E32',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,color:'#E5E5E0',cursor:'pointer',fontFamily:'Inter,sans-serif'}}
                     >
                       Back to dashboard
                     </button>
@@ -2809,7 +2809,7 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
                       whileTap={{scale:0.98}}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
                       onClick={()=>{onOpenProject?.(created.id);onClose();}}
-                      style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 6px 22px rgba(245,166,35,0.30)',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 6px 22px rgba(245,166,35,0.30)',fontFamily:'Inter,sans-serif'}}
                     >
                       <span>Open Production</span>
                       <ArrowRight size={14} strokeWidth={2.3}/>
@@ -2866,10 +2866,10 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <div>
-            <div style={{ fontFamily: 'Fraunces,serif', fontSize: 18, color: T.cream }}>
+            <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 18, color: T.cream }}>
               Collaborators
             </div>
-            <div style={{ fontSize: 12, color: T.dim, marginTop: 2, fontFamily: 'Manrope,sans-serif' }}>
+            <div style={{ fontSize: 12, color: T.dim, marginTop: 2, fontFamily: 'Inter,sans-serif' }}>
               {project.name} · {count}/4 invited
             </div>
           </div>
@@ -2881,7 +2881,7 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
           </button>
         </div>
 
-        <div style={{ fontSize: 11, color: T.dim, marginBottom: 16, fontFamily: 'Manrope,sans-serif', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: T.dim, marginBottom: 16, fontFamily: 'Inter,sans-serif', lineHeight: 1.5 }}>
           Invited collaborators can view and work together on budgets, schedules, breakdowns, and advances for this production. Up to 4 collaborators can join this project.
         </div>
 
@@ -2980,7 +2980,7 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
                 {busy ? 'Inviting…' : 'Invite'}
               </Btn>
             </div>
-            <div style={{ fontSize: 10, color: T.dim, marginTop: 6, fontFamily: 'Manrope,sans-serif' }}>
+            <div style={{ fontSize: 10, color: T.dim, marginTop: 6, fontFamily: 'Inter,sans-serif' }}>
               They'll need an NKÒ account registered with this email.
             </div>
           </div>
@@ -3174,16 +3174,16 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.faint,marginBottom:6}}>
             Workspace <span style={{margin:'0 4px'}}>&gt;</span> <span style={{color:T.dim}}>{onlyProductions ? 'Productions' : 'Dashboard'}</span>
           </div>
-          <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>
+          <h2 style={{margin:0,fontFamily:'Inter,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>
             {greetingPrefix}, {displayName}
           </h2>
-          <div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+          <div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>
             Here&apos;s what&apos;s happening across your productions.
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           {typeof trialCount==='number'&&trialCount<trialLimit&&(
-            <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'8px 12px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>
+            <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'8px 12px',fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>
               {trialLimit-trialCount} of {trialLimit} free productions left
             </div>
           )}
@@ -3204,11 +3204,11 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
       >
         <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{position:'relative',overflow:'hidden',background:'linear-gradient(180deg, #111111 0%, #15120B 100%)',border:'1px solid rgba(255,179,71,0.28)',borderRadius:12,padding:'16px 18px',boxShadow:'inset 0 -1px 0 0 rgba(255,179,71,0.55), 0 12px 28px -12px rgba(255,179,71,0.25)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{t('statProductions')}</span>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',fontWeight:600}}>{t('statProductions')}</span>
             <Clapperboard size={14} style={{color:T.faint}}/>
           </div>
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:26,color:T.cream,fontWeight:600}}>{projects.length}</div>
-          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:4}}>
+          <div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',marginTop:4}}>
             {scenes.length > 0 ? `${scenes.length} script scenes broken down` : t('statActive')}
           </div>
           <div style={{display:'flex',gap:4,marginTop:10}}>
@@ -3216,31 +3216,31 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
             <span style={{height:3,flex:1,borderRadius:2,background:'#4A90D9'}}/>
             <span style={{height:3,flex:1,borderRadius:2,background:'#E5C158'}}/>
           </div>
-          <div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:8}}>{projects.length} active</div>
+          <div style={{fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif',marginTop:8}}>{projects.length} active</div>
         </motion.div>
 
         <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{background:'#111111',border:'1px solid #222222',borderRadius:12,padding:'16px 18px',boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>Total Budget</span>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',fontWeight:600}}>Total Budget</span>
             <Wallet size={14} style={{color:T.faint}}/>
           </div>
           <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:'#F5C451',fontWeight:600,wordBreak:'break-word'}}>{budgetDisplayAll}</span>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{defaultCurrency||'NGN'}</span>
           </div>
-          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:6}}>Combined across productions</div>
+          <div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',marginTop:6}}>Combined across productions</div>
         </motion.div>
 
         <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{background:'#111111',border:'1px solid #222222',borderRadius:12,padding:'16px 18px',boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{t('statTotalSpend')}</span>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',fontWeight:600}}>{t('statTotalSpend')}</span>
             <TrendingUp size={14} style={{color:T.faint}}/>
           </div>
           <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:T.cream,fontWeight:600,wordBreak:'break-word'}}>{spendDisplayAll}</span>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>{defaultCurrency||'NGN'}</span>
           </div>
-          <div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:6}}>{spendSubAll}</div>
+          <div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',marginTop:6}}>{spendSubAll}</div>
           <div style={{height:3,background:'#222222',borderRadius:2,overflow:'hidden',marginTop:12}}>
             <div style={{width:`${overallSpendPct}%`,height:'100%',background:isOverBudget?'#E05252':'#9B978D',transition:'width 0.35s ease'}}/>
           </div>
@@ -3248,28 +3248,28 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
 
         <motion.div variants={fadeUp} whileHover={{y:-2}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{background:'#111111',border:'1px solid #222222',borderRadius:12,padding:'16px 18px',boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-            <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{t('statTotalSaved')}</span>
+            <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',fontWeight:600}}>{t('statTotalSaved')}</span>
             <ShieldCheck size={14} style={{color:T.faint}}/>
           </div>
           <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,color:isOverBudget?T.coral:T.cream,fontWeight:600}}>{savedDisplay}</span>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.faint}}>USD eq.</span>
           </div>
-          <div style={{fontSize:11,color:isOverBudget?T.coral:T.dim,fontFamily:'Manrope,sans-serif',marginTop:6}}>
+          <div style={{fontSize:11,color:isOverBudget?T.coral:T.dim,fontFamily:'Inter,sans-serif',marginTop:6}}>
             {savedSub}{unpaid>0?` · ${unpaid} unpaid`:''}
           </div>
         </motion.div>
       </motion.div>
       )}
 
-      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
-      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
+      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
+      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
 
       {projects.length===0?(
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:48,textAlign:'center'}}>
           <div style={{width:44,height:44,borderRadius:12,background:T.hi,border:`1px solid ${T.line}`,display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,color:T.gold}}><Clapperboard size={20}/></div>
-          <div style={{fontFamily:'Manrope,sans-serif',fontSize:18,fontWeight:600,color:T.cream,marginBottom:6}}>{t('noProductionsYet')}</div>
-          <div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Manrope,sans-serif'}}>{t('createFirstDesc')}</div>
+          <div style={{fontFamily:'Inter,sans-serif',fontSize:18,fontWeight:600,color:T.cream,marginBottom:6}}>{t('noProductionsYet')}</div>
+          <div style={{color:T.dim,fontSize:13,marginBottom:20,fontFamily:'Inter,sans-serif'}}>{t('createFirstDesc')}</div>
           <Btn onClick={()=>setShowModal(true)} style={{background:'#FFB347',color:'#000000',borderRadius:10}}>{t('createFirstBtn')}</Btn>
         </div>
       ):(
@@ -3278,13 +3278,13 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         {/* Productions Section Header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:12}}>
           <div>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:18,fontWeight:600,color:T.cream}}>{t('productionsHeader')}</div>
-            <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>Manage and monitor all your active productions.</div>
+            <div style={{fontFamily:'Inter,sans-serif',fontSize:18,fontWeight:600,color:T.cream}}>{t('productionsHeader')}</div>
+            <div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginTop:2}}>Manage and monitor all your active productions.</div>
           </div>
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             {selected.size>0&&(
               <>
-                <span style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{selected.size} selected</span>
+                <span style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif'}}>{selected.size} selected</span>
                 <Btn size="sm" variant="ghost" onClick={()=>setSelected(new Set())}>Clear</Btn>
                 <Btn size="sm" variant="danger" onClick={()=>setConfirmMulti(true)}>Delete</Btn>
               </>
@@ -3307,7 +3307,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         {layoutMode==='list'?(
           <div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:12,overflow:'hidden',marginBottom:onlyProductions?0:28}}>
             <div style={{overflowX:'auto'}}>
-              <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Inter,sans-serif'}}>
                 <thead>
                   <tr style={{borderBottom:'1px solid #1E1E22',color:'#71717A',fontSize:11.5,textAlign:'left'}}>
                     <th style={{padding:'13px 16px 13px 18px',fontWeight:500,whiteSpace:'nowrap'}}>Production</th>
@@ -3424,7 +3424,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                             <button
                               type="button"
                               onClick={e=>{e.stopPropagation();onOpenUploadScript?.(p.id);}}
-                              style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 8px',borderRadius:6,border:'1px dashed #3A3A40',background:'rgba(255,255,255,0.02)',color:'#A1A1AA',fontSize:11,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                              style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 8px',borderRadius:6,border:'1px dashed #3A3A40',background:'rgba(255,255,255,0.02)',color:'#A1A1AA',fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}
                             >
                               <Plus size={11}/>
                               <span>Upload script</span>
@@ -3534,9 +3534,9 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                 <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',textAlign:'left',width:'100%',padding:0}}>
                   {/* Header Row (padded right only here to clear the selection checkbox) */}
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',paddingRight:30,marginBottom:6}}>
-                    <div style={{fontFamily:'Manrope,sans-serif',fontSize:17,fontWeight:700,letterSpacing:'-0.02em',color:T.cream,lineHeight:1.25}}>{p.name}</div>
+                    <div style={{fontFamily:'Inter,sans-serif',fontSize:17,fontWeight:700,letterSpacing:'-0.02em',color:T.cream,lineHeight:1.25}}>{p.name}</div>
                     {p.type&&(
-                      <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10.5,padding:'3px 10px',borderRadius:9999,background:badgeTone.bg,border:`1px solid ${badgeTone.border}`,color:badgeTone.text,fontFamily:'Manrope,sans-serif',fontWeight:600}}>
+                      <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:10.5,padding:'3px 10px',borderRadius:9999,background:badgeTone.bg,border:`1px solid ${badgeTone.border}`,color:badgeTone.text,fontFamily:'Inter,sans-serif',fontWeight:600}}>
                         <span style={{width:5,height:5,borderRadius:'50%',background:badgeTone.dot}}/>
                         {p.type}
                       </span>
@@ -3544,14 +3544,14 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                   </div>
 
                   {/* Meta Subtitle */}
-                  <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'#8E8E93',fontFamily:'Manrope,sans-serif',marginBottom:16}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:'#8E8E93',fontFamily:'Inter,sans-serif',marginBottom:16}}>
                     <MapPin size={11.5} style={{color:'#63636A',flexShrink:0}}/>
                     <span>{p.base_currency || 'NGN'} · {pi.length > 0 ? `${pi.length} lines` : (p.target_budget ? 'Target budget set' : '0 lines')} · {open} open advances</span>
                   </div>
 
                   {/* Script Status Bar */}
                   {scriptTitle ? (
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 12px',borderRadius:10,background:'#151519',border:'1px solid #25252C',marginBottom:18,fontSize:11.5,fontFamily:'Manrope,sans-serif'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 12px',borderRadius:10,background:'#151519',border:'1px solid #25252C',marginBottom:18,fontSize:11.5,fontFamily:'Inter,sans-serif'}}>
                       <div style={{display:'flex',alignItems:'center',gap:7,minWidth:0,overflow:'hidden'}}>
                         <FileText size={13} style={{color:'#F5C451',flexShrink:0}}/>
                         <span style={{color:'#F5C451',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{scriptTitle}</span>
@@ -3561,7 +3561,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                       </span>
                     </div>
                   ) : (
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 12px',borderRadius:10,background:'rgba(255,255,255,0.015)',border:'1px dashed #282830',marginBottom:18,fontSize:11.5,color:'#71717A',fontFamily:'Manrope,sans-serif'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'9px 12px',borderRadius:10,background:'rgba(255,255,255,0.015)',border:'1px dashed #282830',marginBottom:18,fontSize:11.5,color:'#71717A',fontFamily:'Inter,sans-serif'}}>
                       <span>No script uploaded</span>
                       <button
                         type="button"
@@ -3577,25 +3577,25 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                   {/* Financial Metrics Row */}
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:14,marginBottom:18,padding:'12px 14px',borderRadius:10,background:'#0B0B0D',border:'1px solid #1B1B20'}}>
                     <div style={{minWidth:0}}>
-                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif',marginBottom:5}}>Budget</div>
-                      <div style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:T.cream,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Inter,sans-serif',marginBottom:5}}>Budget</div>
+                      <div style={{fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:T.cream,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                         {Object.entries(totals).length===0?<span style={{color:T.faint}}>—</span>:Object.entries(totals).map(([c,a])=><span key={c}>{sym(c)}{fmt(a)} </span>)}
                       </div>
                     </div>
                     <div style={{minWidth:0}}>
-                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif',marginBottom:5}}>Spent</div>
-                      <div style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:pSpentUSD>0?T.cream:'#8E8E93',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{pSpendDisplay}</div>
+                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Inter,sans-serif',marginBottom:5}}>Spent</div>
+                      <div style={{fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:pSpentUSD>0?T.cream:'#8E8E93',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{pSpendDisplay}</div>
                     </div>
                     <div style={{minWidth:0}}>
-                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Manrope,sans-serif',marginBottom:5}}>Remaining</div>
-                      <div style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:over?'#E05252':T.cream,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                      <div style={{fontSize:10.5,color:'#71717A',fontFamily:'Inter,sans-serif',marginBottom:5}}>Remaining</div>
+                      <div style={{fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',fontSize:13.5,fontWeight:700,color:over?'#E05252':T.cream,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                         {Object.entries(totals).length===0?'—':`${remainingAmt<0?'-':''}${sym(remainingCur)}${fmt(Math.abs(remainingAmt))}`}
                       </div>
                     </div>
                   </div>
 
                   {/* Budget Used Progress */}
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,color:'#8E8E93',fontFamily:'Manrope,sans-serif',marginBottom:7}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,color:'#8E8E93',fontFamily:'Inter,sans-serif',marginBottom:7}}>
                     <span>Budget used</span>
                     <span style={{fontVariantNumeric:'tabular-nums',color:over?'#E05252':T.cream,fontWeight:600}}>{budgetUSD>0?`${Math.round(pct)}%${over?' · over budget':''}`:(pSpentUSD>0?'Logged spend':'0%')}</span>
                   </div>
@@ -3624,7 +3624,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                           const email=window.prompt(`Invite collaborator (${count + 1} of 4) by email — they'll need an NKÒ account already:`);
                           if(email)onInviteCollaborator(p.id,email);
                         }}
-                        style={{background:'none',border:'none',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',padding:0,fontFamily:'Manrope,sans-serif'}}
+                        style={{background:'none',border:'none',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',padding:0,fontFamily:'Inter,sans-serif'}}
                       >
                         + Invite collaborator
                       </button>
@@ -3656,7 +3656,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                     {isOwner && (
                       <button onClick={e=>{e.stopPropagation();setConfirmDel(p);}} style={{background:'none',border:'none',cursor:'pointer',color:'#63636A',display:'flex',alignItems:'center',padding:3}} title="Delete production"><Trash2 size={14}/></button>
                     )}
-                    <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#5DA3EC',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',padding:0}}>
+                    <button onClick={()=>onSelect(p.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#5DA3EC',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',padding:0}}>
                       Open Production →
                     </button>
                   </div>
@@ -3677,8 +3677,8 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
             <span style={{width:36,height:36,borderRadius:'50%',background:T.panel,border:`1px solid ${T.line}`,display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:10,color:T.dim}}>
               <Plus size={16}/>
             </span>
-            <span style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600,color:T.cream}}>New production</span>
-            <span style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.dim,marginTop:4,maxWidth:210,lineHeight:1.5}}>
+            <span style={{fontFamily:'Inter,sans-serif',fontSize:13,fontWeight:600,color:T.cream}}>New production</span>
+            <span style={{fontFamily:'Inter,sans-serif',fontSize:11,color:T.dim,marginTop:4,maxWidth:210,lineHeight:1.5}}>
               Start from scratch or let NKO draft the budget for you.
             </span>
           </motion.button>
@@ -3690,16 +3690,16 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         {!onlyProductions&&(
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,overflow:'hidden'}}>
           <div style={{padding:'14px 18px',borderBottom:`1px solid ${T.line}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>Recent Activity</span>
+            <span style={{fontFamily:'Inter,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>Recent Activity</span>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:T.dim}}>{recentRows.length} items</span>
           </div>
           {recentRows.length===0?(
-            <div style={{padding:'24px 18px',fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif'}}>
+            <div style={{padding:'24px 18px',fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif'}}>
               Activity from purchase orders and cash advances will appear here as your productions move forward.
             </div>
           ):(
             <div style={{overflowX:'auto'}}>
-              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,fontFamily:'Manrope,sans-serif'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,fontFamily:'Inter,sans-serif'}}>
                 <thead>
                   <tr style={{borderBottom:`1px solid ${T.line}`,color:T.faint,fontSize:11,textAlign:'left'}}>
                     <th style={{padding:'10px 18px',fontWeight:500}}>Activity</th>
@@ -3920,20 +3920,20 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16,flexWrap:'wrap',marginBottom:22}}>
         <div>
           <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-            <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>{project.name}</h2>
-            <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,fontFamily:'Manrope,sans-serif'}}>
+            <h2 style={{margin:0,fontFamily:'Inter,sans-serif',fontSize:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>{project.name}</h2>
+            <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:11,fontWeight:600,padding:'3px 10px',borderRadius:9999,background:statusTone.bg,border:`1px solid ${statusTone.border}`,color:statusTone.text,fontFamily:'Inter,sans-serif'}}>
               <span style={{width:5,height:5,borderRadius:'50%',background:statusTone.dot}}/>
               {statusLabel}
             </span>
           </div>
-          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>
             {project.type || 'Type not set'} · {project.location || 'Location not set'}
           </div>
           <div style={{fontSize:11,color:T.faint,marginTop:3,fontFamily:'IBM Plex Mono,monospace'}}>
             Currency: {baseCur} {sym(baseCur)} · {isOwner ? 'Production Admin' : 'Collaborator'}
           </div>
           {resolvedScriptName && (
-            <div style={{display:'inline-flex',alignItems:'center',gap:8,marginTop:8,padding:'4px 10px',borderRadius:8,background:'#161619',border:'1px solid #28282E',fontSize:11,color:'#D4D4D8',fontFamily:'Manrope,sans-serif'}}>
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,marginTop:8,padding:'4px 10px',borderRadius:8,background:'#161619',border:'1px solid #28282E',fontSize:11,color:'#D4D4D8',fontFamily:'Inter,sans-serif'}}>
               <FileText size={13} style={{color:'#F5C451',flexShrink:0}}/>
               <span style={{fontWeight:600,color:'#F5C451'}}>{resolvedScriptName}</span>
               <span style={{color:'#52525B'}}>·</span>
@@ -3955,7 +3955,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
               whileTap={{scale:0.98}}
               transition={{duration:DURATION.fast,ease:EASE_OUT}}
               onClick={()=>{setAddMenuOpen(o=>!o);setMenuOpen(false);}}
-              style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 14px 9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+              style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 14px 9px 16px',fontSize:12,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
             >
               <Plus size={14}/>
               <span>Add New</span>
@@ -3985,7 +3985,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                     padding:'14px 10px 10px',
                     boxShadow:'0 24px 60px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',
                     transformOrigin:mob?'top left':'top right',
-                    fontFamily:'Manrope,sans-serif',
+                    fontFamily:'Inter,sans-serif',
                   }}
                 >
                   <div style={{fontSize:12,fontWeight:500,color:'#8E8E93',padding:'2px 10px 10px',letterSpacing:'-0.005em'}}>
@@ -4013,7 +4013,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                             background:'transparent',
                             textAlign:'left',
                             cursor:'pointer',
-                            fontFamily:'Manrope,sans-serif',
+                            fontFamily:'Inter,sans-serif',
                           }}
                         >
                           <ItemIcon size={17} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
@@ -4043,7 +4043,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                 const email = window.prompt("Invite collaborator by email — they'll need an NKÒ account already:");
                 if(email) onInviteCollaborator(project.id, email);
               }}
-              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
             >
               <UserPlus size={14}/>
               <span>Invite Collaborator</span>
@@ -4085,7 +4085,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                     padding:8,
                     boxShadow:'0 24px 60px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',
                     transformOrigin:'top right',
-                    fontFamily:'Manrope,sans-serif',
+                    fontFamily:'Inter,sans-serif',
                   }}
                 >
                   {/* Group 1 */}
@@ -4099,7 +4099,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                         setMenuOpen(false);
                         setInfoOpen(true);
                       }}
-                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Inter,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
                     >
                       <Pencil size={16} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
                       <span>Edit production details</span>
@@ -4114,7 +4114,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                         setCopiedLink(true);
                         window.setTimeout(()=>{setCopiedLink(false);setMenuOpen(false);},900);
                       }}
-                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:copiedLink?'#F5C451':'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:copiedLink?'#F5C451':'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Inter,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
                     >
                       {copiedLink
                         ?<Check size={16} strokeWidth={1.8} style={{color:'#F5C451',flexShrink:0}}/>
@@ -4134,7 +4134,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                       whileHover={{backgroundColor:'rgba(255,255,255,0.05)'}}
                       whileTap={{scale:0.985}}
                       onClick={()=>{setMenuOpen(false);onBack();}}
-                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Inter,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
                     >
                       <ArrowLeftRight size={16} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
                       <span>Switch production</span>
@@ -4145,7 +4145,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                       whileHover={{backgroundColor:'rgba(255,255,255,0.05)'}}
                       whileTap={{scale:0.985}}
                       onClick={()=>{setMenuOpen(false);if(onStudioDashboard)onStudioDashboard();else onBack();}}
-                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:13,padding:'11px 12px',borderRadius:9,border:'none',background:'transparent',color:'#E5E5E0',fontSize:13.5,fontWeight:500,fontFamily:'Inter,sans-serif',textAlign:'left',cursor:'pointer',letterSpacing:'-0.005em'}}
                     >
                       <LayoutGrid size={16} strokeWidth={1.65} style={{color:'#8E8E93',flexShrink:0}}/>
                       <span>Studio dashboard</span>
@@ -4159,7 +4159,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
       </div>
 
       {isProducerActive && !isOwner && (
-        <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:18,color:'#72D69A',fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.4)',borderRadius:10,padding:'10px 14px',marginBottom:18,color:'#72D69A',fontSize:13,fontFamily:'Inter,sans-serif'}}>
           <span className="nko-live-dot" />
           <div style={{flex:1,minWidth:0}}>
             <strong>Producer is currently working on this project</strong>
@@ -4169,7 +4169,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
         </div>
       )}
       {otherActiveCount > 0 && isOwner && (
-        <div style={{display:'flex',alignItems:'center',gap:10,background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:18,color:T.gold,fontSize:13,fontFamily:'Manrope,sans-serif'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,background:T.hi,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 14px',marginBottom:18,color:T.gold,fontSize:13,fontFamily:'Inter,sans-serif'}}>
           <span className="nko-live-dot-gold" />
           <div style={{flex:1,minWidth:0}}>
             <strong>{otherActiveCount} collaborator{otherActiveCount>1?'s':''} active on this project</strong>
@@ -4217,14 +4217,14 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
             </div>
             <div style={{minWidth:0}}>
               <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                <span style={{fontFamily:'Manrope,sans-serif',fontSize:13.5,fontWeight:600,color:T.cream}}>
+                <span style={{fontFamily:'Inter,sans-serif',fontSize:13.5,fontWeight:600,color:T.cream}}>
                   {resolvedScriptName}
                 </span>
                 <span style={{fontSize:10,fontWeight:600,color:'#52B07A',background:'rgba(82,176,122,0.12)',border:'1px solid rgba(82,176,122,0.3)',borderRadius:9999,padding:'2px 8px',fontFamily:'IBM Plex Mono,monospace'}}>
                   REFLECTED ON DASHBOARD
                 </span>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',marginTop:4,fontSize:11.5,fontFamily:'Manrope,sans-serif',color:'#A1A1AA'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',marginTop:4,fontSize:11.5,fontFamily:'Inter,sans-serif',color:'#A1A1AA'}}>
                 <span><strong style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>{effectiveScenes.length}</strong> scenes</span>
                 <span style={{color:'#3F3F46'}}>·</span>
                 <span><strong style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace'}}>{uniqueCast.length}</strong> characters</span>
@@ -4254,7 +4254,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                 padding:'7px 14px',
                 fontSize:11.5,
                 fontWeight:600,
-                fontFamily:'Manrope,sans-serif',
+                fontFamily:'Inter,sans-serif',
                 cursor:'pointer',
                 display:'inline-flex',
                 alignItems:'center',
@@ -4279,10 +4279,10 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
         >
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexWrap:'wrap',marginBottom:16}}>
             <div>
-              <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Budget Performance</div>
-              <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Track your planned budget against actual production spending</div>
+              <div style={{fontFamily:'Inter,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Budget Performance</div>
+              <div style={{fontFamily:'Inter,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Track your planned budget against actual production spending</div>
             </div>
-            <button type="button" onClick={onOpenBudget} style={{background:'none',border:'none',cursor:'pointer',color:'#6BB0F5',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:5,padding:0}}>
+            <button type="button" onClick={onOpenBudget} style={{background:'none',border:'none',cursor:'pointer',color:'#6BB0F5',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',display:'inline-flex',alignItems:'center',gap:5,padding:0}}>
               <span>View Full Budget</span>
               <ArrowRight size={13}/>
             </button>
@@ -4291,7 +4291,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
           {/* 3-metric inline summary */}
           <div style={{display:'flex',gap:28,flexWrap:'wrap',marginBottom:16}}>
             <div>
-              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',marginBottom:4}}>
                 <span style={{width:10,height:2,background:'#F5C451',display:'inline-block'}}/>
                 <span>Original budget</span>
               </div>
@@ -4300,7 +4300,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
               </div>
             </div>
             <div>
-              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',marginBottom:4}}>
                 <span style={{width:10,height:2,background:'#4CAF7A',display:'inline-block'}}/>
                 <span>Actual spend</span>
               </div>
@@ -4309,7 +4309,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
               </div>
             </div>
             <div>
-              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',marginBottom:4}}>
                 <span style={{width:10,height:2,background:'#71717A',display:'inline-block'}}/>
                 <span>Remaining</span>
               </div>
@@ -4322,7 +4322,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
           {/* Budget Performance Chart (Strictly empty when no budget items exist) */}
           <div style={{borderBottom:'1px solid #18181B',paddingBottom:14,marginBottom:14}}>
             {chartPoints.length < 2 ? (
-              <div style={{height:130,border:'1px dashed #1E1E22',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{height:130,border:'1px dashed #1E1E22',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',color:T.faint,fontSize:12,fontFamily:'Inter,sans-serif'}}>
                 No budget data recorded yet. Add budget lines to track performance.
               </div>
             ) : (
@@ -4359,7 +4359,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                     />
                   )}
                 </svg>
-                <div style={{display:'flex',alignItems:'center',gap:16,marginTop:8,fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>
+                <div style={{display:'flex',alignItems:'center',gap:16,marginTop:8,fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif'}}>
                   <span style={{display:'inline-flex',alignItems:'center',gap:6}}><span style={{width:12,height:1.5,background:'#B69F71',display:'inline-block'}}/>Planned cumulative spend</span>
                   {spentUSD > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:6}}><span style={{width:12,height:1.5,background:'#4CAF7A',display:'inline-block'}}/>Actual cumulative spend</span>}
                 </div>
@@ -4369,7 +4369,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
 
           {budgetUSD > 0 && (
             <div style={{background:'#111113',border:'1px solid #1C1C1F',borderRadius:10,padding:'10px 14px',marginBottom:16}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,fontSize:11,fontFamily:'Inter,sans-serif'}}>
                 <span style={{color:T.dim}}>Overall Production Spend Pace</span>
                 <span style={{color:overBudget?T.coral:T.sage,fontWeight:700,fontFamily:'IBM Plex Mono,monospace'}}>
                   {spendDisplay} of {budgetDisplay} ({Math.round(spendPct)}%)
@@ -4383,7 +4383,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
 
           {/* Department Breakdown Table (Empty when no budget items exist) */}
           <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:12}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Inter,sans-serif',fontSize:12}}>
               <thead>
                 <tr style={{borderBottom:'1px solid #1B1B1E',color:T.faint,fontSize:11,textAlign:'left'}}>
                   <th style={{padding:'8px 0',fontWeight:500}}>Department</th>
@@ -4437,7 +4437,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
           {/* What Needs Attention */}
           <div style={{background:'#0D0D0F',border:'1px solid #1C1C1F',borderRadius:14,padding:'16px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-              <span style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>What Needs Attention</span>
+              <span style={{fontFamily:'Inter,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>What Needs Attention</span>
               {attentionCount > 0 && (
                 <span style={{minWidth:18,height:18,borderRadius:5,background:'rgba(224,82,82,0.18)',color:'#E05252',fontSize:10,fontWeight:700,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'0 5px',fontFamily:'IBM Plex Mono,monospace'}}>
                   {attentionCount}
@@ -4445,24 +4445,24 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
               )}
             </div>
             {attentionCount === 0 ? (
-              <div style={{fontSize:12,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Nothing needs attention right now.</div>
+              <div style={{fontSize:12,color:T.faint,fontFamily:'Inter,sans-serif'}}>Nothing needs attention right now.</div>
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {pendingPOs.slice(0,2).map(po=>(
                   <div key={po.id} style={{background:'#131316',border:'1px solid #1F1F24',borderRadius:10,padding:'10px 12px'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,color:T.cream,fontWeight:600,fontFamily:'Manrope,sans-serif'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,color:T.cream,fontWeight:600,fontFamily:'Inter,sans-serif'}}>
                       <span>PO awaiting payment</span>
                       <span style={{fontFamily:'IBM Plex Mono,monospace'}}>{sym(po.currency||baseCur)}{fmt(po.amount||0)}</span>
                     </div>
                     <div style={{fontSize:11,color:T.faint,marginTop:3}}>{po.po_number || 'PO'} · {po.vendor || 'Vendor'}</div>
-                    <button type="button" onClick={()=>onNavigate?.('po')} style={{marginTop:8,background:'#19191D',border:'1px solid #2A2A30',color:T.cream,borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+                    <button type="button" onClick={()=>onNavigate?.('po')} style={{marginTop:8,background:'#19191D',border:'1px solid #2A2A30',color:T.cream,borderRadius:7,padding:'5px 10px',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                       Review Purchase Order
                     </button>
                   </div>
                 ))}
                 {openAdvancesList.slice(0,2).map(adv=>(
                   <div key={adv.id} style={{background:'#131316',border:'1px solid #1F1F24',borderRadius:10,padding:'10px 12px'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,color:T.cream,fontWeight:600,fontFamily:'Manrope,sans-serif'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:8,fontSize:12,color:T.cream,fontWeight:600,fontFamily:'Inter,sans-serif'}}>
                       <span>Open cash advance</span>
                       <span style={{fontFamily:'IBM Plex Mono,monospace'}}>{sym(adv.currency||baseCur)}{fmt(adv.amount||0)}</span>
                     </div>
@@ -4480,7 +4480,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
               onClick={()=>setInfoOpen(o=>!o)}
               style={{width:'100%',background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:infoOpen?12:0}}
             >
-              <span style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>Production information</span>
+              <span style={{fontFamily:'Inter,sans-serif',fontSize:14,fontWeight:600,color:T.cream}}>Production information</span>
               <motion.span animate={{rotate:infoOpen?0:-90}} transition={{duration:DURATION.fast,ease:EASE_OUT}} style={{display:'inline-flex',color:T.faint}}>
                 <ChevronDown size={15}/>
               </motion.span>
@@ -4494,7 +4494,7 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                   transition={{duration:DURATION.fast,ease:EASE_OUT}}
                   style={{overflow:'hidden'}}
                 >
-                  <div style={{display:'flex',flexDirection:'column',gap:10,fontFamily:'Manrope,sans-serif'}}>
+                  <div style={{display:'flex',flexDirection:'column',gap:10,fontFamily:'Inter,sans-serif'}}>
                     <div>
                       <div style={{fontSize:10,color:T.faint}}>Production name</div>
                       <div style={{fontSize:12,color:T.cream,fontWeight:600,marginTop:2}}>{project.name}</div>
@@ -4555,13 +4555,13 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
 
           {/* Recent Activity */}
           <div style={{background:'#0D0D0F',border:'1px solid #1C1C1F',borderRadius:14,padding:'16px 18px'}}>
-            <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream,marginBottom:10}}>Recent Activity</div>
+            <div style={{fontFamily:'Inter,sans-serif',fontSize:14,fontWeight:600,color:T.cream,marginBottom:10}}>Recent Activity</div>
             {recentProdActivity.length === 0 ? (
-              <div style={{fontSize:12,color:T.faint,fontFamily:'Manrope,sans-serif'}}>No recent activity for this production.</div>
+              <div style={{fontSize:12,color:T.faint,fontFamily:'Inter,sans-serif'}}>No recent activity for this production.</div>
             ) : (
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {recentProdActivity.map(act => (
-                  <div key={act.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,paddingBottom:8,borderBottom:'1px solid #161619',fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+                  <div key={act.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,paddingBottom:8,borderBottom:'1px solid #161619',fontSize:11,fontFamily:'Inter,sans-serif'}}>
                     <span style={{color:T.cream,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{act.title}</span>
                     <span style={{color:act.color,fontWeight:600,flexShrink:0}}>{act.status}</span>
                   </div>
@@ -4575,8 +4575,8 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
       {/* Production Workspace Module Grid */}
       <div style={{background:'#0C0C0E',border:'1px solid #1C1C1F',borderRadius:16,padding:'20px 22px'}}>
         <div style={{marginBottom:16}}>
-          <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Production Workspace</div>
-          <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Every module opens with {project.name} selected.</div>
+          <div style={{fontFamily:'Inter,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Production Workspace</div>
+          <div style={{fontFamily:'Inter,sans-serif',fontSize:11,color:T.faint,marginTop:2}}>Every module opens with {project.name} selected.</div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12}}>
           {moduleCards.map(mod => {
@@ -4604,10 +4604,10 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
                   <div style={{width:30,height:30,borderRadius:8,background:'#18181B',border:'1px solid #242429',display:'inline-flex',alignItems:'center',justifyContent:'center',color:T.dim,marginBottom:12}}>
                     <Icon size={14}/>
                   </div>
-                  <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:600,color:T.cream,marginBottom:4}}>{mod.title}</div>
-                  <div style={{fontFamily:'Manrope,sans-serif',fontSize:11,color:T.faint,lineHeight:1.45}}>{mod.desc}</div>
+                  <div style={{fontFamily:'Inter,sans-serif',fontSize:14,fontWeight:600,color:T.cream,marginBottom:4}}>{mod.title}</div>
+                  <div style={{fontFamily:'Inter,sans-serif',fontSize:11,color:T.faint,lineHeight:1.45}}>{mod.desc}</div>
                 </div>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,paddingTop:10,borderTop:'1px solid #1A1A1D',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,paddingTop:10,borderTop:'1px solid #1A1A1D',fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>
                   <span>{mod.meta}</span>
                   <ArrowRight size={13} style={{color:T.faint}}/>
                 </div>
@@ -4640,14 +4640,14 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characte
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,overflow:'hidden',marginBottom:8}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{dept}</span><span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>({items.length})</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span><span style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>{dept}</span><span style={{fontSize:11,color:T.faint,fontFamily:'Inter,sans-serif'}}>({items.length})</span></div>
         <div style={{textAlign:'right'}}>
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.gold}}>{ts}</div>
           {items.length>0&&<div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:T.dim}}>≈ ${fmt(usdTotal)}</div>}
         </div>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 12px 14px'}}>
-        {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span style={{textAlign:'right'}}>Line total</span><span>Cur</span><span/></div>}
+        {!mob&&items.length>0&&<div style={{display:'grid',gridTemplateColumns:'2fr 52px 80px 100px 120px 56px 20px',gap:4,padding:'8px 0 4px',fontSize:9,color:T.faint,fontFamily:'Inter,sans-serif',fontWeight:700,letterSpacing:'0.07em',textTransform:'uppercase'}}><span>Description</span><span>Qty</span><span>Unit</span><span>Unit cost</span><span style={{textAlign:'right'}}>Line total</span><span>Cur</span><span/></div>}
         {items.map(item=>{const usd=toUSD(lTot(item),item.currency);return<div key={item.id} style={{padding:mob?'14px 0':'8px 0',borderBottom:`1px solid ${T.line}`}}>
           {mob?<>
             <div style={{display:'flex',gap:8,marginBottom:10}}>
@@ -4663,12 +4663,12 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characte
               </div>
             );})()}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
-              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:13}}/></div>
-              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit</div><Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:13}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',marginBottom:4}}>Qty</div><Inp type="number" min="0" value={item.qty} onChange={e=>onUpdate(item.id,{qty:e.target.value===''?0:e.target.value})} style={{fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',marginBottom:4}}>Unit</div><Sel value={item.unit} onChange={e=>onUpdate(item.id,{unit:e.target.value})} style={{width:'100%',fontSize:13}}>{UNITS.map(u=><option key={u}>{u}</option>)}</Sel></div>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:10}}>
-              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Unit cost</div><Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13}}/></div>
-              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',marginBottom:4}}>Currency</div><Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:13}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',marginBottom:4}}>Unit cost</div><Inp type="number" min="0" value={item.rate} onChange={e=>onUpdate(item.id,{rate:e.target.value===''?0:e.target.value})} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13}}/></div>
+              <div><div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',marginBottom:4}}>Currency</div><Sel value={item.currency} onChange={e=>onUpdate(item.id,{currency:e.target.value})} style={{width:'100%',fontSize:13}}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</Sel></div>
             </div>
             <div style={{textAlign:'right'}}>
               <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,color:T.gold,fontWeight:700}}>Line total: {sym(item.currency)}{fmt(lTot(item))}</div>
@@ -4697,7 +4697,7 @@ function DeptSection({dept,items,onAdd,onUpdate,onRemove,project,scenes,characte
             );})()}
           </>}
         </div>;})}
-        <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>+ Add line</button>
+        <button onClick={()=>onAdd(dept)} style={{marginTop:10,color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif'}}>+ Add line</button>
       </div>}
     </div>
   );
@@ -4747,36 +4747,36 @@ function BudgetSummaryHeader({project,items,onSetContingency,onSetTarget}){
     <div style={{marginBottom:18}}>
       <div style={{display:'grid',gridTemplateColumns:target!=null?'1fr 1fr 1fr':'1fr 1fr',gap:8,marginBottom:14}}>
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
-          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Target</div>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Inter,sans-serif',fontWeight:700,marginBottom:4}}>Target</div>
           <Inp type="number" placeholder="Not set" value={targetInput} onChange={e=>onTargetChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace',fontSize:14,padding:'4px 6px'}}/>
         </div>
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 12px'}}>
-          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>Estimate</div>
+          <div style={{fontSize:9,color:T.dim,textTransform:'uppercase',fontFamily:'Inter,sans-serif',fontWeight:700,marginBottom:4}}>Estimate</div>
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream,fontWeight:700,padding:'4px 0'}}>{fmt(estimate)}</div>
         </div>
         {target!=null&&<div style={{background:headroom<0?'rgba(224,107,82,.1)':'rgba(82,176,122,.1)',border:`1px solid ${headroom<0?T.coral:T.sage}`,borderRadius:10,padding:'10px 12px'}}>
-          <div style={{fontSize:9,color:headroom<0?T.coral:T.sage,textTransform:'uppercase',fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:4}}>{headroom<0?'Over target':'Headroom'}</div>
+          <div style={{fontSize:9,color:headroom<0?T.coral:T.sage,textTransform:'uppercase',fontFamily:'Inter,sans-serif',fontWeight:700,marginBottom:4}}>{headroom<0?'Over target':'Headroom'}</div>
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:headroom<0?T.coral:T.sage,fontWeight:700,padding:'4px 0'}}>{fmt(Math.abs(headroom))}</div>
         </div>}
       </div>
       <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-          <div style={{fontFamily:'Fraunces,serif',fontSize:14,color:T.cream}}>{t('phaseCostSummary')}</div>
-          <span style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Live from your budget lines</span>
+          <div style={{fontFamily:'Inter,sans-serif',fontSize:14,color:T.cream}}>{t('phaseCostSummary')}</div>
+          <span style={{fontSize:9,color:T.sage,fontFamily:'Inter,sans-serif',fontWeight:700}}>✓ Live from your budget lines</span>
         </div>
         <div style={{display:'flex',height:8,borderRadius:4,overflow:'hidden',marginBottom:8}}>
           {phaseTotals.map((v,i)=>v>0&&<div key={i} style={{width:`${(v/phaseTotalSum)*100}%`,background:PHASE_COLORS[i]}}/>)}
         </div>
         <div style={{display:'flex',flexWrap:'wrap',gap:12,marginBottom:12}}>
-          {PHASES.map((p,i)=>phaseTotals[i]>0&&<div key={p.name} style={{display:'flex',alignItems:'center',gap:5,fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}><span style={{width:7,height:7,borderRadius:2,background:PHASE_COLORS[i],display:'inline-block'}}/>{p.name} · {fmt(phaseTotals[i])}</div>)}
+          {PHASES.map((p,i)=>phaseTotals[i]>0&&<div key={p.name} style={{display:'flex',alignItems:'center',gap:5,fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif'}}><span style={{width:7,height:7,borderRadius:2,background:PHASE_COLORS[i],display:'inline-block'}}/>{p.name} · {fmt(phaseTotals[i])}</div>)}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:10,paddingTop:10,borderTop:`1px solid ${T.line}`}}>
           <div>
-            <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('contingency')}</div>
+            <div style={{fontSize:10,color:T.goldDim,fontFamily:'Inter,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('contingency')}</div>
             <Inp type="number" placeholder="0" value={contingencyInput} onChange={e=>onContingencyChange(e.target.value)} style={{fontFamily:'IBM Plex Mono,monospace'}}/>
           </div>
           <div>
-            <div style={{fontSize:10,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
+            <div style={{fontSize:10,color:T.sage,fontFamily:'Inter,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:5}}>{t('total')}</div>
             <div style={{background:T.hi,border:`1px solid ${T.sage}`,borderRadius:6,padding:'8px 10px',color:T.sage,fontFamily:'IBM Plex Mono,monospace',fontSize:13,fontWeight:700}}>{fmt(estimate)}</div>
           </div>
         </div>
@@ -4794,12 +4794,12 @@ function ProductionInfoPanel({project}){
   return(
     <div style={{background:T.panel,border:`1px solid ${saved?T.sage:T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📋 {t('productionInfo')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— producer credits & phase dates</span></span>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
+        <span style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>📋 {t('productionInfo')} <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>— producer credits & phase dates</span></span>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Inter,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:8}}>
-          {PI_FIELDS.map(([k,label])=><div key={k}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,marginBottom:3}}>{label}</div><Inp type={k.includes('Start')||k.includes('End')?'date':'text'} value={info[k]||''} onChange={e=>set(k,e.target.value)}/></div>)}
+          {PI_FIELDS.map(([k,label])=><div key={k}><div style={{fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif',fontWeight:700,marginBottom:3}}>{label}</div><Inp type={k.includes('Start')||k.includes('End')?'date':'text'} value={info[k]||''} onChange={e=>set(k,e.target.value)}/></div>)}
         </div>
         <div style={{display:'flex',gap:8,marginTop:12}}><Btn size="sm" variant="sage" onClick={save}>Save info</Btn><Btn size="sm" variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn></div>
       </div>}
@@ -4815,14 +4815,14 @@ function BrandPanel({project}){
   return(
     <div style={{background:T.panel,border:`1px solid ${saved?accent:T.line}`,borderRadius:10,marginBottom:18,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>{logo&&<img src={logo} style={{height:28,objectFit:'contain'}}/>}<div style={{width:10,height:10,borderRadius:'50%',background:accent}}/><span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{t('brandPanel')}</span></div>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>{logo&&<img src={logo} style={{height:28,objectFit:'contain'}}/>}<div style={{width:10,height:10,borderRadius:'50%',background:accent}}/><span style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>{t('brandPanel')}</span></div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>{saved&&<span style={{fontSize:11,color:T.sage,fontFamily:'Inter,sans-serif',fontWeight:700}}>Set ✓</span>}<span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span></div>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:16,display:'flex',flexDirection:'column',gap:10}}>
-        <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>lr.current.click()}><input ref={lr} type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Please upload an image file.');return;}if(f.size>3*1024*1024){alert('Logo image is too large (max 3MB).');return;}setLogo(await readImg(f));}}/>{logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>📷 Upload logo</div>}</div>
+        <div style={{border:`1px dashed ${T.line}`,borderRadius:8,padding:12,textAlign:'center',cursor:'pointer',background:T.hi}} onClick={()=>lr.current.click()}><input ref={lr} type="file" accept="image/*" style={{display:'none'}} onChange={async e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Please upload an image file.');return;}if(f.size>3*1024*1024){alert('Logo image is too large (max 3MB).');return;}setLogo(await readImg(f));}}/>{logo?<img src={logo} style={{height:44,objectFit:'contain',display:'block',margin:'0 auto'}}/>:<div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>📷 Upload logo</div>}</div>
         <Inp placeholder="Company name" value={cname} onChange={e=>setCname(e.target.value)}/>
         <Inp placeholder="Production title" value={ptitle} onChange={e=>setPtitle(e.target.value)}/>
-        <div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:8,fontWeight:700}}>Accent colour</div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{ACCENT_COLORS.map(c=><button key={c} onClick={()=>setAccent(c)} style={{width:28,height:28,borderRadius:'50%',background:c,border:`3px solid ${accent===c?T.cream:'transparent'}`,cursor:'pointer'}}/>)}</div></div>
+        <div><div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:8,fontWeight:700}}>Accent colour</div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{ACCENT_COLORS.map(c=><button key={c} onClick={()=>setAccent(c)} style={{width:28,height:28,borderRadius:'50%',background:c,border:`3px solid ${accent===c?T.cream:'transparent'}`,cursor:'pointer'}}/>)}</div></div>
         <div style={{display:'flex',gap:8}}><Btn onClick={save} variant="sage">Save brand</Btn><Btn variant="ghost" onClick={()=>setOpen(false)}>Cancel</Btn></div>
       </div>}
     </div>
@@ -4832,10 +4832,10 @@ function ScriptResultModal({result,currency,onApply,onClose}){
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(20,20,20,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}>
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:24,width:'100%',maxWidth:480,maxHeight:'80vh',overflow:'auto'}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:18,color:T.cream,marginBottom:4}}>{result.title||'Script budget'}</div>
-        {result.truncated&&<div style={{background:'rgba(224,107,82,.12)',border:`1px solid ${T.coral}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:10}}>⚠️ Response was cut off — showing {result.budget.length} recovered line item{result.budget.length!==1?'s':''}. Review before applying, or re-run on a shorter excerpt for a complete budget.</div>}
-        {result.summary&&<div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>{result.summary}</div>}
-        <div style={{marginBottom:16}}>{(result.budget||[]).slice(0,12).map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.line}`,fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.cream}}>{item.description}</span><span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace'}}>{sym(currency)}{fmt(item.rate*item.qty)}</span></div>)}</div>
+        <div style={{fontFamily:'Inter,sans-serif',fontSize:18,color:T.cream,marginBottom:4}}>{result.title||'Script budget'}</div>
+        {result.truncated&&<div style={{background:'rgba(224,107,82,.12)',border:`1px solid ${T.coral}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:T.coral,fontFamily:'Inter,sans-serif',marginBottom:10}}>⚠️ Response was cut off — showing {result.budget.length} recovered line item{result.budget.length!==1?'s':''}. Review before applying, or re-run on a shorter excerpt for a complete budget.</div>}
+        {result.summary&&<div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:16}}>{result.summary}</div>}
+        <div style={{marginBottom:16}}>{(result.budget||[]).slice(0,12).map((item,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${T.line}`,fontSize:12,fontFamily:'Inter,sans-serif'}}><span style={{color:T.cream}}>{item.description}</span><span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace'}}>{sym(currency)}{fmt(item.rate*item.qty)}</span></div>)}</div>
         <div style={{display:'flex',gap:8}}><Btn onClick={onApply}>Apply to budget</Btn><Btn variant="ghost" onClick={onClose}>Discard</Btn></div>
       </div>
     </div>
@@ -4878,13 +4878,13 @@ function InvoiceUploader({project,onCreatePO}){
       {(state==='idle'||state==='error')&&<div onClick={()=>fr.current.click()} style={{border:`2px dashed ${T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:'pointer'}}>
         <input ref={fr} type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
         <div style={{fontSize:24,marginBottom:8}}>🧾</div>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Drop an invoice or receipt</div>
-        <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, or a photo of a paper invoice — NKÒ reads it, drafts a PO, and keeps the original on file</div>
+        <div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream,marginBottom:4}}>Drop an invoice or receipt</div>
+        <div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:10}}>PDF, or a photo of a paper invoice — NKÒ reads it, drafts a PO, and keeps the original on file</div>
         <Btn variant="ghost" size="sm">Choose file</Btn>
         {err&&<div style={{color:T.coral,fontSize:12,marginTop:10}}>{err}</div>}
       </div>}
       {(state==='reading'||state==='analyzing')&&<div style={{border:`2px dashed ${T.gold}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi}}>
-        <div style={{color:T.gold,fontFamily:'Manrope,sans-serif',fontSize:13}}>{state==='reading'?'Reading file…':'Extracting invoice details…'}</div>
+        <div style={{color:T.gold,fontFamily:'Inter,sans-serif',fontSize:13}}>{state==='reading'?'Reading file…':'Extracting invoice details…'}</div>
       </div>}
       {state==='done'&&draft&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18}}>
         <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Confirm before creating PO — check these against the actual invoice</div>
@@ -5008,11 +5008,11 @@ function ScriptUploader({project,onApplyBudget}){
     <>
       <div onClick={()=>(state==='idle'||state==='error')&&fr.current.click()} style={{border:`2px dashed ${state==='analyzing'?T.gold:T.line}`,borderRadius:10,padding:24,textAlign:'center',background:T.hi,cursor:(state==='idle'||state==='error')?'pointer':'default',marginBottom:18}}>
         <input ref={fr} type="file" accept=".pdf,.txt,.fdx" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(f)process(f);}}/>
-        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>{t('uploadScript')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div>{notif==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:'Manrope,sans-serif',marginBottom:8}}>🔔 Safe to switch apps during analysis</div>}{notif==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:8}}>💡 Allow notifications to switch apps freely</div>}<Btn variant="ghost" size="sm">{t('chooseFile')}</Btn></>}
-        {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Manrope,sans-serif'}}>Reading script…</div></>}
-        {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.sage,fontFamily:'Manrope,sans-serif'}}>🔔 Safe to switch apps — your budget breakdown will be waiting when you return</div></>}
-        {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.sage}}>Analysis complete</div></>}
-        {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Manrope,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
+        {state==='idle'&&<><div style={{fontSize:24,marginBottom:8}}>📄</div><div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream,marginBottom:4}}>{t('uploadScript')}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:10}}>PDF, TXT or FDX — NKÒ reads it and builds your budget</div>{notif==='granted'&&<div style={{fontSize:11,color:T.sage,fontFamily:'Inter,sans-serif',marginBottom:8}}>🔔 Safe to switch apps during analysis</div>}{notif==='default'&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Inter,sans-serif',marginBottom:8}}>💡 Allow notifications to switch apps freely</div>}<Btn variant="ghost" size="sm">{t('chooseFile')}</Btn></>}
+        {state==='reading'&&<><div style={{fontSize:24,marginBottom:8}}>📖</div><div style={{color:T.cream,fontFamily:'Inter,sans-serif'}}>Reading script…</div></>}
+        {state==='analyzing'&&<><div style={{fontSize:24,marginBottom:8}}>🤖</div><div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream,marginBottom:4}}>Analyzing…</div><div style={{fontSize:12,color:T.sage,fontFamily:'Inter,sans-serif'}}>🔔 Safe to switch apps — your budget breakdown will be waiting when you return</div></>}
+        {state==='done'&&<><div style={{fontSize:24,marginBottom:8}}>✅</div><div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.sage}}>Analysis complete</div></>}
+        {state==='error'&&<><div style={{fontSize:24,marginBottom:8}}>⚠️</div><div style={{fontSize:12,color:T.coral,fontFamily:'Inter,sans-serif',marginBottom:8}}>{err}</div><Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn></>}
       </div>
       {result&&state==='done'&&<ScriptResultModal result={result} currency={project.base_currency} onApply={()=>{onApplyBudget(result.budget);setResult(null);setState('idle');}} onClose={()=>{setResult(null);setState('idle');}}/>}
     </>
@@ -5124,7 +5124,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
     }
   };
 
-  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.015em' };
+  const numStyle = { fontFamily:'Inter,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.015em' };
 
   return (
     <AnimatePresence>
@@ -5157,7 +5157,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
               display:'flex',
               flexDirection:'column',
               overflow:'hidden',
-              fontFamily:'Manrope,sans-serif',
+              fontFamily:'Inter,sans-serif',
             }}
           >
             {/* Header (seamless, no divider border) */}
@@ -5211,7 +5211,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
                             background:active?'rgba(245,196,81,0.06)':'#0C0C0D',
                             border:active?'1px solid #B5923A':'1px solid #222226',
                             transition:'border-color 0.15s ease, background 0.15s ease',
-                            fontFamily:'Manrope,sans-serif',
+                            fontFamily:'Inter,sans-serif',
                           }}
                         >
                           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:5}}>
@@ -5318,7 +5318,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
                       background:applyMode==='add'?'rgba(245,196,81,0.06)':'#0D0D0E',
                       border:applyMode==='add'?'1px solid #B5923A':'1px solid #222226',
                       transition:'border-color 0.15s ease, background 0.15s ease',
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                     }}
                   >
                     <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>Add to current budget</div>
@@ -5335,7 +5335,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
                       background:applyMode==='replace'?'rgba(245,196,81,0.06)':'#0D0D0E',
                       border:applyMode==='replace'?'1px solid #B5923A':'1px solid #222226',
                       transition:'border-color 0.15s ease, background 0.15s ease',
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                     }}
                   >
                     <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0'}}>Replace current budget</div>
@@ -5354,7 +5354,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
               <button
                 type="button"
                 onClick={onClose}
-                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:9,padding:'9px 18px',fontSize:13,fontWeight:500,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:9,padding:'9px 18px',fontSize:13,fontWeight:500,fontFamily:'Inter,sans-serif',cursor:'pointer'}}
               >
                 Cancel
               </button>
@@ -5365,7 +5365,7 @@ function TemplatePickerModal({open,onClose,onApply,project,existingLineCount=0})
                 whileTap={{scale:0.98}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 onClick={handleApply}
-                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:9,padding:'9px 20px',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:applying?'wait':'pointer',boxShadow:'0 4px 16px rgba(245,166,35,0.26)',opacity:applying?0.75:1}}
+                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:9,padding:'9px 20px',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:applying?'wait':'pointer',boxShadow:'0 4px 16px rgba(245,166,35,0.26)',opacity:applying?0.75:1}}
               >
                 {applying ? 'Applying...' : 'Apply template'}
               </motion.button>
@@ -5420,7 +5420,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
   const previewLines = items.slice(0, 10);
   const previewExcelLines = items.slice(0, 14);
   const extraCount = Math.max(0, items.length - previewLines.length);
-  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' };
+  const numStyle = { fontFamily:'Inter,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em' };
 
   const handleDownload = async () => {
     if (exporting) return;
@@ -5468,7 +5468,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
               display:'flex',
               flexDirection:'column',
               overflow:'hidden',
-              fontFamily:'Manrope,sans-serif',
+              fontFamily:'Inter,sans-serif',
             }}
           >
             {/* Header (seamless, no bottom border) */}
@@ -5514,7 +5514,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
                           background:format==='pdf'?'rgba(245,196,81,0.06)':'#0C0C0D',
                           border:format==='pdf'?'1px solid #B5923A':'1px solid #232327',
                           transition:'border-color 0.15s ease, background 0.15s ease',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                         }}
                       >
                         <FileText size={15} style={{color:format==='pdf'?'#F5C451':'#8E8A82',marginBottom:8,display:'block'}}/>
@@ -5533,7 +5533,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
                           background:format==='excel'?'rgba(245,196,81,0.06)':'#0C0C0D',
                           border:format==='excel'?'1px solid #B5923A':'1px solid #232327',
                           transition:'border-color 0.15s ease, background 0.15s ease',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                         }}
                       >
                         <FileSpreadsheet size={15} style={{color:format==='excel'?'#F5C451':'#8E8A82',marginBottom:8,display:'block'}}/>
@@ -5566,7 +5566,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
                               background:theme==='charcoal'?'rgba(245,196,81,0.06)':'#0C0C0D',
                               border:theme==='charcoal'?'1px solid #B5923A':'1px solid #232327',
                               transition:'border-color 0.15s ease, background 0.15s ease',
-                              fontFamily:'Manrope,sans-serif',
+                              fontFamily:'Inter,sans-serif',
                             }}
                           >
                             <div style={{width:22,height:15,borderRadius:4,background:'#161618',border:'1px solid #2A2A2F',marginBottom:8}}/>
@@ -5585,7 +5585,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
                               background:theme==='white'?'rgba(245,196,81,0.06)':'#0C0C0D',
                               border:theme==='white'?'1px solid #B5923A':'1px solid #232327',
                               transition:'border-color 0.15s ease, background 0.15s ease',
-                              fontFamily:'Manrope,sans-serif',
+                              fontFamily:'Inter,sans-serif',
                             }}
                           >
                             <div style={{width:22,height:15,borderRadius:4,background:'#FFFFFF',border:'1px solid #D4D4D8',marginBottom:8}}/>
@@ -5832,7 +5832,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
                                         padding:'7px 12px',
                                         fontSize:10,
                                         fontWeight:act?700:500,
-                                        fontFamily:'Manrope,sans-serif',
+                                        fontFamily:'Inter,sans-serif',
                                         cursor:'pointer',
                                         border:'none',
                                         borderRight:act?'1px solid #DDDAD3':'none',
@@ -5864,7 +5864,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
                 type="button"
                 disabled={exporting}
                 onClick={onClose}
-                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:500,fontFamily:'Inter,sans-serif',cursor:'pointer'}}
               >
                 Cancel
               </button>
@@ -5875,7 +5875,7 @@ function ExportBudgetModal({open,onClose,initialFormat='pdf',project,items=[],de
                 whileTap={{scale:0.98}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 onClick={handleDownload}
-                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(245,166,35,0.24)',opacity:exporting?0.75:1}}
+                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:exporting?'wait':'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(245,166,35,0.24)',opacity:exporting?0.75:1}}
               >
                 <Download size={14} strokeWidth={2.2}/>
                 <span>{exporting ? 'Exporting...' : format === 'pdf' ? 'Download PDF' : 'Download Excel (.xlsx)'}</span>
@@ -5952,7 +5952,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
     }
   };
 
-  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.015em' };
+  const numStyle = { fontFamily:'Inter,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.015em' };
   const labelStyle = { display:'block', fontSize:12.5, fontWeight:600, color:'#E5E5E0', marginBottom:7 };
   const inputStyle = {
     width:'100%',
@@ -5962,7 +5962,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
     padding:'10px 14px',
     color:'#F5F5F0',
     fontSize:13.5,
-    fontFamily:'Manrope,sans-serif',
+    fontFamily:'Inter,sans-serif',
     outline:'none',
     boxSizing:'border-box',
   };
@@ -6001,7 +6001,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
               display:'flex',
               flexDirection:'column',
               overflow:'hidden',
-              fontFamily:'Manrope,sans-serif',
+              fontFamily:'Inter,sans-serif',
             }}
           >
             {/* Header */}
@@ -6142,7 +6142,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
                           fontSize:12,
                           fontWeight:active?600:500,
                           cursor:'pointer',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                           transition:'border-color 0.14s ease, background 0.14s ease, color 0.14s ease',
                           whiteSpace:'nowrap',
                         }}
@@ -6177,7 +6177,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
                 type="button"
                 disabled={saving}
                 onClick={onClose}
-                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:10,padding:'10px 18px',fontSize:13.5,fontWeight:500,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+                style={{background:'#121214',border:'1px solid #2C2C30',color:'#F5F5F0',borderRadius:10,padding:'10px 18px',fontSize:13.5,fontWeight:500,fontFamily:'Inter,sans-serif',cursor:'pointer'}}
               >
                 Cancel
               </button>
@@ -6187,7 +6187,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
                 whileHover={{y:-1}}
                 whileTap={{scale:0.98}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',border:'none',color:'#0A0A0A',borderRadius:10,padding:'10px 20px',fontSize:13.5,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',boxShadow:'0 4px 16px rgba(245,166,35,0.24)',opacity:saving?0.75:1}}
+                style={{background:'linear-gradient(180deg, #FBBF4D 0%, #F5A623 100%)',border:'none',color:'#0A0A0A',borderRadius:10,padding:'10px 20px',fontSize:13.5,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:saving?'wait':'pointer',boxShadow:'0 4px 16px rgba(245,166,35,0.24)',opacity:saving?0.75:1}}
               >
                 {saving ? 'Adding...' : 'Add Budget Line'}
               </motion.button>
@@ -6239,7 +6239,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
     return()=>document.removeEventListener('mousedown',onDocClick);
   },[showMoreMenu]);
 
-  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div></div>;
 
   const baseCur = project.base_currency || 'NGN';
   const pItems=items.filter(i=>i.project_id===project.id);
@@ -6392,10 +6392,10 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
     { id: 'cont', label: 'Insurance, Bond & Contingency', codeRange: 'V', totalLabel: 'Total Contingency & Support', depts: visibleDepts.filter(d => deptSectionFor(d) === 'cont'), sectionTotal: contSectionTotal },
   ].filter(sec => sec.depts.length > 0);
 
-  const numStyle = { fontFamily:'Manrope,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' };
+  const numStyle = { fontFamily:'Inter,sans-serif', fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em' };
 
   return(
-    <div style={{fontFamily:'Manrope,sans-serif'}}>
+    <div style={{fontFamily:'Inter,sans-serif'}}>
       {/* Breadcrumb */}
       <div style={{fontSize:mob?10.5:11,color:'#5E5E66',marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.005em'}}>
         Workspace <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> Productions <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> {project.name} <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> <span style={{color:'#D4D4D8',fontWeight:500}}>Budgets</span>
@@ -6416,7 +6416,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             Manage department budgets and track planned costs.
           </div>
           {(project.script_name || uploadBanner) && (
-            <div style={{display:'inline-flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:6}}>
+            <div style={{display:'inline-flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:11,fontFamily:'Inter,sans-serif',marginTop:6}}>
               <FileText size={12} style={{color:'#F5C451'}}/>
               <span>From <span style={{color:uploadBanner?'#F5C451':'#D4D4D8',fontWeight:uploadBanner?600:500}}>{uploadBanner?.fileName || project.script_name}</span></span>
             </div>
@@ -6430,7 +6430,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowUpload(o=>!o)}
-            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:mob?'11px 12px':'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:mob?'11px 12px':'9px 16px',fontSize:12,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
           >
             <Upload size={14}/>
             <span>Upload Script</span>
@@ -6555,7 +6555,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                         letterSpacing:'-0.005em',
                         cursor:'pointer',
                         textAlign:'left',
-                        fontFamily:'Manrope,sans-serif',
+                        fontFamily:'Inter,sans-serif',
                         transition:'background 0.14s ease, color 0.14s ease',
                       }}
                       onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';}}
@@ -6595,10 +6595,10 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
               <CheckCircle2 size={16} strokeWidth={2.4}/>
             </div>
             <div>
-              <div style={{color:'#F0E8D0',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{color:'#F0E8D0',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif'}}>
                 Script &ldquo;{uploadBanner.fileName}&rdquo; uploaded &amp; broken down successfully!
               </div>
-              <div style={{color:'#A1A1AA',fontSize:11,marginTop:1,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{color:'#A1A1AA',fontSize:11,marginTop:1,fontFamily:'Inter,sans-serif'}}>
                 {uploadBanner.sceneCount} scenes and {uploadBanner.characterCount} speaking characters generated and ready to schedule.
               </div>
             </div>
@@ -6842,7 +6842,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                   borderRadius:16,
                   padding:mob?'20px 18px 22px':'24px 26px 26px',
                   boxShadow:'0 28px 70px rgba(0,0,0,0.78)',
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                 }}
               >
                 {/* Header */}
@@ -6902,7 +6902,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                           fontSize:13,
                           fontWeight:active?600:500,
                           cursor:'pointer',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                           transition:'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
                         }}
                       >
@@ -7076,7 +7076,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                   borderRadius:16,
                   boxShadow:'0 28px 70px rgba(0,0,0,0.82)',
                   overflow:'hidden',
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                 }}
               >
                 <div style={{padding:'24px 26px 22px'}}>
@@ -7114,7 +7114,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                       padding:'10px 18px',
                       fontSize:13.5,
                       fontWeight:500,
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                       cursor:'pointer',
                     }}
                   >
@@ -7135,7 +7135,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                       padding:'10px 20px',
                       fontSize:13.5,
                       fontWeight:600,
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                       cursor:deletingLine?'wait':'pointer',
                       opacity:deletingLine?0.75:1,
                     }}
@@ -7218,7 +7218,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                   borderRadius:16,
                   boxShadow:'0 28px 72px rgba(0,0,0,0.82)',
                   overflow:'hidden',
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                 }}
               >
                 <div style={{padding:mob?'20px 18px 18px':'24px 26px 22px',overflowY:'auto',flex:1}}>
@@ -7318,7 +7318,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                           background:settingsFeeBasis==='after_insurance'?'rgba(245,196,81,0.06)':'#0D0D0E',
                           border:settingsFeeBasis==='after_insurance'?'1px solid #B5923A':'1px solid #26262B',
                           transition:'border-color 0.15s ease, background 0.15s ease',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                         }}
                       >
                         <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0',lineHeight:1.35}}>
@@ -7340,7 +7340,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                           background:settingsFeeBasis==='atl_btl_only'?'rgba(245,196,81,0.06)':'#0D0D0E',
                           border:settingsFeeBasis==='atl_btl_only'?'1px solid #B5923A':'1px solid #26262B',
                           transition:'border-color 0.15s ease, background 0.15s ease',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                         }}
                       >
                         <div style={{fontSize:13,fontWeight:600,color:'#F5F5F0',lineHeight:1.35}}>
@@ -7405,7 +7405,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                       padding:'10px 18px',
                       fontSize:13.5,
                       fontWeight:500,
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                       cursor:'pointer',
                     }}
                   >
@@ -7426,7 +7426,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                       padding:'10px 20px',
                       fontSize:13.5,
                       fontWeight:700,
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                       cursor:savingSettings?'wait':'pointer',
                       boxShadow:'0 4px 16px rgba(245,166,35,0.24)',
                       opacity:savingSettings?0.75:1,
@@ -7476,7 +7476,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                   fontSize:12,
                   fontWeight:active?600:500,
                   cursor:'pointer',
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                   transition:'all 0.14s ease',
                 }}
               >
@@ -7528,7 +7528,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             placeholder="Search items, notes, departments or categories..."
             value={search}
             onChange={e=>setSearch(e.target.value)}
-            style={{width:'100%',background:'#0B0B0D',border:'1px solid #1D1D22',borderRadius:8,padding:'8px 12px 8px 32px',color:'#F5F5F0',fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+            style={{width:'100%',background:'#0B0B0D',border:'1px solid #1D1D22',borderRadius:8,padding:'8px 12px 8px 32px',color:'#F5F5F0',fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}
           />
         </div>
         <Sel aria-label="Department" value={deptFilter} onChange={e=>setDeptFilter(e.target.value)} style={{background:'#0B0B0D',border:'1px solid #1D1D22',borderRadius:8,padding:'7px 10px',fontSize:11.5,color:'#A1A1AA'}}>
@@ -7541,11 +7541,11 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         </Sel>
         {viewTab==='categories'&&visibleDepts.length>0&&(
           <div style={{display:'inline-flex',alignItems:'center',gap:4,marginLeft:2}}>
-            <button type="button" onClick={expandAllDepts} style={{background:'transparent',border:'none',padding:'6px 8px',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}>
+            <button type="button" onClick={expandAllDepts} style={{background:'transparent',border:'none',padding:'6px 8px',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}>
               <ChevronsUpDown size={12}/>
               <span>Expand all</span>
             </button>
-            <button type="button" onClick={collapseAllDepts} style={{background:'transparent',border:'none',padding:'6px 8px',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}>
+            <button type="button" onClick={collapseAllDepts} style={{background:'transparent',border:'none',padding:'6px 8px',color:'#8E8E93',fontSize:11.5,fontWeight:500,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}>
               <ChevronsUpDown size={12}/>
               <span>Collapse all</span>
             </button>
@@ -7605,7 +7605,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                                 border:'none',
                                 cursor:'pointer',
                                 textAlign:'left',
-                                fontFamily:'Manrope,sans-serif',
+                                fontFamily:'Inter,sans-serif',
                                 transition:'background 0.14s ease',
                               }}
                             >
@@ -8016,11 +8016,11 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdate
   return(
     <div style={{background:T.panel,border:`1px solid ${bal<0?T.coral:T.line}`,borderRadius:10,overflow:'hidden',marginBottom:12}}>
       <div style={{padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:mob?'wrap':'nowrap',gap:8}}>
-        <div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{advance.recipient}{advance.dept&&<span style={{color:T.dim,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:400}}> · {advance.dept}</span>}</div><div style={{fontSize:11,color:T.dim,marginTop:2,fontFamily:'Manrope,sans-serif'}}>{advance.purpose||'No purpose'} · {advance.date_issued}</div></div>
+        <div><div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>{advance.recipient}{advance.dept&&<span style={{color:T.dim,fontFamily:'Inter,sans-serif',fontSize:13,fontWeight:400}}> · {advance.dept}</span>}</div><div style={{fontSize:11,color:T.dim,marginTop:2,fontFamily:'Inter,sans-serif'}}>{advance.purpose||'No purpose'} · {advance.date_issued}</div></div>
         <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:18,color:T.cream}}>{sym(advance.currency)}{fmt(advance.amount)}</div><Pill color={sc}>{advance.status==='reconciled'?'Reconciled':bal<0?'Overspent':bal===0?'Balanced':'Open'}</Pill></div>
       </div>
-      <div style={{padding:'0 16px 10px'}}><div style={{height:6,borderRadius:3,background:T.ink,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:bal<0?T.coral:T.gold}}/></div><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}><span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span><span style={{color:bal<0?T.coral:T.dim}}>{bal<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(advance.currency)}${fmt(bal)}`}</span></div></div>
-      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{
+      <div style={{padding:'0 16px 10px'}}><div style={{height:6,borderRadius:3,background:T.ink,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:bal<0?T.coral:T.gold}}/></div><div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}><span>Spent {sym(advance.currency)}{fmt(spent)} · {Math.round(pct)}%</span><span style={{color:bal<0?T.coral:T.dim}}>{bal<0?`Over by ${sym(advance.currency)}${fmt(Math.abs(bal))}`:`Balance ${sym(advance.currency)}${fmt(bal)}`}</span></div></div>
+      {entries.length>0&&<div style={{borderTop:`1px solid ${T.line}`,padding:'6px 16px'}}><div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'4px 0'}}>Expense log</div>{entries.map(en=>{
         const isIn=en.description?.startsWith('[CASH-IN]');const cat=en.description?.match(/^\[([^\]]+)\]/)?.[1]||'';const desc=(en.description||'').replace(/^\[[^\]]+\]\s*/,'');
         if(editingId===en.id)return(
           <div key={en.id} style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`,display:'flex',flexDirection:'column',gap:6,background:T.hi}}>
@@ -8030,8 +8030,8 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdate
             <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>saveEdit(en)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditingId(null)}>Cancel</Btn></div>
           </div>
         );
-        return<div key={en.id} onClick={()=>startEdit(en)} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8,cursor:'pointer'}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:isIn?'rgba(82,176,122,.2)':T.hi,color:isIn?T.sage:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Manrope,sans-serif',fontWeight:700}}>{isIn?'CASH IN':cat}</span>}<span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:isIn?T.sage:T.cream,fontSize:12}}>{isIn?'+':''}{sym(advance.currency)}{fmt(en.amount)}</span><span style={{color:T.faint,fontSize:12}}>✎</span><button onClick={e=>{e.stopPropagation();onRemoveEntry(en.id);}} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
-        <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Manrope,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
+        return<div key={en.id} onClick={()=>startEdit(en)} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${T.line}`,gap:8,cursor:'pointer'}}><div style={{flex:1}}>{cat&&<span style={{fontSize:9,background:isIn?'rgba(82,176,122,.2)':T.hi,color:isIn?T.sage:T.gold,borderRadius:4,padding:'1px 5px',marginRight:5,fontFamily:'Inter,sans-serif',fontWeight:700}}>{isIn?'CASH IN':cat}</span>}<span style={{color:T.cream,fontFamily:'Inter,sans-serif',fontSize:12}}>{desc}</span>{en.date&&<div style={{color:T.dim,fontSize:10,marginTop:1}}>{en.date}</div>}</div><div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}><span style={{fontFamily:'IBM Plex Mono,monospace',color:isIn?T.sage:T.cream,fontSize:12}}>{isIn?'+':''}{sym(advance.currency)}{fmt(en.amount)}</span><span style={{color:T.faint,fontSize:12}}>✎</span><button onClick={e=>{e.stopPropagation();onRemoveEntry(en.id);}} style={{color:T.faint,fontSize:16,cursor:'pointer',background:'none',border:'none'}}>×</button></div></div>;})}
+        <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:12,fontFamily:'Inter,sans-serif'}}><span style={{color:T.dim}}>{entries.length} expense{entries.length!==1?'s':''}</span><span style={{fontFamily:'IBM Plex Mono,monospace',color:bal<0?T.coral:T.gold,fontWeight:700}}>{sym(advance.currency)}{fmt(spent)}</span></div>
       </div>}
       {show&&<div style={{padding:'10px 16px',borderTop:`1px solid ${T.line}`,background:T.hi,display:'flex',flexDirection:'column',gap:8}}>
         <Sel value={eCat} onChange={e=>setECat(e.target.value)} style={{width:'100%'}}>{expenseCatsForDept(advance.dept).map(c=><option key={c}>{c}</option>)}</Sel>
@@ -8040,9 +8040,9 @@ function AdvanceCard({advance,entries,onUpdate,onAddEntry,onRemoveEntry,onUpdate
         <Inp placeholder="Receipt / voucher ref (optional)" value={eRef} onChange={e=>setERef(e.target.value)}/>
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={save}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setShow(false)}>Cancel</Btn></div>
       </div>}
-      {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14,flexWrap:'wrap'}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('logExpense')}</button><button onClick={()=>{const extra=window.prompt(`Top up this advance — how much extra ${advance.currency} was given to ${advance.recipient}?`);if(extra&&Number(extra)>0)onTopUp(advance.id,Number(extra));}} style={{color:T.sapphire,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('topUp')}</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>{tr('reconcileBtn')}</button>}</div>}
-      {advance.status!=='reconciled'&&!show&&bal<0&&<div style={{padding:'0 16px 12px',fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>Overspent — top up with new cash received, or remove a logged expense with the × button above.</div>}
-      {isOwner&&!show&&<div style={{padding:'0 16px 12px',borderTop:advance.status==='reconciled'?`1px solid ${T.line}`:'none',paddingTop:advance.status==='reconciled'?10:0}}><button onClick={requestDelete} style={{color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',padding:0}}>Delete advance</button></div>}
+      {advance.status!=='reconciled'&&!show&&<div style={{padding:'8px 16px 12px',display:'flex',gap:14,flexWrap:'wrap'}}><button onClick={()=>setShow(true)} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif'}}>{tr('logExpense')}</button><button onClick={()=>{const extra=window.prompt(`Top up this advance — how much extra ${advance.currency} was given to ${advance.recipient}?`);if(extra&&Number(extra)>0)onTopUp(advance.id,Number(extra));}} style={{color:T.sapphire,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif'}}>{tr('topUp')}</button>{bal>=0&&<button onClick={()=>onUpdate(advance.id,{status:'reconciled'})} style={{color:T.sage,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif'}}>{tr('reconcileBtn')}</button>}</div>}
+      {advance.status!=='reconciled'&&!show&&bal<0&&<div style={{padding:'0 16px 12px',fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>Overspent — top up with new cash received, or remove a logged expense with the × button above.</div>}
+      {isOwner&&!show&&<div style={{padding:'0 16px 12px',borderTop:advance.status==='reconciled'?`1px solid ${T.line}`:'none',paddingTop:advance.status==='reconciled'?10:0}}><button onClick={requestDelete} style={{color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif',padding:0}}>Delete advance</button></div>}
     </div>
   );
 }
@@ -8093,16 +8093,16 @@ function CostReportPanel({project,items,advances,reconEntries,paidPOs=[],payeePa
   if(items.length===0&&advances.length===0&&payeePays.length===0)return null;
   return(
     <div style={{marginBottom:22}}>
-      <div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:2}}>{tr('costReport')}</div>
-      <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:12}}>{tr('costReportSub')}</div>
+      <div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:2}}>{tr('costReport')}</div>
+      <div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:12}}>{tr('costReportSub')}</div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginBottom:12}}>
         <StatCard label={tr('totalBudgetLbl')} value={fmtCur(budgetByCur)} sub={project.base_currency}/>
         <StatCard label={tr('actualSpentLbl')} value={fmtCur(spentByCur)} sub={project.base_currency}/>
         <StatCard label={tr('remainingLbl')} value={fmtCur(remainingByCur)} sub={remainUSD<0?tr('statOverBudget'):tr('statUnderBudget')} accent={remainUSD<0?T.coral:T.sage}/>
       </div>
-      {untaggedPayUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedPayUSD)} paid to people with no department set — they count toward Actual spend, but not any phase. Set a department on the payee.</div>}
-      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent on advances with no department set — tag them when issuing an advance for an accurate phase breakdown.</div>}
-      <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>{tr('byPhase')}</div>
+      {untaggedPayUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Inter,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedPayUSD)} paid to people with no department set — they count toward Actual spend, but not any phase. Set a department on the payee.</div>}
+      {untaggedSpentUSD>0&&<div style={{fontSize:11,color:T.goldDim,fontFamily:'Inter,sans-serif',marginBottom:12,background:'rgba(254,237,97,.08)',border:`1px solid ${T.goldDim}`,borderRadius:8,padding:'8px 12px'}}>≈ ${fmt(untaggedSpentUSD)} spent on advances with no department set — tag them when issuing an advance for an accurate phase breakdown.</div>}
+      <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10,fontFamily:'Inter,sans-serif'}}>{tr('byPhase')}</div>
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {PHASES.map(ph=>{
           const bItems=items.filter(i=>ph.depts.includes(i.dept));
@@ -8120,7 +8120,7 @@ function CostReportPanel({project,items,advances,reconEntries,paidPOs=[],payeePa
           return(
             <div key={ph.name} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'12px 16px'}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:6,gap:8,flexWrap:'wrap'}}>
-                <span style={{color:T.cream,fontSize:13,fontFamily:'Manrope,sans-serif'}}>{ph.name}</span>
+                <span style={{color:T.cream,fontSize:13,fontFamily:'Inter,sans-serif'}}>{ph.name}</span>
                 <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,color:sUSD===0?T.dim:(over?T.coral:T.sage)}}>{sUSD===0?tr('notStarted'):`${over?'+':'-'}$${fmt(Math.abs(diffUSD))} ${over?tr('statOverBudget'):tr('statUnderBudget')}`}</span>
               </div>
               <div style={{height:6,background:T.line,borderRadius:3,overflow:'hidden',marginBottom:5}}><div style={{width:`${pct}%`,height:'100%',background:over?T.coral:T.sage}}/></div>
@@ -8145,8 +8145,8 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency,payments=[]
   return(
     <div style={{marginBottom:20}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
-        <div style={{color:T.cream,fontFamily:'Fraunces,serif',fontSize:15}}>{dept}</div>
-        <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:16,fontWeight:700}}>{sym(currency)}{fmt(total)} <span style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif',fontWeight:400}}>spent</span></div>
+        <div style={{color:T.cream,fontFamily:'Inter,sans-serif',fontSize:15}}>{dept}</div>
+        <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:16,fontWeight:700}}>{sym(currency)}{fmt(total)} <span style={{color:T.dim,fontSize:10,fontFamily:'Inter,sans-serif',fontWeight:400}}>spent</span></div>
       </div>
       {openAdv.length>0&&<div style={{marginBottom:10}}>
         <div style={{fontSize:9,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:5}}>Cash still with someone</div>
@@ -8173,7 +8173,7 @@ function DeptReconGroup({dept,advances,reconEntries,paidPOs,currency,payments=[]
             <span style={{color:T.cream,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{fmt(f.amount)}</span>
           </div>
         ))}
-      </div>:<div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>Nothing logged yet.</div>}
+      </div>:<div style={{color:T.dim,fontSize:11,fontFamily:'Inter,sans-serif'}}>Nothing logged yet.</div>}
     </div>
   );
 }
@@ -8181,7 +8181,7 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,payees=[]
   const{t:tr}=useLang();
   const[showForm,setShowForm]=useState(false);const[rec,setRec]=useState({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});
   const[showAll,setShowAll]=useState(false);
-  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div></div>;
   const pAdv=advances.filter(a=>a.project_id===project.id);
   const pPOsPaid=(purchaseOrders||[]).filter(po=>po.project_id===project.id&&po.status==='Paid');
   const isTopUp=e=>!!e.description?.startsWith('[CASH-IN]');const total=pAdv.reduce((s,a)=>s+Number(a.amount)+reconEntries.filter(e=>e.advance_id===a.id&&isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0),0);const spent=pAdv.map(a=>reconEntries.filter(e=>e.advance_id===a.id&&!isTopUp(e)).reduce((x,e)=>x+Number(e.amount),0)).reduce((a,b)=>a+b,0);
@@ -8189,13 +8189,13 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,payees=[]
   const activeDepts=[...new Set([...pAdv.map(a=>a.dept),...pPOsPaid.map(po=>po.dept),...payList.map(x=>x.dept)].filter(Boolean))];
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everything spent — cash advances, paid purchase orders and payments to crew and cast, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Inter,sans-serif',fontSize:26,color:T.cream}}>{tr('reconHeader')} — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>Everything spent — cash advances, paid purchase orders and payments to crew and cast, one feed per department.</div><div style={{marginTop:14}}><FS/></div></div>
       <CostReportPanel project={project} items={items} advances={pAdv} reconEntries={reconEntries} paidPOs={pPOsPaid} payeePays={payList}/>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Advances" value={pAdv.length} sub="issued"/><StatCard label="Total issued" value={`${sym(project.base_currency)}${fmt(total)}`} sub={project.base_currency}/><StatCard label="Total spent" value={`${sym(project.base_currency)}${fmt(spent)}`} sub="logged"/><StatCard label="Reconciled" value={pAdv.filter(a=>a.status==='reconciled').length} sub="of total" accent={T.sage}/>
       </div>
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>{tr('newAdvance')}</div>
+        <div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream,marginBottom:12}}>{tr('newAdvance')}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <Inp placeholder="Recipient name" value={rec.recipient} onChange={e=>setRec(p=>({...p,recipient:e.target.value}))}/>
           <Sel value={rec.dept} onChange={e=>setRec(p=>({...p,dept:e.target.value}))} style={{width:'100%'}}><option value="">Department (optional)</option>{DEPTS.map(d=><option key={d} value={d}>{d}</option>)}</Sel>
@@ -8207,15 +8207,15 @@ function ReconView({project,items,advances,reconEntries,purchaseOrders,payees=[]
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>{if(rec.recipient&&rec.amount){onAddAdvance({...rec,amount:Number(rec.amount),status:'open',project_id:project.id});setRec({recipient:'',dept:'',amount:'',currency:'NGN',purpose:'',date_issued:today()});setShowForm(false);}}}>{tr('issueAdvance').replace('+ ','')}</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>{tr('cancel')}</Btn></div>
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:8}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>By department</div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>{(pAdv.length>0||pPOsPaid.length>0||payList.length>0)&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid,payList)}>📄 Export Recon Report</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>)}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
+        <div style={{fontFamily:'Inter,sans-serif',fontSize:16,color:T.cream}}>By department</div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>{(pAdv.length>0||pPOsPaid.length>0||payList.length>0)&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>reconReportPDF(pAdv,reconEntries,project,items,pPOsPaid,payList)}>📄 Export Recon Report</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Inter,sans-serif',alignSelf:'center'}}>Only the production admin can export</span>)}<Btn size="sm" onClick={()=>setShowForm(true)}>{tr('issueAdvance')}</Btn></div>
       </div>
-      {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
+      {activeDepts.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center',marginBottom:16}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>No advances or paid purchase orders yet. Issue an advance to start tracking.</div></div>:
         activeDepts.map(dept=><DeptReconGroup key={dept} dept={dept} advances={pAdv.filter(a=>a.dept===dept)} reconEntries={reconEntries} paidPOs={pPOsPaid.filter(po=>po.dept===dept)} payments={payList.filter(x=>x.dept===dept)} currency={project.base_currency}/>)}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <button onClick={()=>setShowAll(!showAll)} style={{background:'none',border:'none',color:T.goldDim,fontSize:12,cursor:'pointer',fontWeight:700}}>{showAll?'▾ Hide detailed advance cards':'▸ Show detailed advance cards (log expenses, top up, reconcile)'}</button>
       </div>
-      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onUpdateEntry={onUpdateEntry} onTopUp={onTopUp} onDelete={onDeleteAdvance} isOwner={isOwner}/>))}
+      {showAll&&(pAdv.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>No advances yet. Issue one to start tracking expenses.</div></div>:pAdv.map(a=><AdvanceCard key={a.id} advance={a} entries={reconEntries.filter(e=>e.advance_id===a.id)} onUpdate={onUpdateAdvance} onAddEntry={onAddEntry} onRemoveEntry={onRemoveEntry} onUpdateEntry={onUpdateEntry} onTopUp={onTopUp} onDelete={onDeleteAdvance} isOwner={isOwner}/>))}
     </div>
   );
 }
@@ -8380,7 +8380,7 @@ const reconReportPDF=(advances,reconEntries,project,items=[],paidPOs=[],payeePay
 function PoFiles({po,isOwner,onRemove,onAdd}){
   const chip=(label,f,kind)=>f?.path
     ?<span style={{display:'inline-flex',alignItems:'center',gap:4,marginRight:6}}>
-      <button onClick={()=>viewReceipt(f.path)} title={f.name} style={{color:T.sage,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'}}>📎 {label}</button>
+      <button onClick={()=>viewReceipt(f.path)} title={f.name} style={{color:T.sage,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.sage}`,borderRadius:6,padding:'2px 8px',fontFamily:'Inter,sans-serif'}}>📎 {label}</button>
       <button onClick={()=>downloadReceipt(f.path,f.name)} title={`Download ${label.toLowerCase()}`} style={{color:T.dim,fontSize:11,cursor:'pointer',background:'none',border:`1px solid ${T.line}`,borderRadius:6,padding:'2px 6px'}}>⬇</button>
       {isOwner&&onRemove&&<button onClick={()=>{if(window.confirm(`Remove the ${label.toLowerCase()} file from this PO? This cannot be undone.`))onRemove(kind);}} title="Remove file" style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none'}}>✕</button>}
     </span>
@@ -8412,7 +8412,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
   };
   const removePoFile=(po,kind)=>{const f=po[kind];if(f?.path)removeReceiptFile(f.path);onUpdatePO(po.id,{[kind]:null});};
   const[justPaid,setJustPaid]=useState({}); // {poId: true} — cleared after a few seconds, purely a transient confirmation
-  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div></div>;
   const pPOs=purchaseOrders.filter(po=>po.project_id===project.id);
   // Departments are driven by actual PO activity, not by every department with a budget line —
   // a department only ever appears here once an invoice has actually been detected for it.
@@ -8436,7 +8436,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
   };
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Purchase Orders — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Drop in an invoice — NKÒ detects the department and plots it against what's left there.</div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Inter,sans-serif',fontSize:26,color:T.cream}}>Purchase Orders — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>Drop in an invoice — NKÒ detects the department and plots it against what's left there.</div></div>
       <input ref={addRcptRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAddRcptPicked}/>
       <InvoiceUploader project={project} onCreatePO={(draft,file)=>onCreatePO({...draft,project_id:project.id},file)}/>
       {deptsByRecency.length>0&&<div style={{marginBottom:20}}>
@@ -8463,9 +8463,9 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8,flexWrap:'wrap'}}>
         <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>All Purchase Orders ({pPOs.length})</div>
-        {pPOs.length>0&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>{try{poRegisterPDF(pPOs,project);}catch(e){alert(`Could not build the PDF: ${e.message}`);}}}>📄 Export PO register</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Manrope,sans-serif'}}>Only the production admin can export</span>)}
+        {pPOs.length>0&&(isOwner?<Btn size="sm" variant="outline" onClick={()=>{try{poRegisterPDF(pPOs,project);}catch(e){alert(`Could not build the PDF: ${e.message}`);}}}>📄 Export PO register</Btn>:<span style={{fontSize:11,color:T.faint,fontFamily:'Inter,sans-serif'}}>Only the production admin can export</span>)}
       </div>
-      {pPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No purchase orders yet — drop in an invoice above to create your first one.</div></div>:
+      {pPOs.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>No purchase orders yet — drop in an invoice above to create your first one.</div></div>:
       pPOs.slice().reverse().map(po=>(
         <div key={po.id} style={{background:T.panel,border:`1px solid ${justPaid[po.id]?T.sage:payFor===po.id?T.gold:T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           <div>
@@ -8502,7 +8502,7 @@ function PurchaseOrdersView({project,items,purchaseOrders,onCreatePO,onUpdatePO,
 function RevenueView({project,items,onAdd,onUpdate,onRemove,isOwner}){
   const[showForm,setShowForm]=useState(false);
   const[form,setForm]=useState({source:'Client fee',description:'',amount:'',currency:'NGN',status:'Expected',date:today()});
-  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div></div>;
   const pItems=items.filter(i=>i.project_id===project.id);
   const expected=pItems.reduce((s,i)=>s+Number(i.amount||0),0);
   const received=pItems.filter(i=>i.status==='Received').reduce((s,i)=>s+Number(i.amount||0),0);
@@ -8515,14 +8515,14 @@ function RevenueView({project,items,onAdd,onUpdate,onRemove,isOwner}){
   };
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>Revenue — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>What this production is expected to earn, and what's actually come in.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Inter,sans-serif',fontSize:26,color:T.cream}}>Revenue — {project.name}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>What this production is expected to earn, and what's actually come in.</div><div style={{marginTop:14}}><FS/></div></div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:20}}>
         <StatCard label="Expected revenue" value={`${sym(project.base_currency)}${fmt(expected)}`} sub="total projected"/>
         <StatCard label="Received" value={`${sym(project.base_currency)}${fmt(received)}`} sub="actually in" accent={T.sage}/>
         <StatCard label="Outstanding" value={`${sym(project.base_currency)}${fmt(outstanding)}`} sub="not yet received" accent={outstanding>0?T.gold:T.sage}/>
       </div>
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,marginBottom:16}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:12}}>Add revenue line</div>
+        <div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream,marginBottom:12}}>Add revenue line</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <Sel value={form.source} onChange={e=>setForm(f=>({...f,source:e.target.value}))} style={{width:'100%'}}>{REVENUE_SOURCES.map(s=><option key={s}>{s}</option>)}</Sel>
           <Sel value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))} style={{width:'100%'}}><option>Expected</option><option>Received</option></Sel>
@@ -8534,10 +8534,10 @@ function RevenueView({project,items,onAdd,onUpdate,onRemove,isOwner}){
         <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={submit}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setShowForm(false)}>Cancel</Btn></div>
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>{pItems.length} revenue line{pItems.length!==1?'s':''}</div>
+        <div style={{fontFamily:'Inter,sans-serif',fontSize:16,color:T.cream}}>{pItems.length} revenue line{pItems.length!==1?'s':''}</div>
         <Btn size="sm" onClick={()=>setShowForm(true)}>+ Add revenue</Btn>
       </div>
-      {pItems.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No revenue logged yet for this production.</div></div>:
+      {pItems.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>No revenue logged yet for this production.</div></div>:
       pItems.slice().reverse().map(i=>(
         <div key={i.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:14,marginBottom:8,display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           <div>
@@ -8612,7 +8612,7 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
   const attachRef=useRef();
   const[editPayee,setEditPayee]=useState(null);const[ep,setEp]=useState({name:'',role:'',agreed_fee:'',currency:'NGN'});
   const[editPay,setEditPay]=useState(null);const[epay,setEpay]=useState({amount:'',method:'Cash',date:''});
-  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  if(!project)return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div></div>;
   const startEditPayee=p=>{setEditPay(null);setEditPayee(p.id);setEp({name:p.name||'',role:p.role||'',agreed_fee:String(p.agreed_fee??''),currency:p.currency||'NGN'});};
   const saveEditPayee=async p=>{
     if(!ep.name.trim()){alert('A payee needs a name.');return;}
@@ -8646,7 +8646,7 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
     catch(err){alert(`Could not attach the receipt: ${err.message}`);}
     setAttachBusy(null);setAttachTarget(null);
   };
-  const smallBtn=(color,border)=>({color,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${border}`,borderRadius:6,padding:'2px 8px',fontFamily:'Manrope,sans-serif'});
+  const smallBtn=(color,border)=>({color,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${border}`,borderRadius:6,padding:'2px 8px',fontFamily:'Inter,sans-serif'});
   const slots=personSlots(items);
   const occ={};const occIds=new Set();
   slots.forEach(sl=>{const key=`${sl.item.id}:${sl.k}`;const p=pPayees.find(x=>String(x.budget_item_id)===String(sl.item.id)&&(Number(x.slot)||0)===sl.k&&!occIds.has(x.id));if(p){occ[key]=p;occIds.add(p.id);}});
@@ -8664,13 +8664,13 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
     setAssignKey(null);setAssignName('');
   };
   const budgetNote=(p,sl)=>sl&&<div style={{margin:'0 0 8px'}}>
-    <div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif'}}>from Budget · {sl.item.description} · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div>
-    {Math.round(Number(p.agreed_fee)||0)!==Math.round(sl.budget)&&<div style={{fontSize:11,color:T.gold,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Budget is now {sym(sl.item.currency)}{fmt(sl.budget)}, agreed fee is {sym(p.currency)}{fmt(p.agreed_fee)}. <button onClick={()=>onUpdatePayee(p.id,{agreed_fee:sl.budget,currency:sl.item.currency})} style={{color:T.gold,fontWeight:700,textDecoration:'underline',background:'none',border:'none',cursor:'pointer',fontSize:11,padding:0}}>Update to budget</button></div>}
+    <div style={{fontSize:10,color:T.goldDim,fontFamily:'Inter,sans-serif'}}>from Budget · {sl.item.description} · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div>
+    {Math.round(Number(p.agreed_fee)||0)!==Math.round(sl.budget)&&<div style={{fontSize:11,color:T.gold,marginTop:4,fontFamily:'Inter,sans-serif'}}>Budget is now {sym(sl.item.currency)}{fmt(sl.budget)}, agreed fee is {sym(p.currency)}{fmt(p.agreed_fee)}. <button onClick={()=>onUpdatePayee(p.id,{agreed_fee:sl.budget,currency:sl.item.currency})} style={{color:T.gold,fontWeight:700,textDecoration:'underline',background:'none',border:'none',cursor:'pointer',fontSize:11,padding:0}}>Update to budget</button></div>}
   </div>;
   const payeeCard=(p,note)=>{
         const paid=(p.payments||[]).reduce((s,x)=>s+x.amount,0);const bal=p.agreed_fee-paid;const pct=p.agreed_fee>0?Math.min(100,(paid/p.agreed_fee)*100):0;
         return<div key={p.id} style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{p.role}</div><button onClick={()=>editPayee===p.id?setEditPayee(null):startEditPayee(p)} style={{...smallBtn(T.dim,T.line),marginTop:6}}>✎ Edit payee</button></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><div><div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>{p.name}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>{p.role}</div><button onClick={()=>editPayee===p.id?setEditPayee(null):startEditPayee(p)} style={{...smallBtn(T.dim,T.line),marginTop:6}}>✎ Edit payee</button></div><div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(p.currency)}{fmt(p.agreed_fee)}</div><Pill color={bal<=0?T.sage:T.gold}>{bal<=0?'Paid in full':`Owing ${sym(p.currency)}${fmt(bal)}`}</Pill></div></div>
           {editPayee===p.id&&<div style={{margin:'0 0 10px',padding:12,background:T.hi,border:`1px solid ${T.gold}`,borderRadius:8,display:'flex',flexDirection:'column',gap:8}}>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
               <Inp placeholder="Name" value={ep.name} onChange={e=>setEp(v=>({...v,name:e.target.value}))}/>
@@ -8680,7 +8680,7 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
             </div>
             <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
               <Btn size="sm" onClick={()=>saveEditPayee(p)}>Save changes</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditPayee(null)}>Cancel</Btn>
-              {isOwner&&<button onClick={()=>{const n=(p.payments||[]).length;if(window.confirm(`Delete ${p.name}${n?` and their ${n} logged payment${n!==1?'s':''} (receipts included)`:''}? This cannot be undone.`)){setEditPayee(null);onDeletePayee(p.id);}}} style={{marginLeft:'auto',color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete payee</button>}
+              {isOwner&&<button onClick={()=>{const n=(p.payments||[]).length;if(window.confirm(`Delete ${p.name}${n?` and their ${n} logged payment${n!==1?'s':''} (receipts included)`:''}? This cannot be undone.`)){setEditPayee(null);onDeletePayee(p.id);}}} style={{marginLeft:'auto',color:T.coral,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif'}}>Delete payee</button>}
             </div>
           </div>}
           {note}<div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:6}}><div style={{height:'100%',width:`${pct}%`,background:pct>=100?T.sage:T.gold}}/></div>
@@ -8695,7 +8695,7 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
               <div style={{display:'flex',gap:8}}><Btn size="sm" onClick={()=>saveEditPay(p,i)}>Save</Btn><Btn size="sm" variant="ghost" onClick={()=>setEditPay(null)}>Cancel</Btn></div>
             </div>;
             return<div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:6,fontSize:12,padding:'6px 0',borderBottom:`1px solid ${T.line}`}}>
-              <span style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>{pay.date} · {pay.method}</span>
+              <span style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>{pay.date} · {pay.method}</span>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
                 <span style={{fontFamily:'IBM Plex Mono,monospace',color:T.cream}}>{sym(p.currency)}{fmt(pay.amount)}</span>
                 {pay.receipt
@@ -8712,11 +8712,11 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
               <Inp type="number" placeholder={`Amount (${p.currency})`} value={lAmt} onChange={e=>setLAmt(e.target.value)}/>
               <Sel value={lMethod} onChange={e=>setLMethod(e.target.value)} style={{width:'100%'}}>{PAY_METHODS.map(m=><option key={m}>{m}</option>)}</Sel>
             </div>
-            <label style={{display:'block',border:`1px dashed ${lFile?T.sage:T.line}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',fontSize:12,color:lFile?T.sage:T.dim,fontFamily:'Manrope,sans-serif',wordBreak:'break-all'}}>
+            <label style={{display:'block',border:`1px dashed ${lFile?T.sage:T.line}`,borderRadius:8,padding:'10px 12px',cursor:'pointer',fontSize:12,color:lFile?T.sage:T.dim,fontFamily:'Inter,sans-serif',wordBreak:'break-all'}}>
               <input type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={e=>setLFile(e.target.files[0]||null)}/>
               {lFile?`📎 ${lFile.name}`:'📎 Attach receipt — photo, transfer screenshot or PDF'}
             </label>
-            <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>You can attach it later, but this payment will show as "No receipt" until you do.</div>
+            <div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif'}}>You can attach it later, but this payment will show as "No receipt" until you do.</div>
             <div style={{display:'flex',gap:8}}><Btn size="sm" disabled={busy} onClick={()=>submitLog(p)}>{busy?'Saving…':'Save payment'}</Btn><Btn size="sm" variant="ghost" disabled={busy} onClick={()=>setLogFor(null)}>Cancel</Btn></div>
           </div>}
         </div>;
@@ -8725,13 +8725,13 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
   return(
     <div>
       <input ref={attachRef} type="file" accept={RECEIPT_ACCEPT} style={{display:'none'}} onChange={onAttachPicked}/>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('paymentsHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Everyone here comes straight from your budget. Nothing is typed twice.</div><div style={{marginTop:14}}><FS/></div></div>
-      {missingTotal>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif'}}>⚠ {missingTotal} logged payment{missingTotal!==1?'s have':' has'} no receipt attached. Tap <b>No receipt · Attach</b> on each one to add it.</div>}
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Inter,sans-serif',fontSize:26,color:T.cream}}>{tr('paymentsHeader')} — {project.name}</div><div style={{fontSize:13,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>Everyone here comes straight from your budget. Nothing is typed twice.</div><div style={{marginTop:14}}><FS/></div></div>
+      {missingTotal>0&&<div style={{background:'rgba(254,237,97,.07)',border:`1px solid ${T.goldDim}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:T.cream,fontFamily:'Inter,sans-serif'}}>⚠ {missingTotal} logged payment{missingTotal!==1?'s have':' has'} no receipt attached. Tap <b>No receipt · Attach</b> on each one to add it.</div>}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:10,marginBottom:18}}>
         <StatCard label="Budgeted (people)" value={money(budM)} sub="crew & cast"/>
         <StatCard label="Still to pay" value={money(oweM)} sub="owed" accent={T.coral}/>
       </div>
-      {slots.length===0&&<div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:20,marginBottom:18,textAlign:'center',color:T.dim,fontSize:13,fontFamily:'Manrope,sans-serif'}}>No crew or cast in the budget yet. Add them in the Budget (Production Team, Talents, Camera &amp; Grip Team…) and they appear here ready to pay.</div>}
+      {slots.length===0&&<div style={{background:T.panel,border:`1px dashed ${T.line}`,borderRadius:10,padding:20,marginBottom:18,textAlign:'center',color:T.dim,fontSize:13,fontFamily:'Inter,sans-serif'}}>No crew or cast in the budget yet. Add them in the Budget (Production Team, Talents, Camera &amp; Grip Team…) and they appear here ready to pay.</div>}
       {slotDepts.map(dept=><div key={dept}>
         <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',margin:'18px 0 8px'}}>{dept}</div>
         {slots.filter(sl=>sl.item.dept===dept).map(sl=>{
@@ -8739,7 +8739,7 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
           if(p)return<div key={key}>{payeeCard(p,budgetNote(p,sl))}</div>;
           return<div key={key} style={{background:'transparent',border:`1px dashed ${T.line}`,borderRadius:10,padding:16,marginBottom:10}}>
             <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
-              <div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.dim}}>Name not set yet</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{slotLabel(sl)}</div><div style={{fontSize:10,color:T.goldDim,marginTop:2,fontFamily:'Manrope,sans-serif'}}>from Budget · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div></div>
+              <div><div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.dim}}>Name not set yet</div><div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>{slotLabel(sl)}</div><div style={{fontSize:10,color:T.goldDim,marginTop:2,fontFamily:'Inter,sans-serif'}}>from Budget · {sl.item.unit==='person'?'per person':`${sl.item.qty} ${sl.item.unit}${Number(sl.item.qty)===1?'':'s'} × ${sym(sl.item.currency)}${fmt(sl.item.rate)}`}</div></div>
               <div style={{textAlign:'right'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.cream}}>{sym(sl.item.currency)}{fmt(sl.budget)}</div><Pill color={T.dim}>Unassigned</Pill></div>
             </div>
             {assignKey===key
@@ -8749,14 +8749,14 @@ function PaymentsView({project,items=[],payees,onAddPayee,onAddPayment,onRemoveP
       </div>)}
       {unlinked.length>0&&<div>
         <div style={{fontSize:10,color:T.coral,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',margin:'22px 0 4px'}}>Not linked to a budget line</div>
-        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Manrope,sans-serif'}}>Their payments count as spend, but with no budget line to compare against. Link them to a slot above, or leave them as unbudgeted.</div>
+        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Inter,sans-serif'}}>Their payments count as spend, but with no budget line to compare against. Link them to a slot above, or leave them as unbudgeted.</div>
         {unlinked.map(p=><div key={p.id}>{payeeCard(p,<div style={{margin:'0 0 8px'}}>
-          <div style={{fontSize:10,color:T.coral,fontFamily:'Manrope,sans-serif'}}>Unbudgeted{p.dept?` · ${p.dept}`:''}</div>
+          <div style={{fontSize:10,color:T.coral,fontFamily:'Inter,sans-serif'}}>Unbudgeted{p.dept?` · ${p.dept}`:''}</div>
           {freeSlots.length>0&&<Sel value="" onChange={e=>{const sl=freeSlots.find(x=>`${x.item.id}:${x.k}`===e.target.value);if(sl)onUpdatePayee(p.id,{budget_item_id:String(sl.item.id),slot:sl.k,dept:sl.item.dept});}} style={{fontSize:11,padding:'4px 6px',marginTop:6,maxWidth:'100%'}}><option value="">Link to a budget slot…</option>{freeSlots.map(sl=><option key={`${sl.item.id}:${sl.k}`} value={`${sl.item.id}:${sl.k}`}>{slotLabel(sl)} · {sl.item.dept.split(' - ')[1]||sl.item.dept}</option>)}</Sel>}
         </div>)}</div>)}
       </div>}
       {showForm&&<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:18,margin:'18px 0 0'}}>
-        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Manrope,sans-serif'}}>For someone who isn’t in the budget (a last-minute driver, say). Their payments show as unbudgeted spend.</div>
+        <div style={{fontSize:11,color:T.dim,marginBottom:8,fontFamily:'Inter,sans-serif'}}>For someone who isn’t in the budget (a last-minute driver, say). Their payments show as unbudgeted spend.</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
           <Inp placeholder="Name" value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))}/>
           <Inp placeholder="Role" value={np.role} onChange={e=>setNp(p=>({...p,role:e.target.value}))}/>
@@ -8806,16 +8806,16 @@ function AIView({project,budgetItems,advances}){
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 130px)'}}>
-      <div style={{marginBottom:18}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('aiBuilderHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Production finance co-pilot — calibrated for African markets.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:18}}><div style={{fontFamily:'Inter,sans-serif',fontSize:26,color:T.cream}}>{tr('aiBuilderHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>Production finance co-pilot — calibrated for African markets.</div><div style={{marginTop:14}}><FS/></div></div>
       <div style={{flex:1,overflowY:'auto',marginBottom:12}}>
-        {msgs.length===0&&<div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:10,fontFamily:'Manrope,sans-serif'}}>Quick prompts</div><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{QUICK.map(q=><button key={q} onClick={()=>send(q)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'6px 14px',fontSize:12,color:T.cream,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>{q}</button>)}</div></div>}
+        {msgs.length===0&&<div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.12em',marginBottom:10,fontFamily:'Inter,sans-serif'}}>Quick prompts</div><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{QUICK.map(q=><button key={q} onClick={()=>send(q)} style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'6px 14px',fontSize:12,color:T.cream,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>{q}</button>)}</div></div>}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {msgs.map((m,i)=>(
             <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
               <div style={{maxWidth:'82%',position:'relative'}}>
                 {m.image&&<img src={m.image} style={{maxWidth:'100%',borderRadius:8,marginBottom:4,display:'block'}}/>}
-                <div style={{padding:'10px 14px',borderRadius:10,fontSize:14,lineHeight:1.65,background:m.role==='user'?T.goldGlow:T.panel,border:`1px solid ${m.role==='user'?T.goldDim:T.line}`,color:T.cream,fontFamily:'Manrope,sans-serif',whiteSpace:'pre-wrap'}}>{m.content}</div>
-                {m.role==='user'&&editIdx!==i&&<button onClick={()=>{setEditIdx(i);setEditText(m.content);}} style={{position:'absolute',top:-8,right:-8,background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'2px 8px',fontSize:10,color:T.goldDim,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>edit</button>}
+                <div style={{padding:'10px 14px',borderRadius:10,fontSize:14,lineHeight:1.65,background:m.role==='user'?T.goldGlow:T.panel,border:`1px solid ${m.role==='user'?T.goldDim:T.line}`,color:T.cream,fontFamily:'Inter,sans-serif',whiteSpace:'pre-wrap'}}>{m.content}</div>
+                {m.role==='user'&&editIdx!==i&&<button onClick={()=>{setEditIdx(i);setEditText(m.content);}} style={{position:'absolute',top:-8,right:-8,background:T.hi,border:`1px solid ${T.line}`,borderRadius:20,padding:'2px 8px',fontSize:10,color:T.goldDim,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>edit</button>}
                 {editIdx===i&&<div style={{marginTop:6,display:'flex',gap:6}}>
                   <Inp value={editText} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&saveEdit()} style={{flex:1,fontSize:12}}/>
                   <Btn size="sm" onClick={saveEdit}>Send</Btn>
@@ -8824,14 +8824,14 @@ function AIView({project,budgetItems,advances}){
               </div>
             </div>
           ))}
-          {loading&&<div style={{display:'flex',justifyContent:'flex-start'}}><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 16px',color:T.dim,fontSize:14,fontFamily:'Manrope,sans-serif'}}>Thinking…</div></div>}
+          {loading&&<div style={{display:'flex',justifyContent:'flex-start'}}><div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:'10px 16px',color:T.dim,fontSize:14,fontFamily:'Inter,sans-serif'}}>Thinking…</div></div>}
         </div>
         <div ref={botRef}/>
       </div>
       {/* Image preview */}
       {imgPreview&&<div style={{marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
         <img src={imgPreview} style={{height:60,borderRadius:6,objectFit:'cover',border:`1px solid ${T.line}`}}/>
-        <button onClick={clearImage} style={{color:T.coral,fontSize:11,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif',fontWeight:700}}>Remove</button>
+        <button onClick={clearImage} style={{color:T.coral,fontSize:11,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif',fontWeight:700}}>Remove</button>
       </div>}
       {/* Input row */}
       <div style={{display:'flex',gap:8,alignItems:'center'}}>
@@ -8885,7 +8885,7 @@ function SceneCard({scene,onDelete,onUpdate,index}){
     <div style={{background:T.panel,border:`1px solid ${editing?T.gold:T.line}`,borderRadius:10,overflow:'hidden',marginBottom:10}}>
       <button onClick={()=>!editing&&setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10,textAlign:'left'}}>
         <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:mob?14:18,color:T.gold,fontWeight:700,minWidth:36,flexShrink:0}}>{scene.sceneNumber||'?'}</div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontFamily:'Fraunces,serif',fontSize:mob?13:14,color:T.cream,wordBreak:'break-word'}}>{scene.heading||'No heading'}</div>{scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{scene.synopsis.slice(0,70)}{scene.synopsis.length>70?'…':''}</div>}</div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontFamily:'Inter,sans-serif',fontSize:mob?13:14,color:T.cream,wordBreak:'break-word'}}>{scene.heading||'No heading'}</div>{scene.synopsis&&<div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',marginTop:2}}>{scene.synopsis.slice(0,70)}{scene.synopsis.length>70?'…':''}</div>}</div>
         <div style={{display:'flex',gap:4,flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
           <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:scene.intExt==='INT'?T.sapphire:T.sage,color:T.ink}}>{scene.intExt||'INT'}</span>
           <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:scene.dayNight==='DAY'?T.gold:'#7B68EE',color:T.ink}}>{scene.dayNight||'DAY'}</span>{scene.pages8>0&&<span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,background:T.hi,border:`1px solid ${T.line}`,color:T.dim}}>{fmtPages8(scene.pages8)} pg</span>}
@@ -8895,12 +8895,12 @@ function SceneCard({scene,onDelete,onUpdate,index}){
       {open&&!editing&&<div style={{borderTop:`1px solid ${T.line}`}}>
         {BKCAT.map(cat=>{const val=scene[cat.key];if(!val||(Array.isArray(val)&&!val.length))return null;return(
           <div key={cat.key} style={{display:'flex',borderBottom:`1px solid ${T.line}`,flexDirection:mob?'column':'row'}}>
-            <div style={{width:mob?'100%':150,flexShrink:0,background:T.hi,padding:mob?'5px 14px 2px':'8px 14px',fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',gap:5}}><span>{cat.icon}</span>{cat.label}</div>
-            <div style={{flex:1,padding:'8px 14px',fontSize:mob?12:13,color:T.cream,fontFamily:'Manrope,sans-serif',display:'flex',alignItems:'center',flexWrap:'wrap'}}>{Array.isArray(val)?<div style={{display:'flex',flexWrap:'wrap',gap:4}}>{val.map((v,i)=><span key={i} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:4,padding:'2px 7px',fontSize:11}}>{v}</span>)}</div>:val}</div>
+            <div style={{width:mob?'100%':150,flexShrink:0,background:T.hi,padding:mob?'5px 14px 2px':'8px 14px',fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',gap:5}}><span>{cat.icon}</span>{cat.label}</div>
+            <div style={{flex:1,padding:'8px 14px',fontSize:mob?12:13,color:T.cream,fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',flexWrap:'wrap'}}>{Array.isArray(val)?<div style={{display:'flex',flexWrap:'wrap',gap:4}}>{val.map((v,i)=><span key={i} style={{background:T.ink,border:`1px solid ${T.line}`,borderRadius:4,padding:'2px 7px',fontSize:11}}>{v}</span>)}</div>:val}</div>
           </div>);})}
         <div style={{padding:'8px 16px',display:'flex',gap:14}}>
-          <button onClick={startEdit} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>✏️ Edit scene</button>
-          <button onClick={()=>onDelete(scene.id)} style={{color:T.coral,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Manrope,sans-serif'}}>Delete scene</button>
+          <button onClick={startEdit} style={{color:T.gold,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif'}}>✏️ Edit scene</button>
+          <button onClick={()=>onDelete(scene.id)} style={{color:T.coral,fontSize:12,fontWeight:700,cursor:'pointer',background:'none',border:'none',fontFamily:'Inter,sans-serif'}}>Delete scene</button>
         </div>
       </div>}
       {open&&editing&&draft&&<div style={{borderTop:`1px solid ${T.line}`,padding:14,display:'flex',flexDirection:'column',gap:8,background:T.hi}}>
@@ -9183,7 +9183,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:500,background:'#0F0F12',border:'1px solid #24242A',borderRadius:18,padding:'24px 26px 26px',boxShadow:'0 30px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.06)',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:500,background:'#0F0F12',border:'1px solid #24242A',borderRadius:18,padding:'24px 26px 26px',boxShadow:'0 30px 80px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.06)',fontFamily:'Inter,sans-serif'}}
           >
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,marginBottom:18}}>
               <div>
@@ -9204,7 +9204,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
               </button>
             </div>
 
-            {state==='analyzing'&&<div style={{background:'rgba(82,176,122,0.1)',border:'1px solid rgba(82,176,122,0.35)',borderRadius:10,padding:'10px 14px',marginBottom:12}}><div style={{fontSize:12,color:'#4CAF7A',fontFamily:'Manrope,sans-serif'}}>{notif==='granted'?tr('notifOn'):tr('keepScreenOpen')}</div></div>}
+            {state==='analyzing'&&<div style={{background:'rgba(82,176,122,0.1)',border:'1px solid rgba(82,176,122,0.35)',borderRadius:10,padding:'10px 14px',marginBottom:12}}><div style={{fontSize:12,color:'#4CAF7A',fontFamily:'Inter,sans-serif'}}>{notif==='granted'?tr('notifOn'):tr('keepScreenOpen')}</div></div>}
 
             {state==='done'&&parsedSummary?(
               <div style={{textAlign:'left'}}>
@@ -9267,7 +9267,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
                       padding:'13px 18px',
                       fontSize:13,
                       fontWeight:700,
-                      fontFamily:'Manrope,sans-serif',
+                      fontFamily:'Inter,sans-serif',
                       cursor:'pointer',
                       display:'flex',
                       alignItems:'center',
@@ -9282,7 +9282,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
                   <button
                     type="button"
                     onClick={()=>{setState('idle');setParsedSummary(null);setFileInfo(null);}}
-                    style={{background:'none',border:'none',color:'#8A8985',fontSize:11.5,cursor:'pointer',padding:'6px',textAlign:'center',fontFamily:'Manrope,sans-serif'}}
+                    style={{background:'none',border:'none',color:'#8A8985',fontSize:11.5,cursor:'pointer',padding:'6px',textAlign:'center',fontFamily:'Inter,sans-serif'}}
                   >
                     Upload a different file
                   </button>
@@ -9368,15 +9368,15 @@ function ProductionElementsPanel({scenes}){
   const allEquip=dedupeList(scenes.flatMap(s=>s.specialEquip||[]));
   const Group=({label,items,color})=>(
     <div style={{marginBottom:16}}>
-      <div style={{fontSize:10,color,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{label}</div>
-      {items.length===0?<div style={{color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif',fontStyle:'italic'}}>None identified</div>:
-      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{items.map((it,i)=><span key={i} style={{background:T.hi,border:`1px solid ${color}`,color:T.cream,borderRadius:6,padding:'4px 10px',fontSize:12,fontFamily:'Manrope,sans-serif'}}>{it}</span>)}</div>}
+      <div style={{fontSize:10,color,fontFamily:'Inter,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8}}>{label}</div>
+      {items.length===0?<div style={{color:T.faint,fontSize:12,fontFamily:'Inter,sans-serif',fontStyle:'italic'}}>None identified</div>:
+      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{items.map((it,i)=><span key={i} style={{background:T.hi,border:`1px solid ${color}`,color:T.cream,borderRadius:6,padding:'4px 10px',fontSize:12,fontFamily:'Inter,sans-serif'}}>{it}</span>)}</div>}
     </div>
   );
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>🧾 {tr('productionElements')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— every cast, prop, vehicle, costume & equipment item across the script</span></span>
+        <span style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>🧾 {tr('productionElements')} <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>— every cast, prop, vehicle, costume & equipment item across the script</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'14px 16px 4px'}}>
@@ -9451,7 +9451,7 @@ function CastTierLegend({project,pScenes,characters,onSaveCharacter}){
           <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
             {byTier[ti].map(name=>{num++;const myNum=num;const guessed=isGuessed(name);return(
               <div key={name} style={{position:'relative'}}>
-                <button onClick={()=>setEditing(editing===name?null:name)} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',padding:0}} title={guessed?'Not yet confirmed — click to set':'Set by script analysis or producer'}>
+                <button onClick={()=>setEditing(editing===name?null:name)} style={{background:'none',border:'none',cursor:'pointer',fontSize:12,color:T.cream,fontFamily:'Inter,sans-serif',padding:0}} title={guessed?'Not yet confirmed — click to set':'Set by script analysis or producer'}>
                   <b style={{color:T.gold}}>{myNum}</b> {name}{guessed&&<span style={{color:T.dim,fontSize:10}}> ?</span>}
                 </button>
                 {editing===name&&<div style={{position:'absolute',top:'110%',left:0,background:T.ink,border:`1px solid ${T.line}`,borderRadius:6,zIndex:30,minWidth:150,boxShadow:'0 4px 12px rgba(0,0,0,.5)'}}>
@@ -9482,20 +9482,20 @@ function CastSummaryPanel({project,scenes,characters,onSaveCharacter}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>👤 {tr('castSceneBreakdown')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {Object.keys(rows).length} character{Object.keys(rows).length!==1?'s':''}</span></span>
+        <span style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>👤 {tr('castSceneBreakdown')} <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>— {Object.keys(rows).length} character{Object.keys(rows).length!==1?'s':''}</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 8px'}}>
-        {Object.keys(rows).length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:
+        {Object.keys(rows).length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Inter,sans-serif',padding:'10px 0'}}>No cast assigned to scenes yet.</div>:
         CAST_TIERS.map((tierName,ti)=>byTier[ti].length>0&&(
           <div key={ti} style={{marginBottom:10}}>
             <div style={{fontSize:9,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 0 4px'}}>{tierName}</div>
-            <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,padding:'4px 0',fontSize:9,color:T.faint,fontFamily:'Manrope,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Character</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span><span/></div>
+            <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,padding:'4px 0',fontSize:9,color:T.faint,fontFamily:'Inter,sans-serif',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}><span>S/N</span><span>Character</span><span>Scene numbers</span><span style={{textAlign:'right'}}>Total</span><span/></div>
             {byTier[ti].map(name=>{sn++;const i=sn;const r=rows[name.toLowerCase()];if(!r)return null;const meta=findMeta(r.name)||{};const isEditing=editingRow===r.name;return<div key={r.name}>
               <div style={{display:'grid',gridTemplateColumns:'28px 1fr 1fr 44px 24px',gap:8,alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`}}>
                 <span style={{color:T.faint,fontSize:11,fontFamily:'IBM Plex Mono,monospace'}}>{i}</span>
-                <span style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</span>
-                <span style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif'}}>{r.scenes.join(', ')}</span>
+                <span style={{color:T.cream,fontFamily:'Inter,sans-serif',fontSize:13,fontWeight:600}}>{r.name}</span>
+                <span style={{color:T.dim,fontSize:11,fontFamily:'Inter,sans-serif'}}>{r.scenes.join(', ')}</span>
                 <span style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:13,textAlign:'right'}}>{r.scenes.length}</span>
                 <button onClick={()=>setEditingRow(isEditing?null:r.name)} style={{background:'none',border:'none',color:T.goldDim,cursor:'pointer',fontSize:13}} title="Edit age/role notes">✏️</button>
               </div>
@@ -9525,19 +9525,19 @@ function LocationsSummaryPanel({scenes}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:12,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',background:'none',border:'none',cursor:'pointer',padding:'12px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📍 {tr('locationsSummary')} <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>— {rows.length} location{rows.length!==1?'s':''}, grouped by scene count</span></span>
+        <span style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>📍 {tr('locationsSummary')} <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>— {rows.length} location{rows.length!==1?'s':''}, grouped by scene count</span></span>
         <span style={{fontSize:10,color:T.goldDim}}>{open?'▼':'▶'}</span>
       </button>
       {open&&<div style={{borderTop:`1px solid ${T.line}`,padding:'4px 16px 14px'}}>
-        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',padding:'10px 0'}}>No locations assigned to scenes yet.</div>:
+        {rows.length===0?<div style={{color:T.dim,fontSize:12,fontFamily:'Inter,sans-serif',padding:'10px 0'}}>No locations assigned to scenes yet.</div>:
         rows.map(r=><div key={r.location} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:`1px solid ${T.line}`,gap:10}}>
           <div>
-            <div style={{color:T.cream,fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:600}}>{r.location}</div>
-            <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif',marginTop:2}}>{r.intExt}</div>
+            <div style={{color:T.cream,fontFamily:'Inter,sans-serif',fontSize:13,fontWeight:600}}>{r.location}</div>
+            <div style={{color:T.dim,fontSize:10,fontFamily:'Inter,sans-serif',marginTop:2}}>{r.intExt}</div>
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{color:T.gold,fontFamily:'IBM Plex Mono,monospace',fontSize:12}}>{r.scenes.length} scene{r.scenes.length!==1?'s':''}</div>
-            <div style={{color:T.dim,fontSize:10,fontFamily:'Manrope,sans-serif'}}>Sc. {r.scenes.join(', ')}</div>
+            <div style={{color:T.dim,fontSize:10,fontFamily:'Inter,sans-serif'}}>Sc. {r.scenes.join(', ')}</div>
           </div>
         </div>)}
       </div>}
@@ -9573,8 +9573,8 @@ function ScheduleGuide({onClose}){
     ['4','Fill in each day','Tap ⚙ Details on a day: crew call, Art call, meals, location, nearest hospital, cast calls and notes.'],
     ['5','Print','Under “Print a call sheet”, tap a day for the crew. The Strip schedule is the whole shoot on paper. Each opens a page: tap Save as PDF.'],
   ];
-  return<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16,fontFamily:'Manrope,sans-serif'}}>
-    <div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream,marginBottom:10}}>How the schedule works</div>
+  return<div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:10,padding:16,marginBottom:16,fontFamily:'Inter,sans-serif'}}>
+    <div style={{fontFamily:'Inter,sans-serif',fontSize:16,color:T.cream,marginBottom:10}}>How the schedule works</div>
     {steps.map(([n,t,d])=><div key={n} style={{display:'flex',gap:10,marginBottom:9}}><div style={{width:22,height:22,borderRadius:'50%',background:T.gold,color:T.ink,fontWeight:800,fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{n}</div><div><div style={{color:T.cream,fontSize:13,fontWeight:700}}>{t}</div><div style={{color:T.dim,fontSize:12,lineHeight:1.55}}>{d}</div></div></div>)}
     <div style={{fontSize:11,color:T.dim,lineHeight:2,margin:'4px 0 12px'}}><b style={{color:T.cream}}>Strip colours:</b> <span style={{background:'#fff',color:'#111',padding:'1px 6px',borderRadius:3}}>INT day</span> <span style={{background:'#FFF35C',color:'#111',padding:'1px 6px',borderRadius:3}}>EXT day</span> <span style={{background:'#0B9A2A',color:'#fff',padding:'1px 6px',borderRadius:3}}>INT night</span> <span style={{background:'#1F3BFF',color:'#fff',padding:'1px 6px',borderRadius:3}}>EXT night</span> <span style={{background:'#FF9933',color:'#111',padding:'1px 6px',borderRadius:3}}>Evening</span></div>
     <Btn size="sm" onClick={onClose}>Got it</Btn>
@@ -9593,15 +9593,15 @@ function GettingStarted({projects,budgetItems,scenes,scheduleDays,advances,purch
   const doneN=steps.filter(s=>s.done).length;
   if(hidden||doneN===steps.length)return null;
   const hide=()=>{setHidden(true);try{localStorage.setItem(key,'1');}catch{}};
-  return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18,fontFamily:'Manrope,sans-serif'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:4}}><div style={{fontFamily:'Fraunces,serif',fontSize:16,color:T.cream}}>Getting started</div><div style={{fontSize:11,color:T.dim}}>{doneN} of {steps.length} done</div></div>
+  return<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:16,marginBottom:18,fontFamily:'Inter,sans-serif'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:4}}><div style={{fontFamily:'Inter,sans-serif',fontSize:16,color:T.cream}}>Getting started</div><div style={{fontSize:11,color:T.dim}}>{doneN} of {steps.length} done</div></div>
     <div style={{height:4,borderRadius:2,background:T.ink,overflow:'hidden',marginBottom:12}}><div style={{height:'100%',width:`${doneN/steps.length*100}%`,background:T.sage}}/></div>
     {steps.map(st=><div key={st.title} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'7px 0',borderTop:`1px solid ${T.line}`}}>
       <div style={{width:20,height:20,borderRadius:'50%',border:`1.5px solid ${st.done?T.sage:T.line}`,background:st.done?T.sage:'transparent',color:T.ink,fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,marginTop:1}}>{st.done?'✓':''}</div>
       <div style={{flex:1,minWidth:0}}><div style={{color:st.done?T.dim:T.cream,fontSize:13,fontWeight:700,textDecoration:st.done?'line-through':'none'}}>{st.title}</div><div style={{color:T.dim,fontSize:11,lineHeight:1.5}}>{st.hint}</div></div>
-      {!st.done&&st.go&&<button onClick={()=>onGo(st.go)} style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'3px 8px',whiteSpace:'nowrap',fontFamily:'Manrope,sans-serif'}}>{st.label}</button>}
+      {!st.done&&st.go&&<button onClick={()=>onGo(st.go)} style={{color:T.gold,fontSize:11,fontWeight:700,cursor:'pointer',background:'none',border:`1px solid ${T.goldDim}`,borderRadius:6,padding:'3px 8px',whiteSpace:'nowrap',fontFamily:'Inter,sans-serif'}}>{st.label}</button>}
     </div>)}
-    <div style={{marginTop:8}}><button onClick={hide} style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'Manrope,sans-serif'}}>Hide this</button></div>
+    <div style={{marginTop:8}}><button onClick={hide} style={{color:T.faint,fontSize:11,cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'Inter,sans-serif'}}>Hide this</button></div>
   </div>;
 }
 function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,characters,ppd,setPpd,start,setStart,skipSun,setSkipSun,onGenerate}){
@@ -9741,7 +9741,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
     {id:'script',title:'Script order',desc:'Follows scene order, only grouping consecutive scenes at one location.'},
   ];
 
-  const inputStyle={width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:9,padding:'9px 11px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',colorScheme:'dark'};
+  const inputStyle={width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:9,padding:'9px 11px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box',colorScheme:'dark'};
 
   return(
     <AnimatePresence>
@@ -9761,7 +9761,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.95,y:12,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:400,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:640,maxHeight:'90vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:640,maxHeight:'90vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             {/* 1. Header */}
             <div style={{padding:mob?'18px 18px 12px':'20px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
@@ -9789,7 +9789,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
                     :incompleteCount>0
                     ?<>
                       {incompleteCount} incomplete scene{incompleteCount===1?'':'s'} won&apos;t be placed automatically. They stay in Unscheduled with the reason, so nothing is dropped.{' '}
-                      <button type="button" onClick={onClose} style={{background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11.5,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+                      <button type="button" onClick={onClose} style={{background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11.5,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                         Complete the breakdown
                       </button>
                     </>
@@ -9894,7 +9894,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
                           borderRadius:10,
                           padding:'11px 12px',
                           cursor:'pointer',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                           transition:'all 0.15s ease',
                         }}
                       >
@@ -9942,7 +9942,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
                           borderRadius:8,
                           fontSize:11,
                           fontWeight:active?600:500,
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                           cursor:'pointer',
                           background:active?'rgba(245,196,81,0.08)':'#131316',
                           border:active?'1px solid rgba(245,196,81,0.55)':'1px solid #222226',
@@ -9994,7 +9994,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
                 <button
                   type="button"
                   onClick={()=>setCastOpen(o=>!o)}
-                  style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'transparent',border:'none',color:T.cream,fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}
+                  style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'transparent',border:'none',color:T.cream,fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer'}}
                 >
                   <span>Cast availability</span>
                   <ChevronDown size={15} style={{color:'#8E8E93',transform:castOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform 0.16s ease'}}/>
@@ -10043,7 +10043,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
                                 <button
                                   type="button"
                                   onClick={()=>addCastRange(c.name)}
-                                  style={{background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}
+                                  style={{background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif',display:'inline-flex',alignItems:'center',gap:4}}
                                 >
                                   <Plus size={12}/>
                                   <span>Add unavailable dates</span>
@@ -10071,7 +10071,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
                 type="button"
                 disabled={submitting}
                 onClick={()=>{if(!submitting)onClose();}}
-                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:submitting?'default':'pointer'}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:submitting?'default':'pointer'}}
               >
                 Cancel
               </button>
@@ -10081,7 +10081,7 @@ function GenerateScheduleModal({open,onClose,sorted,unscheduled,castList,charact
                 whileHover={!submitting&&readyScenes.length>0?{y:-1}:undefined}
                 whileTap={!submitting&&readyScenes.length>0?{scale:0.98}:undefined}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':readyScenes.length===0?'not-allowed':'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:submitting?'wait':readyScenes.length===0?'not-allowed':'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
               >
                 <Sparkles size={14}/>
                 <span>{submitting?'Generating...':'Generate Schedule'}</span>
@@ -10143,7 +10143,7 @@ function AddShootDayModal({open,onClose,defaultDate='',onAddShootDay}){
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.95,y:10,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:460,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:460,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.82), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             {/* Header */}
             <div style={{padding:mob?'18px 18px 12px':'22px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
@@ -10174,7 +10174,7 @@ function AddShootDayModal({open,onClose,defaultDate='',onAddShootDay}){
                   required
                   value={date}
                   onChange={e=>setDate(e.target.value)}
-                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12.5,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',colorScheme:'dark'}}
+                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12.5,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box',colorScheme:'dark'}}
                 />
               </div>
 
@@ -10185,7 +10185,7 @@ function AddShootDayModal({open,onClose,defaultDate='',onAddShootDay}){
                   rows={4}
                   value={notes}
                   onChange={e=>setNotes(e.target.value)}
-                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12.5,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}
+                  style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12.5,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}
                 />
               </div>
             </div>
@@ -10196,7 +10196,7 @@ function AddShootDayModal({open,onClose,defaultDate='',onAddShootDay}){
                 type="button"
                 disabled={submitting}
                 onClick={()=>{if(!submitting)onClose();}}
-                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:submitting?'default':'pointer'}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:submitting?'default':'pointer'}}
               >
                 Cancel
               </button>
@@ -10206,7 +10206,7 @@ function AddShootDayModal({open,onClose,defaultDate='',onAddShootDay}){
                 whileHover={!submitting&&date?{y:-1}:undefined}
                 whileTap={!submitting&&date?{scale:0.98}:undefined}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 20px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':!date?'not-allowed':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 20px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:submitting?'wait':!date?'not-allowed':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
               >
                 {submitting?'Adding...':'Add Day'}
               </motion.button>
@@ -10247,7 +10247,7 @@ function CreateCallSheetModal({open,onClose,shootDays,shootNo,dayScenes,sumPg,an
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.95,y:10,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:490,maxHeight:'85vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:490,maxHeight:'85vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             {/* Header */}
             <div style={{padding:mob?'18px 18px 14px':'22px 24px 16px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
@@ -10300,7 +10300,7 @@ function CreateCallSheetModal({open,onClose,shootDays,shootNo,dayScenes,sumPg,an
                           background:'transparent',
                           textAlign:'left',
                           cursor:'pointer',
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                         }}
                       >
                         <div style={{minWidth:0,flex:1}}>
@@ -10431,7 +10431,7 @@ function ShootingDayDrawer({day,dayNum,scenesList,characters,conflicts,anyPages,
             animate={{x:0,opacity:1}}
             exit={{x:'100%',opacity:0.75}}
             transition={{type:'spring',stiffness:360,damping:34,mass:0.9}}
-            style={{width:'100%',maxWidth:mob?'100%':440,height:'100%',background:'#0F0F11',borderLeft:mob?'none':'1px solid #222226',boxShadow:'-24px 0 60px rgba(0,0,0,0.8)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:mob?'100%':440,height:'100%',background:'#0F0F11',borderLeft:mob?'none':'1px solid #222226',boxShadow:'-24px 0 60px rgba(0,0,0,0.8)',display:'flex',flexDirection:'column',fontFamily:'Inter,sans-serif'}}
           >
             {/* 1. Header */}
             <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1E1E22',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
@@ -10634,7 +10634,7 @@ function ShootingDayDrawer({day,dayNum,scenesList,characters,conflicts,anyPages,
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 onClick={()=>onCallSheet&&onCallSheet(day)}
                 title={!isOwner?'Only the production admin can update call sheets':undefined}
-                style={{width:'100%',background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'11px 16px',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:isOwner?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,boxShadow:'0 6px 22px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+                style={{width:'100%',background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'11px 16px',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:isOwner?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7,boxShadow:'0 6px 22px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
               >
                 <FileText size={15}/>
                 <span>{hasCallSheet?'Update Call Sheet':'Create Call Sheet'}</span>
@@ -10710,7 +10710,7 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
       animate={{opacity:1,y:0}}
       exit={{opacity:0,y:-6}}
       transition={{duration:0.18,ease:EASE_OUT}}
-      style={{background:'#0C0C0E',border:'1px solid #1E1E22',borderRadius:14,padding:mob?'14px':'18px 20px 20px',marginBottom:16,fontFamily:'Manrope,sans-serif'}}
+      style={{background:'#0C0C0E',border:'1px solid #1E1E22',borderRadius:14,padding:mob?'14px':'18px 20px 20px',marginBottom:16,fontFamily:'Inter,sans-serif'}}
     >
       {/* Calendar Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:14,marginBottom:14,borderBottom:'1px solid #1A1A1E',flexWrap:'wrap'}}>
@@ -10800,12 +10800,12 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
                         flexDirection:'column',
                         justifyContent:'space-between',
                         cursor:'pointer',
-                        fontFamily:'Manrope,sans-serif',
+                        fontFamily:'Inter,sans-serif',
                         transition:'border-color 0.14s ease, background 0.14s ease',
                       }}
                     >
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:4,width:'100%',marginBottom:6}}>
-                        <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:11,fontWeight:600,color:'#E5E5E0'}}>
+                        <span style={{fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:11,fontWeight:600,color:'#E5E5E0'}}>
                           {cell.dayNum}
                         </span>
                         <button
@@ -10858,7 +10858,7 @@ function ScheduleCalendarView({days,shootDays,shootNo,dayScenes,sumPg,anyPages,t
                     }}
                   >
                     <div style={{display:'flex',alignItems:'center',gap:5}}>
-                      <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:11,fontWeight:cell.inMonth?500:400,color:cell.inMonth?'#7A7670':'#3A3A40'}}>
+                      <span style={{fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:11,fontWeight:cell.inMonth?500:400,color:cell.inMonth?'#7A7670':'#3A3A40'}}>
                         {cell.dayNum}
                       </span>
                       {off&&(
@@ -10922,7 +10922,7 @@ function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPd
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.95,y:10,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:440,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:440,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.84), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             {/* 1. Header */}
             <div style={{padding:mob?'18px 18px 12px':'22px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
@@ -10960,7 +10960,7 @@ function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPd
                   cursor:'pointer',
                   background:format==='pdf'?'rgba(245,196,81,0.06)':'#131316',
                   border:format==='pdf'?'1px solid rgba(245,196,81,0.65)':'1px solid #242428',
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                   transition:'border-color 0.15s ease, background 0.15s ease',
                 }}
               >
@@ -10988,7 +10988,7 @@ function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPd
                   cursor:'pointer',
                   background:format==='excel'?'rgba(245,196,81,0.06)':'#131316',
                   border:format==='excel'?'1px solid rgba(245,196,81,0.65)':'1px solid #242428',
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                   transition:'border-color 0.15s ease, background 0.15s ease',
                 }}
               >
@@ -11028,7 +11028,7 @@ function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPd
                           color:active?T.cream:'#8E8E93',
                           fontSize:12.5,
                           fontWeight:active?600:500,
-                          fontFamily:'Manrope,sans-serif',
+                          fontFamily:'Inter,sans-serif',
                           transition:'border-color 0.15s ease, color 0.15s ease',
                         }}
                       >
@@ -11054,7 +11054,7 @@ function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPd
                 type="button"
                 disabled={exporting}
                 onClick={()=>{if(!exporting)onClose();}}
-                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:exporting?'default':'pointer'}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:exporting?'default':'pointer'}}
               >
                 Cancel
               </button>
@@ -11065,7 +11065,7 @@ function ExportScheduleModal({open,onClose,shootDaysCount,statusLabel,onExportPd
                 whileTap={!exporting?{scale:0.98}:undefined}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 onClick={handleExport}
-                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 20px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:exporting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 20px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:exporting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28), inset 0 1px 0 rgba(255,255,255,0.28)'}}
               >
                 {exporting?'Exporting...':format==='pdf'?'Export PDF':'Export Excel'}
               </motion.button>
@@ -11112,7 +11112,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
   if(!project){
     return(
       <div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}>
-        <div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div>
+        <div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div>
       </div>
     );
   }
@@ -11277,17 +11277,17 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
           padding:'11px 12px 10px',
           marginBottom:9,
           cursor:editMode?'default':'pointer',
-          fontFamily:'Manrope,sans-serif',
+          fontFamily:'Inter,sans-serif',
           transition:'border-color 0.14s ease, background 0.14s ease',
         }}
       >
         {/* Top Row: Scene #, INT/EXT · TOD, Page Count */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:5}}>
           <div style={{display:'flex',alignItems:'center',gap:7,minWidth:0}}>
-            <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:12,fontWeight:700,color:'#F5F5F0'}}>{sc.sceneNumber||'—'}</span>
-            <span style={{fontFamily:'Manrope,sans-serif',fontSize:9.5,fontWeight:700,letterSpacing:'0.03em',color:acc.tag,whiteSpace:'nowrap'}}>{ie} · {tod}</span>
+            <span style={{fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:12,fontWeight:700,color:'#F5F5F0'}}>{sc.sceneNumber||'—'}</span>
+            <span style={{fontFamily:'Inter,sans-serif',fontSize:9.5,fontWeight:700,letterSpacing:'0.03em',color:acc.tag,whiteSpace:'nowrap'}}>{ie} · {tod}</span>
           </div>
-          <span style={{fontFamily:'Manrope,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:10.5,fontWeight:600,color:'#D4D4D8',whiteSpace:'nowrap'}}>
+          <span style={{fontFamily:'Inter,sans-serif',fontVariantNumeric:'tabular-nums',fontSize:10.5,fontWeight:600,color:'#D4D4D8',whiteSpace:'nowrap'}}>
             {sc.pages8>0?fmtPages8(sc.pages8):'—'}
           </span>
         </div>
@@ -11349,7 +11349,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
               value=""
               onClick={e=>e.stopPropagation()}
               onChange={e=>{const v=e.target.value;if(v==='__none')moveScene(sc.id,null);else if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}}
-              style={{flex:1,minWidth:96,fontSize:10.5,padding:'3px 6px',borderRadius:6,border:'1px solid #2A2A30',background:'#141416',color:T.cream,fontFamily:'Manrope,sans-serif',colorScheme:'dark'}}
+              style={{flex:1,minWidth:96,fontSize:10.5,padding:'3px 6px',borderRadius:6,border:'1px solid #2A2A30',background:'#141416',color:T.cream,fontFamily:'Inter,sans-serif',colorScheme:'dark'}}
             >
               <option value="">{d?'Move…':'Assign day…'}</option>
               {d&&<option value="__none">Unschedule</option>}
@@ -11372,7 +11372,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
       onUpdateDay(d.id,{call_time:prevShoot.call_time||d.call_time||'',location:d.location||prevShoot.location||'',cast_calls:{...calls,...keep}});
     };
     return(
-      <div style={{background:'#101013',border:'1px solid #242429',borderRadius:10,padding:12,marginBottom:10,display:'flex',flexDirection:'column',gap:10,fontFamily:'Manrope,sans-serif'}}>
+      <div style={{background:'#101013',border:'1px solid #242429',borderRadius:10,padding:12,marginBottom:10,display:'flex',flexDirection:'column',gap:10,fontFamily:'Inter,sans-serif'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
           <span style={{fontSize:11,fontWeight:700,color:T.cream}}>Day {n} details</span>
           <div style={{display:'flex',gap:6}}>
@@ -11440,9 +11440,9 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
   };
 
   return(
-    <div style={{fontFamily:'Manrope,sans-serif'}}>
+    <div style={{fontFamily:'Inter,sans-serif'}}>
       {/* Breadcrumb & Header */}
-      <div style={{fontFamily:'Manrope,sans-serif',fontSize:mob?10.5:11,color:'#5E5E66',marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
+      <div style={{fontFamily:'Inter,sans-serif',fontSize:mob?10.5:11,color:'#5E5E66',marginBottom:8,whiteSpace:mob?'nowrap':'normal',overflow:'hidden',textOverflow:'ellipsis'}}>
         Productions <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> {project.name} <span style={{margin:'0 5px',color:'#3F3F46'}}>&gt;</span> <span style={{color:'#D4D4D8',fontWeight:500}}>Schedule</span>
       </div>
 
@@ -11462,7 +11462,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowBuild(o=>!o)}
-            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 15px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 22px rgba(255,179,71,0.30), inset 0 1px 0 rgba(255,255,255,0.28)'}}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 15px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 6px 22px rgba(255,179,71,0.30), inset 0 1px 0 rgba(255,255,255,0.28)'}}
           >
             <Sparkles size={14}/>
             <span>Generate Schedule</span>
@@ -11474,7 +11474,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setShowAddDay(true)}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
           >
             <Calendar size={14}/>
             <span>Add Shoot Day</span>
@@ -11488,7 +11488,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setCallSheetModalOpen(true)}
             title={!isOwner?'Only the production admin can create call sheets':'Create Call Sheet'}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:isOwner?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:isOwner?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6}}
           >
             <FileText size={14}/>
             <span>Create Call Sheet</span>
@@ -11502,7 +11502,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>setExportModalOpen(true)}
             title={!isOwner?'Only the production admin can export':shootDays.length===0?'Add a shoot day first':'Export schedule'}
-            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:isOwner&&shootDays.length>0?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6}}
+            style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:'9px 13px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:isOwner&&shootDays.length>0?'pointer':'not-allowed',display:'inline-flex',alignItems:'center',gap:6}}
           >
             <Download size={14}/>
             <span>Export</span>
@@ -11526,7 +11526,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
           <div style={{fontSize:11,color:'#8E8E93',fontWeight:500,marginBottom:8}}>Unscheduled scenes</div>
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:unscheduled.length>0?'#F5C451':T.cream}}>{unscheduled.length}</div>
           {unscheduled.length>0&&(
-            <button type="button" onClick={()=>scrollToPanel('unscheduled-scenes')} style={{marginTop:6,background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+            <button type="button" onClick={()=>scrollToPanel('unscheduled-scenes')} style={{marginTop:6,background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
               Review →
             </button>
           )}
@@ -11541,7 +11541,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
           <div style={{fontSize:11,color:'#8E8E93',fontWeight:500,marginBottom:8}}>Conflicts</div>
           <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:22,fontWeight:600,color:conflicts.length>0?'#F5C451':T.cream}}>{conflicts.length}</div>
           {conflicts.length>0&&(
-            <button type="button" onClick={()=>scrollToPanel('schedule-conflicts')} style={{marginTop:6,background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Manrope,sans-serif'}}>
+            <button type="button" onClick={()=>scrollToPanel('schedule-conflicts')} style={{marginTop:6,background:'none',border:'none',padding:0,color:'#6BB0F5',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
               Review →
             </button>
           )}
@@ -11713,7 +11713,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
                   fontSize:12,
                   fontWeight:active?600:500,
                   cursor:'pointer',
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                   transition:'all 0.14s ease',
                 }}
               >
@@ -11754,7 +11754,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
               padding:'7px 13px',
               fontSize:12,
               fontWeight:600,
-              fontFamily:'Manrope,sans-serif',
+              fontFamily:'Inter,sans-serif',
               cursor:'pointer',
               display:'inline-flex',
               alignItems:'center',
@@ -11783,8 +11783,8 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
                   transition={{duration:0.15,ease:EASE_OUT}}
                   style={{position:'absolute',top:'calc(100% + 6px)',right:0,zIndex:50,minWidth:190,background:'#141416',border:'1px solid #26262A',borderRadius:12,padding:6,boxShadow:'0 20px 48px rgba(0,0,0,0.8)'}}
                 >
-                  <button type="button" onClick={()=>{setMoreMenuOpen(false);addDay('off');}} style={{width:'100%',textAlign:'left',background:'transparent',border:'none',borderRadius:8,padding:'8px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>+ Add Day Off</button>
-                  <button type="button" onClick={()=>{setMoreMenuOpen(false);addDay('note');}} style={{width:'100%',textAlign:'left',background:'transparent',border:'none',borderRadius:8,padding:'8px 10px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>+ Add Note</button>
+                  <button type="button" onClick={()=>{setMoreMenuOpen(false);addDay('off');}} style={{width:'100%',textAlign:'left',background:'transparent',border:'none',borderRadius:8,padding:'8px 10px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>+ Add Day Off</button>
+                  <button type="button" onClick={()=>{setMoreMenuOpen(false);addDay('note');}} style={{width:'100%',textAlign:'left',background:'transparent',border:'none',borderRadius:8,padding:'8px 10px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>+ Add Note</button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -12032,7 +12032,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
                             aria-label={`Assign scene ${sc.sceneNumber} to shoot day`}
                             value=""
                             onChange={e=>{const v=e.target.value;if(v==='__new')moveToNewDay(sc.id);else if(v)moveScene(sc.id,v);}}
-                            style={{fontSize:11,padding:'4px 8px',borderRadius:6,border:'1px solid #2A2A30',background:'#141416',color:T.cream,fontFamily:'Manrope,sans-serif',colorScheme:'dark'}}
+                            style={{fontSize:11,padding:'4px 8px',borderRadius:6,border:'1px solid #2A2A30',background:'#141416',color:T.cream,fontFamily:'Inter,sans-serif',colorScheme:'dark'}}
                           >
                             <option value="">Assign to shoot day…</option>
                             {shootDays.map(d=><option key={d.id} value={d.id}>Day {shootNo[d.id]} · {d.date?shortDate(d.date):'TBC'}</option>)}
@@ -12079,7 +12079,7 @@ function SchedulesView({project,scenes,characters,days,onAddDays,onUpdateDay,onR
                     <button
                       type="button"
                       onClick={()=>{setViewTab('stripboard');setOpenDay(cf.dayId);}}
-                      style={{background:'#1B1B20',border:'1px solid #2A2A32',borderRadius:8,color:T.cream,fontSize:11,fontWeight:600,padding:'6px 11px',cursor:'pointer',flexShrink:0,fontFamily:'Manrope,sans-serif'}}
+                      style={{background:'#1B1B20',border:'1px solid #2A2A32',borderRadius:8,color:T.cream,fontSize:11,fontWeight:600,padding:'6px 11px',cursor:'pointer',flexShrink:0,fontFamily:'Inter,sans-serif'}}
                     >
                       Review
                     </button>
@@ -12120,13 +12120,13 @@ function ScriptInsights({scenes,characters,onUpdateScene}){
   const issues=noPages.length+noCast.length+noLoc.length+noIE.length;
   const d5=Math.max(1,Math.ceil(total/40)),d6=Math.max(1,Math.ceil(total/48)),d4=Math.max(1,Math.ceil(total/32));
   const sc4=l=>l.join(', ');
-  const row=(a,b,c)=><div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'baseline'}}><div style={{color:T.cream,fontSize:13,fontWeight:600,fontFamily:'Manrope,sans-serif',minWidth:0}}>{a}</div><div style={{color:T.gold,fontSize:11,fontFamily:'IBM Plex Mono,monospace',whiteSpace:'nowrap'}}>{b}</div></div>{c&&<div style={{color:T.dim,fontSize:10,marginTop:2,fontFamily:'Manrope,sans-serif',lineHeight:1.5}}>{c}</div>}</div>;
-  const tabBtn=(id,label)=><button key={id} onClick={()=>setTab(id)} style={{padding:'6px 12px',borderRadius:20,border:`1px solid ${tab===id?T.gold:T.line}`,background:tab===id?T.goldGlow:'transparent',color:tab===id?T.gold:T.dim,fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:'pointer',whiteSpace:'nowrap'}}>{label}{id==='checks'&&issues>0?` (${issues})`:''}</button>;
+  const row=(a,b,c)=><div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'baseline'}}><div style={{color:T.cream,fontSize:13,fontWeight:600,fontFamily:'Inter,sans-serif',minWidth:0}}>{a}</div><div style={{color:T.gold,fontSize:11,fontFamily:'IBM Plex Mono,monospace',whiteSpace:'nowrap'}}>{b}</div></div>{c&&<div style={{color:T.dim,fontSize:10,marginTop:2,fontFamily:'Inter,sans-serif',lineHeight:1.5}}>{c}</div>}</div>;
+  const tabBtn=(id,label)=><button key={id} onClick={()=>setTab(id)} style={{padding:'6px 12px',borderRadius:20,border:`1px solid ${tab===id?T.gold:T.line}`,background:tab===id?T.goldGlow:'transparent',color:tab===id?T.gold:T.dim,fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:'pointer',whiteSpace:'nowrap'}}>{label}{id==='checks'&&issues>0?` (${issues})`:''}</button>;
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,marginBottom:14,overflow:'hidden'}}>
       <button onClick={()=>setOpen(!open)} style={{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,padding:'12px 14px',background:'none',border:'none',cursor:'pointer',textAlign:'left'}}>
-        <span style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>📊 Script analysis</span>
-        <span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{sorted.length} scenes · {total?fmtPages8(total):'no page lengths'} pgs · {locs.length} locations {open?'▴':'▾'}</span>
+        <span style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>📊 Script analysis</span>
+        <span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>{sorted.length} scenes · {total?fmtPages8(total):'no page lengths'} pgs · {locs.length} locations {open?'▴':'▾'}</span>
       </button>
       {open&&<div style={{padding:'0 14px 14px',borderTop:`1px solid ${T.line}`}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:8,margin:'12px 0'}}>
@@ -12135,18 +12135,18 @@ function ScriptInsights({scenes,characters,onUpdateScene}){
           <StatCard label="Cast" value={castIdx.list.length} sub={`${castIdx.list.filter(c=>c.tier==='lead').length} lead`}/>
           <StatCard label="Night / evening" value={`${Math.round(nightN/sorted.length*100)}%`} sub={`${nightN} of ${sorted.length} scenes`}/>
         </div>
-        {total>0&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.cream,fontFamily:'Manrope,sans-serif',lineHeight:1.6}}>At <b>5 pages a day</b> this is about <b>{d5} shoot days</b> ({d6} at 6 pages a day, {d4} at 4). Real days vary with location moves, night work and large casts — use it as a starting point for the schedule and budget.</div>}
+        {total>0&&<div style={{background:T.hi,border:`1px solid ${T.line}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:12,color:T.cream,fontFamily:'Inter,sans-serif',lineHeight:1.6}}>At <b>5 pages a day</b> this is about <b>{d5} shoot days</b> ({d6} at 6 pages a day, {d4} at 4). Real days vary with location moves, night work and large casts — use it as a starting point for the schedule and budget.</div>}
         <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:6,marginBottom:6}}>{tabBtn('locations','Locations')}{tabBtn('cast','Cast')}{tabBtn('elements','Elements')}{tabBtn('checks','Checks')}</div>
         {tab==='locations'&&<div>{locs.map(l=><div key={l.name}>{row(l.name,`${l.pages?fmtPages8(l.pages):'—'} pgs`,`${l.nums.length} scene${l.nums.length!==1?'s':''} · INT ${l.int} / EXT ${l.ext} · day ${l.day} / night-evening ${l.night} · sc ${sc4(l.nums)}`)}</div>)}</div>}
         {tab==='cast'&&<div>{castIdx.list.map(c=><div key={c.id}>{row(`${c.id}. ${c.name}`,`${fmtPages8(castPages(c.name))==='—'?'—':fmtPages8(castPages(c.name))+' pgs'}`,`${c.tier||'tier not set'} · ${c.scenes} scene${c.scenes!==1?'s':''} · first appears sc ${(sorted.find(sc=>(sc.cast||[]).includes(c.name))||{}).sceneNumber}`)}</div>)}
-          <div style={{fontSize:10,color:T.faint,marginTop:8,fontFamily:'Manrope,sans-serif'}}>These numbers are the cast IDs used on the Schedule tab and call sheets.</div></div>}
+          <div style={{fontSize:10,color:T.faint,marginTop:8,fontFamily:'Inter,sans-serif'}}>These numbers are the cast IDs used on the Schedule tab and call sheets.</div></div>}
         {tab==='elements'&&<div>
           {[['props','Props'],['vehicles','Vehicles'],['wardrobe','Wardrobe'],['specialEquip','Special equipment']].map(([k,label])=>{const e=elems(k);return<div key={k} style={{marginBottom:12}}><div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'8px 0 2px'}}>{label} ({e.length})</div>{e.length===0?<div style={{fontSize:11,color:T.faint}}>None found in the script.</div>:e.map(([it,nums])=><div key={it}>{row(it,`${nums.length}×`,`sc ${sc4(nums)}`)}</div>)}</div>;})}
           <div style={{fontSize:10,color:T.goldDim,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',margin:'8px 0 2px'}}>Extras</div>
           {peak?row('Biggest crowd',`${peak.n}`,`Scene ${peak.sc} — plan for at least this many background actors on the day`):<div style={{fontSize:11,color:T.faint}}>No background crowds found.</div>}
           {Object.entries(tx).map(([it,nums])=><div key={it}>{row(`${it} (talking)`,`${nums.length}×`,`sc ${sc4(nums)}`)}</div>)}
         </div>}
-        {tab==='checks'&&<div style={{fontFamily:'Manrope,sans-serif'}}>
+        {tab==='checks'&&<div style={{fontFamily:'Inter,sans-serif'}}>
           {issues===0?<div style={{color:T.sage,fontSize:13,padding:'8px 0'}}>✓ Every scene has a page length, a location, INT/EXT and cast.</div>:<>
             {noPages.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noPages.length} scene{noPages.length!==1?'s have':' has'} no page length</div><div style={{color:T.dim,fontSize:10,margin:'2px 0 8px'}}>Scenes: {sc4(noPages.map(s=>s.sceneNumber))}. The schedule's day totals will be short until these are set.</div><PageLengthTool scenes={sorted} onUpdateScene={onUpdateScene}/></div>}
             {noCast.length>0&&<div style={{padding:'8px 0',borderBottom:`1px solid ${T.line}`}}><div style={{color:T.cream,fontSize:13}}>{noCast.length} scene{noCast.length!==1?'s have':' has'} no cast listed</div><div style={{color:T.dim,fontSize:10,marginTop:2}}>Scenes: {sc4(noCast.map(s=>s.sceneNumber))}. Check these — an empty scene won't appear on any call sheet.</div></div>}
@@ -12173,10 +12173,10 @@ function ProductionSpendBreakdownPanel({project,items=[],advances=[],reconEntrie
     : Object.entries(totals).map(([c, a]) => `${sym(c)}${fmt(a)}`).join(' · ');
 
   return (
-    <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'18px 20px',marginBottom:16,fontFamily:'Manrope,sans-serif',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
+    <div style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:'18px 20px',marginBottom:16,fontFamily:'Inter,sans-serif',boxShadow:'0 10px 30px rgba(0,0,0,0.45)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10,marginBottom:12}}>
         <div>
-          <div style={{fontFamily:'Manrope,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Production Spend Breakdown</div>
+          <div style={{fontFamily:'Inter,sans-serif',fontSize:15,fontWeight:600,color:T.cream}}>Production Spend Breakdown</div>
           <div style={{fontSize:11,color:T.faint,marginTop:2}}>{project.name} ({project.type || 'Production'}) · Live spend reconciled against script &amp; budget</div>
         </div>
         <span style={{fontSize:11,fontFamily:'IBM Plex Mono,monospace',fontWeight:600,color:overBudget?'#E05252':'#4CAF7A',background:'#121215',border:'1px solid #222226',padding:'4px 10px',borderRadius:8}}>
@@ -12315,7 +12315,7 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.94,y:12,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:500,maxHeight:'90vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:500,maxHeight:'90vh',display:'flex',flexDirection:'column',background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             {/* Header */}
             <div style={{padding:mob?'18px 18px 12px':'20px 24px 14px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12,flexShrink:0}}>
@@ -12339,7 +12339,7 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
                 </div>
                 <div>
                   <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location</label>
-                  <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. Club Eclipse" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                  <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. Club Eclipse" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                 </div>
               </div>
 
@@ -12350,7 +12350,7 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
                     {['INT','EXT','INT/EXT'].map(val=>{
                       const active=intExt===val;
                       return(
-                        <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'10px 6px',borderRadius:9,fontSize:11,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
+                        <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'10px 6px',borderRadius:9,fontSize:11,fontWeight:active?600:500,fontFamily:'Inter,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
                           {val}
                         </button>
                       );
@@ -12359,7 +12359,7 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
                 </div>
                 <div>
                   <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Day/Night</label>
-                  <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
+                  <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}>
                     {['DAY','NIGHT','DAWN','DUSK'].map(t=><option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
@@ -12370,7 +12370,7 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
                   <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Characters</label>
                   <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas.</span>
                 </div>
-                <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
               </div>
 
               <div>
@@ -12388,7 +12388,7 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
                   <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene information</label>
                   <span style={{fontSize:10.5,color:'#71717A'}}>Optional</span>
                 </div>
-                <textarea rows={3} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
+                <textarea rows={3} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
               </div>
 
               <div style={{background:'#121214',border:'1px solid #1E1E22',borderRadius:10,padding:'10px 14px',fontSize:11.5}}>
@@ -12399,14 +12399,14 @@ function AddSceneModal({open,onClose,onAddScene,onUpdateScene,initialScene=null,
 
             {/* Footer */}
             <div style={{padding:mob?'12px 18px 16px':'14px 24px 18px',borderTop:'1px solid #1C1C20',display:mob?'grid':'flex',gridTemplateColumns:mob?'1fr 1fr':undefined,justifyContent:'flex-end',gap:10,flexShrink:0}}>
-              <button type="button" onClick={()=>{if(!submitting)onClose();}} style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer'}}>Cancel</button>
+              <button type="button" onClick={()=>{if(!submitting)onClose();}} style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer'}}>Cancel</button>
               <motion.button
                 type="submit"
                 disabled={submitting}
                 whileHover={{y:-1}}
                 whileTap={{scale:0.98}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:submitting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:submitting?'wait':'pointer',boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
               >
                 {submitting?(isEdit?'Saving...':'Adding...'):(isEdit?'Save Changes':'Add Scene')}
               </motion.button>
@@ -12686,7 +12686,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
             animate={{x:0,opacity:1}}
             exit={{x:'100%',opacity:0.75}}
             transition={{type:'spring',stiffness:360,damping:34,mass:0.9}}
-            style={{width:'100%',maxWidth:mob?'100%':460,height:'100%',background:'#0C0C0E',borderLeft:mob?'none':'1px solid #1C1C20',boxShadow:'-24px 0 60px rgba(0,0,0,0.85)',display:'flex',flexDirection:'column',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:mob?'100%':460,height:'100%',background:'#0C0C0E',borderLeft:mob?'none':'1px solid #1C1C20',boxShadow:'-24px 0 60px rgba(0,0,0,0.85)',display:'flex',flexDirection:'column',fontFamily:'Inter,sans-serif'}}
           >
             {/* Top Bar matching screenshot */}
             <div style={{padding:mob?'12px 16px':'14px 20px',borderBottom:'1px solid #1C1C20',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexShrink:0}}>
@@ -12707,7 +12707,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                 <button
                   type="button"
                   onClick={isEditing?()=>setIsEditing(false):enterEditMode}
-                  style={{background:'#161619',border:'1px solid #27272B',borderRadius:8,padding:'6px 14px',color:'#E5E5E0',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
+                  style={{background:'#161619',border:'1px solid #27272B',borderRadius:8,padding:'6px 14px',color:'#E5E5E0',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}
                 >
                   <Pencil size={12}/>
                   <span>{isEditing?'Done':'Edit'}</span>
@@ -12754,14 +12754,14 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                       </div>
                       <div>
                         <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Set</label>
-                        <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. THIRD MAINLAND BRIDGE" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                        <input type="text" value={location} onChange={e=>setLocation(e.target.value)} placeholder="e.g. THIRD MAINLAND BRIDGE" autoFocus style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                       </div>
                     </div>
 
                     <div>
                       <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Location (Specific & Address)</label>
-                      <input type="text" value={locSpecific} onChange={e=>setLocSpecific(e.target.value)} placeholder="e.g. Third Mainland Bridge (closed lane)" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
-                      <input type="text" value={locAddress} onChange={e=>setLocAddress(e.target.value)} placeholder="Address or notes e.g. Third Mainland Bridge, Oworonshoki end" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:11.5,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                      <input type="text" value={locSpecific} onChange={e=>setLocSpecific(e.target.value)} placeholder="e.g. Third Mainland Bridge (closed lane)" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
+                      <input type="text" value={locAddress} onChange={e=>setLocAddress(e.target.value)} placeholder="Address or notes e.g. Third Mainland Bridge, Oworonshoki end" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:11.5,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                     </div>
 
                     <div style={{display:'grid',gridTemplateColumns:mob?'1fr':'1.35fr 1fr',gap:12}}>
@@ -12771,7 +12771,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                           {['INT','EXT','INT/EXT'].map(val=>{
                             const active=intExt===val;
                             return(
-                              <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'9px 4px',borderRadius:9,fontSize:10.5,fontWeight:active?600:500,fontFamily:'Manrope,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
+                              <button key={val} type="button" onClick={()=>setIntExt(val)} style={{padding:'9px 4px',borderRadius:9,fontSize:10.5,fontWeight:active?600:500,fontFamily:'Inter,sans-serif',cursor:'pointer',background:active?'rgba(255,179,71,0.10)':'#141416',border:active?'1px solid rgba(255,179,71,0.55)':'1px solid #242428',color:active?T.cream:'#71717A',transition:'all 0.15s ease'}}>
                                 {val}
                               </button>
                             );
@@ -12780,7 +12780,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                       </div>
                       <div>
                         <label style={{display:'block',fontSize:11,fontWeight:600,color:'#D4D4D8',marginBottom:6}}>Time of day</label>
-                        <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}>
+                        <select value={dayNight} onChange={e=>setDayNight(e.target.value)} style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'9px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}>
                           {['DAY','NIGHT','DAWN','DUSK'].map(t=><option key={t} value={t}>{t}</option>)}
                         </select>
                       </div>
@@ -12803,7 +12803,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                         <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Characters</label>
                         <span style={{fontSize:10.5,color:'#71717A'}}>Separate names with commas</span>
                       </div>
-                      <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}/>
+                      <input type="text" value={charsInput} onChange={e=>setCharsInput(e.target.value)} placeholder="e.g. ADAOBI, TUNDE" style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}/>
                     </div>
 
                     <div>
@@ -12820,7 +12820,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:6}}>
                         <label style={{fontSize:11,fontWeight:600,color:'#D4D4D8'}}>Scene description</label>
                       </div>
-                      <textarea rows={3} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} placeholder="What happens in this scene..." style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
+                      <textarea rows={3} value={sceneInfo} onChange={e=>setSceneInfo(e.target.value)} placeholder="What happens in this scene..." style={{width:'100%',background:'#141416',border:'1px solid #242428',borderRadius:10,padding:'10px 12px',color:T.cream,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box',resize:'vertical'}}/>
                     </div>
                   </motion.form>
                 ):(
@@ -13000,7 +13000,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                       whileTap={{scale:0.98}}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
                       onClick={()=>setIsEditing(false)}
-                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
                     >
                       <span>Cancel</span>
                     </motion.button>
@@ -13011,7 +13011,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                       whileHover={{y:-1}}
                       whileTap={{scale:0.98}}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
-                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
                     >
                       <Check size={14}/>
                       <span>{saving?'Saving...':'Save Changes'}</span>
@@ -13026,7 +13026,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                       whileTap={{scale:0.98}}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
                       onClick={enterEditMode}
-                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+                      style={{background:'#161619',border:'1px solid #27272B',color:'#E5E5E0',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:saving?'default':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
                     >
                       <Pencil size={13}/>
                       <span>Edit</span>
@@ -13038,7 +13038,7 @@ function ScenePreviewDrawer({scene,sceneIndex,totalScenes,isNewScene=false,onClo
                       whileTap={{scale:0.98}}
                       transition={{duration:DURATION.fast,ease:EASE_OUT}}
                       onClick={handleConfirmAdd}
-                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
+                      style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:saving?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 20px rgba(255,179,71,0.28)'}}
                     >
                       <Plus size={14}/>
                       <span>{saving?'Adding...':'Add'}</span>
@@ -13098,7 +13098,7 @@ function DeleteSceneModal({scene,onClose,onConfirm}){
             animate={{opacity:1,scale:1,y:0,filter:'blur(0px)'}}
             exit={{opacity:0,scale:0.94,y:10,filter:'blur(3px)'}}
             transition={{type:'spring',stiffness:420,damping:32,mass:0.85}}
-            style={{width:'100%',maxWidth:440,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Manrope,sans-serif'}}
+            style={{width:'100%',maxWidth:440,background:'#0F0F11',border:'1px solid #242428',borderRadius:16,boxShadow:'0 28px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)',overflow:'hidden',fontFamily:'Inter,sans-serif'}}
           >
             {/* Header */}
             <div style={{padding:mob?'18px 18px 6px':'22px 24px 8px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
@@ -13126,7 +13126,7 @@ function DeleteSceneModal({scene,onClose,onConfirm}){
                 type="button"
                 disabled={deleting}
                 onClick={()=>{if(!deleting)onClose();}}
-                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:deleting?'default':'pointer'}}
+                style={{background:'#141416',border:'1px solid #26262B',color:'#E5E5E0',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:deleting?'default':'pointer'}}
               >
                 Cancel
               </button>
@@ -13137,7 +13137,7 @@ function DeleteSceneModal({scene,onClose,onConfirm}){
                 whileTap={{scale:0.98}}
                 transition={{duration:DURATION.fast,ease:EASE_OUT}}
                 onClick={handleConfirm}
-                style={{background:'linear-gradient(180deg, #EE7A5C 0%, #E06649 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Manrope,sans-serif',cursor:deleting?'wait':'pointer',boxShadow:'0 6px 20px rgba(224,107,82,0.28), inset 0 1px 0 rgba(255,255,255,0.22)'}}
+                style={{background:'linear-gradient(180deg, #EE7A5C 0%, #E06649 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,fontFamily:'Inter,sans-serif',cursor:deleting?'wait':'pointer',boxShadow:'0 6px 20px rgba(224,107,82,0.28), inset 0 1px 0 rgba(255,255,255,0.22)'}}
               >
                 {deleting?'Deleting...':'Delete scene'}
               </motion.button>
@@ -13689,10 +13689,10 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
               alignItems: 'flex-start',
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Inter,sans-serif' }}>
                   {isEdit ? 'Edit cast record' : 'Add cast record'}
                 </h3>
-                <div style={{ fontSize: 12, color: '#8A8985', marginTop: 4, fontFamily: 'Manrope,sans-serif', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 12, color: '#8A8985', marginTop: 4, fontFamily: 'Inter,sans-serif', lineHeight: 1.4 }}>
                   One record per character. An actor can appear across any number of scenes.
                 </div>
               </div>
@@ -13720,13 +13720,13 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
             <div style={{ padding: mob ? '14px 18px' : '18px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
               {/* Role Section */}
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#71717A', textTransform: 'capitalize', marginBottom: 8, fontFamily: 'Manrope,sans-serif' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#71717A', textTransform: 'capitalize', marginBottom: 8, fontFamily: 'Inter,sans-serif' }}>
                   Role
                 </div>
 
                 {/* Category* */}
                 <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                     Category<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -13741,7 +13741,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                         padding: '10px 32px 10px 12px',
                         color: T.cream,
                         fontSize: 12,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                         appearance: 'none',
@@ -13764,10 +13764,10 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                 {/* Character* and Actor* */}
                 <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Inter,sans-serif' }}>
                       Character<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
                     </label>
-                    <div style={{ fontSize: 10, color: '#71717A', marginTop: 1, marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    <div style={{ fontSize: 10, color: '#71717A', marginTop: 1, marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                       As named in the script.
                     </div>
                     <input
@@ -13784,14 +13784,14 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                         padding: '10px 12px',
                         color: T.cream,
                         fontSize: 12,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Inter,sans-serif' }}>
                       Actor<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
                     </label>
                     <div style={{ fontSize: 10, color: 'transparent', marginTop: 1, marginBottom: 6, userSelect: 'none' }}>
@@ -13811,7 +13811,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                         padding: '10px 12px',
                         color: T.cream,
                         fontSize: 12,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -13823,14 +13823,14 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
               {/* Scenes Section */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#E5E5E0', fontFamily: 'Manrope,sans-serif' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#E5E5E0', fontFamily: 'Inter,sans-serif' }}>
                     Scenes
                   </span>
                   <span style={{ fontSize: 11, color: '#8A8985', fontFamily: 'IBM Plex Mono,monospace' }}>
                     {selectedScenes.length} selected
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 8, fontFamily: 'Manrope,sans-serif' }}>
+                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 8, fontFamily: 'Inter,sans-serif' }}>
                   Scenes where {character || 'ADAOBI'} appears in the script are linked automatically. Add any others.
                 </div>
 
@@ -13855,7 +13855,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                           border: 'none',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                         }}
                       />
@@ -13871,7 +13871,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                         fontWeight: 500,
                         cursor: 'pointer',
                         padding: 0,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Select
@@ -13918,12 +13918,12 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
 
               {/* Scheduling Section */}
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#71717A', marginBottom: 8, fontFamily: 'Manrope,sans-serif' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#71717A', marginBottom: 8, fontFamily: 'Inter,sans-serif' }}>
                   Scheduling
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1.2fr 1fr 1fr', gap: 10 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                       Availability
                     </label>
                     <div style={{ position: 'relative' }}>
@@ -13938,7 +13938,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                           padding: '10px 28px 10px 12px',
                           color: T.cream,
                           fontSize: 12,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           appearance: 'none',
@@ -13955,7 +13955,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                       Call time
                     </label>
                     <input
@@ -13979,7 +13979,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                       On-set time
                     </label>
                     <input
@@ -14021,7 +14021,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                     color: '#E5E5E0',
                     fontSize: 12.5,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                   }}
                 >
                   <span>Contact details &amp; notes</span>
@@ -14039,7 +14039,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 10 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : '1fr 1fr', gap: 12 }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                           Phone
                         </label>
                         <input
@@ -14055,14 +14055,14 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                             padding: '10px 12px',
                             color: T.cream,
                             fontSize: 12,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                             outline: 'none',
                             boxSizing: 'border-box',
                           }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                           Email
                         </label>
                         <input
@@ -14078,7 +14078,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                             padding: '10px 12px',
                             color: T.cream,
                             fontSize: 12,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                             outline: 'none',
                             boxSizing: 'border-box',
                           }}
@@ -14087,10 +14087,10 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#D4D4D8', fontFamily: 'Inter,sans-serif' }}>
                         Notes
                       </label>
-                      <div style={{ fontSize: 10.5, color: '#71717A', marginTop: 1, marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                      <div style={{ fontSize: 10.5, color: '#71717A', marginTop: 1, marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                         Contract terms, dietary needs, availability windows.
                       </div>
                       <textarea
@@ -14106,7 +14106,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                           padding: '10px 12px',
                           color: T.cream,
                           fontSize: 12,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'vertical',
@@ -14145,7 +14145,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                     cursor: 'pointer',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     padding: '6px 0',
                   }}
                 >
@@ -14166,7 +14166,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                     padding: '9px 18px',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                   }}
                 >
@@ -14185,7 +14185,7 @@ function CastMemberModal({ open, onClose, member, onSave, onDelete, allScenes = 
                     padding: '9px 20px',
                     fontSize: 12,
                     fontWeight: 700,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                     boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
                   }}
@@ -14241,7 +14241,7 @@ function DeleteCastModal({ member, onClose, onConfirm }) {
           <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em' }}>
             Remove from cast?
           </h3>
-          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Inter,sans-serif' }}>
             Are you sure you want to remove <strong style={{ color: T.cream }}>{member.actorName}</strong>{member.character ? ` (${member.character})` : ''} from the production cast?
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -14256,7 +14256,7 @@ function DeleteCastModal({ member, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 600,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -14279,7 +14279,7 @@ function DeleteCastModal({ member, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 700,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -14483,7 +14483,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     fontWeight: 700,
                     color: T.cream,
                     letterSpacing: '-0.02em',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                   }}
                 >
                   {isEdit ? 'Edit location' : 'Add location'}
@@ -14493,7 +14493,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     fontSize: 11.5,
                     color: '#8A8985',
                     marginTop: 4,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     lineHeight: 1.4,
                   }}
                 >
@@ -14537,7 +14537,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     fontSize: 11,
                     fontWeight: 600,
                     color: '#71717A',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     marginBottom: 10,
                   }}
                 >
@@ -14558,7 +14558,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 6,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Location name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
@@ -14578,7 +14578,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -14592,7 +14592,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 6,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Address<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
@@ -14611,7 +14611,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -14635,7 +14635,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                       fontSize: 11.5,
                       fontWeight: 700,
                       color: '#D4D4D8',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Sets shot here
@@ -14644,7 +14644,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     style={{
                       fontSize: 10.5,
                       color: '#8A8985',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     {selectedSets.length} selected
@@ -14655,7 +14655,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     fontSize: 11,
                     color: '#71717A',
                     marginBottom: 10,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                   }}
                 >
                   Scenes are linked to this location through their set.
@@ -14718,7 +14718,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                       padding: '8px 12px',
                       color: T.cream,
                       fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       outline: 'none',
                     }}
                   />
@@ -14751,7 +14751,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     fontSize: 11,
                     fontWeight: 600,
                     color: '#71717A',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     marginBottom: 10,
                   }}
                 >
@@ -14772,7 +14772,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 6,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Contact person
@@ -14790,7 +14790,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -14804,7 +14804,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 6,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Contact number
@@ -14822,7 +14822,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -14860,7 +14860,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                       fontSize: 12,
                       fontWeight: 700,
                       color: '#D4D4D8',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Access, parking &amp; notes
@@ -14892,7 +14892,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 2,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Access instructions
@@ -14902,7 +14902,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontSize: 10.5,
                           color: '#71717A',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Gates, permits, permitted hours.
@@ -14920,7 +14920,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'vertical',
@@ -14936,7 +14936,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Parking
@@ -14954,7 +14954,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'vertical',
@@ -14970,7 +14970,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Location notes
@@ -14988,7 +14988,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'vertical',
@@ -15028,7 +15028,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                       fontSize: 12,
                       fontWeight: 700,
                       color: '#D4D4D8',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Safety
@@ -15060,7 +15060,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 2,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Nearest hospital
@@ -15070,7 +15070,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontSize: 10.5,
                           color: '#71717A',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Name and travel time.
@@ -15088,7 +15088,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                         }}
@@ -15103,7 +15103,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 2,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Emergency contact
@@ -15113,7 +15113,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           fontSize: 10.5,
                           color: '#71717A',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Where supplied.
@@ -15131,7 +15131,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                         }}
@@ -15171,7 +15171,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     cursor: 'pointer',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     padding: '6px 0',
                   }}
                 >
@@ -15192,7 +15192,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     padding: '9px 18px',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                   }}
                 >
@@ -15211,7 +15211,7 @@ function LocationModal({ open, onClose, location, onSave, onDelete, allSets = []
                     padding: '9px 20px',
                     fontSize: 12,
                     fontWeight: 700,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                     boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
                   }}
@@ -15264,10 +15264,10 @@ function DeleteLocationModal({ location, onClose, onConfirm }) {
             boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Inter,sans-serif' }}>
             Remove location?
           </h3>
-          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Inter,sans-serif' }}>
             Are you sure you want to remove <strong style={{ color: T.cream }}>{location.name}</strong>? Its sets will become unmapped.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -15282,7 +15282,7 @@ function DeleteLocationModal({ location, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 600,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -15305,7 +15305,7 @@ function DeleteLocationModal({ location, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 700,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -15465,7 +15465,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     fontWeight: 700,
                     color: T.cream,
                     letterSpacing: '-0.02em',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                   }}
                 >
                   {isEdit ? 'Edit element' : 'Add element'}
@@ -15475,7 +15475,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     fontSize: 11.5,
                     color: '#8A8985',
                     marginTop: 4,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     lineHeight: 1.4,
                   }}
                 >
@@ -15519,7 +15519,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     fontSize: 11,
                     fontWeight: 600,
                     color: '#71717A',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     marginBottom: 8,
                   }}
                 >
@@ -15533,7 +15533,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontWeight: 600,
                       color: '#D4D4D8',
                       marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Element name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
@@ -15553,7 +15553,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       padding: '9px 12px',
                       color: T.cream,
                       fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -15571,7 +15571,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontWeight: 600,
                       color: '#D4D4D8',
                       marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Category<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
@@ -15595,7 +15595,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                         padding: '9px 30px 9px 12px',
                         color: '#D4D4D8',
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                         cursor: 'pointer',
@@ -15621,7 +15621,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontWeight: 600,
                       color: '#D4D4D8',
                       marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Status
@@ -15638,7 +15638,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                         padding: '9px 30px 9px 12px',
                         color: '#D4D4D8',
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                         cursor: 'pointer',
@@ -15665,12 +15665,12 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontWeight: 600,
                       color: '#D4D4D8',
                       marginBottom: 2,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Quantity
                   </label>
-                  <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                  <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                     If applicable.
                   </div>
                   <input
@@ -15686,7 +15686,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       padding: '9px 12px',
                       color: T.cream,
                       fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -15701,12 +15701,12 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontWeight: 600,
                       color: '#D4D4D8',
                       marginBottom: 2,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Responsible department
                   </label>
-                  <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                  <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                     Who sources and looks after it.
                   </div>
                   <input
@@ -15722,7 +15722,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       padding: '9px 12px',
                       color: T.cream,
                       fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -15738,16 +15738,16 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontSize: 11.5,
                       fontWeight: 700,
                       color: '#D4D4D8',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Scenes
                   </span>
-                  <span style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif' }}>
+                  <span style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Inter,sans-serif' }}>
                     {selectedScenes.length} selected
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 10, fontFamily: 'Manrope,sans-serif' }}>
+                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 10, fontFamily: 'Inter,sans-serif' }}>
                   Every scene that needs this element.
                 </div>
 
@@ -15776,7 +15776,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       border: 'none',
                       color: T.cream,
                       fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       outline: 'none',
                     }}
                   />
@@ -15789,7 +15789,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       color: '#4A90D9',
                       fontSize: 11,
                       fontWeight: 600,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       cursor: 'pointer',
                       padding: 0,
                     }}
@@ -15804,7 +15804,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       border: 'none',
                       color: '#71717A',
                       fontSize: 11,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       cursor: 'pointer',
                       padding: 0,
                     }}
@@ -15881,7 +15881,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                       fontSize: 12,
                       fontWeight: 700,
                       color: '#D4D4D8',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Description &amp; special instructions
@@ -15913,7 +15913,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Description
@@ -15931,7 +15931,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'vertical',
@@ -15947,7 +15947,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 2,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Special instructions
@@ -15957,7 +15957,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                           fontSize: 10.5,
                           color: '#71717A',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Doubles, safety, licences, handling.
@@ -15975,7 +15975,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'vertical',
@@ -16016,7 +16016,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     cursor: 'pointer',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     padding: '6px 0',
                   }}
                 >
@@ -16037,7 +16037,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     padding: '9px 18px',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                   }}
                 >
@@ -16056,7 +16056,7 @@ function ProductionElementModal({ open, onClose, element, onSave, onDelete, allS
                     padding: '9px 20px',
                     fontSize: 12,
                     fontWeight: 700,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                     boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
                   }}
@@ -16109,10 +16109,10 @@ function DeleteProductionElementModal({ element, onClose, onConfirm }) {
             boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Inter,sans-serif' }}>
             Remove production element?
           </h3>
-          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Inter,sans-serif' }}>
             Are you sure you want to remove <strong style={{ color: T.cream }}>{element.name}</strong> from this production?
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -16127,7 +16127,7 @@ function DeleteProductionElementModal({ element, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 600,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -16150,7 +16150,7 @@ function DeleteProductionElementModal({ element, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 700,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -16325,7 +16325,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     fontWeight: 700,
                     color: T.cream,
                     letterSpacing: '-0.02em',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                   }}
                 >
                   {isEdit ? 'Edit picture vehicle' : 'Add picture vehicle'}
@@ -16335,7 +16335,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     fontSize: 11.5,
                     color: '#8A8985',
                     marginTop: 4,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     lineHeight: 1.4,
                   }}
                 >
@@ -16379,7 +16379,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     fontSize: 11,
                     fontWeight: 600,
                     color: '#71717A',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     marginBottom: 8,
                   }}
                 >
@@ -16396,12 +16396,12 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 2,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Vehicle name<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
                     </label>
-                    <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Manrope,sans-serif' }}>
+                    <div style={{ fontSize: 10.5, color: '#71717A', marginBottom: 6, fontFamily: 'Inter,sans-serif' }}>
                       As it&apos;s known in the story.
                     </div>
                     <input
@@ -16419,7 +16419,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -16434,7 +16434,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 2,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Type<span style={{ color: '#F5A623', marginLeft: 2 }}>*</span>
@@ -16452,7 +16452,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                           padding: '9px 30px 9px 12px',
                           color: '#D4D4D8',
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           cursor: 'pointer',
@@ -16483,7 +16483,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 6,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Make and model
@@ -16501,7 +16501,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -16516,7 +16516,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 6,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Colour
@@ -16534,7 +16534,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -16549,7 +16549,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         fontWeight: 600,
                         color: '#D4D4D8',
                         marginBottom: 6,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                       }}
                     >
                       Registration
@@ -16567,7 +16567,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         padding: '9px 12px',
                         color: T.cream,
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -16583,7 +16583,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     fontSize: 11,
                     fontWeight: 600,
                     color: '#71717A',
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     marginBottom: 8,
                   }}
                 >
@@ -16599,7 +16599,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       fontWeight: 600,
                       color: '#D4D4D8',
                       marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Usage
@@ -16620,7 +16620,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                             padding: '9px 0',
                             fontSize: 11.5,
                             fontWeight: 600,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                             cursor: 'pointer',
                             textAlign: 'center',
                             transition: 'all 0.15s ease',
@@ -16642,7 +16642,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       fontWeight: 600,
                       color: '#D4D4D8',
                       marginBottom: 6,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Availability
@@ -16659,7 +16659,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                         padding: '9px 30px 9px 12px',
                         color: '#D4D4D8',
                         fontSize: 11.5,
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         outline: 'none',
                         boxSizing: 'border-box',
                         cursor: 'pointer',
@@ -16685,16 +16685,16 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       fontSize: 11.5,
                       fontWeight: 700,
                       color: '#D4D4D8',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Scenes
                   </span>
-                  <span style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif' }}>
+                  <span style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Inter,sans-serif' }}>
                     {selectedScenes.length} selected
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 10, fontFamily: 'Manrope,sans-serif' }}>
+                <div style={{ fontSize: 11, color: '#71717A', marginBottom: 10, fontFamily: 'Inter,sans-serif' }}>
                   Every scene the vehicle appears in.
                 </div>
 
@@ -16723,7 +16723,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       border: 'none',
                       color: T.cream,
                       fontSize: 11.5,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       outline: 'none',
                     }}
                   />
@@ -16736,7 +16736,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       color: '#4A90D9',
                       fontSize: 11,
                       fontWeight: 600,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       cursor: 'pointer',
                       padding: 0,
                     }}
@@ -16751,7 +16751,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       border: 'none',
                       color: '#71717A',
                       fontSize: 11,
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                       cursor: 'pointer',
                       padding: 0,
                     }}
@@ -16828,7 +16828,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                       fontSize: 12,
                       fontWeight: 700,
                       color: '#D4D4D8',
-                      fontFamily: 'Manrope,sans-serif',
+                      fontFamily: 'Inter,sans-serif',
                     }}
                   >
                     Supplier &amp; special requirements
@@ -16862,7 +16862,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                             fontWeight: 600,
                             color: '#D4D4D8',
                             marginBottom: 6,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                           }}
                         >
                           Owner or supplier
@@ -16880,7 +16880,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                             padding: '9px 12px',
                             color: T.cream,
                             fontSize: 11.5,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                             outline: 'none',
                             boxSizing: 'border-box',
                           }}
@@ -16895,7 +16895,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                             fontWeight: 600,
                             color: '#D4D4D8',
                             marginBottom: 6,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                           }}
                         >
                           Contact
@@ -16913,7 +16913,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                             padding: '9px 12px',
                             color: T.cream,
                             fontSize: 11.5,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                             outline: 'none',
                             boxSizing: 'border-box',
                           }}
@@ -16930,7 +16930,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                           fontWeight: 600,
                           color: '#D4D4D8',
                           marginBottom: 2,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Special requirements
@@ -16940,7 +16940,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                           fontSize: 10.5,
                           color: '#71717A',
                           marginBottom: 6,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                         }}
                       >
                         Rigging, doubles, livery, driver.
@@ -16958,7 +16958,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                           padding: '8px 10px',
                           color: T.cream,
                           fontSize: 11.5,
-                          fontFamily: 'Manrope,sans-serif',
+                          fontFamily: 'Inter,sans-serif',
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'vertical',
@@ -16999,7 +16999,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     cursor: 'pointer',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     padding: '6px 0',
                   }}
                 >
@@ -17020,7 +17020,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     padding: '9px 18px',
                     fontSize: 12,
                     fontWeight: 600,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                   }}
                 >
@@ -17039,7 +17039,7 @@ function PictureVehicleModal({ open, onClose, vehicle, onSave, onDelete, allScen
                     padding: '9px 20px',
                     fontSize: 12,
                     fontWeight: 700,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     cursor: 'pointer',
                     boxShadow: '0 6px 20px rgba(255,179,71,0.28)',
                   }}
@@ -17092,10 +17092,10 @@ function DeletePictureVehicleModal({ vehicle, onClose, onConfirm }) {
             boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Manrope,sans-serif' }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.cream, letterSpacing: '-0.02em', fontFamily: 'Inter,sans-serif' }}>
             Remove picture vehicle?
           </h3>
-          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Manrope,sans-serif' }}>
+          <div style={{ fontSize: 12.5, color: '#8A8985', marginTop: 8, lineHeight: 1.5, fontFamily: 'Inter,sans-serif' }}>
             Are you sure you want to remove <strong style={{ color: T.cream }}>{vehicle.name}</strong> from this production?
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -17110,7 +17110,7 @@ function DeletePictureVehicleModal({ vehicle, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 600,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -17133,7 +17133,7 @@ function DeletePictureVehicleModal({ vehicle, onClose, onConfirm }) {
                 padding: '9px 18px',
                 fontSize: 12,
                 fontWeight: 700,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
               }}
             >
@@ -17465,7 +17465,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
     }
   },[initialOpenUpload]);
 
-  if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>Select a production first.</div></div>;
+  if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div></div>;
 
   let ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
   const isLagosDark=project.name?.toLowerCase().includes('lagos')||project.name==='Lagos After Dark';
@@ -17917,8 +17917,8 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       </div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:mob?14:16,flexWrap:'wrap',marginBottom:mob?16:20}}>
         <div style={{minWidth:0}}>
-          <h2 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:mob?22:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Script Breakdown</h2>
-          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+          <h2 style={{margin:0,fontFamily:'Inter,sans-serif',fontSize:mob?22:28,fontWeight:600,letterSpacing:'-0.03em',color:T.cream}}>Script Breakdown</h2>
+          <div style={{fontSize:12,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>
             Review your scenes, characters and script pages.
           </div>
         </div>
@@ -17929,7 +17929,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             whileTap={{scale:0.98}}
             transition={{duration:DURATION.fast,ease:EASE_OUT}}
             onClick={()=>{setShowUpload(o=>!o);setShowAddScene(false);}}
-            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:mob?'11px 12px':'9px 16px',fontSize:12,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
+            style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',border:'none',borderRadius:10,padding:mob?'11px 12px':'9px 16px',fontSize:12,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 6px 24px rgba(255,179,71,0.32), inset 0 1px 0 rgba(255,255,255,0.28)',fontWeight:700}}
           >
             <Upload size={14}/>
             <span>Upload Script</span>
@@ -17941,7 +17941,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               whileTap={{scale:0.98}}
               transition={{duration:DURATION.fast,ease:EASE_OUT}}
               onClick={()=>{setEditingCastMember({ isNew: true, category: 'Lead Actors', availability: 'Confirmed' }); setShowUpload(false);}}
-              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
             >
               <Plus size={14}/>
               <span>Add Cast</span>
@@ -17953,7 +17953,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               whileTap={{scale:0.98}}
               transition={{duration:DURATION.fast,ease:EASE_OUT}}
               onClick={()=>{setEditingLocation({ isNew: true }); setShowUpload(false);}}
-              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
             >
               <Plus size={14}/>
               <span>Add Location</span>
@@ -17965,7 +17965,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               whileTap={{scale:0.98}}
               transition={{duration:DURATION.fast,ease:EASE_OUT}}
               onClick={()=>{setEditingElement({ isNew: true, status: 'Needed', category: 'Props', department: 'Props' }); setShowUpload(false);}}
-              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
             >
               <Plus size={14}/>
               <span>Production Elements</span>
@@ -17977,7 +17977,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               whileTap={{scale:0.98}}
               transition={{duration:DURATION.fast,ease:EASE_OUT}}
               onClick={()=>{setEditingVehicle({ isNew: true, status: 'Sourcing', usage: 'Moving' }); setShowUpload(false);}}
-              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
             >
               <Plus size={14}/>
               <span>Picture Vehicles</span>
@@ -17989,7 +17989,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               whileTap={{scale:0.98}}
               transition={{duration:DURATION.fast,ease:EASE_OUT}}
               onClick={()=>{setShowAddScene(o=>!o);setShowUpload(false);}}
-              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
+              style={{background:'#111113',border:'1px solid #242428',color:'#E5E5E0',borderRadius:10,padding:mob?'11px 12px':'9px 14px',fontSize:12,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6}}
             >
               <Plus size={14}/>
               <span>Add Scene</span>
@@ -18025,7 +18025,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                 color:isActive?T.cream:'#8A8985',
                 fontSize:12.5,
                 fontWeight:isActive?600:500,
-                fontFamily:'Manrope,sans-serif',
+                fontFamily:'Inter,sans-serif',
                 whiteSpace:'nowrap',
                 transition:'color 0.15s ease',
               }}
@@ -18077,10 +18077,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               <CheckCircle2 size={16} strokeWidth={2.4}/>
             </div>
             <div>
-              <div style={{color:'#F0E8D0',fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{color:'#F0E8D0',fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif'}}>
                 Script &ldquo;{uploadBanner.fileName}&rdquo; uploaded &amp; broken down successfully!
               </div>
-              <div style={{color:'#A1A1AA',fontSize:11,marginTop:1,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{color:'#A1A1AA',fontSize:11,marginTop:1,fontFamily:'Inter,sans-serif'}}>
                 {uploadBanner.sceneCount} scenes and {uploadBanner.characterCount} speaking characters generated and ready to schedule.
               </div>
             </div>
@@ -18122,7 +18122,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             }}
           >
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-              <span style={{fontSize:11,color:'#8A8985',fontFamily:'Manrope,sans-serif',fontWeight:600}}>Ready to schedule</span>
+              <span style={{fontSize:11,color:'#8A8985',fontFamily:'Inter,sans-serif',fontWeight:600}}>Ready to schedule</span>
             </div>
             <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:24,fontWeight:600,letterSpacing:'-0.02em',display:'flex',alignItems:'baseline',gap:2}}>
               <span style={{color:T.cream}}>{readyCount}</span>
@@ -18137,7 +18137,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                 transition:'width 0.3s ease',
               }}/>
             </div>
-            <div style={{fontSize:11,fontFamily:'Manrope,sans-serif'}}>
+            <div style={{fontSize:11,fontFamily:'Inter,sans-serif'}}>
               <button
                 type="button"
                 onClick={()=>setStatusFilter(f=>f==='incomplete'?'all':'incomplete')}
@@ -18147,7 +18147,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding:0,
                   color:statusFilter==='incomplete'?'#F5A623':'#5B9DF8',
                   fontSize:11,
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                   fontWeight:600,
                   cursor:'pointer',
                   textAlign:'left',
@@ -18162,7 +18162,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       )}
 
       {/* Source script indicator */}
-      <div style={{display:'flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:12,fontFamily:'Manrope,sans-serif',marginBottom:16}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,color:'#8A8985',fontSize:12,fontFamily:'Inter,sans-serif',marginBottom:16}}>
         <FileText size={13} style={{color:'#8A8985'}}/>
         <span>From <span style={{color:uploadBanner?'#F5C451':'#D4D4D8',fontWeight:uploadBanner?600:500}}>{uploadBanner?.fileName || project.script_name || `${project.name} — Shooting Draft.fdx`}</span></span>
       </div>
@@ -18170,7 +18170,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
       {dupeCount>0&&<div style={{background:'rgba(224,107,82,.1)',border:`1px solid ${T.coral}`,borderRadius:10,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
         <div>
           <div style={{color:T.coral,fontSize:12,fontWeight:700}}>{dupeCount} duplicate scene{dupeCount!==1?'s':''} found</div>
-          <div style={{color:T.dim,fontSize:11,fontFamily:'Manrope,sans-serif',marginTop:2}}>Likely from applying a breakdown twice. Cleanup keeps the first copy of each scene number and removes the rest — nothing else is touched.</div>
+          <div style={{color:T.dim,fontSize:11,fontFamily:'Inter,sans-serif',marginTop:2}}>Likely from applying a breakdown twice. Cleanup keeps the first copy of each scene number and removes the rest — nothing else is touched.</div>
         </div>
         <Btn size="sm" variant="outline" onClick={()=>{if(window.confirm(`Remove ${dupeCount} duplicate scene${dupeCount!==1?'s':''}? This keeps one copy of each scene number and can't be undone.`))onDedupeScenes(project.id);}}>Clean up duplicates</Btn>
       </div>}
@@ -18220,7 +18220,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           style={{background:'linear-gradient(180deg, #101012 0%, #0C0C0E 100%)',border:'1px solid #1E1E22',borderRadius:16,padding:mob?'16px':'20px 22px',boxShadow:'0 10px 30px rgba(0,0,0,0.45)',marginBottom:20}}
         >
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-            <span style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Scenes</span>
+            <span style={{fontFamily:'Inter,sans-serif',fontSize:16,fontWeight:600,color:T.cream}}>Scenes</span>
             <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>{filtered.length} scene{filtered.length===1?'':'s'}</span>
           </div>
 
@@ -18232,7 +18232,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               placeholder="Search Scenes, Characters or scene numbers"
               value={search}
               onChange={e=>setSearch(e.target.value)}
-              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:mob?'10px 12px 10px 34px':'8px 12px 8px 34px',color:T.cream,fontSize:mob?16:12,fontFamily:'Manrope,sans-serif',outline:'none',boxSizing:'border-box'}}
+              style={{width:'100%',background:'#121214',border:'1px solid #222226',borderRadius:10,padding:mob?'10px 12px 10px 34px':'8px 12px 8px 34px',color:T.cream,fontSize:mob?16:12,fontFamily:'Inter,sans-serif',outline:'none',boxSizing:'border-box'}}
             />
           </div>
 
@@ -18257,7 +18257,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               type="button"
               disabled={!hasActiveFilters}
               onClick={clearFilters}
-              style={{background:'none',border:'none',color:hasActiveFilters?T.cream:T.faint,fontSize:11,fontWeight:600,fontFamily:'Manrope,sans-serif',cursor:hasActiveFilters?'pointer':'default',padding:'4px 6px',gridColumn:mob?'1 / -1':'auto',justifySelf:mob?'end':'auto'}}
+              style={{background:'none',border:'none',color:hasActiveFilters?T.cream:T.faint,fontSize:11,fontWeight:600,fontFamily:'Inter,sans-serif',cursor:hasActiveFilters?'pointer':'default',padding:'4px 6px',gridColumn:mob?'1 / -1':'auto',justifySelf:mob?'end':'auto'}}
             >
               Clear
             </button>
@@ -18265,7 +18265,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
           {mob?(
             filtered.length===0?(
-              <div style={{padding:'28px 8px',textAlign:'center',color:T.faint,fontSize:12,fontFamily:'Manrope,sans-serif',lineHeight:1.5}}>
+              <div style={{padding:'28px 8px',textAlign:'center',color:T.faint,fontSize:12,fontFamily:'Inter,sans-serif',lineHeight:1.5}}>
                 {ps.length===0
                   ? 'No scenes yet. Tap "Upload Script" or "Add Scene" to build your breakdown.'
                   : 'No scenes match your current search or filters.'}
@@ -18287,7 +18287,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                       tabIndex={0}
                       onClick={()=>{setPendingNewScene(null);setSelectedScene(sc);}}
                       onKeyDown={e=>{if(e.key==='Enter'){setPendingNewScene(null);setSelectedScene(sc);}}}
-                      style={{background:isSelected?'rgba(255,179,71,0.05)':'#121215',border:isSelected?'1px solid rgba(255,179,71,0.45)':'1px solid #1E1E22',borderRadius:12,padding:'12px 12px 12px 14px',cursor:'pointer',fontFamily:'Manrope,sans-serif'}}
+                      style={{background:isSelected?'rgba(255,179,71,0.05)':'#121215',border:isSelected?'1px solid rgba(255,179,71,0.45)':'1px solid #1E1E22',borderRadius:12,padding:'12px 12px 12px 14px',cursor:'pointer',fontFamily:'Inter,sans-serif'}}
                     >
                       <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
                         <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:12,fontWeight:600,color:T.cream,minWidth:22,paddingTop:1}}>{sc.sceneNumber}</span>
@@ -18326,7 +18326,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             )
           ):(
             <div style={{overflowX:'auto'}}>
-              <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Manrope,sans-serif',fontSize:11.5}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontFamily:'Inter,sans-serif',fontSize:11.5}}>
                 <thead>
                   <tr style={{borderBottom:'1px solid #1C1C20',color:'#7A7974',fontSize:10.5,textAlign:'left'}}>
                     <th style={{padding:'9px 8px 9px 0',fontWeight:500,width:45}}>Scene</th>
@@ -18426,10 +18426,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           <div style={{minWidth:0}}>
             {/* Header: Title & Subtitle */}
             <div style={{marginBottom:16}}>
-              <h3 style={{margin:0,fontFamily:'Manrope,sans-serif',fontSize:18,fontWeight:700,letterSpacing:'-0.02em',color:T.cream}}>
+              <h3 style={{margin:0,fontFamily:'Inter,sans-serif',fontSize:18,fontWeight:700,letterSpacing:'-0.02em',color:T.cream}}>
                 Cast
               </h3>
-              <div style={{fontSize:12,color:'#8A8985',marginTop:4,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{fontSize:12,color:'#8A8985',marginTop:4,fontFamily:'Inter,sans-serif'}}>
                 Leads through to crowd, linked to every scene they appear in.
               </div>
             </div>
@@ -18452,7 +18452,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     padding:'8px 12px 8px 34px',
                     color:T.cream,
                     fontSize:12,
-                    fontFamily:'Manrope,sans-serif',
+                    fontFamily:'Inter,sans-serif',
                     outline:'none',
                     boxSizing:'border-box'
                   }}
@@ -18472,7 +18472,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     padding:'8px 28px 8px 12px',
                     color:castCategoryFilter==='all'?'#8A8985':T.cream,
                     fontSize:12,
-                    fontFamily:'Manrope,sans-serif',
+                    fontFamily:'Inter,sans-serif',
                     outline:'none',
                     cursor:'pointer',
                     appearance:'none',
@@ -18500,7 +18500,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     padding:'8px 28px 8px 12px',
                     color:castAvailabilityFilter==='all'?'#8A8985':T.cream,
                     fontSize:12,
-                    fontFamily:'Manrope,sans-serif',
+                    fontFamily:'Inter,sans-serif',
                     outline:'none',
                     cursor:'pointer',
                     appearance:'none',
@@ -18536,7 +18536,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     borderBottom:'1px solid #1C1C20',
                     marginBottom:4
                   }}>
-                    <span style={{fontFamily:'Manrope,sans-serif',fontSize:13,fontWeight:700,color:'#E5E5E0'}}>
+                    <span style={{fontFamily:'Inter,sans-serif',fontSize:13,fontWeight:700,color:'#E5E5E0'}}>
                       {cat}
                     </span>
                     <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'#71717A'}}>
@@ -18546,7 +18546,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
                   {/* Category Table */}
                   <div style={{overflowX:'auto'}}>
-                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,fontFamily:'Manrope,sans-serif',textAlign:'left'}}>
+                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,fontFamily:'Inter,sans-serif',textAlign:'left'}}>
                       <thead>
                         <tr style={{borderBottom:'1px solid #18181C',color:'#71717A',fontSize:11}}>
                           <th style={{padding:'8px 8px 8px 0',fontWeight:500,width:'26%'}}>Cast</th>
@@ -18663,7 +18663,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                               {/* Call / On set column */}
                               <td style={{padding:'10px 8px',verticalAlign:'middle',whiteSpace:'nowrap'}}>
                                 <span style={{
-                                  fontFamily: callOnSet==='Not set' ? 'Manrope,sans-serif' : 'IBM Plex Mono,monospace',
+                                  fontFamily: callOnSet==='Not set' ? 'Inter,sans-serif' : 'IBM Plex Mono,monospace',
                                   fontSize:11,
                                   color: callOnSet==='Not set' ? '#71717A' : '#D4D4D8'
                                 }}>
@@ -18729,10 +18729,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           }}>
             {/* Header */}
             <div style={{marginBottom:10}}>
-              <div style={{fontFamily:'Manrope,sans-serif',fontSize:14,fontWeight:700,color:T.cream}}>
+              <div style={{fontFamily:'Inter,sans-serif',fontSize:14,fontWeight:700,color:T.cream}}>
                 Script characters
               </div>
-              <div style={{fontSize:11,color:'#71717A',marginTop:2,fontFamily:'Manrope,sans-serif'}}>
+              <div style={{fontSize:11,color:'#71717A',marginTop:2,fontFamily:'Inter,sans-serif'}}>
                 {uncastCount} of {totalScriptChars} not cast yet
               </div>
             </div>
@@ -18754,7 +18754,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding:'6px 10px 6px 28px',
                   color:T.cream,
                   fontSize:11.5,
-                  fontFamily:'Manrope,sans-serif',
+                  fontFamily:'Inter,sans-serif',
                   outline:'none',
                   boxSizing:'border-box'
                 }}
@@ -18783,7 +18783,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     {/* Top line: Name and Cast Status */}
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
                       <span style={{
-                        fontFamily:'Manrope,sans-serif',
+                        fontFamily:'Inter,sans-serif',
                         fontSize:12,
                         fontWeight:700,
                         color:T.cream,
@@ -18921,10 +18921,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           >
             {/* Header */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
+              <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
                 Locations
               </div>
-              <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+              <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Inter,sans-serif' }}>
                 Physical places you'll shoot at, with the sets and scenes they cover.
               </div>
             </div>
@@ -18948,7 +18948,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     padding: '7px 12px 7px 32px',
                     color: T.cream,
                     fontSize: 12,
-                    fontFamily: 'Manrope,sans-serif',
+                    fontFamily: 'Inter,sans-serif',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
@@ -18967,7 +18967,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding: '7px 12px',
                   color: '#D4D4D8',
                   fontSize: 12,
-                  fontFamily: 'Manrope,sans-serif',
+                  fontFamily: 'Inter,sans-serif',
                   cursor: 'pointer',
                   outline: 'none',
                 }}
@@ -18990,7 +18990,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding: '7px 12px',
                   color: '#D4D4D8',
                   fontSize: 12,
-                  fontFamily: 'Manrope,sans-serif',
+                  fontFamily: 'Inter,sans-serif',
                   cursor: 'pointer',
                   outline: 'none',
                 }}
@@ -19004,7 +19004,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             </div>
 
             {/* Records count */}
-            <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Manrope,sans-serif', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Inter,sans-serif', marginBottom: 10 }}>
               {filteredLocations.length} record{filteredLocations.length === 1 ? '' : 's'}
             </div>
 
@@ -19013,22 +19013,22 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 620 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #1E1E22' }}>
-                    <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                       Location ↑
                     </th>
-                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                       Sets
                     </th>
-                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                       Scenes
                     </th>
-                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                       INT/EXT · Time
                     </th>
-                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                    <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                       Contact
                     </th>
-                    <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif', textAlign: 'right' }}>
+                    <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif', textAlign: 'right' }}>
                       Actions
                     </th>
                   </tr>
@@ -19042,11 +19042,11 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                       <tr key={loc.id} style={{ borderBottom: '1px solid #161619' }}>
                         {/* Location Name & Address */}
                         <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', maxWidth: 190 }}>
-                          <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
+                          <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
                             {loc.name}
                           </div>
                           {loc.address && (
-                            <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Inter,sans-serif', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {loc.address}
                             </div>
                           )}
@@ -19101,7 +19101,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
                         {/* Contact */}
                         <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 11, fontWeight: 500, color: T.cream }}>
+                          <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 11, fontWeight: 500, color: T.cream }}>
                             {loc.contactName || '—'}
                           </div>
                           {loc.contactPhone && (
@@ -19161,10 +19161,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             }}
           >
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 14, fontWeight: 700, color: T.cream }}>
+              <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 14, fontWeight: 700, color: T.cream }}>
                 Sets without a location
               </div>
-              <div style={{ fontSize: 11, color: '#71717A', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+              <div style={{ fontSize: 11, color: '#71717A', marginTop: 3, fontFamily: 'Inter,sans-serif' }}>
                 {unmappedSets.length} {unmappedSets.length === 1 ? 'set' : 'sets'} can't be scheduled until mapped.
               </div>
             </div>
@@ -19184,7 +19184,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <span
                       style={{
-                        fontFamily: 'Manrope,sans-serif',
+                        fontFamily: 'Inter,sans-serif',
                         fontSize: 12,
                         fontWeight: 700,
                         color: T.cream,
@@ -19275,10 +19275,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         >
           {/* Header */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
+            <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
               Production Elements
             </div>
-            <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+            <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Inter,sans-serif' }}>
               Everything each scene needs, by category and department.
             </div>
           </div>
@@ -19302,7 +19302,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding: '7px 12px 7px 32px',
                   color: T.cream,
                   fontSize: 12,
-                  fontFamily: 'Manrope,sans-serif',
+                  fontFamily: 'Inter,sans-serif',
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -19321,7 +19321,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                 padding: '7px 12px',
                 color: '#D4D4D8',
                 fontSize: 12,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
                 outline: 'none',
               }}
@@ -19347,7 +19347,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                 padding: '7px 12px',
                 color: '#D4D4D8',
                 fontSize: 12,
-                fontFamily: 'Manrope,sans-serif',
+                fontFamily: 'Inter,sans-serif',
                 cursor: 'pointer',
                 outline: 'none',
               }}
@@ -19361,7 +19361,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           </div>
 
           {/* Records count */}
-          <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Manrope,sans-serif', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Inter,sans-serif', marginBottom: 10 }}>
             {filteredElements.length} record{filteredElements.length === 1 ? '' : 's'}
           </div>
 
@@ -19370,25 +19370,25 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 680 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #1E1E22' }}>
-                  <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Element
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Category ↑
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Scenes
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Qty
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Department
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Status
                   </th>
-                  <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif', textAlign: 'right' }}>
+                  <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif', textAlign: 'right' }}>
                     Actions
                   </th>
                 </tr>
@@ -19421,11 +19421,11 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     <tr key={el.id} style={{ borderBottom: '1px solid #161619' }}>
                       {/* Element Name & Description */}
                       <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', maxWidth: 220 }}>
-                        <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
+                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
                           {el.name}
                         </div>
                         {(el.description || el.notes) && (
-                          <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif', marginTop: 2, lineHeight: 1.35 }}>
+                          <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Inter,sans-serif', marginTop: 2, lineHeight: 1.35 }}>
                             {el.description || el.notes}
                           </div>
                         )}
@@ -19433,7 +19433,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
                       {/* Category */}
                       <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Inter,sans-serif' }}>
                           {el.category}
                         </span>
                       </td>
@@ -19480,7 +19480,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
                       {/* Department */}
                       <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Inter,sans-serif' }}>
                           {el.department || el.category}
                         </span>
                       </td>
@@ -19497,7 +19497,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                             fontSize: 10.5,
                             fontWeight: 600,
                             color: statusColor,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                           }}
                         >
                           {el.status || 'Ready'}
@@ -19560,10 +19560,10 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         >
           {/* Header */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
+            <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 16, fontWeight: 700, color: T.cream }}>
               Picture Vehicles
             </div>
-            <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Manrope,sans-serif' }}>
+            <div style={{ fontSize: 12, color: '#8A8985', marginTop: 3, fontFamily: 'Inter,sans-serif' }}>
               Vehicles that appear on camera, and the scenes they&apos;re in.
             </div>
           </div>
@@ -19587,7 +19587,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding: '7px 12px 7px 32px',
                   color: T.cream,
                   fontSize: 12,
-                  fontFamily: 'Manrope,sans-serif',
+                  fontFamily: 'Inter,sans-serif',
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -19607,7 +19607,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding: '7px 28px 7px 12px',
                   color: '#D4D4D8',
                   fontSize: 12,
-                  fontFamily: 'Manrope,sans-serif',
+                  fontFamily: 'Inter,sans-serif',
                   cursor: 'pointer',
                   outline: 'none',
                   appearance: 'none',
@@ -19635,7 +19635,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                   padding: '7px 28px 7px 12px',
                   color: '#D4D4D8',
                   fontSize: 12,
-                  fontFamily: 'Manrope,sans-serif',
+                  fontFamily: 'Inter,sans-serif',
                   cursor: 'pointer',
                   outline: 'none',
                   appearance: 'none',
@@ -19653,7 +19653,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           </div>
 
           {/* Records count */}
-          <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Manrope,sans-serif', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: '#71717A', fontFamily: 'Inter,sans-serif', marginBottom: 10 }}>
             {sortedVehicles.length} record{sortedVehicles.length === 1 ? '' : 's'}
           </div>
 
@@ -19662,25 +19662,25 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 680 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #1E1E22' }}>
-                  <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px 8px 0', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Vehicle ↑
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Registration
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Scenes
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Usage
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Supplier
                   </th>
-                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                  <th style={{ padding: '8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif' }}>
                     Status
                   </th>
-                  <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Manrope,sans-serif', textAlign: 'right' }}>
+                  <th style={{ padding: '8px 0 8px 8px', fontSize: 11, fontWeight: 600, color: '#71717A', fontFamily: 'Inter,sans-serif', textAlign: 'right' }}>
                     Actions
                   </th>
                 </tr>
@@ -19713,11 +19713,11 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                     <tr key={veh.id} style={{ borderBottom: '1px solid #161619' }}>
                       {/* Vehicle Name & Spec */}
                       <td style={{ padding: '12px 8px 12px 0', verticalAlign: 'middle', maxWidth: 240 }}>
-                        <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
+                        <div style={{ fontFamily: 'Inter,sans-serif', fontSize: 12.5, fontWeight: 700, color: T.cream, lineHeight: 1.3 }}>
                           {veh.name}
                         </div>
                         {(veh.spec || veh.description) && (
-                          <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Manrope,sans-serif', marginTop: 2, lineHeight: 1.35 }}>
+                          <div style={{ fontSize: 10.5, color: '#8A8985', fontFamily: 'Inter,sans-serif', marginTop: 2, lineHeight: 1.35 }}>
                             {veh.spec || veh.description}
                           </div>
                         )}
@@ -19725,7 +19725,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
                       {/* Registration */}
                       <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Inter,sans-serif' }}>
                           {veh.registration || '—'}
                         </span>
                       </td>
@@ -19784,14 +19784,14 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
 
                       {/* Usage */}
                       <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Manrope,sans-serif' }}>
+                        <span style={{ fontSize: 11, color: '#D4D4D8', fontFamily: 'Inter,sans-serif' }}>
                           {veh.usage || '—'}
                         </span>
                       </td>
 
                       {/* Supplier */}
                       <td style={{ padding: '12px 8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 11, color: veh.supplier && veh.supplier !== '—' ? '#D4D4D8' : '#71717A', fontFamily: 'Manrope,sans-serif' }}>
+                        <span style={{ fontSize: 11, color: veh.supplier && veh.supplier !== '—' ? '#D4D4D8' : '#71717A', fontFamily: 'Inter,sans-serif' }}>
                           {veh.supplier || '—'}
                         </span>
                       </td>
@@ -19808,7 +19808,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
                             fontSize: 10.5,
                             fontWeight: 600,
                             color: statusColor,
-                            fontFamily: 'Manrope,sans-serif',
+                            fontFamily: 'Inter,sans-serif',
                           }}
                         >
                           {veh.status || 'Confirmed'}
@@ -19965,11 +19965,11 @@ function CreatorCard({creator,selected,onClick}){
   const init=creator.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   return(
     <button onClick={onClick} style={{background:selected?T.hi:T.panel,border:`1px solid ${selected?T.gold:T.line}`,borderRadius:12,padding:'16px 14px',textAlign:'left',cursor:'pointer',flexShrink:0,width:155}}>
-      <div style={{width:40,height:40,borderRadius:'50%',background:selected?T.gold:T.hi,border:`2px solid ${selected?T.gold:T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:selected?T.ink:T.goldDim,fontFamily:'Manrope,sans-serif',marginBottom:10}}>{init}</div>
-      <div style={{fontFamily:'Fraunces,serif',fontSize:13,color:T.cream,marginBottom:2}}>{creator.name}</div>
-      <div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:4}}>{creator.role}</div>
-      <div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>{creator.loc} · {creator.downloads} uses</div>
-      {creator.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,marginTop:4}}>✓ NKÒ Verified</div>}
+      <div style={{width:40,height:40,borderRadius:'50%',background:selected?T.gold:T.hi,border:`2px solid ${selected?T.gold:T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:selected?T.ink:T.goldDim,fontFamily:'Inter,sans-serif',marginBottom:10}}>{init}</div>
+      <div style={{fontFamily:'Inter,sans-serif',fontSize:13,color:T.cream,marginBottom:2}}>{creator.name}</div>
+      <div style={{fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:4}}>{creator.role}</div>
+      <div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif'}}>{creator.loc} · {creator.downloads} uses</div>
+      {creator.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Inter,sans-serif',fontWeight:700,marginTop:4}}>✓ NKÒ Verified</div>}
     </button>
   );
 }
@@ -19977,11 +19977,11 @@ function VendorCard({vendor}){
   return(
     <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,padding:16,display:'flex',flexDirection:'column',gap:8}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-        <div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream}}>{vendor.name}</div>
-        {vendor.verified&&<span style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700,whiteSpace:'nowrap'}}>✓ Verified</span>}
+        <div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream}}>{vendor.name}</div>
+        {vendor.verified&&<span style={{fontSize:9,color:T.sage,fontFamily:'Inter,sans-serif',fontWeight:700,whiteSpace:'nowrap'}}>✓ Verified</span>}
       </div>
-      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Pill>{vendor.category}</Pill>{vendor.loc&&<span style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif',alignSelf:'center'}}>{vendor.loc}</span>}</div>
-      {vendor.service&&<div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{vendor.service}</div>}
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}><Pill>{vendor.category}</Pill>{vendor.loc&&<span style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif',alignSelf:'center'}}>{vendor.loc}</span>}</div>
+      {vendor.service&&<div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>{vendor.service}</div>}
       <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:13,color:T.goldDim,marginTop:4}}>{vendor.contact}</div>
     </div>
   );
@@ -19996,56 +19996,56 @@ function MarketplaceView({onApplyTemplate}){
   const featured=CREATORS[0];
   return(
     <div>
-      <div style={{marginBottom:20}}><div style={{fontFamily:'Fraunces,serif',fontSize:26,color:T.cream}}>{tr('marketplaceHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Manrope,sans-serif'}}>Community templates, and vendors to hire for your production.</div><div style={{marginTop:14}}><FS/></div></div>
+      <div style={{marginBottom:20}}><div style={{fontFamily:'Inter,sans-serif',fontSize:26,color:T.cream}}>{tr('marketplaceHeader')}</div><div style={{fontSize:14,color:T.dim,marginTop:4,fontFamily:'Inter,sans-serif'}}>Community templates, and vendors to hire for your production.</div><div style={{marginTop:14}}><FS/></div></div>
       <div style={{display:'flex',gap:8,marginBottom:20,borderBottom:`1px solid ${T.line}`}}>
-        <button onClick={()=>setTab('templates')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='templates'?T.gold:'transparent'}`,color:tab==='templates'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Templates</button>
-        <button onClick={()=>setTab('vendors')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='vendors'?T.gold:'transparent'}`,color:tab==='vendors'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Manrope,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Vendors</button>
+        <button onClick={()=>setTab('templates')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='templates'?T.gold:'transparent'}`,color:tab==='templates'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Templates</button>
+        <button onClick={()=>setTab('vendors')} style={{background:'none',border:'none',borderBottom:`2px solid ${tab==='vendors'?T.gold:'transparent'}`,color:tab==='vendors'?T.gold:T.dim,fontSize:13,fontWeight:700,fontFamily:'Inter,sans-serif',padding:'8px 4px',cursor:'pointer'}}>Vendors</button>
       </div>
       {tab==='vendors'?<div>
         <Inp placeholder="Search vendors by name or city…" value={vSearch} onChange={e=>setVSearch(e.target.value)} style={{marginBottom:12}}/>
-        <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{VENDOR_CATEGORIES.map(c=><button key={c} onClick={()=>setVCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${vCat===c?T.gold:T.line}`,background:vCat===c?T.goldGlow:'transparent',color:vCat===c?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
-        {filteredVendors.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No vendors match.</div></div>:
+        <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{VENDOR_CATEGORIES.map(c=><button key={c} onClick={()=>setVCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${vCat===c?T.gold:T.line}`,background:vCat===c?T.goldGlow:'transparent',color:vCat===c?T.gold:T.dim,fontSize:12,fontFamily:'Inter,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
+        {filteredVendors.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>No vendors match.</div></div>:
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:14}}>{filteredVendors.map(v=><VendorCard key={v.id} vendor={v}/>)}</div>}
-        <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>List your business</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Reach producers actively budgeting for a shoot.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Vendor listing','_blank')}>List your business →</Btn></div>
+        <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:6}}>List your business</div><div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:14,lineHeight:1.6}}>Reach producers actively budgeting for a shoot.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Vendor listing','_blank')}>List your business →</Btn></div>
       </div>:<>
       {/* Featured creator hero */}
       <div style={{background:T.panel,border:`1px solid ${T.gold}`,borderRadius:12,padding:20,marginBottom:24,display:'flex',gap:16,alignItems:'center',flexWrap:mob?'wrap':'nowrap'}}>
-        <div style={{width:52,height:52,borderRadius:'50%',background:T.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:T.ink,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{featured.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-        <div style={{flex:1}}><div style={{fontSize:10,color:T.goldDim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:3}}>Featured creator</div><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream}}>{featured.name}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginTop:2}}>{featured.role} · {featured.loc}</div></div>
-        <div style={{display:'flex',gap:16,flexShrink:0}}><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>2</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>templates</div></div><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>{featured.downloads}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif'}}>uses</div></div></div>
+        <div style={{width:52,height:52,borderRadius:'50%',background:T.gold,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:T.ink,fontFamily:'Inter,sans-serif',flexShrink:0}}>{featured.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        <div style={{flex:1}}><div style={{fontSize:10,color:T.goldDim,fontFamily:'Inter,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:3}}>Featured creator</div><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream}}>{featured.name}</div><div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginTop:2}}>{featured.role} · {featured.loc}</div></div>
+        <div style={{display:'flex',gap:16,flexShrink:0}}><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>2</div><div style={{fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif'}}>templates</div></div><div style={{textAlign:'center'}}><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:20,color:T.gold}}>{featured.downloads}</div><div style={{fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif'}}>uses</div></div></div>
       </div>
       {/* Creator row */}
-      <div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontFamily:'Manrope,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>Browse by creator</div>
+      <div style={{marginBottom:20}}><div style={{fontSize:10,color:T.dim,fontFamily:'Inter,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12}}>Browse by creator</div>
         <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch'}}><div style={{display:'flex',gap:10,paddingBottom:8,minWidth:'max-content'}}>
-          <button onClick={()=>setSel(null)} style={{background:!sel?T.hi:T.panel,border:`1px solid ${!sel?T.gold:T.line}`,borderRadius:12,padding:'10px 14px',cursor:'pointer',color:!sel?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,flexShrink:0}}>All creators</button>
+          <button onClick={()=>setSel(null)} style={{background:!sel?T.hi:T.panel,border:`1px solid ${!sel?T.gold:T.line}`,borderRadius:12,padding:'10px 14px',cursor:'pointer',color:!sel?T.gold:T.dim,fontSize:12,fontFamily:'Inter,sans-serif',fontWeight:700,flexShrink:0}}>All creators</button>
           {CREATORS.map(c=><CreatorCard key={c.id} creator={c} selected={sel===c.name} onClick={()=>setSel(sel===c.name?null:c.name)}/>)}
         </div></div>
       </div>
       {/* Search + category */}
       <Inp placeholder="Search templates…" value={search} onChange={e=>setSearch(e.target.value)} style={{marginBottom:12}}/>
-      <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{MKTCAT.map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${cat===c?T.gold:T.line}`,background:cat===c?T.goldGlow:'transparent',color:cat===c?T.gold:T.dim,fontSize:12,fontFamily:'Manrope,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
+      <div style={{overflowX:'auto',marginBottom:20}}><div style={{display:'flex',gap:6,minWidth:'max-content',paddingBottom:4}}>{MKTCAT.map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:'6px 14px',borderRadius:20,border:`1px solid ${cat===c?T.gold:T.line}`,background:cat===c?T.goldGlow:'transparent',color:cat===c?T.gold:T.dim,fontSize:12,fontFamily:'Inter,sans-serif',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>{c}</button>)}</div></div>
       {/* Template grid */}
-      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Manrope,sans-serif'}}>No templates match.</div></div>:
+      {filtered.length===0?<div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:10,padding:32,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>No templates match.</div></div>:
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:14}}>
         {filtered.map(tpl=>{const total=tpl.items.reduce((s,i)=>s+lTot(i),0);const isApp=applied===tpl.id;const c=CREATORS.find(c=>c.name===tpl.author);const init=tpl.author.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
         return<div key={tpl.id} style={{background:T.panel,border:`1px solid ${isApp?T.sage:T.line}`,borderRadius:12,padding:18,display:'flex',flexDirection:'column',gap:12}}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <div style={{width:28,height:28,borderRadius:'50%',background:T.hi,border:`1px solid ${T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:T.goldDim,fontFamily:'Manrope,sans-serif',flexShrink:0}}>{init}</div>
-            <div><div style={{fontSize:11,color:T.cream,fontFamily:'Manrope,sans-serif',fontWeight:600}}>{tpl.author}</div>{c?.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Manrope,sans-serif',fontWeight:700}}>✓ Verified</div>}</div>
+            <div style={{width:28,height:28,borderRadius:'50%',background:T.hi,border:`1px solid ${T.line}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:T.goldDim,fontFamily:'Inter,sans-serif',flexShrink:0}}>{init}</div>
+            <div><div style={{fontSize:11,color:T.cream,fontFamily:'Inter,sans-serif',fontWeight:600}}>{tpl.author}</div>{c?.verified&&<div style={{fontSize:9,color:T.sage,fontFamily:'Inter,sans-serif',fontWeight:700}}>✓ Verified</div>}</div>
           </div>
-          <div><div style={{fontFamily:'Fraunces,serif',fontSize:15,color:T.cream,marginBottom:3}}>{tpl.label}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Manrope,sans-serif'}}>{tpl.sub}</div></div>
+          <div><div style={{fontFamily:'Inter,sans-serif',fontSize:15,color:T.cream,marginBottom:3}}>{tpl.label}</div><div style={{fontSize:11,color:T.dim,fontFamily:'Inter,sans-serif'}}>{tpl.sub}</div></div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
             <Pill>{tpl.type.split('/')[0].trim()}</Pill>
-            <span style={{fontSize:10,background:'rgba(82,176,122,.15)',color:T.sage,padding:'2px 8px',borderRadius:10,fontFamily:'Manrope,sans-serif',fontWeight:700,border:`1px solid ${T.sage}`}}>📊 Budget</span>
-            {tpl.scenes?.length>0&&<span style={{fontSize:10,background:'rgba(74,144,217,.15)',color:T.sapphire,padding:'2px 8px',borderRadius:10,fontFamily:'Manrope,sans-serif',fontWeight:700,border:`1px solid ${T.sapphire}`}}>📋 {tpl.scenes.length} scenes</span>}
+            <span style={{fontSize:10,background:'rgba(82,176,122,.15)',color:T.sage,padding:'2px 8px',borderRadius:10,fontFamily:'Inter,sans-serif',fontWeight:700,border:`1px solid ${T.sage}`}}>📊 Budget</span>
+            {tpl.scenes?.length>0&&<span style={{fontSize:10,background:'rgba(74,144,217,.15)',color:T.sapphire,padding:'2px 8px',borderRadius:10,fontFamily:'Inter,sans-serif',fontWeight:700,border:`1px solid ${T.sapphire}`}}>📋 {tpl.scenes.length} scenes</span>}
           </div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.gold}}>₦{fmt(total)}</div><div style={{fontSize:10,color:T.faint,fontFamily:'Manrope,sans-serif'}}>{tpl.items.length} lines · {tpl.downloads} uses</div></div>
+            <div><div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:15,color:T.gold}}>₦{fmt(total)}</div><div style={{fontSize:10,color:T.faint,fontFamily:'Inter,sans-serif'}}>{tpl.items.length} lines · {tpl.downloads} uses</div></div>
             <Btn size="sm" variant={isApp?'sage':'outline'} onClick={()=>{onApplyTemplate(tpl);setApplied(tpl.id);setTimeout(()=>setApplied(null),3000);}}>{isApp?tr('applied'):tr('useTemplate')}</Btn>
           </div>
         </div>;})}
       </div>}
-      <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Fraunces,serif',fontSize:17,color:T.cream,marginBottom:6}}>Publish your template</div><div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:14,lineHeight:1.6}}>Share a budget that works and earn an NKÒ Verified badge.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Template submission','_blank')}>Submit a template →</Btn></div>
+      <div style={{marginTop:28,padding:'20px 24px',background:T.panel,border:`1px solid ${T.line}`,borderRadius:12,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:6}}>Publish your template</div><div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:14,lineHeight:1.6}}>Share a budget that works and earn an NKÒ Verified badge.</div><Btn variant="outline" onClick={()=>window.open('mailto:hello@nko.film?subject=Template submission','_blank')}>Submit a template →</Btn></div>
       </>}
     </div>
   );
@@ -20904,8 +20904,8 @@ function Workspace(){
               <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name))} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onOpenUploadScript={()=>{setBreakdownOpenUpload(true);setView('breakdown');}}/>
             ):(
               <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:40,textAlign:'center'}}>
-                <div style={{fontFamily:'Manrope,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
-                <div style={{fontSize:12,color:T.dim,fontFamily:'Manrope,sans-serif',marginBottom:16}}>Select a production from Productions to view its overview.</div>
+                <div style={{fontFamily:'Inter,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
+                <div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:16}}>Select a production from Productions to view its overview.</div>
                 <Btn onClick={()=>setView('productions')} style={{background:'linear-gradient(180deg, #FFC45C 0%, #F5A623 100%)',color:'#0A0A0A',borderRadius:10}}>Go to Productions</Btn>
               </div>
             )

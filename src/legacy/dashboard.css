@@ -1,8 +1,8 @@
 /* Isolate the recovered app's typography from the current marketing pages.
    Its original inline visual theme and print/export styling are preserved. */
 .nko-dashboard {
-  font-family: Manrope, Arial, sans-serif;
-  line-height: normal;
+  font-family: Inter, Arial, sans-serif;
+  line-height: 1.45;
   min-height: 100svh;
   overflow-wrap: break-word;
   color-scheme: dark;
