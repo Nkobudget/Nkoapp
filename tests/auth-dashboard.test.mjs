@@ -148,6 +148,18 @@ async function dashboard(page) {
   await page.getByLabel('Select production', { exact: true }).waitFor()
 }
 
+test('landing, sign-in, and onboarding share the Inter typography', async () => {
+  const t = await setup()
+  for (const pathname of ['/', '/sign-in', '/onboarding']) {
+    await t.page.goto(new URL(pathname, baseURL).href)
+    const heading = t.page.locator('h1').first()
+    await heading.waitFor()
+    const fontFamily = await heading.evaluate(node => getComputedStyle(node).fontFamily)
+    assert.match(fontFamily, /Inter/)
+  }
+  await t.close()
+})
+
 test('public navigation, browser history, direct routes, and anonymous dashboard guard', async () => {
   const t = await setup()
   await t.page.goto(baseURL)
