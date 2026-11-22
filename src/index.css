@@ -25,76 +25,21 @@ body {
   line-height: 1.5;
 }
 
-@media (min-width: 768px) {
-  @supports not selector(::-webkit-scrollbar) {
-    html,
-    body,
-    * {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(245, 245, 240, 0.3) rgba(14, 14, 17, 0.72);
-    }
-  }
+/* Hide default OS scrollbars so the custom glassmorphism auto-hiding
+   scrollbar component renders cleanly without duplicate native bars. */
+html,
+body,
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
 
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar,
-  *::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
-  }
-
-  html::-webkit-scrollbar-track,
-  body::-webkit-scrollbar-track,
-  *::-webkit-scrollbar-track {
-    background: rgba(14, 14, 17, 0.72);
-    border-left: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  html::-webkit-scrollbar-thumb,
-  body::-webkit-scrollbar-thumb,
-  *::-webkit-scrollbar-thumb {
-    min-height: 44px;
-    background: linear-gradient(
-      180deg,
-      rgba(245, 245, 240, 0.28) 0%,
-      rgba(212, 175, 55, 0.22) 100%
-    );
-    border: 2.5px solid transparent;
-    border-radius: 9999px;
-    background-clip: padding-box;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-  }
-
-  html::-webkit-scrollbar-thumb:hover,
-  body::-webkit-scrollbar-thumb:hover,
-  *::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 179, 71, 0.62) 0%,
-      rgba(212, 175, 55, 0.48) 100%
-    );
-    border: 2.5px solid transparent;
-    background-clip: padding-box;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-  }
-
-  html::-webkit-scrollbar-thumb:active,
-  body::-webkit-scrollbar-thumb:active,
-  *::-webkit-scrollbar-thumb:active {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 179, 71, 0.85) 0%,
-      rgba(212, 175, 55, 0.75) 100%
-    );
-    border: 2.5px solid transparent;
-    background-clip: padding-box;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
-  }
-
-  html::-webkit-scrollbar-corner,
-  body::-webkit-scrollbar-corner,
-  *::-webkit-scrollbar-corner {
-    background: rgba(14, 14, 17, 0.72);
-  }
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 @keyframes iris-glow-pulse {
