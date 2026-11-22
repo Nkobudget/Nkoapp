@@ -93,13 +93,15 @@
   will-change: transform, opacity;
 }
 
-.nko-dashboard,
-.nko-dashboard * {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
+@media (max-width: 767px) {
+  .nko-dashboard,
+  .nko-dashboard * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 
-.nko-dashboard::-webkit-scrollbar,
-.nko-dashboard *::-webkit-scrollbar {
-  display: none;
+  .nko-dashboard::-webkit-scrollbar,
+  .nko-dashboard *::-webkit-scrollbar {
+    display: none;
+  }
 }
