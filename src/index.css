@@ -25,6 +25,23 @@ body {
   line-height: 1.5;
 }
 
+/* Hide default OS scrollbars so the custom glassmorphism auto-hiding
+   scrollbar component renders cleanly without duplicate native bars. */
+html,
+body,
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 @keyframes iris-glow-pulse {
   0% {
     transform: scale(0.72);
