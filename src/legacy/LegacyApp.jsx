@@ -20806,20 +20806,28 @@ function Workspace(){
     // (3) Before inserting, verify the project exists in Supabase and abort with one toast if it doesn't
     let candidateId = targetProjectId || project?.id || currentId;
     let verifiedProject = null;
+    let pErr = null;
 
     if (candidateId) {
       try {
-        const { data: pCheck, error: pErr } = await sb
+        const { data: pCheck, error: queryErr } = await sb
           .from('projects')
           .select('id, name')
           .eq('id', candidateId)
           .maybeSingle();
+        pErr = queryErr;
         if (!pErr && pCheck) {
           verifiedProject = pCheck;
+        } else {
+          console.log("candidateId:", candidateId, "targetProjectId:", targetProjectId, "project?.id:", project?.id, "currentId:", currentId, "pErr:", pErr);
         }
       } catch (err) {
+        pErr = err;
         console.warn('Project check by ID failed:', err);
+        console.log("candidateId:", candidateId, "targetProjectId:", targetProjectId, "project?.id:", project?.id, "currentId:", currentId, "pErr:", pErr);
       }
+    } else {
+      console.log("candidateId:", candidateId, "targetProjectId:", targetProjectId, "project?.id:", project?.id, "currentId:", currentId, "pErr:", pErr);
     }
 
     if (!verifiedProject && (project?.name || project?.title)) {
@@ -20865,9 +20873,12 @@ function Workspace(){
     // Abort with one toast if project does not exist in Supabase
     if (!verifiedProject || !verifiedProject.id) {
       console.warn('Project not found in Supabase for character save:', { candidateId, project });
+      console.log("candidateId:", candidateId, "targetProjectId:", targetProjectId, "project?.id:", project?.id, "currentId:", currentId, "pErr:", pErr);
+      const pErrStr = pErr ? (pErr.message ? `${pErr.message} (${pErr.code || ''})` : JSON.stringify(pErr)) : 'null';
+      const debugDetails = `candidateId: ${candidateId}, targetProjectId: ${targetProjectId}, project?.id: ${project?.id}, currentId: ${currentId}, pErr: ${pErrStr}`;
       toast.error(
         'Upload failed',
-        'Production was not found in the database. Please select or create a valid production first.'
+        'Production was not found in the database. ' + debugDetails
       );
       return { success: false, error: 'Project not found' };
     }
