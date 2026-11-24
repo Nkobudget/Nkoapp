@@ -3002,12 +3002,17 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
 }
 
 /* ── Project Matching Helper (handles string/number IDs and project name fallback) ── */
-const matchesProject = (entityProjectId, targetProjectId, projectName) => {
-  if (!entityProjectId && !targetProjectId) return false;
+const matchesProject = (entityProjectId, targetProjectId, projectName, entityProjectName) => {
+  if (!entityProjectId && !targetProjectId && !projectName && !entityProjectName) return false;
   const eId = String(entityProjectId ?? '').trim();
   const tId = String(targetProjectId ?? '').trim();
   if (eId && tId && eId === tId) return true;
-  if (projectName && eId && eId.toLowerCase() === String(projectName).trim().toLowerCase()) return true;
+  if (projectName) {
+    const pNorm = String(projectName).trim().toLowerCase();
+    if (eId && eId.toLowerCase() === pNorm) return true;
+    if (tId && tId.toLowerCase() === pNorm) return true;
+    if (entityProjectName && String(entityProjectName).trim().toLowerCase() === pNorm) return true;
+  }
   return false;
 };
 
@@ -3325,7 +3330,19 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                 <tbody>
                   {visibleProjects.map((p, idx)=>{
                     const isLagosDark = (p.name || '').toLowerCase().includes('lagos');
-                    const pScenes = (scenes || []).filter(s => matchesProject(s.project_id, p.id, p.name));
+                    let pScenes = (scenes || []).filter(s => matchesProject(s.project_id, p.id, p.name, s.project_name || s.data?.project_name));
+                    if (pScenes.length === 0 && (p.id || p.name)) {
+                      try {
+                        const cached = (p.id ? localStorage.getItem(`nko_bk_${p.id}`) : null) || (p.name ? localStorage.getItem(`nko_bk_${p.name}`) : null);
+                        if (cached) {
+                          const parsed = JSON.parse(cached);
+                          const scenesArray = Array.isArray(parsed) ? parsed : (parsed?.scenes || []);
+                          if (scenesArray.length > 0) {
+                            pScenes = scenesArray.map(normalizeScene);
+                          }
+                        }
+                      } catch {}
+                    }
                     const effectiveScenes = pScenes.length > 0 ? pScenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []);
                     const pScriptScene = effectiveScenes.find(s => s.script_name || s.data?.script_name);
                     const scriptTitle = p.script_name || pScriptScene?.script_name || pScriptScene?.data?.script_name || (effectiveScenes.length > 0 ? (isLagosDark ? 'Lagos After Dark — Shooting Draft.fdx' : `${p.name} Script`) : null);
@@ -3468,7 +3485,19 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,330px),1fr))',gap:20,marginBottom:onlyProductions?0:32}}>
           {visibleProjects.map(p=>{
             const isLagosDark = (p.name || '').toLowerCase().includes('lagos');
-            const pScenes = (scenes || []).filter(s => matchesProject(s.project_id, p.id, p.name));
+            let pScenes = (scenes || []).filter(s => matchesProject(s.project_id, p.id, p.name, s.project_name || s.data?.project_name));
+            if (pScenes.length === 0 && (p.id || p.name)) {
+              try {
+                const cached = (p.id ? localStorage.getItem(`nko_bk_${p.id}`) : null) || (p.name ? localStorage.getItem(`nko_bk_${p.name}`) : null);
+                if (cached) {
+                  const parsed = JSON.parse(cached);
+                  const scenesArray = Array.isArray(parsed) ? parsed : (parsed?.scenes || []);
+                  if (scenesArray.length > 0) {
+                    pScenes = scenesArray.map(normalizeScene);
+                  }
+                }
+              } catch {}
+            }
             const effectiveScenes = pScenes.length > 0 ? pScenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []);
             const pScriptScene = effectiveScenes.find(s => s.script_name || s.data?.script_name);
             const scriptTitle = p.script_name || pScriptScene?.script_name || pScriptScene?.data?.script_name || (effectiveScenes.length > 0 ? (isLagosDark ? 'Lagos After Dark — Shooting Draft.fdx' : `${p.name} Script`) : null);
@@ -6639,7 +6668,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
             });
           }
           if (onAddScenes) {
-            onAddScenes(ns.map(sc=>({...sc,project_id:effectiveProjectId||project.id,id:Math.random().toString(36).slice(2,10)})), scriptName, effectiveProjectId);
+            await onAddScenes(ns.map(sc=>({...sc,project_id:effectiveProjectId||project.id,project_name:project?.name,id:Math.random().toString(36).slice(2,10)})), scriptName, effectiveProjectId);
           }
           const newLocs = deriveLocationsFromScenes(ns, [], false, project.location);
           try { localStorage.setItem(`nko_locations_${project.id}`, JSON.stringify(newLocs)); } catch {}
@@ -6647,6 +6676,15 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
           try { localStorage.setItem(`nko_elements_${project.id}`, JSON.stringify(newElems)); } catch {}
           const newVehs = deriveVehiclesFromScenes(ns, [], false);
           try { localStorage.setItem(`nko_breakdown_vehicles_${project.id}`, JSON.stringify(newVehs)); } catch {}
+          try {
+            localStorage.setItem(`nko_bk_${project.id}`, JSON.stringify({ scenes: ns, ts: Date.now() }));
+            if (effectiveProjectId && effectiveProjectId !== project.id) {
+              localStorage.setItem(`nko_bk_${effectiveProjectId}`, JSON.stringify({ scenes: ns, ts: Date.now() }));
+            }
+            if (project.name) {
+              localStorage.setItem(`nko_bk_${project.name}`, JSON.stringify({ scenes: ns, ts: Date.now() }));
+            }
+          } catch {}
           const uniqueCast = new Set(ns.flatMap(s=>s.cast||[])).size;
           const uniqueLocs = new Set(ns.map(s=>sceneLoc(s)).filter(Boolean)).size;
           setUploadBanner({
@@ -17480,14 +17518,26 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
 
   if(!project)return<div style={{background:'#0D0D0F',border:'1px solid #1E1E22',borderRadius:16,padding:40,textAlign:'center'}}><div style={{color:T.dim,fontFamily:'Inter,sans-serif'}}>Select a production first.</div></div>;
 
-  let ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name)).map(normalizeScene));
+  let ps=sortScenes(scenes.filter(s=>matchesProject(s.project_id, project.id, project.name, s.project_name || s.data?.project_name)).map(normalizeScene));
+  if (ps.length === 0 && (project?.id || project?.name)) {
+    try {
+      const cached = (project?.id ? localStorage.getItem(`nko_bk_${project.id}`) : null) || (project?.name ? localStorage.getItem(`nko_bk_${project.name}`) : null);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const scenesArray = Array.isArray(parsed) ? parsed : (parsed?.scenes || []);
+        if (scenesArray.length > 0) {
+          ps = sortScenes(scenesArray.map(normalizeScene));
+        }
+      }
+    } catch {}
+  }
   const isLagosDark=project.name?.toLowerCase().includes('lagos')||project.name==='Lagos After Dark';
   if(ps.length===0&&isLagosDark){
     ps=LAGOS_AFTER_DARK_SCENES.map(normalizeScene);
   }
   const isDefaultLagosScenes = isLagosDark && ps.length === 18 && Boolean(ps[0]?.heading?.includes('THIRD MAINLAND BRIDGE'));
 
-  const prodChars=characters.filter(c=>c.project_id===project.id);
+  const prodChars=characters.filter(c=>matchesProject(c.project_id, project.id, project.name));
   const castIdx=buildCastIndex(ps,prodChars.length>0?prodChars:(isLagosDark?LAGOS_AFTER_DARK_CAST:[]));
   const totalPages8=ps.reduce((sum,s)=>sum+(Number(s.pages8)||0),0);
 
@@ -18118,8 +18168,8 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
           style={{display:'grid',gridTemplateColumns:mob?'repeat(2,minmax(0,1fr))':'repeat(4,minmax(0,1fr))',gap:mob?8:12,marginBottom:16}}
         >
           <StatCard label="Total Scenes" value={ps.length} sub={mob?undefined:(ps.length===1?'1 scene in breakdown':`${ps.length} scenes in breakdown`)}/>
-          <StatCard label="Total Characters" value={castIdx.list.length>=8?8:castIdx.list.length} sub={mob?undefined:(castIdx.list.length===1?'1 speaking character':`${castIdx.list.length} speaking characters`)}/>
-          <StatCard label="Script Pages" value={totalPages8>0?(totalPages8%8===0?Math.floor(totalPages8/8):fmtPages8(totalPages8)):0} sub={mob?undefined:'Eighths of a page total'}/>
+          <StatCard label="Total Characters" value={castTabCount || castIdx.list.length} sub={mob?undefined:((castTabCount || castIdx.list.length)===1?'1 speaking character':`${castTabCount || castIdx.list.length} speaking characters`)}/>
+          <StatCard label="Script Pages" value={totalPages8>0?(totalPages8%8===0?Math.floor(totalPages8/8):fmtPages8(totalPages8)):(ps.length>0?Math.ceil(ps.length*1.5):0)} sub={mob?undefined:'Eighths of a page total'}/>
           <motion.div
             variants={fadeUp}
             whileHover={{y:-2}}
@@ -18212,7 +18262,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
             });
           }
           if (onAddScenes) {
-            onAddScenes(ns.map(sc=>({...sc,project_id:effectiveProjectId||project.id,id:Math.random().toString(36).slice(2,10)})), scriptName, effectiveProjectId);
+            await onAddScenes(ns.map(sc=>({...sc,project_id:effectiveProjectId||project.id,project_name:project?.name,id:Math.random().toString(36).slice(2,10)})), scriptName, effectiveProjectId);
           }
           const newLocs = deriveLocationsFromScenes(ns, locations, false, project.location);
           saveLocationsList(newLocs);
@@ -18220,6 +18270,15 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
           saveElementsList(newElems);
           const newVehs = deriveVehiclesFromScenes(ns, vehicles, false);
           saveVehiclesList(newVehs);
+          try {
+            localStorage.setItem(`nko_bk_${project.id}`, JSON.stringify({ scenes: ns, ts: Date.now() }));
+            if (effectiveProjectId && effectiveProjectId !== project.id) {
+              localStorage.setItem(`nko_bk_${effectiveProjectId}`, JSON.stringify({ scenes: ns, ts: Date.now() }));
+            }
+            if (project.name) {
+              localStorage.setItem(`nko_bk_${project.name}`, JSON.stringify({ scenes: ns, ts: Date.now() }));
+            }
+          } catch {}
           const uniqueCast = new Set(ns.flatMap(s=>s.cast||[])).size;
           const uniqueLocs = new Set(ns.map(s=>sceneLoc(s)).filter(Boolean)).size;
           setUploadBanner({
@@ -20751,26 +20810,67 @@ function Workspace(){
     let targetId=overrideProjectId || project?.id || currentId;
     if (sb && targetId) {
       try {
-        const { data: pCheck } = await sb.from('projects').select('id').eq('id', targetId).maybeSingle();
+        const { data: pCheck } = await sb.from('projects').select('id, name').eq('id', targetId).maybeSingle();
         if (!pCheck && (project?.name || project?.title)) {
           const pName = project?.name || project?.title;
-          const { data: pList } = await sb.from('projects').select('id').eq('name', pName).limit(1);
+          const { data: pList } = await sb.from('projects').select('id, name').eq('name', pName).limit(1);
           if (pList && pList.length > 0) {
             targetId = pList[0].id;
           }
         }
       } catch {}
     }
-    const oldIds=scenes.filter(s=>matchesProject(s.project_id, targetId, project?.name)).map(s=>String(s.id));
+    if (targetId && targetId !== currentId) {
+      setCurrentId(targetId);
+    }
+    setProjects(prev => prev.map(p => {
+      if (matchesProject(p.id, targetId, project?.name) || (project?.name && p.name?.toLowerCase() === project.name.toLowerCase())) {
+        return { ...p, id: targetId, script_name: scriptName || p.script_name };
+      }
+      return p;
+    }));
+    const oldIds=scenes.filter(s=>matchesProject(s.project_id, targetId, project?.name, s.project_name || s.data?.project_name)).map(s=>String(s.id));
     try{const k=`nko_del_sc_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...oldIds])]));}catch{}
-    await sb.from('scenes').delete().eq('project_id',targetId);
-    const rows=scenesArr.map(sc=>{const{id,project_id,...rest}=sc;return{id:id||Math.random().toString(36).slice(2,10),project_id:targetId,user_id:user.id,data:{...rest, script_name: scriptName || rest.script_name || null}};});
-    const{data,error}=await sb.from('scenes').insert(rows).select();
-    const saved=(!error&&data?.length)?data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id,script_name:scriptName||r.data?.script_name})):rows.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id,script_name:scriptName||r.data?.script_name}));
-    setScenes(p=>[...p.filter(s=>!matchesProject(s.project_id, targetId, project?.name)),...saved]);
+    try { await sb.from('scenes').delete().eq('project_id',targetId); } catch {}
+    const rows=scenesArr.map(sc=>{
+      const{id,project_id,...rest}=sc;
+      return{
+        id:id||Math.random().toString(36).slice(2,10),
+        project_id:targetId,
+        user_id:user.id,
+        data:{...rest, script_name: scriptName || rest.script_name || null, project_name: project?.name || rest.project_name || null}
+      };
+    });
+    let data = null;
+    let error = null;
+    try {
+      const res = await sb.from('scenes').insert(rows).select();
+      data = res.data;
+      error = res.error;
+      if (error) {
+        console.warn('Scenes insert with explicit ID failed, retrying without id:', error);
+        const noIds = rows.map(({ id: _omit, ...restRow }) => restRow);
+        const retry = await sb.from('scenes').insert(noIds).select();
+        if (!retry.error && retry.data?.length) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    } catch (insertEx) {
+      console.warn('Scenes insert exception:', insertEx);
+    }
+    const saved=(!error&&data?.length)
+      ? data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id||targetId,project_name:project?.name||r.data?.project_name,script_name:scriptName||r.data?.script_name}))
+      : rows.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id||targetId,project_name:project?.name,script_name:scriptName||r.data?.script_name}));
+    setScenes(p=>[...p.filter(s=>!matchesProject(s.project_id, targetId, project?.name, s.project_name || s.data?.project_name)),...saved]);
+    try {
+      localStorage.setItem('nko_bk_' + targetId, JSON.stringify({ scenes: saved, ts: Date.now() }));
+      if (project?.id && project.id !== targetId) localStorage.setItem('nko_bk_' + project.id, JSON.stringify({ scenes: saved, ts: Date.now() }));
+      if (project?.name) localStorage.setItem('nko_bk_' + project.name, JSON.stringify({ scenes: saved, ts: Date.now() }));
+    } catch {}
     if(scriptName){
       try{localStorage.setItem('nko_script_name_' + targetId, scriptName);}catch{}
-      setProjects(prev=>prev.map(p=>matchesProject(p.id, targetId, project?.name)?{...p, script_name: scriptName}:p));
+      setProjects(prev=>prev.map(p=>matchesProject(p.id, targetId, project?.name)?{...p, id: targetId, script_name: scriptName}:p));
       try{await sb.from('projects').update({script_name:scriptName}).eq('id',targetId);}catch{}
     }
     const isProducer = !project?.user_id || project?.user_id === user.id;
@@ -20887,6 +20987,12 @@ function Workspace(){
     if (verifiedProjectId !== currentId) {
       setCurrentId(verifiedProjectId);
     }
+    setProjects(prev => prev.map(p => {
+      if (matchesProject(p.id, candidateId, project?.name) || (project?.name && p.name?.toLowerCase() === project.name.toLowerCase())) {
+        return { ...p, id: verifiedProjectId, script_name: scriptName || p.script_name };
+      }
+      return p;
+    }));
 
     // (1) Collect all characters and insert them in a single batched insert([...])
     const seenNames = new Set();
@@ -21140,8 +21246,8 @@ function Workspace(){
           {view==='productions'&&(
             <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
-          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name, s.project_name || s.data?.project_name))} characters={characters.filter(c=>matchesProject(c.project_id, currentId, project?.name))} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
+          {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name, s.project_name || s.data?.project_name))} characters={characters.filter(c=>matchesProject(c.project_id, currentId, project?.name))} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} initialOpenUpload={breakdownOpenUpload} onResetInitialOpenUpload={()=>setBreakdownOpenUpload(false)}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={!project?.user_id || project?.user_id===user.id}/>}
