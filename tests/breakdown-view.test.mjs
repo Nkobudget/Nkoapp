@@ -321,3 +321,30 @@ test('script upload reflects scenes, cast, locations, elements, and vehicles acr
   assert.match(fileContent, /payload\.text\.toLowerCase\(\)\.includes\('script'\)/);
   assert.match(fileContent, /data:\s*\{\.\.\.rest,\s*script_name:\s*scriptName/);
 });
+
+test('saveCharactersBatch collects all characters into single insert, verifies project existence, and shows toasts', async () => {
+  const fileContent = fs.readFileSync(path.resolve('src/legacy/LegacyApp.jsx'), 'utf8');
+
+  // Verify saveCharactersBatch function definition exists
+  assert.match(fileContent, /const saveCharactersBatch\s*=\s*async/);
+
+  // (1) Verify all characters are collected and inserted in a single batched insert
+  assert.match(fileContent, /sb\.from\('characters'\)\.insert\(rowsToInsert\)/);
+  assert.match(fileContent, /Batched characters to insert/);
+
+  // (2) Verify project ID returned by project lookup/verification is used, not stale currentId
+  assert.match(fileContent, /const verifiedProjectId = verifiedProject\.id/);
+  assert.match(fileContent, /project_id:\s*verifiedProjectId/);
+
+  // (3) Verify project exists in Supabase before inserting and aborts with toast if it does not
+  assert.match(fileContent, /sb[\s\S]*?\.from\('projects'\)[\s\S]*?\.select\('id,\s*name'\)[\s\S]*?\.eq\('id',\s*candidateId\)/);
+  assert.match(fileContent, /toast\.error\(\s*['"]Upload failed['"],\s*['"]Production was not found in the database/);
+
+  // (4) Verify alert() is replaced with single toast for errors and green toast on success
+  assert.match(fileContent, /toast\.success\(\s*['"]Successfully uploaded['"]/);
+  assert.match(fileContent, /toast\.error\(\s*['"]Could not save characters['"]/);
+
+  // Verify onSaveCharactersBatch is passed down to BreakdownView and BudgetsView
+  assert.match(fileContent, /<BreakdownView[\s\S]*?onSaveCharactersBatch=\{saveCharactersBatch\}/);
+  assert.match(fileContent, /<BudgetsView[\s\S]*?onSaveCharactersBatch=\{saveCharactersBatch\}/);
+});

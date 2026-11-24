@@ -13,6 +13,7 @@ import { readOnboarding } from '../onboarding/storage';
 import { generateBudgetDocsHtml, budgetDocs } from './exportBudgetDocs.js';
 import { parseScriptFile, extractTextFromPdfBuffer } from './scriptBreakdownParser.js';
 import './dashboard.css';
+import { toast } from '../components/ToastProvider';
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion';
@@ -6199,7 +6200,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
   );
 }
 
-function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrders=[],onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText,onAddScenes}){
+function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrders=[],onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSaveCharactersBatch,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText,onAddScenes}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);
   const[showExport,setShowExport]=useState(false);
@@ -6618,20 +6619,28 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
         open={showUpload}
         onClose={()=>setShowUpload(false)}
         project={project}
-        onApply={(ns, scriptName)=>{
-          if (onAddScenes) {
-            onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})), scriptName);
-          }
+        onApply={async (ns, scriptName)=>{
+          let effectiveProjectId = project?.id;
           const newCast = deriveCastFromScenes(ns, [], false);
           try { localStorage.setItem(`nko_cast_members_${project.id}`, JSON.stringify(newCast)); } catch {}
-          newCast.forEach(c => {
-            if (c.character && onSaveCharacter && !c.isExtra) {
-              onSaveCharacter(c.character, {
-                tier: c.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting',
-                role_notes: JSON.stringify({ actorName: c.actorName, availability: c.availability, category: c.category }),
-              });
+          if (onSaveCharactersBatch) {
+            const res = await onSaveCharactersBatch(newCast, project?.id, scriptName, ns);
+            if (res && typeof res === 'object' && res.projectId) {
+              effectiveProjectId = res.projectId;
             }
-          });
+          } else if (onSaveCharacter) {
+            newCast.forEach(c => {
+              if (c.character && !c.isExtra) {
+                onSaveCharacter(c.character, {
+                  tier: c.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting',
+                  role_notes: JSON.stringify({ actorName: c.actorName, availability: c.availability, category: c.category }),
+                });
+              }
+            });
+          }
+          if (onAddScenes) {
+            onAddScenes(ns.map(sc=>({...sc,project_id:effectiveProjectId||project.id,id:Math.random().toString(36).slice(2,10)})), scriptName, effectiveProjectId);
+          }
           const newLocs = deriveLocationsFromScenes(ns, [], false, project.location);
           try { localStorage.setItem(`nko_locations_${project.id}`, JSON.stringify(newLocs)); } catch {}
           const newElems = deriveElementsFromScenes(ns, [], false);
@@ -9058,13 +9067,17 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
     const isPDF=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
     const isTxt=f.type==='text/plain'||f.name.toLowerCase().endsWith('.txt')||f.name.toLowerCase().endsWith('.fdx')||f.name.toLowerCase().endsWith('.fountain');
     if(!isPDF&&!isTxt){
-      setErr('Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) script.');
+      const msg = 'Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) script.';
+      setErr(msg);
       setState('error');
+      toast.error('Invalid file format', msg);
       return;
     }
     if(f.size>25*1024*1024){
-      setErr('File is too large (max 25MB). Try a smaller export or a .txt file.');
+      const msg = 'File is too large (max 25MB). Try a smaller export or a .txt file.';
+      setErr(msg);
       setState('error');
+      toast.error('File too large', msg);
       return;
     }
 
@@ -9116,7 +9129,6 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
       }
 
       const scenes=attachPageLengths(scenesRaw,measured,measuredSource);
-      characters.forEach(c=>{if(c.name&&c.tier)onSaveCharacter?.(c.name,{tier:c.tier});});
       sendNotif(scenes.length);
       try{localStorage.setItem(`nko_bk_${project?.id}`,JSON.stringify({scenes,ts:Date.now()}));}catch{}
 
@@ -9154,6 +9166,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
     }catch(e){
       setErr(e.message);
       setState('error');
+      toast.error('Upload failed', e.message || 'Could not parse the script file.');
     }
   };
 
@@ -17441,7 +17454,7 @@ function deriveVehiclesFromScenes(scenesList = [], existingVehicles = [], isLago
   return vehiclesList;
 }
 
-function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],initialOpenUpload=false,onResetInitialOpenUpload}){
+function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharactersBatch,onAddScene,onAddScenes,onDeleteScene,onUpdateScene,onDedupeScenes,isOwner,items=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],initialOpenUpload=false,onResetInitialOpenUpload}){
   const mob=useIsMobile();
   const[activeTab,setActiveTab]=useState('scenes'); // 'scenes' | 'cast' | 'locations' | 'elements' | 'vehicles'
   const[statusFilter,setStatusFilter]=useState('all'); // 'all' | 'ready' | 'incomplete'
@@ -18179,18 +18192,28 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
         open={showUpload}
         onClose={()=>setShowUpload(false)}
         project={project}
-        onApply={(ns, scriptName)=>{
-          onAddScenes(ns.map(sc=>({...sc,project_id:project.id,id:Math.random().toString(36).slice(2,10)})), scriptName);
+        onApply={async (ns, scriptName)=>{
+          let effectiveProjectId = project?.id;
           const newCast = deriveCastFromScenes(ns, castMembers, false);
           saveCastMembersList(newCast);
-          newCast.forEach(c => {
-            if (c.character && onSaveCharacter && !c.isExtra) {
-              onSaveCharacter(c.character, {
-                tier: c.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting',
-                role_notes: JSON.stringify({ actorName: c.actorName, availability: c.availability, category: c.category }),
-              });
+          if (onSaveCharactersBatch) {
+            const res = await onSaveCharactersBatch(newCast, project?.id, scriptName, ns);
+            if (res && typeof res === 'object' && res.projectId) {
+              effectiveProjectId = res.projectId;
             }
-          });
+          } else if (onSaveCharacter) {
+            newCast.forEach(c => {
+              if (c.character && !c.isExtra) {
+                onSaveCharacter(c.character, {
+                  tier: c.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting',
+                  role_notes: JSON.stringify({ actorName: c.actorName, availability: c.availability, category: c.category }),
+                });
+              }
+            });
+          }
+          if (onAddScenes) {
+            onAddScenes(ns.map(sc=>({...sc,project_id:effectiveProjectId||project.id,id:Math.random().toString(36).slice(2,10)})), scriptName, effectiveProjectId);
+          }
           const newLocs = deriveLocationsFromScenes(ns, locations, false, project.location);
           saveLocationsList(newLocs);
           const newElems = deriveElementsFromScenes(ns, elements, false);
@@ -18207,6 +18230,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onAddScene,onA
           });
         }}
         onSaveCharacter={onSaveCharacter}
+        onSaveCharactersBatch={onSaveCharactersBatch}
       />
 
       <AddSceneModal open={showAddScene} onClose={()=>setShowAddScene(false)} onAddScene={sc=>{setPendingNewScene(sc);setSelectedScene(null);}} defaultSceneNumber={ps.length+1}/>
@@ -20722,9 +20746,21 @@ function Workspace(){
     broadcastActivity('added a scene');
     return saved;
   };
-  const addScenesBatch=async(scenesArr, scriptName)=>{
+  const addScenesBatch=async(scenesArr, scriptName, overrideProjectId)=>{
     if(!scenesArr?.length)return;
-    const targetId=project?.id||currentId;
+    let targetId=overrideProjectId || project?.id || currentId;
+    if (sb && targetId) {
+      try {
+        const { data: pCheck } = await sb.from('projects').select('id').eq('id', targetId).maybeSingle();
+        if (!pCheck && (project?.name || project?.title)) {
+          const pName = project?.name || project?.title;
+          const { data: pList } = await sb.from('projects').select('id').eq('name', pName).limit(1);
+          if (pList && pList.length > 0) {
+            targetId = pList[0].id;
+          }
+        }
+      } catch {}
+    }
     const oldIds=scenes.filter(s=>matchesProject(s.project_id, targetId, project?.name)).map(s=>String(s.id));
     try{const k=`nko_del_sc_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...oldIds])]));}catch{}
     await sb.from('scenes').delete().eq('project_id',targetId);
@@ -20762,6 +20798,182 @@ function Workspace(){
     if(error){alert(`Could not remove duplicates: ${error.message}`);return;}
     alert(`Removed ${toRemove.length} duplicate scene${toRemove.length!==1?'s':''}.`);
   };
+  /* Batched Character Insertion for Script Upload (prevents 50+ individual failing requests) */
+  const saveCharactersBatch = async (castList = [], targetProjectId, scriptName, scenesArr = []) => {
+    if (!castList || !castList.length) return { success: true, projectId: targetProjectId };
+
+    // (2) Use the project ID returned by the project insert for this upload, not a stale currentId
+    // (3) Before inserting, verify the project exists in Supabase and abort with one toast if it doesn't
+    let candidateId = targetProjectId || project?.id || currentId;
+    let verifiedProject = null;
+
+    if (candidateId) {
+      try {
+        const { data: pCheck, error: pErr } = await sb
+          .from('projects')
+          .select('id, name')
+          .eq('id', candidateId)
+          .maybeSingle();
+        if (!pErr && pCheck) {
+          verifiedProject = pCheck;
+        }
+      } catch (err) {
+        console.warn('Project check by ID failed:', err);
+      }
+    }
+
+    if (!verifiedProject && (project?.name || project?.title)) {
+      const pName = project?.name || project?.title;
+      try {
+        const { data: pByName, error: pByNameErr } = await sb
+          .from('projects')
+          .select('id, name')
+          .eq('name', pName)
+          .limit(1);
+        if (!pByNameErr && pByName && pByName.length > 0) {
+          verifiedProject = pByName[0];
+        }
+      } catch (err) {
+        console.warn('Project check by name failed:', err);
+      }
+    }
+
+    // If still not verified, attempt to auto-create project record in Supabase so foreign key constraints succeed
+    if (!verifiedProject && (project?.name || project?.title)) {
+      try {
+        const pName = project?.name || project?.title;
+        const { data: createdProj, error: createErr } = await sb
+          .from('projects')
+          .insert({
+            name: pName,
+            user_id: user?.id,
+            target_budget: project.target_budget || 0,
+            location: project.location || '',
+            script_name: scriptName || null,
+          })
+          .select('id, name')
+          .single();
+        if (!createErr && createdProj) {
+          verifiedProject = createdProj;
+          setProjects(prev => [createdProj, ...prev.filter(p => p.id !== createdProj.id)]);
+        }
+      } catch (err) {
+        console.warn('Could not auto-create project in Supabase:', err);
+      }
+    }
+
+    // Abort with one toast if project does not exist in Supabase
+    if (!verifiedProject || !verifiedProject.id) {
+      console.warn('Project not found in Supabase for character save:', { candidateId, project });
+      toast.error(
+        'Upload failed',
+        'Production was not found in the database. Please select or create a valid production first.'
+      );
+      return { success: false, error: 'Project not found' };
+    }
+
+    const verifiedProjectId = verifiedProject.id;
+    if (verifiedProjectId !== currentId) {
+      setCurrentId(verifiedProjectId);
+    }
+
+    // (1) Collect all characters and insert them in a single batched insert([...])
+    const seenNames = new Set();
+    const rowsToInsert = [];
+    const updatedExisting = [];
+
+    castList.forEach((c) => {
+      const name = (c.character || c.name || '').trim();
+      if (!name || c.isExtra) return;
+      const lower = name.toLowerCase();
+      if (seenNames.has(lower)) return;
+      seenNames.add(lower);
+
+      const existing = characters.find(
+        (ch) => ch.project_id === verifiedProjectId && ch.name.trim().toLowerCase() === lower
+      );
+
+      const tier = c.tier || (c.category?.toLowerCase().includes('lead') ? 'lead' : 'supporting');
+      const roleNotes = c.role_notes || (c.actorName || c.availability || c.category ? JSON.stringify({
+        actorName: c.actorName || '',
+        availability: c.availability || '',
+        category: c.category || '',
+      }) : '');
+      const ageDesc = c.age_description || existing?.age_description || '';
+
+      if (existing) {
+        updatedExisting.push({
+          id: existing.id,
+          project_id: verifiedProjectId,
+          user_id: user.id,
+          name,
+          age_description: ageDesc,
+          role_notes: roleNotes || existing.role_notes || '',
+          tier: tier || existing.tier || '',
+        });
+      } else {
+        rowsToInsert.push({
+          id: Math.random().toString(36).slice(2, 10),
+          project_id: verifiedProjectId,
+          user_id: user.id,
+          name,
+          age_description: ageDesc,
+          role_notes: roleNotes,
+          tier,
+        });
+      }
+    });
+
+    console.log("Saving characters for project:", verifiedProjectId, typeof verifiedProjectId);
+    console.log("Batched characters to insert:", rowsToInsert.length, rowsToInsert);
+
+    try {
+      let insertedData = [];
+      if (rowsToInsert.length > 0) {
+        const { data, error } = await sb.from('characters').insert(rowsToInsert).select();
+        if (error) {
+          console.error('Batched character insert error:', error);
+          toast.error('Could not save characters', error.message || 'Database error during character insertion.');
+          return { success: false, error: error.message };
+        }
+        insertedData = data || rowsToInsert;
+      }
+
+      for (const item of updatedExisting) {
+        try {
+          await sb.from('characters').update({
+            age_description: item.age_description,
+            role_notes: item.role_notes,
+            tier: item.tier,
+          }).eq('id', item.id);
+        } catch (err) {
+          console.warn('Update character error for', item.name, err);
+        }
+      }
+
+      // Update state in one single render batch
+      setCharacters((prev) => {
+        const map = new Map(prev.map((c) => [c.id, c]));
+        updatedExisting.forEach((c) => map.set(c.id, { ...map.get(c.id), ...c }));
+        insertedData.forEach((c) => map.set(c.id, c));
+        return Array.from(map.values());
+      });
+
+      // (4) Green "Successfully uploaded" toast on success
+      const sceneCount = scenesArr?.length || 0;
+      const totalChars = rowsToInsert.length + updatedExisting.length;
+      toast.success(
+        'Successfully uploaded',
+        `Script "${scriptName || 'Screenplay'}" (${sceneCount > 0 ? `${sceneCount} scenes, ` : ''}${totalChars} cast) uploaded & ready to schedule.`
+      );
+      return { success: true, projectId: verifiedProjectId };
+    } catch (err) {
+      console.error('Character batch save exception:', err);
+      toast.error('Upload failed', err.message || 'An error occurred while saving characters.');
+      return { success: false, error: err.message };
+    }
+  };
+
   /* Character metadata (Age/Description, Role Notes) — upserts by project_id + name */
   const saveCharacterMeta=async(name,updates)=>{
     if(!currentId||!name)return;
@@ -20770,13 +20982,15 @@ function Workspace(){
     if(existing){
       setCharacters(p=>p.map(c=>c.id===existing.id?{...c,...payload}:c));
       const{error}=await sb.from('characters').update(payload).eq('id',existing.id);
-      if(error)alert(`Could not save character notes: ${error.message}`);
+      if(error)toast.error('Could not save character notes', error.message);
     }else{
       const id=Math.random().toString(36).slice(2,10);
       const row={id,project_id:currentId,user_id:user.id,name:name.trim(),...payload};
       setCharacters(p=>[...p,row]);
+      console.log("Saving characters for project:", currentId, typeof currentId);
+      console.log("Full object being inserted:", row);
       const{error}=await sb.from('characters').insert(row);
-      if(error)alert(`Could not save character notes: ${error.message}`);
+      if(error)toast.error('Could not save character notes', error.message);
     }
   };
   const addPayee=async p=>{
@@ -20915,10 +21129,10 @@ function Workspace(){
           {view==='productions'&&(
             <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>s.project_id===currentId)} characters={characters.filter(c=>c.project_id===currentId)} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={!project?.user_id || project?.user_id===user.id}/>}
-          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} initialOpenUpload={breakdownOpenUpload} onResetInitialOpenUpload={()=>setBreakdownOpenUpload(false)}/>}
+          {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} initialOpenUpload={breakdownOpenUpload} onResetInitialOpenUpload={()=>setBreakdownOpenUpload(false)}/>}
           {view==='recon'&&<ReconView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} purchaseOrders={purchaseOrders} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddAdvance={addAdvance} onUpdateAdvance={updateAdvance} onAddEntry={addReconEntry} onRemoveEntry={removeReconEntry} onUpdateEntry={updateReconEntry} onTopUp={topUpAdvance} onDeleteAdvance={removeAdvance} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='payments'&&<PaymentsView project={project} items={pBudget} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} onAddPayee={addPayee} onAddPayment={addPayment} onRemovePayment={removePayment} onAttachReceipt={attachReceipt} onUpdatePayee={updatePayee} onUpdatePayment={updatePayment} onDeletePayee={deletePayee} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='po'&&<PurchaseOrdersView project={project} items={pBudget} purchaseOrders={purchaseOrders} onCreatePO={addPO} onUpdatePO={updatePO} onDeletePO={deletePO} isOwner={!project?.user_id || project?.user_id===user.id}/>}
