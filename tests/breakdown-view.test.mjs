@@ -320,4 +320,25 @@ test('script upload reflects scenes, cast, locations, elements, and vehicles acr
   assert.match(fileContent, /uploaded script breakdown: \$\{scriptName/);
   assert.match(fileContent, /payload\.text\.toLowerCase\(\)\.includes\('script'\)/);
   assert.match(fileContent, /data:\s*\{\.\.\.rest,\s*script_name:\s*scriptName/);
+
+  // Verify instant upload success toast, z-index above modal, and non-blocking asynchronous processing
+  assert.match(fileContent, /toast\.success\(\s*['"]Successfully uploaded['"]/);
+  assert.match(fileContent, /await new Promise\(resolve => setTimeout\(resolve,\s*0\)\)/);
+  assert.match(fileContent, /toast\.error\(\s*['"]Upload failed['"]/);
+  assert.match(fileContent, /const processFiles=async/);
+});
+
+test('global toast notification provider is mounted at root and configured above modal overlay', async () => {
+  const toastProviderContent = fs.readFileSync(path.resolve('src/components/ToastProvider.jsx'), 'utf8');
+  const appContent = fs.readFileSync(path.resolve('src/App.jsx'), 'utf8');
+
+  // Verify ToastProvider renders with zIndex 9999 (higher than modal z-index 1050)
+  assert.match(toastProviderContent, /zIndex:\s*9999/);
+  assert.match(toastProviderContent, /export function ToastContainer/);
+  assert.match(toastProviderContent, /export default function ToastProvider/);
+  assert.match(toastProviderContent, /export const toast\s*=/);
+
+  // Verify App.jsx mounts ToastProvider at application root
+  assert.match(appContent, /import ToastProvider/);
+  assert.match(appContent, /<ToastProvider>[\s\S]*?<AppRoutes \/>[\s\S]*?<\/ToastProvider>/);
 });
