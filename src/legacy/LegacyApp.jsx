@@ -20213,8 +20213,11 @@ function Workspace(){
       let currentCached = initialCache.current;
       try { if (cacheKey) { const raw = localStorage.getItem(cacheKey); if (raw) currentCached = JSON.parse(raw); } } catch {}
       if(pr.data){
-        const mergedProjects = mergeById(pr.data, currentCached?.projects, `nko_del_pr_${user.id}`);
-        const enrichedProjects = mergedProjects.map(p => {
+        let deletedIds = [];
+        try { deletedIds = JSON.parse(localStorage.getItem(`nko_del_pr_${user.id}`) || '[]'); } catch {}
+        const delSet = new Set(deletedIds.map(String));
+        const confirmedProjects = pr.data.filter(p => !delSet.has(String(p.id)));
+        const enrichedProjects = confirmedProjects.map(p => {
           let sName = p.script_name;
           if (!sName) {
             try { sName = localStorage.getItem('nko_script_name_' + p.id); } catch {}
@@ -20226,6 +20229,10 @@ function Workspace(){
           return sName ? { ...p, script_name: sName } : p;
         });
         setProjects(enrichedProjects);
+        if (currentId && !enrichedProjects.some(p => p.id === currentId)) {
+          const fallbackId = enrichedProjects[0]?.id || null;
+          setCurrentId(fallbackId);
+        }
       }
       if(bi.data)setBudgetItems(mergeById(bi.data, currentCached?.budget_items, `nko_del_bi_${user.id}`));
       if(ad.data)setAdvances(ad.data);if(re.data)setReconEntries(re.data);if(py.data)setPayees(py.data);
@@ -20553,13 +20560,15 @@ function Workspace(){
   const TRIAL_LIMIT=2;
   const createProject=async d=>{
     if(TRIAL_WALL_ENABLED&&trialCount>=TRIAL_LIMIT){
-      alert(`You've used your ${TRIAL_LIMIT} free productions on NKÒ. To start another one, reach out to us — we'll get you set up.`);
+      toast.error('Production limit reached', `You've used your ${TRIAL_LIMIT} free productions on NKÒ. To start another one, reach out to us — we'll get you set up.`);
       return false;
     }
     const{data,error}=await sb.from('projects').insert({...d,user_id:user.id}).select().single();
-    if(error){alert(`Could not create production: ${error.message}`);return null;}
+    console.log("Project insert result:", { data, error });
+    if(error){toast.error('Could not create production', error.message);return null;}
     if(data){
       setProjects(p=>[data,...p]);
+      setCurrentId(data.id);
       const newCount=trialCount+1;
       const{error:tErr}=await sb.from('user_trial_state').upsert({user_id:user.id,productions_created:newCount});
       if(!tErr)setTrialCount(newCount);
@@ -20722,14 +20731,33 @@ function Workspace(){
     await sb.from('budget_items').delete().eq('id',id);
   };
   const applyTemplate=async(tpl,mode='add')=>{
-    if(mode==='replace'&&currentId){
-      const removedIds=budgetItems.filter(i=>i.project_id===currentId).map(i=>String(i.id));
+    let targetId = project?.id || currentId;
+    let verifiedProject = null;
+    if (sb && targetId) {
+      try {
+        const { data: pCheck } = await sb.from('projects').select('id, name').eq('id', targetId).maybeSingle();
+        if (pCheck) verifiedProject = pCheck;
+      } catch {}
+    }
+    if (!verifiedProject && (project?.name || project?.title)) {
+      try {
+        const { data: pByName } = await sb.from('projects').select('id, name').eq('name', project?.name || project?.title).limit(1);
+        if (pByName?.length) verifiedProject = pByName[0];
+      } catch {}
+    }
+    if (!verifiedProject || !verifiedProject.id) {
+      toast.error('Could not apply template', 'Production was not found in the database. Please select or create a valid production first.');
+      return;
+    }
+    const verifiedProjectId = verifiedProject.id;
+    if(mode==='replace'&&verifiedProjectId){
+      const removedIds=budgetItems.filter(i=>i.project_id===verifiedProjectId).map(i=>String(i.id));
       try{const k=`nko_del_bi_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...removedIds])]));}catch{}
-      await sb.from('budget_items').delete().eq('project_id',currentId);
-      setBudgetItems(p=>p.filter(i=>i.project_id!==currentId));
+      await sb.from('budget_items').delete().eq('project_id',verifiedProjectId);
+      setBudgetItems(p=>p.filter(i=>i.project_id!==verifiedProjectId));
     }
     const rows=tpl.items.map(t=>({
-      project_id:currentId,
+      project_id:verifiedProjectId,
       user_id:user.id,
       dept:t.dept,
       description:t.description,
@@ -20745,28 +20773,50 @@ function Workspace(){
       const retry=await sb.from('budget_items').insert(withIds).select();
       savedRows=retry.data?.length?retry.data:withIds;
     }
-    setBudgetItems(p=>[...(mode==='replace'?p.filter(i=>i.project_id!==currentId):p),...savedRows]);
+    setBudgetItems(p=>[...(mode==='replace'?p.filter(i=>i.project_id!==verifiedProjectId):p),...savedRows]);
     broadcastActivity(`applied ${tpl.label} template`);
     if(tpl.scenes?.length){
-      const sceneRows=tpl.scenes.map(s=>({id:Math.random().toString(36).slice(2,10),project_id:currentId,user_id:user.id,data:s}));
+      const sceneRows=tpl.scenes.map(s=>({id:Math.random().toString(36).slice(2,10),project_id:verifiedProjectId,user_id:user.id,data:s}));
       const{data:scData,error:scError}=await sb.from('scenes').insert(sceneRows).select();
-      if(scError){alert(`Budget applied, but could not save template scenes: ${scError.message}`);}
+      if(scError){toast.error('Template scenes error', scError.message);}
       else if(scData)setScenes(p=>[...p,...scData.map(r=>normalizeScene({...r.data,id:r.id,project_id:r.project_id}))]);
     }
   };
   const applyScriptBudget=async lines=>{
+    let targetId = project?.id || currentId;
+    let verifiedProject = null;
+    if (sb && targetId) {
+      try {
+        const { data: pCheck } = await sb.from('projects').select('id, name').eq('id', targetId).maybeSingle();
+        if (pCheck) verifiedProject = pCheck;
+      } catch {}
+    }
+    if (!verifiedProject && (project?.name || project?.title)) {
+      try {
+        const { data: pByName } = await sb.from('projects').select('id, name').eq('name', project?.name || project?.title).limit(1);
+        if (pByName?.length) verifiedProject = pByName[0];
+      } catch {}
+    }
+    if (!verifiedProject || !verifiedProject.id) {
+      toast.error('Could not apply budget', 'Production was not found in the database. Please select or create a valid production first.');
+      return;
+    }
+    const verifiedProjectId = verifiedProject.id;
+    if (verifiedProjectId !== currentId) {
+      setCurrentId(verifiedProjectId);
+    }
     const rows=lines.map(l=>({
-      project_id:currentId,
+      project_id:verifiedProjectId,
       user_id:user.id,
       dept:forceDeptOverride(l.description)||(DEPTS.includes(l.dept)?l.dept:smartDeptFallback(l.description,l.dept)),
       description:String(l.description||'').slice(0,200),
       qty:Number(l.qty)||1,
       unit:UNITS.includes(l.unit)?l.unit:'flat',
       rate:Number(l.rate)||0,
-      currency:project.base_currency,
+      currency:project?.base_currency || 'NGN',
     }));
     const{data,error}=await sb.from('budget_items').insert(rows).select();
-    if(error){alert(`Could not apply budget: ${error.message}`);return;}
+    if(error){toast.error('Could not apply budget', error.message);return;}
     if(data){setBudgetItems(p=>[...p,...data]);broadcastActivity('applied script budget');}
   };
   const addAdvance=async a=>{const{data,error}=await sb.from('advances').insert({...a,user_id:user.id}).select().single();if(error){alert(`Could not save advance: ${error.message}`);return;}if(data){setAdvances(p=>[...p,data]);broadcastActivity('created an advance');}};
@@ -20808,18 +20858,50 @@ function Workspace(){
   const addScenesBatch=async(scenesArr, scriptName, overrideProjectId)=>{
     if(!scenesArr?.length)return;
     let targetId=overrideProjectId || project?.id || currentId;
+    let verifiedProject = null;
     if (sb && targetId) {
       try {
         const { data: pCheck } = await sb.from('projects').select('id, name').eq('id', targetId).maybeSingle();
-        if (!pCheck && (project?.name || project?.title)) {
-          const pName = project?.name || project?.title;
-          const { data: pList } = await sb.from('projects').select('id, name').eq('name', pName).limit(1);
-          if (pList && pList.length > 0) {
-            targetId = pList[0].id;
-          }
-        }
+        if (pCheck) verifiedProject = pCheck;
       } catch {}
     }
+    if (!verifiedProject && (project?.name || project?.title)) {
+      try {
+        const { data: pList } = await sb.from('projects').select('id, name').eq('name', project?.name || project?.title).limit(1);
+        if (pList?.length) verifiedProject = pList[0];
+      } catch {}
+    }
+    if (!verifiedProject && (project?.name || project?.title)) {
+      const pName = project?.name || project?.title;
+      const projectPayload = {
+        name: pName,
+        user_id: user?.id,
+        target_budget: Number(project.target_budget) || 0,
+        type: project.type || 'Feature Film',
+        base_currency: project.base_currency || 'NGN',
+        script_name: scriptName || null,
+      };
+      const { data: createdProj, error: createErr } = await sb
+        .from('projects')
+        .insert(projectPayload)
+        .select()
+        .single();
+      console.log("Project insert result:", { data: createdProj, error: createErr });
+      if (createErr) {
+        toast.error('Could not create production', createErr.message || 'Database error creating production.');
+        return;
+      }
+      if (createdProj) {
+        verifiedProject = createdProj;
+        setProjects(prev => [createdProj, ...prev.filter(p => p.id !== createdProj.id)]);
+        targetId = createdProj.id;
+      }
+    }
+    if (!verifiedProject || !verifiedProject.id) {
+      toast.error('Upload failed', 'Production was not found in the database. Scenes could not be saved.');
+      return;
+    }
+    targetId = verifiedProject.id;
     if (targetId && targetId !== currentId) {
       setCurrentId(targetId);
     }
@@ -20950,20 +21032,28 @@ function Workspace(){
     if (!verifiedProject && (project?.name || project?.title)) {
       try {
         const pName = project?.name || project?.title;
+        const projectPayload = {
+          name: pName,
+          user_id: user?.id,
+          target_budget: Number(project.target_budget) || 0,
+          type: project.type || 'Feature Film',
+          base_currency: project.base_currency || 'NGN',
+          script_name: scriptName || null,
+        };
         const { data: createdProj, error: createErr } = await sb
           .from('projects')
-          .insert({
-            name: pName,
-            user_id: user?.id,
-            target_budget: project.target_budget || 0,
-            location: project.location || '',
-            script_name: scriptName || null,
-          })
-          .select('id, name')
+          .insert(projectPayload)
+          .select()
           .single();
-        if (!createErr && createdProj) {
+        console.log("Project insert result:", { data: createdProj, error: createErr });
+        if (createErr) {
+          toast.error('Could not create production', createErr.message || 'Database error creating production.');
+          return { success: false, error: createErr.message };
+        }
+        if (createdProj) {
           verifiedProject = createdProj;
           setProjects(prev => [createdProj, ...prev.filter(p => p.id !== createdProj.id)]);
+          setCurrentId(createdProj.id);
         }
       } catch (err) {
         console.warn('Could not auto-create project in Supabase:', err);

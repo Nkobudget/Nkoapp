@@ -73,6 +73,7 @@ export async function saveOnboardingProduction(supabase, user, profile) {
   };
 
   const { data: pData, error: pErr } = await supabase.from('projects').insert(projectPayload).select().single();
+  let finalErr = null;
   if (pErr) {
     console.warn('Project insert with explicit ID failed, retrying without ID:', pErr.message);
     const { data: retryData, error: retryErr } = await supabase.from('projects').insert({
@@ -83,13 +84,20 @@ export async function saveOnboardingProduction(supabase, user, profile) {
       target_budget: budgetNumber,
     }).select().single();
 
+    finalErr = retryErr;
     if (retryErr) {
       console.error('Could not save onboarding project:', retryErr.message);
+      console.log("Project insert result:", { data: null, error: retryErr });
       return null;
     }
     savedProject = retryData;
   } else {
     savedProject = pData;
+  }
+
+  console.log("Project insert result:", { data: savedProject, error: finalErr || pErr });
+  if (!savedProject || !savedProject.id) {
+    return null;
   }
 
   const finalProjectId = savedProject.id;

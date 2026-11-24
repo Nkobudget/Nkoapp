@@ -348,3 +348,22 @@ test('saveCharactersBatch collects all characters into single insert, verifies p
   assert.match(fileContent, /<BreakdownView[\s\S]*?onSaveCharactersBatch=\{saveCharactersBatch\}/);
   assert.match(fileContent, /<BudgetsView[\s\S]*?onSaveCharactersBatch=\{saveCharactersBatch\}/);
 });
+
+test('project creation logs insert result, Supabase host is logged at start, and budget checks project existence', async () => {
+  const legacyContent = fs.readFileSync(path.resolve('src/legacy/LegacyApp.jsx'), 'utf8');
+  const clientContent = fs.readFileSync(path.resolve('src/lib/supabaseClient.js'), 'utf8');
+
+  // Supabase URL host log at app start
+  assert.match(clientContent, /console\.log\(\s*['"]Supabase host:['"],\s*sbHost\)/);
+
+  // Project insert result logged on creation
+  assert.match(legacyContent, /console\.log\(\s*['"]Project insert result:['"],\s*\{\s*data/);
+
+  // applyScriptBudget checks project exists before inserting and uses toast
+  assert.match(legacyContent, /const applyScriptBudget\s*=\s*async/);
+  assert.match(legacyContent, /sb\.from\('projects'\)\.select\('id,\s*name'\)\.eq\('id',\s*targetId\)/);
+  assert.match(legacyContent, /toast\.error\(\s*['"]Could not apply budget['"]/);
+
+  // Alert replaced in createProject
+  assert.match(legacyContent, /const createProject\s*=\s*async[\s\S]*?toast\.error\(\s*['"]Could not create production['"]/);
+});

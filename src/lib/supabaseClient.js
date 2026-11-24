@@ -6,6 +6,13 @@ const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_KoI_EHwLNl8IlbB60Zgmng_TsuvaZU
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY
 
+try {
+  const sbHost = new URL(supabaseUrl).host;
+  console.log("Supabase host:", sbHost);
+} catch (e) {
+  console.log("Supabase host: invalid URL", supabaseUrl);
+}
+
 // Capture callback intent before the SDK consumes the URL fragment.
 const callbackHash = new URLSearchParams(window.location.hash.slice(1))
 const callbackQuery = new URLSearchParams(window.location.search)
