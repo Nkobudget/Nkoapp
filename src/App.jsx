@@ -29,7 +29,6 @@ import { saveOnboardingProduction } from "./onboarding/saveOnboardingProduction"
 import LangProvider from "./i18n/LangProvider";
 import { supabase, isRecoveryCallback, isSessionCallback, authCallbackError } from "./lib/supabaseClient";
 import AuthStatus from "./auth/AuthStatus";
-import ToastProvider from "./components/ToastProvider";
 
 
 class DashboardBoundary extends Component {
@@ -334,14 +333,5 @@ function AppRoutes() {
 }
 
 export default function App() {
-  return (
-    <LangProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <PendingProductionSaver />
-          <AppRoutes />
-        </ToastProvider>
-      </AuthProvider>
-    </LangProvider>
-  );
+  return <LangProvider><AuthProvider><PendingProductionSaver /><AppRoutes /></AuthProvider></LangProvider>;
 }

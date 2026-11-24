@@ -13,7 +13,6 @@ import { readOnboarding } from '../onboarding/storage';
 import { generateBudgetDocsHtml, budgetDocs } from './exportBudgetDocs.js';
 import { parseScriptFile, extractTextFromPdfBuffer } from './scriptBreakdownParser.js';
 import './dashboard.css';
-import ToastProvider, { toast, showToast } from '../components/ToastProvider';
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DURATION, EASE_OUT, fadeUp, staggerContainer } from '../lib/motion';
@@ -9059,17 +9058,13 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
     const isPDF=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
     const isTxt=f.type==='text/plain'||f.name.toLowerCase().endsWith('.txt')||f.name.toLowerCase().endsWith('.fdx')||f.name.toLowerCase().endsWith('.fountain');
     if(!isPDF&&!isTxt){
-      const msg = 'Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) script.';
-      setErr(msg);
+      setErr('Upload a Final Draft (.fdx), Fountain (.fountain), PDF or plain text (.txt) script.');
       setState('error');
-      toast.error('Invalid file format', msg);
       return;
     }
     if(f.size>25*1024*1024){
-      const msg = 'File is too large (max 25MB). Try a smaller export or a .txt file.';
-      setErr(msg);
+      setErr('File is too large (max 25MB). Try a smaller export or a .txt file.');
       setState('error');
-      toast.error('File too large', msg);
       return;
     }
 
@@ -9130,14 +9125,13 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
       const sampleHeadings=scenes.slice(0,3).map(s=>`Scene ${s.sceneNumber}: ${s.heading}`);
       const elemCount=new Set(scenes.flatMap(s=>(s.productionElements||[]).map(e=>e.name||e).concat(s.props||[]).concat(s.wardrobe||[]))).size;
       const vehCount=new Set(scenes.flatMap(s=>(s.pictureVehicles||[]).map(v=>v.name||v).concat(s.vehicles||[]))).size;
-      const charCount=characters.length||new Set(scenes.flatMap(s=>s.cast||[])).size;
 
       const summaryData={
         scenes,
         characters,
         scriptName:f.name,
         sceneCount:scenes.length,
-        characterCount:charCount,
+        characterCount:characters.length||new Set(scenes.flatMap(s=>s.cast||[])).size,
         pages:estPages,
         headings:sampleHeadings,
         elemCount,
@@ -9147,16 +9141,7 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
       setParsedSummary(summaryData);
       setState('done');
 
-      // 1. Immediately trigger the green success notification on top of the modal overlay
-      toast.success(
-        'Successfully uploaded',
-        `Script "${f.name}" (${scenes.length} scenes, ${charCount} cast) uploaded & ready to schedule.`
-      );
-
-      // 2. Allow the toast to render immediately before heavy asynchronous processing
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      // 3. Keep modal open in done state, and continue asynchronous apply
+      // Automatically apply to production immediately so scenes are populated in the workspace!
       try {
         onApply(scenes, f.name, characters, summaryData);
       } catch (err) {
@@ -9169,15 +9154,6 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
     }catch(e){
       setErr(e.message);
       setState('error');
-      toast.error('Upload failed', e.message || 'Could not parse the script file.');
-    }
-  };
-
-  const processFiles=async fileList=>{
-    const files=Array.from(fileList||[]).filter(Boolean);
-    if(!files.length)return;
-    for(const f of files){
-      await process(f);
     }
   };
 
@@ -9314,19 +9290,16 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
               </div>
             ):(
               <div
-                onClick={()=>(state==='idle'||state==='error')&&fr.current?.click()}
+                onClick={()=>(state==='idle'||state==='error')&&fr.current.click()}
                 onDragOver={e=>{e.preventDefault();if(state==='idle'||state==='error')setDragging(true);}}
                 onDragLeave={()=>setDragging(false)}
                 onDrop={e=>{
                   e.preventDefault();setDragging(false);
-                  if(state==='idle'||state==='error'||state==='done'){
-                    const files=e.dataTransfer?.files;
-                    if(files?.length)processFiles(files);
-                  }
+                  if(state==='idle'||state==='error'){const f=e.dataTransfer?.files?.[0];if(f)process(f);}
                 }}
                 style={{
-                  background:dragging?'rgba(255,179,71,0.05)':state==='reading'||state==='analyzing'?'rgba(255,255,255,0.015)':'#121215',
-                  border:dragging?'1px solid rgba(255,179,71,0.55)':state==='analyzing'?'1px solid rgba(82,176,122,0.45)':state==='reading'?'1px solid rgba(255,179,71,0.45)':'1px solid #222226',
+                  background:dragging?'rgba(255,179,71,0.05)':'#121215',
+                  border:dragging?'1px solid rgba(255,179,71,0.55)':state==='analyzing'?'1px solid rgba(255,179,71,0.45)':'1px solid #222226',
                   borderRadius:12,
                   padding:'36px 22px',
                   textAlign:'center',
@@ -9337,16 +9310,15 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
                 <input
                   ref={fr}
                   type="file"
-                  multiple
                   accept=".pdf,.txt,.fdx,.fountain"
                   style={{display:'none'}}
-                  onChange={e=>{const files=e.target.files;e.target.value='';if(files?.length)processFiles(files);}}
+                  onChange={e=>{const f=e.target.files[0];e.target.value='';if(f)process(f);}}
                 />
+                <div style={{width:42,height:42,borderRadius:11,background:'#1A1A1E',border:'1px solid #2A2A30',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,color:'#F5C451'}}>
+                  <Upload size={18}/>
+                </div>
                 {state==='idle'&&(
                   <>
-                    <div style={{width:42,height:42,borderRadius:11,background:'#1A1A1E',border:'1px solid #2A2A30',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,color:'#F5C451'}}>
-                      <Upload size={18}/>
-                    </div>
                     <div style={{fontSize:13,fontWeight:600,color:T.cream}}>
                       Drop your script here or <span style={{color:'#F5C451',fontWeight:700}}>browse</span>
                     </div>
@@ -9356,55 +9328,22 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
                   </>
                 )}
                 {state==='reading'&&(
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
-                    <motion.div
-                      animate={{rotate:360}}
-                      transition={{repeat:Infinity,duration:0.9,ease:'linear'}}
-                      style={{width:32,height:32,borderRadius:'50%',border:'3px solid rgba(255,179,71,0.2)',borderTopColor:'#F5C451'}}
-                    />
-                    <div>
-                      <div style={{fontSize:13.5,fontWeight:600,color:T.cream}}>Reading {fileInfo?.name||'script'}…</div>
-                      <div style={{fontSize:11,color:'#A1A1AA',marginTop:4,fontFamily:'IBM Plex Mono,monospace'}}>{fileInfo?.size||'Loading file content'}</div>
-                    </div>
-                    <div style={{width:160,height:3,background:'#1E1E22',borderRadius:2,overflow:'hidden',marginTop:4}}>
-                      <motion.div
-                        animate={{x:[-80, 160]}}
-                        transition={{repeat:Infinity,duration:1.2,ease:'easeInOut'}}
-                        style={{width:60,height:'100%',background:'#F5C451',borderRadius:2}}
-                      />
-                    </div>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:T.cream}}>Reading {fileInfo?.name||'script'}…</div>
+                    <div style={{fontSize:11,color:'#71717A',marginTop:4}}>{fileInfo?.size||'Loading file content'}</div>
                   </div>
                 )}
                 {state==='analyzing'&&(
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
-                    <motion.div
-                      animate={{rotate:360}}
-                      transition={{repeat:Infinity,duration:0.9,ease:'linear'}}
-                      style={{width:32,height:32,borderRadius:'50%',border:'3px solid rgba(82,176,122,0.25)',borderTopColor:'#4CAF7A'}}
-                    />
-                    <div>
-                      <div style={{fontSize:13.5,fontWeight:600,color:T.cream}}>Analyzing {fileInfo?.name||'script'}…</div>
-                      <div style={{fontSize:11,color:'#A1A1AA',marginTop:4}}>Extracting scenes, speaking cast &amp; production requirements…</div>
-                    </div>
-                    <div style={{width:160,height:3,background:'#1E1E22',borderRadius:2,overflow:'hidden',marginTop:4}}>
-                      <motion.div
-                        animate={{x:[-80, 160]}}
-                        transition={{repeat:Infinity,duration:1.2,ease:'easeInOut'}}
-                        style={{width:60,height:'100%',background:'#4CAF7A',borderRadius:2}}
-                      />
-                    </div>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:T.cream}}>Analyzing {fileInfo?.name||'script'}…</div>
+                    <div style={{fontSize:11,color:'#71717A',marginTop:4}}>Extracting scenes, speaking cast &amp; production requirements…</div>
                   </div>
                 )}
                 {state==='error'&&(
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
-                    <div style={{width:40,height:40,borderRadius:12,background:'rgba(224,82,82,0.15)',border:'1px solid rgba(224,82,82,0.35)',display:'flex',alignItems:'center',justifyContent:'center',color:'#E05252',marginBottom:12}}>
-                      <AlertCircle size={22}/>
-                    </div>
-                    <div style={{fontSize:12.5,color:'#FCA5A5',marginBottom:14,maxWidth:380,lineHeight:1.45}}>
-                      {err}
-                    </div>
+                  <>
+                    <div style={{fontSize:12,color:'#E05252',marginBottom:10}}>{err}</div>
                     <Btn variant="ghost" size="sm" onClick={e=>{e.stopPropagation();setState('idle');setErr('');}}>Try again</Btn>
-                  </div>
+                  </>
                 )}
               </div>
             )}
@@ -21007,10 +20946,6 @@ function Workspace(){
 }
 
 export default function MainApp(){
-  return (
-    <ToastProvider>
-      <div className="nko-dashboard"><Workspace/></div>
-    </ToastProvider>
-  );
+  return <div className="nko-dashboard"><Workspace/></div>;
 }
 
