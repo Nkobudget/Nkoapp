@@ -6,7 +6,30 @@
 const HEADING_REGEX = /^\s*(?:\.?\s*)?(?:(?:SCENE\s+)?(\d+[A-Z]?)\s*[.\-:\/]?\s*)?((?:INT\.?\s*[\/&]\s*EXT\.?|EXT\.?\s*[\/&]\s*INT\.?|I\s*\/\s*E|INT\.?|EXT\.?)\b\s*.+)$/i;
 const SECONDARY_HEADING_REGEX = /^\s*(?:SCENE\s+(\d+[A-Z]?)|(\d+)[.\-]\s+([A-Z0-9\s'–-]+(?:\s*[-–—]\s*(?:NIGHT|DAY|DAWN|DUSK|MORNING|EVENING|CONTINUOUS|LATER))?))/i;
 
-const TOD_TERMS = ['NIGHT', 'DAY', 'DAWN', 'DUSK', 'MORNING', 'EVENING', 'AFTERNOON', 'SUNSET', 'SUNRISE', 'CONTINUOUS', 'LATER', 'SAME'];
+/* Second line of a heading that wrapped in the PDF, e.g. "... - BACK TO" + "PRESENT." */
+const HEADING_CONTINUATION = /^(?:PRESENT\.?|BACK TO PRESENT\.?|CONTINUOUS|DAY|NIGHT|DAWN|DUSK|MORNING|EVENING|AFTERNOON|LATER|FLASHBACK)\b[\s.\-–—A-Z]{0,30}$/;
+
+/* All-caps lines that look like a character cue but are not a person. */
+const NON_CHARACTER_CUES = /^(?:CONTINUOUS|PRESENT|BACK TO PRESENT|FLASHBACK(?: ENDS)?|DREAM(?:\/ ?FLASHBACK)?(?: ENDS)?|INTERCUT(?: WITH)?|MATCH CUT(?: TO)?|MOMENTS LATER|LATER|BEAT|MORE|CONT'?’?D|TEXT ON SCREEN|SUPER|TITLE|THE END|FADE TO BLACK|END|INSERT|BACK TO SCENE|ANGLE ON|CLOSE ON|POV)$/;
+
+/* A numbered sub-scene heading with no INT./EXT., numbered on both margins:
+   "2 AT THE TAXI PARK: 2", "38 INSIDE AWELE'S ROOM: 38", "60 MOMENTS LATER... 60". */
+export function matchSubSceneHeading(line = '') {
+  const m = String(line).trim().match(/^(\d+[A-Z]?)\s+(.{2,80}?)\s+(\d+[A-Z]?)$/);
+  if (!m || m[1] !== m[3]) return null;
+  const title = m[2].replace(/[:.…]+$/, '').trim();
+  if (!title || title !== title.toUpperCase() || !/[A-Z]/.test(title)) return null;
+  return { number: m[1], title };
+}
+
+/* True for any line that starts a new scene — used to measure scene lengths on the page. */
+export function isSceneHeadingLine(line = '') {
+  const t = String(line).trim();
+  if (!t || t.length >= 140) return false;
+  return HEADING_REGEX.test(t) || Boolean(matchSubSceneHeading(t));
+}
+
+const TOD_TERMS =['NIGHT', 'DAY', 'DAWN', 'DUSK', 'MORNING', 'EVENING', 'AFTERNOON', 'SUNSET', 'SUNRISE', 'CONTINUOUS', 'LATER', 'SAME'];
 
 export function parseDayNight(heading = '') {
   const upper = heading.toUpperCase();
@@ -37,36 +60,59 @@ export function parseSetName(heading = '') {
   s = s.split(/\s*[-–—,.]\s*(?:NIGHT|DAY|DAWN|DUSK|MORNING|EVENING|AFTERNOON|SUNSET|SUNRISE|CONTINUOUS|LATER|SAME)/i)[0];
   // Strip trailing notes or numbers
   s = s.split(/\s+[-–—]\s+/)[0].trim();
+  // "HOUSE (COMPOUND - FRESH GRAVESITE)" is cut at the dash above; close the bracket it left open.
+  if ((s.match(/\(/g) || []).length > (s.match(/\)/g) || []).length) s = `${s})`;
   return s || 'UNTITLED';
 }
 
+/* Word-boundary patterns only: a bare substring like /car/ matches "scar", "carry" and "careful",
+   and /van/ matches "advance", which floods long scripts with vehicles that aren't there.
+   Names are generic on purpose - the producer fills in make, model and plates later. */
 const COMMON_PROPS = [
-  { term: /badge|id card/i, category: 'Props & Wardrobe', name: 'Police Badges & Official Credentials', detail: 'Ready' },
-  { term: /gun|pistol|revolver|rifle|weapon|holster|firearm/i, category: 'Props & Armory', name: 'Firearm & Tactical Holster', detail: 'Armory licensed' },
-  { term: /phone|mobile|cellphone|smartphone/i, category: 'Props', name: 'Mobile Phone / Smartphone', detail: 'Hero prop' },
-  { term: /briefcase|dossier|file folder|documents|ledger|manifest/i, category: 'Props', name: 'Confidential Dossier & Case Files', detail: 'Hero paperwork' },
-  { term: /money|cash|naira|dollars|banknotes/i, category: 'Props', name: 'Currency Cash Bundles', detail: 'Prop currency' },
-  { term: /stretcher|gurney|wheelchair|iv stand|drip/i, category: 'Props & Medical', name: 'Medical Stretcher & Clinical Vitals', detail: 'Hospital setup' },
-  { term: /bottle|champagne|whiskey|drink|wine|glass/i, category: 'Props & Set Dec', name: 'Bar Service Bottles & Glassware', detail: 'Ready' },
-  { term: /jacket|driver jacket|leather jacket/i, category: 'Wardrobe and Costume', name: "Driver's Jacket", detail: '× 3 · Ready' },
-  { term: /uniform|police uniform|guard uniform/i, category: 'Wardrobe and Costume', name: 'Official Department Uniform', detail: 'Sized & prepped' },
-  { term: /suit|designer suit|tuxedo/i, category: 'Wardrobe and Costume', name: 'Bespoke Executive Suit', detail: 'Fitted' },
-  { term: /dress|evening gown|attire|costume/i, category: 'Wardrobe and Costume', name: 'Principal Costume Wardrobe', detail: 'Continuity logged' },
-  { term: /wound|blood|injury|bruise|stitches|cut/i, category: 'Makeup and Hair', name: "SFX Wounds & Continuity Bruising", detail: 'Makeup & Hair' },
-  { term: /crash|skid|pursuit|stunt|collision/i, category: 'SFX & Stunts', name: 'Precision Stunt Driving Rig', detail: 'Safety coordinator briefed' },
-  { term: /gunfire|muzzle flash|shootout|bullet hits/i, category: 'Special Effects', name: 'Bridge exchange gunfire & Muzzle FX', detail: 'Quarter loads' },
-  { term: /water rescue|drown|lagoon rescue|dive/i, category: 'Stunts and Action', name: 'Water rescue rig & safety divers', detail: 'Safety boat ready' },
-  { term: /explosion|fire|blast|smoke/i, category: 'SFX & Pyro', name: 'Atmospheric Smoke & Flare SFX', detail: 'Pyro safety tech' },
+  { term: /\b(?:badges?|id cards?|credentials)\b/i, category: 'Props & Wardrobe', name: 'Badges & ID credentials', detail: 'As scripted' },
+  { term: /\b(?:guns?|pistols?|revolvers?|rifles?|firearms?|holsters?)\b/i, category: 'Props & Armory', name: 'Firearms', detail: 'Armourer required' },
+  { term: /\b(?:grenades?)\b/i, category: 'Props & Armory', name: 'Grenades (prop)', detail: 'Armourer required' },
+  { term: /\b(?:gunfire|gunshots?|bullets?|shootout|muzzle flash(?:es)?)\b/i, category: 'Special Effects', name: 'Gunfire & bullet hits FX', detail: 'Armourer / SFX' },
+  { term: /\b(?:explosions?|explodes?|blasts?|bombs?|detonatw*)\b/i, category: 'SFX & Pyro', name: 'Explosions & pyro', detail: 'Pyro safety tech' },
+  { term: /\bsmoke\b/i, category: 'SFX & Pyro', name: 'Atmospheric smoke', detail: 'SFX' },
+  { term: /\b(?:phones?|cellphones?|smartphones?|mobile phones?)\b/i, category: 'Props', name: 'Phones', detail: 'As scripted' },
+  { term: /\bradios?\b/i, category: 'Props', name: 'Radio', detail: 'Period-correct' },
+  { term: /\b(?:briefcases?|dossiers?|file folders?|documents|ledgers?|manifests?|envelopes?)\b/i, category: 'Props', name: 'Briefcase & documents', detail: 'Hero paperwork' },
+  { term: /\b(?:money|cash|naira|dollars|banknotes|folded notes)\b/i, category: 'Props', name: 'Money / cash', detail: 'Prop currency' },
+  { term: /\b(?:stretchers?|gurneys?|wheelchairs?|iv stands?|drips?|bandages?)\b/i, category: 'Props & Medical', name: 'Medical props & bandages', detail: 'As scripted' },
+  { term: /\b(?:bottles?|champagne|whiskey|wine|beer|gin|calabash(?:es)?|glasses of)\b/i, category: 'Props & Set Dec', name: 'Drinks, bottles & glassware', detail: 'As scripted' },
+  { term: /\b(?:cigarettes?|tobacco|match ?box)\b/i, category: 'Props', name: 'Cigarettes & tobacco', detail: 'Herbal / prop' },
+  { term: /\blanterns?\b/i, category: 'Props & Set Dec', name: 'Lanterns', detail: 'Practical light' },
+  { term: /\b(?:photographs?|photos?)\b/i, category: 'Props', name: 'Photographs', detail: 'Art dept to print' },
+  { term: /\bflags?\b/i, category: 'Props & Set Dec', name: 'Flags & banners', detail: 'As scripted' },
+  { term: /\b(?:coffins?|caskets?|graves?|gravesite)\b/i, category: 'Props & Set Dec', name: 'Coffin & grave', detail: 'As scripted' },
+  { term: /\b(?:jackets?)\b/i, category: 'Wardrobe and Costume', name: 'Jackets', detail: 'As scripted' },
+  { term: /\buniforms?\b/i, category: 'Wardrobe and Costume', name: 'Uniforms', detail: 'Sized & prepped' },
+  { term: /\b(?:suits?|tuxedos?)\b/i, category: 'Wardrobe and Costume', name: 'Suits', detail: 'Fitted' },
+  { term: /\b(?:traditional (?:outfits?|attire)|wrappers?|mourning clothes|gowns?)\b/i, category: 'Wardrobe and Costume', name: 'Traditional & principal costume', detail: 'Continuity logged' },
+  { term: /\b(?:wounds?|wounded|blood|bleedw*|injur(?:y|ies|ed)|bruisw*|stitches|scars?)\b/i, category: 'Makeup and Hair', name: 'SFX makeup: wounds, blood & scars', detail: 'Makeup & Hair' },
+  { term: /\b(?:crash(?:es|ed)?|skids?|pursuit|stunts?|collisions?)\b/i, category: 'SFX & Stunts', name: 'Vehicle stunts', detail: 'Stunt coordinator' },
+  { term: /\b(?:fights?|fighting|punch(?:es)?|wrestlw*|stranglw*|slaps?)\b/i, category: 'Stunts and Action', name: 'Fight choreography', detail: 'Stunt coordinator' },
+  { term: /\b(?:drownw*|water rescue|dives?)\b/i, category: 'Stunts and Action', name: 'Water stunt & safety divers', detail: 'Safety boat ready' },
+  { term: /\b(?:made love|make love|making love|naked|nakedness|undressw*|forcw* himself on)\b/i, category: 'Intimacy Coordination', name: 'Intimacy / closed set', detail: 'Intimacy coordinator' },
 ];
 
 const COMMON_VEHICLES = [
-  { term: /taxi|cab|peugeot/i, name: "Adaobi's Taxi", type: 'Taxi', spec: 'Toyota Corolla 2008 · Yellow with black stripe', makeModel: 'Toyota Corolla 2008', colour: 'Yellow with black stripe', registration: 'LSR 412 KJ', usage: 'Static & moving', detail: 'Static & moving' },
-  { term: /police cruiser|patrol car|hilux|police van/i, name: 'Police Cruiser', type: 'Police vehicle', spec: 'Toyota Hilux · Black and white livery', makeModel: 'Toyota Hilux', colour: 'Black and white livery', registration: 'Prop plates', usage: 'Moving', detail: 'Static & pursuit' },
-  { term: /motorcycle|bike|okada/i, name: 'Motorcycle Courier', type: 'Motorcycle', spec: 'Bajaj Boxer 100cc Dispatch Bike', makeModel: 'Bajaj Boxer 100cc', colour: 'Red', registration: 'Prop plates', usage: 'Moving', detail: 'Running' },
-  { term: /ambulance|paramedic/i, name: 'Emergency Ambulance', type: 'Emergency', spec: 'Toyota HiAce Emergency Medical Unit', makeModel: 'Toyota HiAce', colour: 'White / Red', registration: 'Emergency plates', usage: 'Static & moving', detail: 'Permit ready' },
-  { term: /truck|pickup|van|lorry/i, name: 'Production Transport Van', type: 'Truck / Van', spec: 'Ford Transit Cargo Van', makeModel: 'Ford Transit', colour: 'White', registration: 'Prop plates', usage: 'Moving', detail: 'Running' },
-  { term: /boat|canoe|ferry|yacht|watercraft/i, name: 'Lagoon Wooden Boat', type: 'Watercraft', spec: 'Outboard Motor Wooden Canoe', makeModel: 'Wooden Outboard Canoe', colour: 'Natural wood', registration: 'Marine permit', usage: 'Moving', detail: 'Water safety crew' },
-  { term: /sedan|suv|jeep|limo|car/i, name: 'Lead Character Sedan', type: 'Lead Vehicle', spec: 'Executive Sedan', makeModel: 'Executive Sedan', colour: 'Dark Gray', registration: 'Prop plates', usage: 'Static & moving', detail: 'Running' },
+  { term: /\b(?:police (?:cars?|cruisers?|vans?)|patrol cars?)\b/i, name: 'Police vehicle', type: 'Police vehicle' },
+  { term: /\b(?:military trucks?|army trucks?)\b/i, name: 'Military truck', type: 'Truck' },
+  { term: /\b(?:taxis?|cabs?)\b/i, name: 'Taxi', type: 'Taxi' },
+  // "the train rolls in" is a vehicle; "he trains rigorously" and the location "TRAIN STATION" are not.
+  { term: /\b(?:train(?!\s+(?:station|stations|track|tracks)\b)|trains(?!\s+(?:hard|rigorously|daily|every)))\b/i, name: 'Train', type: 'Rail' },
+  { term: /(?<!(?:military|army) )\b(?:trucks?|lorry|lorries|pickups?)\b/i, name: 'Truck', type: 'Truck / Van' },
+  { term: /(?<!police )\bvans?\b/i, name: 'Van', type: 'Truck / Van' },
+  { term: /\b(?:motorcycles?|motorbikes?|okadas?)\b/i, name: 'Motorcycle', type: 'Motorcycle' },
+  { term: /\b(?:bicycles?|bikes?)\b/i, name: 'Bicycle', type: 'Bicycle' },
+  { term: /\b(?:ambulances?)\b/i, name: 'Ambulance', type: 'Emergency' },
+  { term: /\b(?:buses|bus)\b/i, name: 'Bus', type: 'Bus' },
+  { term: /\b(?:boats?|canoes?|ferry|ferries|yachts?)\b/i, name: 'Boat', type: 'Watercraft' },
+  { term: /\b(?:fighter jets?|jets?|aircraft|aeroplanes?|airplanes?|helicopters?)\b/i, name: 'Aircraft', type: 'Aircraft' },
+  { term: /\b(?:jeeps?|suvs?|land ?rovers?)\b/i, name: 'Jeep / SUV', type: 'Car' },
+  { term: /(?<!(?:police|patrol) )\b(?:cars?|sedans?|saloon cars?|limos?|limousines?|peugeot)\b/i, name: 'Car', type: 'Car' },
 ];
 
 export function extractSceneElements(text = '', heading = '') {
@@ -85,12 +131,19 @@ export function extractSceneElements(text = '', heading = '') {
   COMMON_VEHICLES.forEach(item => {
     if (item.term.test(combined)) {
       if (!vehicles.some(v => v.name === item.name)) {
-        vehicles.push({ name: item.name, detail: item.detail, spec: item.spec, type: item.type });
+        vehicles.push({ name: item.name, type: item.type });
       }
     }
   });
 
-  return { elements, vehicles };
+  // A specific vehicle already covers the generic one ("military truck" ... "the truck").
+  const has = n => vehicles.some(v => v.name === n);
+  const superseded = new Set([
+    ...(has('Military truck') ? ['Truck'] : []),
+    ...(has('Police vehicle') ? ['Car', 'Van'] : []),
+  ]);
+
+  return { elements, vehicles: vehicles.filter(v => !superseded.has(v.name)) };
 }
 
 export function extractFdxParagraphs(xmlText) {
@@ -131,6 +184,7 @@ export function parseFinalDraftXml(xmlText) {
 
   let cur = null;
   let actionLines = [];
+  let fdxBody = [];
   let lineCount = 0;
 
   paras.forEach(p => {
@@ -144,7 +198,7 @@ export function parseFinalDraftXml(xmlText) {
     if (isSceneHeading) {
       if (cur) {
         cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
-        const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
+        const extracted = extractSceneElements(fdxBody.join(' '), cur.heading);
         cur.productionElements = extracted.elements;
         cur.pictureVehicles = extracted.vehicles;
         cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
@@ -175,9 +229,11 @@ export function parseFinalDraftXml(xmlText) {
         ready: true,
       };
       actionLines = [];
+      fdxBody = [];
       lineCount = 2;
     } else if (cur) {
       lineCount += Math.max(1, Math.ceil(text.length / 55));
+      fdxBody.push(text);
       if (type === 'Action' || type === 'General') {
         if (actionLines.length < 5) actionLines.push(text);
       } else if (type === 'Character') {
@@ -192,7 +248,7 @@ export function parseFinalDraftXml(xmlText) {
 
   if (cur) {
     cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
-    const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
+    const extracted = extractSceneElements(fdxBody.join(' '), cur.heading);
     cur.productionElements = extracted.elements;
     cur.pictureVehicles = extracted.vehicles;
     cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
@@ -222,42 +278,60 @@ export function parseScriptText(rawText) {
 
   let cur = null;
   let actionLines = [];
+  let bodyLines = [];
   let lineCount = 0;
 
+  // Scan the WHOLE scene for props and vehicles, not just the first few action lines —
+  // in a long script most of what a scene needs is mentioned well past its opening lines.
+  const closeScene = () => {
+    if (!cur) return;
+    cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
+    const extracted = extractSceneElements(bodyLines.join(' '), cur.heading);
+    cur.productionElements = extracted.elements;
+    cur.pictureVehicles = extracted.vehicles;
+    cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
+    const isReady = cur.cast.length > 0 && cur.location && cur.dayNight && cur.pages8 > 0;
+    cur.status = isReady ? 'ready' : 'incomplete';
+    cur.ready = isReady;
+    outScenes.push(cur);
+    cur = null;
+  };
+
+  const addCast = name => {
+    if (!name || NON_CHARACTER_CUES.test(name) || cur.cast.includes(name)) return;
+    cur.cast.push(name);
+    charCounts[name] = (charCounts[name] || 0) + 1;
+  };
+
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    let line = lines[i].trim();
     if (!line) continue;
 
     const m = line.match(HEADING_REGEX);
     if (m) {
-      if (cur) {
-        cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
-        const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
-        cur.productionElements = extracted.elements;
-        cur.pictureVehicles = extracted.vehicles;
-        cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
-        const isReady = cur.cast.length > 0 && cur.location && cur.dayNight && cur.pages8 > 0;
-        cur.status = isReady ? 'ready' : 'incomplete';
-        cur.ready = isReady;
-        outScenes.push(cur);
-      }
+      closeScene();
 
-      const rawHeading = m[2].trim().toUpperCase();
+      // Long headings wrap onto a second line in PDFs ("... - BACK TO" / "PRESENT").
+      const next = (lines[i + 1] || '').trim();
+      if (next && HEADING_CONTINUATION.test(next) && /(?:[-–—,]|\bBACK TO|\bTO)\s*$/i.test(line)) {
+        line = `${line} ${next}`;
+        i += 1;
+      }
+      const mm = line.match(HEADING_REGEX) || m;
+
+      let rawHeading = mm[2].trim().toUpperCase();
+      // Numbered scripts repeat the scene number at the right margin: "1 EXT. STATION – NIGHT 1".
+      if (mm[1]) rawHeading = rawHeading.replace(new RegExp(`\\s+${mm[1]}\\s*$`, 'i'), '').trim();
       const upper = rawHeading.startsWith('INT') || rawHeading.startsWith('EXT') || rawHeading.startsWith('I/E')
         ? rawHeading
         : `${parseIntExt(rawHeading)}. ${rawHeading}`;
 
-      const ie = parseIntExt(upper);
-      const dayNight = parseDayNight(upper);
-      const loc = parseSetName(upper);
-      const sceneNum = m[1] || String(outScenes.length + 1);
-
       cur = {
-        sceneNumber: sceneNum,
+        sceneNumber: mm[1] || String(outScenes.length + 1),
         heading: upper,
-        intExt: ie,
-        location: loc,
-        dayNight,
+        intExt: parseIntExt(upper),
+        location: parseSetName(upper),
+        dayNight: parseDayNight(upper),
         cast: [],
         talkingExtras: [],
         backgroundActors: 0,
@@ -267,42 +341,57 @@ export function parseScriptText(rawText) {
         ready: true,
       };
       actionLines = [];
+      bodyLines = [];
       lineCount = 2;
-    } else if (cur) {
-      lineCount += 1;
-      const cleanCue = line.replace(/\(.*?\)/g, '').trim();
-      const isCue = /^[A-Z][A-Z0-9\s.'\-]{1,28}$/.test(cleanCue)
-        && !/^(?:CUT TO|FADE IN|FADE OUT|DISSOLVE TO|SMASH CUT|THE END|CONTINUED|TITLE CARD|MONTAGE|SERIES OF SHOTS)$/.test(cleanCue)
-        && !cleanCue.endsWith('.') && !cleanCue.endsWith('!') && !cleanCue.endsWith('?');
+      continue;
+    }
 
-      // Next line is dialogue or parenthetical
-      const nextLine = (lines[i + 1] || '').trim();
-      const followedByDialogue = nextLine && !HEADING_REGEX.test(nextLine) && nextLine.length > 0;
+    // Numbered sub-scene inside the current set: "2 AT THE TAXI PARK: 2", "38 INSIDE AWELE'S ROOM: 38".
+    const sub = cur ? matchSubSceneHeading(line) : null;
+    if (sub) {
+      const parent = cur;
+      closeScene();
+      cur = {
+        sceneNumber: sub.number,
+        heading: `${parent.intExt}. ${parent.location} – ${sub.title} - ${parent.dayNight}`,
+        intExt: parent.intExt,
+        location: parent.location,
+        dayNight: parent.dayNight,
+        cast: [],
+        talkingExtras: [],
+        backgroundActors: 0,
+        synopsis: '',
+        pages8: 8,
+        status: 'ready',
+        ready: true,
+      };
+      actionLines = [];
+      bodyLines = [];
+      lineCount = 2;
+      continue;
+    }
 
-      if (isCue && followedByDialogue) {
-        if (!cur.cast.includes(cleanCue)) {
-          cur.cast.push(cleanCue);
-          charCounts[cleanCue] = (charCounts[cleanCue] || 0) + 1;
-        }
-      } else {
-        if (actionLines.length < 5 && !line.startsWith('(') && line.length > 10) {
-          actionLines.push(line);
-        }
-      }
+    if (!cur) continue;
+    lineCount += 1;
+    bodyLines.push(line);
+    const cleanCue = line.replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
+    const isCue = /^[A-Z][A-Z0-9\s.'’\-\/]{1,40}$/.test(cleanCue)
+      && !/^(?:CUT TO|FADE IN|FADE OUT|DISSOLVE TO|SMASH CUT|THE END|CONTINUED|TITLE CARD|MONTAGE|SERIES OF SHOTS)$/.test(cleanCue)
+      && !cleanCue.endsWith('.') && !cleanCue.endsWith('!') && !cleanCue.endsWith('?');
+
+    // Next line is dialogue or parenthetical
+    const nextLine = (lines[i + 1] || '').trim();
+    const followedByDialogue = nextLine && !HEADING_REGEX.test(nextLine) && nextLine.length > 0;
+
+    if (isCue && followedByDialogue) {
+      // Dual cue "AMAECHI/ ONOCHIE" — both characters speak.
+      cleanCue.split(/\s*\/\s*/).map(n => n.trim()).filter(n => n.length > 1 && n.length <= 30).forEach(addCast);
+    } else if (actionLines.length < 5 && !line.startsWith('(') && line.length > 10) {
+      actionLines.push(line);
     }
   }
 
-  if (cur) {
-    cur.synopsis = actionLines.slice(0, 3).join(' ') || cur.synopsis;
-    const extracted = extractSceneElements(actionLines.join(' '), cur.heading);
-    cur.productionElements = extracted.elements;
-    cur.pictureVehicles = extracted.vehicles;
-    cur.pages8 = Math.max(1, Math.min(64, Math.round(lineCount / 7)));
-    const isReady = cur.cast.length > 0 && cur.location && cur.dayNight && cur.pages8 > 0;
-    cur.status = isReady ? 'ready' : 'incomplete';
-    cur.ready = isReady;
-    outScenes.push(cur);
-  }
+  closeScene();
 
   // Fallback pass for plain text if no scenes were identified using standard INT/EXT sluglines
   if (!outScenes.length) {
