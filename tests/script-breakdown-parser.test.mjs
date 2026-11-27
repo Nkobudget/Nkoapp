@@ -61,7 +61,7 @@ What did you get us into?
   assert.deepEqual(scenes[0].cast, ['ADAOBI', 'STRANGER']);
   assert.equal(scenes[0].status, 'ready');
   assert.equal(scenes[0].ready, true);
-  assert.ok(scenes[0].pictureVehicles.some(v => v.name === "Adaobi's Taxi"));
+  assert.ok(scenes[0].pictureVehicles.some(v => v.name === 'Taxi'));
 
   // Scene 2 assertions
   assert.equal(scenes[1].sceneNumber, '2');
@@ -70,7 +70,7 @@ What did you get us into?
   assert.equal(scenes[1].location, "ADAOBI'S TAXI");
   assert.deepEqual(scenes[1].cast, ['YINKA', 'ADAOBI']);
   assert.ok(scenes[1].productionElements.some(e => e.name.includes('Dossier') || e.name.includes('Briefcase')));
-  assert.ok(scenes[1].pictureVehicles.some(v => v.name === 'Police Cruiser' || v.name === "Adaobi's Taxi"));
+  assert.ok(scenes[1].pictureVehicles.some(v => v.name === 'Police vehicle'));
 
   // Characters assertions
   assert.ok(characters.some(c => c.name === 'ADAOBI' && c.tier === 'lead' || c.tier === 'supporting'));
@@ -160,4 +160,73 @@ test('parseScriptFile never returns empty scenes even for empty input', () => {
   assert.ok(scenes.length >= 1);
   assert.equal(scenes[0].sceneNumber, '1');
   assert.equal(scenes[0].status, 'ready');
+});
+
+/* Layout of a long, numbered feature script after PDF text extraction: scene numbers on both
+   margins, sub-scenes without INT./EXT., headings that wrap onto a second line, dual cues,
+   and vehicles/props mentioned deep inside a scene rather than in its first lines. */
+test('parseScriptFile handles numbered PDF-style feature scripts', async () => {
+  const { isSceneHeadingLine, matchSubSceneHeading } = await import('../src/legacy/scriptBreakdownParser.js');
+  const filler = Array.from({ length: 8 }, (_, i) => `People move about the platform, line ${i + 1} of the opening.`).join('\n');
+  const pdfText = `
+1 EXT. RIVERTOWN TRAIN STATION – NIGHT 1
+${filler}
+KELECHI
+Help me carry this box, it is heavy.
+The train rolls in and scratches to a halt. Kelechi carries her box past the scar-faced porter.
+2 AT THE TAXI PARK: 2
+A cluster of old taxis. Drivers lean on their cars.
+KELECHI/ OBINNA
+Good evening!
+3 EXT. RIVERTOWN MARKET - CONTINUOUS - BACK TO
+PRESENT.
+OBINNA
+We should go.
+4 I/E. MILITARY TRUCK/ DIRT ROAD - EVENING
+An old truck bumps down the road. Soldiers grip their rifles. Gunshots ring out.
+SERGEANT
+Take cover!
+5 EXT. FARM HOUSE (COMPOUND - BACKYARD) - DAY 5
+Obinna advances carefully, then sits.
+OBINNA
+It is quiet.
+`;
+  const { scenes, characters } = parseScriptFile(pdfText, 'feature.pdf');
+
+  assert.deepEqual(scenes.map(s => s.sceneNumber), ['1', '2', '3', '4', '5']);
+  // Right-margin scene number is not part of the heading
+  assert.equal(scenes[0].heading, 'EXT. RIVERTOWN TRAIN STATION – NIGHT');
+  // Sub-scene inherits the parent's set and time of day
+  assert.equal(scenes[1].location, 'RIVERTOWN TRAIN STATION');
+  assert.equal(scenes[1].dayNight, 'NIGHT');
+  assert.equal(scenes[1].intExt, 'EXT');
+  // Wrapped heading is joined; "PRESENT." is not taken as a character
+  assert.equal(scenes[2].heading, 'EXT. RIVERTOWN MARKET - CONTINUOUS - BACK TO PRESENT.');
+  assert.ok(!characters.some(c => /PRESENT|CONTINUOUS/.test(c.name)));
+  // Dual cue credits both characters
+  assert.deepEqual(scenes[1].cast, ['KELECHI', 'OBINNA']);
+  // Unbalanced bracket from the dash split is closed
+  assert.equal(scenes[4].location, 'FARM HOUSE (COMPOUND)');
+
+  const vehicleNames = s => s.pictureVehicles.map(v => v.name).sort();
+  // The train is mentioned well past the first five action lines of scene 1
+  assert.ok(vehicleNames(scenes[0]).includes('Train'));
+  // "carry", "scar" and "advances" are not cars or vans
+  assert.ok(!vehicleNames(scenes[0]).includes('Car'));
+  assert.deepEqual(vehicleNames(scenes[4]), []);
+  assert.deepEqual(vehicleNames(scenes[1]), ['Car', 'Taxi']);
+  // A specific "military truck" is not also listed as a generic truck
+  assert.deepEqual(vehicleNames(scenes[3]), ['Military truck']);
+  assert.ok(scenes[3].productionElements.some(e => e.name === 'Firearms'));
+  assert.ok(scenes[3].productionElements.some(e => e.name === 'Gunfire & bullet hits FX'));
+  // No invented demo data
+  const all = JSON.stringify(scenes);
+  assert.ok(!/Adaobi|LSR 412|Toyota|Bridge exchange/.test(all));
+
+  assert.equal(matchSubSceneHeading('38 INSIDE THE ROOM: 38').title, 'INSIDE THE ROOM');
+  assert.equal(matchSubSceneHeading('38 INSIDE THE ROOM: 39'), null);
+  assert.equal(matchSubSceneHeading('2.'), null);
+  assert.ok(isSceneHeadingLine('12 AT THE DANCE FLOOR: 12'));
+  assert.ok(isSceneHeadingLine('1 EXT. RIVERTOWN TRAIN STATION – NIGHT 1'));
+  assert.ok(!isSceneHeadingLine('Kelechi nods.'));
 });

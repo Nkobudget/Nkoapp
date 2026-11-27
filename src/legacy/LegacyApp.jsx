@@ -11,7 +11,7 @@ import IrisLoader from '../components/IrisLoader';
 import { useLang } from '../i18n/LangContext';
 import { readOnboarding } from '../onboarding/storage';
 import { generateBudgetDocsHtml, budgetDocs } from './exportBudgetDocs.js';
-import { parseScriptFile, extractTextFromPdfBuffer } from './scriptBreakdownParser.js';
+import { parseScriptFile, extractTextFromPdfBuffer, isSceneHeadingLine } from './scriptBreakdownParser.js';
 import './dashboard.css';
 import { toast } from '../components/ToastProvider';
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
@@ -1054,7 +1054,6 @@ const parsePages8=t=>{
   if(/^\d+(?:\.\d+)?$/.test(s))return Math.round(parseFloat(s)*8);
   return null;
 };
-const SCENE_HEAD=/^\s*(?:\d+[A-Z]{0,2}[\s.)-]+)?(?:INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|I\s*\/\s*E|INT|EXT)\b[\s.\/-]/i;
 const normHead=t=>String(t||'').toUpperCase().replace(/^\s*\d+[A-Z]{0,2}[\s.)-]+/,'').replace(/[^A-Z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
 /* lines: [{page, y, text, h}] — y is the distance DOWN from the top of the page body, in points.
    pageBody is the height of one page of body text. A scene runs from its heading to the next heading. */
@@ -1063,7 +1062,7 @@ const layoutScenePages=(lines,pageBody)=>{
   const heads=[];let last=0;
   ordered.forEach(l=>{
     const pos=(l.page-1)*pageBody+l.y;last=Math.max(last,pos+(l.h||12));
-    if(l.text.length<140&&SCENE_HEAD.test(l.text))heads.push({text:l.text.trim(),pos});
+    if(isSceneHeadingLine(l.text))heads.push({text:l.text.trim(),pos});
   });
   return heads.map((h,i)=>{const end=i+1<heads.length?heads[i+1].pos:last;return{heading:h.text,eighths:Math.max(1,Math.round((end-h.pos)/pageBody*8))};});
 };
@@ -1116,7 +1115,7 @@ const measureScenePages=async file=>{
 /* Plain-text scripts have no page layout, so this is an estimate (about 56 lines to a page). */
 const estimateTxtPages=text=>{
   const lines=String(text||'').split(/\r?\n/);const heads=[];
-  lines.forEach((l,i)=>{if(l.length<140&&SCENE_HEAD.test(l))heads.push({text:l.trim(),pos:i});});
+  lines.forEach((l,i)=>{if(isSceneHeadingLine(l))heads.push({text:l.trim(),pos:i});});
   return heads.map((h,i)=>{const end=i+1<heads.length?heads[i+1].pos:lines.length;return{heading:h.text,eighths:Math.max(1,Math.round((end-h.pos)/56*8))};});
 };
 const attachPageLengths=(scenes,measured,source)=>{
@@ -3778,7 +3777,20 @@ function ProductionDashboardView({project,items=[],advances=[],reconEntries=[],p
   const menuRef = useRef(null);
 
   const isLagosDark = (project?.name || '').toLowerCase().includes('lagos');
-  const effectiveScenes = scenes && scenes.length > 0 ? scenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []);
+  /* Same fallback the Productions list and Breakdown view use: if the scenes have not come back
+     from the database yet (or a save failed), show the breakdown cached at upload time instead of nothing. */
+  let cachedScenes = [];
+  if (!(scenes && scenes.length > 0) && (project?.id || project?.name)) {
+    try {
+      const cached = (project?.id ? localStorage.getItem(`nko_bk_${project.id}`) : null) || (project?.name ? localStorage.getItem(`nko_bk_${project.name}`) : null);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const arr = Array.isArray(parsed) ? parsed : (parsed?.scenes || []);
+        cachedScenes = arr.map(normalizeScene);
+      }
+    } catch {}
+  }
+  const effectiveScenes = scenes && scenes.length > 0 ? scenes : (cachedScenes.length > 0 ? cachedScenes : (isLagosDark ? LAGOS_AFTER_DARK_SCENES : []));
   const pScriptScene = (effectiveScenes || []).find(s => s.script_name || s.data?.script_name);
   const resolvedScriptName = project?.script_name || pScriptScene?.script_name || pScriptScene?.data?.script_name || (effectiveScenes.length > 0 ? (isLagosDark ? 'Lagos After Dark — Shooting Draft.fdx' : `${project?.name} Script`) : null);
   const uniqueCast = [...new Set(effectiveScenes.flatMap(s => s.cast || []))].filter(Boolean);
@@ -17594,7 +17606,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
     if (ps.length > 0 && !isDefaultLagosScenes) {
       return deriveCastFromScenes(ps, [], false);
     }
-    return DEFAULT_CAST_MEMBERS;
+    return (isLagosDark ? DEFAULT_CAST_MEMBERS : []);
   });
 
   const saveCastMembersList = (updated) => {
@@ -17699,7 +17711,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
     if (ps.length > 0 && !isDefaultLagosScenes) {
       return deriveLocationsFromScenes(ps, [], false, project?.location);
     }
-    return DEFAULT_LOCATIONS;
+    return (isLagosDark ? DEFAULT_LOCATIONS : []);
   });
 
   const saveLocationsList = (updated) => {
@@ -17782,7 +17794,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
     if (ps.length > 0 && !isDefaultLagosScenes) {
       return deriveElementsFromScenes(ps, [], false);
     }
-    return DEFAULT_PRODUCTION_ELEMENTS;
+    return (isLagosDark ? DEFAULT_PRODUCTION_ELEMENTS : []);
   });
 
   const saveElementsList = (updated) => {
@@ -17848,7 +17860,7 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
     if (ps.length > 0 && !isDefaultLagosScenes) {
       return deriveVehiclesFromScenes(ps, [], false);
     }
-    return LAGOS_AFTER_DARK_VEHICLES;
+    return (isLagosDark ? LAGOS_AFTER_DARK_VEHICLES : []);
   });
 
   const saveVehiclesList = (updated) => {
@@ -17902,7 +17914,9 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
   const sortedVehicles = [...filteredVehicles].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   const vehiclesTabCount = vehicles.length > 0 ? vehicles.length : (isLagosDark && ps.length === 0 ? 2 : 0);
 
-  // Sync cast, locations, elements and vehicles whenever the active project or parsed scene list changes
+  // Sync cast, locations, elements and vehicles whenever the active project or parsed scene list changes.
+  // Keyed on the scene ids, not just the count, so re-uploading a script with the same number of scenes still refreshes.
+  const psSignature = ps.map(s => s.id).join('|');
   useEffect(() => {
     if (!project?.id) return;
     const isDef = isLagosDark && ps.length === 18 && Boolean(ps[0]?.heading?.includes('THIRD MAINLAND BRIDGE'));
@@ -17913,14 +17927,14 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
         const p = JSON.parse(cStored);
         if (Array.isArray(p) && p.length > 0) setCastMembers(p);
         else if (ps.length > 0 && !isDef) setCastMembers(deriveCastFromScenes(ps, [], false));
-        else setCastMembers(DEFAULT_CAST_MEMBERS);
+        else setCastMembers((isLagosDark ? DEFAULT_CAST_MEMBERS : []));
       } else if (ps.length > 0 && !isDef) {
         setCastMembers(deriveCastFromScenes(ps, [], false));
       } else {
-        setCastMembers(DEFAULT_CAST_MEMBERS);
+        setCastMembers((isLagosDark ? DEFAULT_CAST_MEMBERS : []));
       }
     } catch {
-      setCastMembers(ps.length > 0 && !isDef ? deriveCastFromScenes(ps, [], false) : DEFAULT_CAST_MEMBERS);
+      setCastMembers(ps.length > 0 && !isDef ? deriveCastFromScenes(ps, [], false) : (isLagosDark ? DEFAULT_CAST_MEMBERS : []));
     }
 
     try {
@@ -17929,14 +17943,14 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
         const p = JSON.parse(lStored);
         if (Array.isArray(p) && p.length > 0) setLocations(p);
         else if (ps.length > 0 && !isDef) setLocations(deriveLocationsFromScenes(ps, [], false, project.location));
-        else setLocations(DEFAULT_LOCATIONS);
+        else setLocations((isLagosDark ? DEFAULT_LOCATIONS : []));
       } else if (ps.length > 0 && !isDef) {
         setLocations(deriveLocationsFromScenes(ps, [], false, project.location));
       } else {
-        setLocations(DEFAULT_LOCATIONS);
+        setLocations((isLagosDark ? DEFAULT_LOCATIONS : []));
       }
     } catch {
-      setLocations(ps.length > 0 && !isDef ? deriveLocationsFromScenes(ps, [], false, project.location) : DEFAULT_LOCATIONS);
+      setLocations(ps.length > 0 && !isDef ? deriveLocationsFromScenes(ps, [], false, project.location) : (isLagosDark ? DEFAULT_LOCATIONS : []));
     }
 
     try {
@@ -17945,14 +17959,14 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
         const p = JSON.parse(eStored);
         if (Array.isArray(p) && p.length > 0) setElements(p);
         else if (ps.length > 0 && !isDef) setElements(deriveElementsFromScenes(ps, [], false));
-        else setElements(DEFAULT_PRODUCTION_ELEMENTS);
+        else setElements((isLagosDark ? DEFAULT_PRODUCTION_ELEMENTS : []));
       } else if (ps.length > 0 && !isDef) {
         setElements(deriveElementsFromScenes(ps, [], false));
       } else {
-        setElements(DEFAULT_PRODUCTION_ELEMENTS);
+        setElements((isLagosDark ? DEFAULT_PRODUCTION_ELEMENTS : []));
       }
     } catch {
-      setElements(ps.length > 0 && !isDef ? deriveElementsFromScenes(ps, [], false) : DEFAULT_PRODUCTION_ELEMENTS);
+      setElements(ps.length > 0 && !isDef ? deriveElementsFromScenes(ps, [], false) : (isLagosDark ? DEFAULT_PRODUCTION_ELEMENTS : []));
     }
 
     try {
@@ -17961,16 +17975,16 @@ function BreakdownView({project,scenes,characters,onSaveCharacter,onSaveCharacte
         const p = JSON.parse(vStored);
         if (Array.isArray(p) && p.length > 0) setVehicles(p);
         else if (ps.length > 0 && !isDef) setVehicles(deriveVehiclesFromScenes(ps, [], false));
-        else setVehicles(LAGOS_AFTER_DARK_VEHICLES);
+        else setVehicles((isLagosDark ? LAGOS_AFTER_DARK_VEHICLES : []));
       } else if (ps.length > 0 && !isDef) {
         setVehicles(deriveVehiclesFromScenes(ps, [], false));
       } else {
-        setVehicles(LAGOS_AFTER_DARK_VEHICLES);
+        setVehicles((isLagosDark ? LAGOS_AFTER_DARK_VEHICLES : []));
       }
     } catch {
-      setVehicles(ps.length > 0 && !isDef ? deriveVehiclesFromScenes(ps, [], false) : LAGOS_AFTER_DARK_VEHICLES);
+      setVehicles(ps.length > 0 && !isDef ? deriveVehiclesFromScenes(ps, [], false) : (isLagosDark ? LAGOS_AFTER_DARK_VEHICLES : []));
     }
-  }, [project?.id, ps.length]);
+  }, [project?.id, psSignature]);
 
   return(
     <div>
@@ -20936,10 +20950,22 @@ function Workspace(){
         if (!retry.error && retry.data?.length) {
           data = retry.data;
           error = null;
+        } else if (retry.error) {
+          error = retry.error;
         }
       }
     } catch (insertEx) {
       console.warn('Scenes insert exception:', insertEx);
+      error = error || insertEx;
+    }
+    /* Without this the failure is invisible: the scenes show from local state for a few seconds,
+       then the 12s background poll reloads an empty list from the database and the breakdown vanishes. */
+    if (error || !data?.length) {
+      console.error('Scenes were not saved to the database:', error);
+      toast.error(
+        'Scenes not saved',
+        `${scenesArr.length} scenes were read from the script but could not be saved to the database${error?.message ? `: ${error.message}` : '.'} They are kept on this device only.`
+      );
     }
     const saved=(!error&&data?.length)
       ? data.map(r=>normalizeScene({...(r.data||r),id:r.id,project_id:r.project_id||targetId,project_name:project?.name||r.data?.project_name,script_name:scriptName||r.data?.script_name}))
@@ -21322,7 +21348,7 @@ function Workspace(){
           {/* {view==='dashboard'&&<GettingStarted projects={projects} budgetItems={budgetItems} scenes={scenes} scheduleDays={scheduleDays} advances={advances} purchaseOrders={purchaseOrders} payees={payees} userId={user.id} onGo={v=>{if(!currentId&&projects[0])setCurrentId(projects[0].id);setView(v);}}/>} */}
           {(view==='overview'||(view==='dashboard'&&project))?(
             project?(
-              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name))} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onOpenUploadScript={()=>{setBreakdownOpenUpload(true);setView('breakdown');}}/>
+              <ProductionDashboardView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name, s.project_name || s.data?.project_name))} revenueItems={revenueItems.filter(r=>r.project_id===currentId)} collaborators={collaborators.filter(c=>c.project_id===currentId)} onBack={()=>{setCurrentId(null);setView('productions');}} onStudioDashboard={()=>{setCurrentId(null);setView('dashboard');}} onOpenBudget={()=>setView('budgets')} onOpenRecon={()=>setView('recon')} onNavigate={v=>setView(v)} onInviteCollaborator={inviteCollaborator} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onOpenUploadScript={()=>{setBreakdownOpenUpload(true);setView('breakdown');}}/>
             ):(
               <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:40,textAlign:'center'}}>
                 <div style={{fontFamily:'Inter,sans-serif',fontSize:16,fontWeight:600,color:T.cream,marginBottom:6}}>No production selected</div>
