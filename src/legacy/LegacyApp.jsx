@@ -9105,13 +9105,22 @@ function BreakdownUploader({open=true,onClose,project,onApply,onSaveCharacter}){
     return()=>document.removeEventListener('visibilitychange',h);
   },[onApply]);
 
+  /* Reset only when the modal OPENS. This used to also depend on `state` and `onClose`, so every
+     state change ('reading', 'analyzing', 'done') — and every parent re-render, since onClose is an
+     inline arrow — re-ran it and snapped the modal back to 'idle'. The upload finished in the
+     background but the modal never showed the success view. */
+  const stateRef=useRef(state);stateRef.current=state;
+  const onCloseRef=useRef(onClose);onCloseRef.current=onClose;
   useEffect(()=>{
     if(!open)return;
     setState('idle');setErr('');setDragging(false);setFileInfo(null);setParsedSummary(null);
-    const onKey=e=>{if(e.key==='Escape'&&state!=='reading'&&state!=='analyzing')onClose?.();};
+  },[open]);
+  useEffect(()=>{
+    if(!open)return;
+    const onKey=e=>{if(e.key==='Escape'&&stateRef.current!=='reading'&&stateRef.current!=='analyzing')onCloseRef.current?.();};
     window.addEventListener('keydown',onKey);
     return()=>window.removeEventListener('keydown',onKey);
-  },[open,state,onClose]);
+  },[open]);
 
   const process=async f=>{
     const isPDF=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
