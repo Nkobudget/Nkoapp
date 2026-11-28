@@ -64,6 +64,7 @@ import {
   PiggyBank,
   Plus,
   Receipt,
+  RotateCcw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -2826,10 +2827,21 @@ function NewProjectModal({open,onClose,onCreate,onOpenProject,defaultCurrency='N
 }
 
 /* ── Collaborators Modal ── */
-function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClose, isOwner }) {
+function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onLeave, onClose, isOwner, currentUserId }) {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const count = collaborators.length;
+  const canLeave = !isOwner && Boolean(onLeave);
+
+  const handleLeave = async () => {
+    if (!canLeave || leaving) return;
+    if (!window.confirm(`Leave "${project.name}"? You will lose access until the admin invites you again.`)) return;
+    setLeaving(true);
+    await onLeave(project.id);
+    setLeaving(false);
+    onClose?.();
+  };
 
   const handleInvite = async () => {
     if (!email.trim() || !isOwner) return;
@@ -2918,10 +2930,28 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
                       {c.email || `Collaborator ${i + 1}`}
                     </div>
                     <div style={{ fontSize: 10, color: T.dim }}>
-                      Seat {i + 1} of 4
+                      Seat {i + 1} of 4{canLeave && c.user_id === currentUserId ? ' · You' : ''}
                     </div>
                   </div>
                 </div>
+                {canLeave && c.user_id === currentUserId && (
+                  <button
+                    onClick={handleLeave}
+                    disabled={leaving}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${T.coral}`,
+                      borderRadius: 6,
+                      color: T.coral,
+                      fontSize: 10,
+                      padding: '4px 8px',
+                      cursor: leaving ? 'default' : 'pointer',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {leaving ? 'Leaving…' : 'Leave'}
+                  </button>
+                )}
                 {isOwner && (
                   <button
                     onClick={() => {
@@ -2950,8 +2980,17 @@ function CollaboratorsModal({ project, collaborators, onInvite, onRemove, onClos
 
         {/* Invite form if < 4 (Admin only) */}
         {!isOwner ? (
-          <div style={{ padding: 10, background: T.hi, borderRadius: 8, fontSize: 11, color: T.faint, textAlign: 'center', borderTop: `1px solid ${T.line}` }}>
-            Only the production admin can invite or manage collaborators.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ padding: 10, background: T.hi, borderRadius: 8, fontSize: 11, color: T.faint, textAlign: 'center', borderTop: `1px solid ${T.line}` }}>
+              Only the production admin can invite or manage collaborators.
+            </div>
+            {canLeave && (
+              <Btn variant="danger" onClick={handleLeave} disabled={leaving} style={{ fontSize: 12, padding: '8px 14px', width: '100%' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <LogOut size={13}/>{leaving ? 'Leaving…' : 'Leave production'}
+                </span>
+              </Btn>
+            )}
           </div>
         ) : count < 4 ? (
           <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14 }}>
@@ -3056,7 +3095,7 @@ const computeTotalSpend = (projectAdvances = [], projectReconEntries = [], proje
 };
 
 /* ── Dashboard ── */
-function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],onOpenUploadScript,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,trialCount,trialLimit,searchQuery='',userEmail='',onlyProductions=false}){
+function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],payees=[],purchaseOrders=[],scenes=[],onOpenUploadScript,currentId,onSelect,onCreate,onDelete,showModal,setShowModal,defaultCurrency,collaborators=[],currentUserId,onInviteCollaborator,onRemoveCollaborator,onLeaveProject,trialCount,trialLimit,searchQuery='',userEmail='',onlyProductions=false}){
   const{t}=useLang();
   const[confirmDel,setConfirmDel]=useState(null);const[selected,setSelected]=useState(new Set());const[confirmMulti,setConfirmMulti]=useState(false);
   const[collabModalProject,setCollabModalProject]=useState(null);
@@ -3267,8 +3306,8 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
       </motion.div>
       )}
 
-      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={async()=>{await onDelete([confirmDel.id]);setConfirmDel(null);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
-      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={async()=>{await onDelete([...selected]);setSelected(new Set());setConfirmMulti(false);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
+      {confirmDel&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete "{confirmDel.name}"?</div><div style={{fontSize:12,color:T.dim,fontFamily:'Inter,sans-serif',marginBottom:16}}>All budget lines, advances and payments will be deleted.</div><div style={{display:'flex',gap:8,justifyContent:'center'}}><Btn variant="danger" onClick={()=>{setConfirmDel(null);onDelete([confirmDel.id]);}}>{t('deleteWord')}</Btn><Btn variant="ghost" onClick={()=>setConfirmDel(null)}>{t('cancel')}</Btn></div></div></div>}
+      {confirmMulti&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20,zIndex:100}}><div style={{background:T.panel,border:`1px solid ${T.coral}`,borderRadius:12,padding:26,maxWidth:360,textAlign:'center'}}><div style={{fontFamily:'Inter,sans-serif',fontSize:17,color:T.cream,marginBottom:8}}>Delete {selected.size} productions?</div><div style={{display:'flex',gap:8,justifyContent:'center',marginTop:12}}><Btn variant="danger" onClick={()=>{const ids=[...selected];setSelected(new Set());setConfirmMulti(false);onDelete(ids);}}>Delete all</Btn><Btn variant="ghost" onClick={()=>setConfirmMulti(false)}>{t('cancel')}</Btn></div></div></div>}
 
       {projects.length===0?(
         <div style={{background:T.panel,border:`1px solid ${T.line}`,borderRadius:14,padding:48,textAlign:'center'}}>
@@ -3645,7 +3684,15 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
                 <div style={{marginTop:6,paddingTop:14,borderTop:'1px solid #1C1C21',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                     {!isOwner ? (
-                      <span style={{fontSize:11,color:T.sapphire,fontWeight:600}}>Shared production</span>
+                      <>
+                        <span style={{fontSize:11,color:T.sapphire,fontWeight:600}}>Shared production</span>
+                        <button
+                          onClick={e=>{e.stopPropagation();setCollabModalProject(p);}}
+                          style={{background:'none',border:'none',color:T.dim,fontSize:11,cursor:'pointer',textDecoration:'underline',padding:0}}
+                        >
+                          Leave
+                        </button>
+                      </>
                     ) : count === 0 ? (
                       <button
                         onClick={e=>{
@@ -3759,7 +3806,7 @@ function DashboardView({projects=[],budgetItems=[],advances=[],reconEntries=[],p
         )}
       </>
       )}
-      {collabModalProject&&<CollaboratorsModal project={collabModalProject} isOwner={collabModalProject.user_id===currentUserId} collaborators={collaborators.filter(c=>c.project_id===collabModalProject.id)} onInvite={email=>onInviteCollaborator(collabModalProject.id,email)} onRemove={(collabId)=>onRemoveCollaborator(collabId,collabModalProject.id)} onClose={()=>setCollabModalProject(null)}/>}
+      {collabModalProject&&<CollaboratorsModal project={collabModalProject} isOwner={collabModalProject.user_id===currentUserId} collaborators={collaborators.filter(c=>c.project_id===collabModalProject.id)} onInvite={email=>onInviteCollaborator(collabModalProject.id,email)} onRemove={(collabId)=>onRemoveCollaborator(collabId,collabModalProject.id)} onLeave={onLeaveProject} currentUserId={currentUserId} onClose={()=>setCollabModalProject(null)}/>}
       <NewProjectModal open={showModal} onClose={()=>setShowModal(false)} onCreate={onCreate} onOpenProject={id=>onSelect(id)} defaultCurrency={defaultCurrency}/>
     </div>
   );
@@ -6241,7 +6288,7 @@ function AddBudgetLineModal({open,onClose,onAdd,baseCur='NGN',items=[]}){
   );
 }
 
-function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrders=[],onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,scenes,characters,onSaveCharacter,onSaveCharactersBatch,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText,onAddScenes}){
+function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrders=[],onAdd,onUpdate,onRemove,onApplyTemplate,onApplyScript,onResetBudget,scenes,characters,onSaveCharacter,onSaveCharactersBatch,onSetContingency,onSetTarget,isOwner,isProducerActive,otherActiveCount,liveActivityText,onAddScenes}){
   const{t:tr}=useLang();
   const[showTpl,setShowTpl]=useState(false);
   const[showExport,setShowExport]=useState(false);
@@ -6576,7 +6623,17 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                       Icon:History,
                       onClick:()=>{setShowMoreMenu(false);setShowHistory(true);},
                     },
-                  ].map(({id,label,Icon,onClick})=>(
+                    ...(isOwner&&onResetBudget&&pItems.length>0?[{
+                      id:'reset',
+                      label:'Reset budget',
+                      Icon:RotateCcw,
+                      danger:true,
+                      onClick:()=>{
+                        setShowMoreMenu(false);
+                        if(window.confirm(`Reset the budget for "${project.name}"? All ${pItems.length} budget line${pItems.length===1?'':'s'} will be deleted. This cannot be undone.`))onResetBudget();
+                      },
+                    }]:[]),
+                  ].map(({id,label,Icon,onClick,danger})=>(
                     <button
                       key={id}
                       type="button"
@@ -6603,7 +6660,7 @@ function BudgetsView({project,items,advances,reconEntries,payees=[],purchaseOrde
                       onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';}}
                       onMouseLeave={e=>{e.currentTarget.style.background='transparent';}}
                     >
-                      <Icon size={16} strokeWidth={1.8} style={{color:'#8C857B',flexShrink:0}}/>
+                      <Icon size={16} strokeWidth={1.8} style={{color:danger?'#E06B52':'#8C857B',flexShrink:0}}/>
                       <span>{label}</span>
                     </button>
                   ))}
@@ -20657,32 +20714,44 @@ function Workspace(){
       if(error)alert(`Could not remove collaborator: ${error.message}`);
     }
   };
+  /* A collaborator removing THEMSELVES from a shared production. removeCollaborator is admin-only,
+     so before this there was no way for an invited user to leave. */
+  const leaveProject=async projectId=>{
+    const proj = projects.find(p=>p.id===projectId);
+    if(!proj)return;
+    if(proj.user_id===user.id){
+      alert('You are the admin of this production. Delete it instead, or remove the collaborators.');
+      return;
+    }
+    // .select() returns the rows actually deleted: a row-level-security policy that blocks the
+    // delete returns no error but zero rows, which would otherwise look like success.
+    const{data,error}=await sb.from('project_collaborators').delete().eq('project_id',projectId).eq('user_id',user.id).select();
+    if(error||!data?.length){
+      console.error('Leave production failed:', error, data);
+      toast.error(
+        'Could not leave production',
+        error?.message || 'The database did not allow you to remove yourself. Ask the production admin to remove you, or update the project_collaborators delete policy.'
+      );
+      return;
+    }
+    setCollaborators(p=>p.filter(c=>!(c.project_id===projectId && c.user_id===user.id)));
+    setProjects(p=>p.filter(x=>x.id!==projectId));
+    if(currentId===projectId){setCurrentId(null);setView('dashboard');}
+    toast.success('Left production', `You no longer have access to ${proj.name || 'this production'}.`);
+  };
   const deleteProjects=async ids=>{
     const unowned = ids.filter(id => {
       const p = projects.find(proj => proj.id === id);
       return p && p.user_id !== user.id;
     });
     if(unowned.length > 0){
-      alert("Only the production admin can delete a production.");
+      alert("Only the production admin can delete a production. To remove a shared production from your list, open its Collaborators panel and choose \"Leave production\".");
       return;
     }
-    for(const id of ids){
-      await purgeReceipts(id);
-      await sb.from('project_collaborators').delete().eq('project_id',id);
-      await sb.from('schedule_days').delete().eq('project_id',id);
-      await sb.from('revenue_items').delete().eq('project_id',id);
-      await sb.from('budget_items').delete().eq('project_id',id);
-      await sb.from('purchase_orders').delete().eq('project_id',id);
-      await sb.from('payees').delete().eq('project_id',id);
-      const advsToDelete = advances.filter(a => matchesProject(a.project_id, id));
-      for(const a of advsToDelete){
-        await sb.from('recon_entries').delete().eq('advance_id', a.id);
-      }
-      await sb.from('advances').delete().eq('project_id',id);
-      await sb.from('scenes').delete().eq('project_id',id);
-      await sb.from('characters').delete().eq('project_id',id);
-      await sb.from('projects').delete().eq('id',id);
-    }
+    /* Remove from the screen immediately. This used to await ~12 sequential requests per production
+       (plus one per advance) before anything changed, so delete felt like it wasn't working. */
+    const removedProjects = projects.filter(p => ids.includes(p.id));
+    try{const k=`nko_del_pr_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...ids.map(String)])]));}catch{}
     setScheduleDays(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
     setRevenueItems(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
     setProjects(p=>p.filter(x=>!ids.includes(x.id)));
@@ -20693,6 +20762,37 @@ function Workspace(){
     setScenes(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
     setCharacters(p=>p.filter(x=>!ids.some(id => matchesProject(x.project_id, id))));
     if(ids.includes(currentId)){setCurrentId(null);setView('dashboard');}
+
+    // Children have no ordering between them (except recon entries → advances), so run them in parallel.
+    const failed = [];
+    await Promise.all(ids.map(async id => {
+      const advIds = advances.filter(a => matchesProject(a.project_id, id)).map(a => a.id);
+      await Promise.all([
+        purgeReceipts(id),
+        sb.from('project_collaborators').delete().eq('project_id',id),
+        sb.from('schedule_days').delete().eq('project_id',id),
+        sb.from('revenue_items').delete().eq('project_id',id),
+        sb.from('budget_items').delete().eq('project_id',id),
+        sb.from('purchase_orders').delete().eq('project_id',id),
+        sb.from('payees').delete().eq('project_id',id),
+        sb.from('scenes').delete().eq('project_id',id),
+        sb.from('characters').delete().eq('project_id',id),
+        (async () => {
+          if (advIds.length) await sb.from('recon_entries').delete().in('advance_id', advIds);
+          await sb.from('advances').delete().eq('project_id',id);
+        })(),
+      ]);
+      const { error } = await sb.from('projects').delete().eq('id',id);
+      if (error) failed.push({ id, error });
+    }));
+
+    if (failed.length) {
+      // The production itself was not deleted — put it back so the list matches the database.
+      const failedIds = failed.map(f => String(f.id));
+      try{const k=`nko_del_pr_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify(cur.filter(x=>!failedIds.includes(String(x)))));}catch{}
+      setProjects(p=>[...removedProjects.filter(rp=>failedIds.includes(String(rp.id))), ...p]);
+      toast.error('Could not delete production', failed[0].error?.message || 'Database error.');
+    }
   };
   const addBudgetItem=async arg=>{
     const payload=typeof arg==='string'?{dept:arg,description:'',qty:1,unit:'flat',rate:0}:{dept:arg.dept,description:arg.description||'',qty:Number(arg.qty)||1,unit:arg.unit||'flat',rate:Number(arg.rate)||0};
@@ -20752,6 +20852,28 @@ function Workspace(){
     setBudgetItems(p=>p.filter(i=>i.id!==id));
     broadcastActivity('removed a budget line');
     await sb.from('budget_items').delete().eq('id',id);
+  };
+  /* Clear every budget line on the current production so the producer can start again. */
+  const resetBudget=async()=>{
+    if(!currentId)return;
+    if(project?.user_id && project.user_id!==user.id){
+      alert('Only the production admin can reset the budget.');
+      return;
+    }
+    const removed=budgetItems.filter(i=>matchesProject(i.project_id, currentId));
+    if(!removed.length)return;
+    const removedIds=removed.map(i=>String(i.id));
+    try{const k=`nko_del_bi_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify([...new Set([...cur,...removedIds])]));}catch{}
+    setBudgetItems(p=>p.filter(i=>!matchesProject(i.project_id, currentId)));
+    const{error}=await sb.from('budget_items').delete().eq('project_id',currentId);
+    if(error){
+      try{const k=`nko_del_bi_${user.id}`;const cur=JSON.parse(localStorage.getItem(k)||'[]');localStorage.setItem(k,JSON.stringify(cur.filter(x=>!removedIds.includes(String(x)))));}catch{}
+      setBudgetItems(p=>[...p,...removed]);
+      toast.error('Could not reset budget', error.message || 'Database error.');
+      return;
+    }
+    broadcastActivity('reset the budget');
+    toast.success('Budget reset', `${removed.length} budget line${removed.length===1?'':'s'} removed.`);
   };
   const applyTemplate=async(tpl,mode='add')=>{
     let targetId = project?.id || currentId;
@@ -21366,12 +21488,12 @@ function Workspace(){
               </div>
             )
           ):(
-            view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
+            view==='dashboard'&&<DashboardView projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} onLeaveProject={leaveProject} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
           {view==='productions'&&(
-            <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
+            <DashboardView onlyProductions projects={projects} budgetItems={budgetItems} advances={advances} reconEntries={reconEntries} payees={payees} purchaseOrders={purchaseOrders} scenes={scenes} onOpenUploadScript={id=>{setCurrentId(id);setView('breakdown');setBreakdownOpenUpload(true);}} currentId={currentId} onSelect={id=>{setCurrentId(id);setView('overview');}} onCreate={createProject} onDelete={deleteProjects} showModal={showNewModal} setShowModal={setShowNewModal} defaultCurrency={defaultCurrency} collaborators={collaborators} currentUserId={user.id} onInviteCollaborator={inviteCollaborator} onRemoveCollaborator={removeCollaborator} onLeaveProject={leaveProject} trialCount={trialCount} trialLimit={TRIAL_WALL_ENABLED?TRIAL_LIMIT:0} searchQuery={searchQuery} userEmail={user?.email}/>
           )}
-          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name, s.project_name || s.data?.project_name))} characters={characters.filter(c=>matchesProject(c.project_id, currentId, project?.name))} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
+          {view==='budgets'&&<BudgetsView project={project} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} onAdd={addBudgetItem} onUpdate={updateBudgetItem} onRemove={removeBudgetItem} onApplyTemplate={applyTemplate} onApplyScript={applyScriptBudget} onResetBudget={resetBudget} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name, s.project_name || s.data?.project_name))} characters={characters.filter(c=>matchesProject(c.project_id, currentId, project?.name))} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onSetContingency={setContingency} onSetTarget={updateProjectTarget} isOwner={!project?.user_id || project?.user_id===user.id} isProducerActive={isProducerActive} otherActiveCount={otherActiveCount} liveActivityText={liveActivity?.text} onAddScenes={addScenesBatch}/>}
           {view==='schedule'&&<SchedulesView project={project} scenes={scenes.filter(s=>matchesProject(s.project_id, currentId, project?.name, s.project_name || s.data?.project_name))} characters={characters.filter(c=>matchesProject(c.project_id, currentId, project?.name))} days={scheduleDays.filter(d=>d.project_id===currentId).slice().sort((a,b)=>(a.position??0)-(b.position??0))} onAddDays={addScheduleDays} onUpdateDay={updateScheduleDay} onRemoveDay={removeScheduleDay} onUpdateScene={updateScene} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='revenue'&&<RevenueView project={project} items={revenueItems} onAdd={addRevenueItem} onUpdate={updateRevenueItem} onRemove={removeRevenueItem} isOwner={!project?.user_id || project?.user_id===user.id}/>}
           {view==='breakdown'&&<BreakdownView project={project} scenes={scenes} characters={characters} onSaveCharacter={saveCharacterMeta} onSaveCharactersBatch={saveCharactersBatch} onAddScene={addScene} onAddScenes={addScenesBatch} onDeleteScene={deleteScene} onUpdateScene={updateScene} onDedupeScenes={dedupeScenes} isOwner={!project?.user_id || project?.user_id===user.id} items={pBudget} advances={pAdvances} reconEntries={pReconEntries} payees={payees.filter(p=>matchesProject(p.project_id, currentId, project?.name))} purchaseOrders={purchaseOrders.filter(po=>matchesProject(po.project_id, currentId, project?.name))} initialOpenUpload={breakdownOpenUpload} onResetInitialOpenUpload={()=>setBreakdownOpenUpload(false)}/>}
